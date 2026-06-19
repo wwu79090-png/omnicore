@@ -144,6 +144,10 @@ export function createEditorApp(root = document.querySelector('#app'), {
     exportDataJson,
     validateAuthoringAssets,
     exportAuthoringBundle,
+    createAssetWorkflowIndex,
+    createCollaborationHandoff,
+    createProjectGovernanceReport,
+    exportMatureEditorBundle,
     getProfilerHotspots,
     destroy,
     sync: client
@@ -1420,6 +1424,163 @@ export function createEditorApp(root = document.querySelector('#app'), {
       manifest,
       health: buildAuthoringHealthReport({ ...options, checkedAt: generatedAt, open: false }),
       files
+    };
+  }
+
+  function createAssetWorkflowIndex() {
+    const assets = getWorkflowAssets();
+    const assetPaths = new Set(assets.map((asset) => asset.path).filter(Boolean));
+    const byType = {};
+    for (const asset of assets) byType[asset.type] = (byType[asset.type] || 0) + 1;
+    const sceneReferences = collectSceneAssetReferences().map((reference) => ({
+      ...reference,
+      resolved: assetPaths.has(reference.path)
+    }));
+    const referencedPaths = new Set(sceneReferences.map((reference) => reference.path));
+    const orphanAssets = assets
+      .filter((asset) => asset.path && asset.type !== 'scene' && !referencedPaths.has(asset.path))
+      .map((asset) => asset.path)
+      .sort((left, right) => left.localeCompare(right));
+    return {
+      format: 'OmniCore.AssetWorkflowIndex',
+      generatedAt: new Date().toISOString(),
+      totalAssets: assets.length,
+      byType,
+      assets: assets.map((asset) => cloneState(asset)),
+      sceneReferences,
+      unresolvedReferences: sceneReferences.filter((reference) => !reference.resolved),
+      orphanAssets
+    };
+  }
+
+  function createCollaborationHandoff(options = {}) {
+    const generatedAt = options.generatedAt || new Date().toISOString();
+    const readiness = buildAuthoringHealthReport({ checkedAt: generatedAt, open: false, warningMs: options.warningMs ?? 12 });
+    const assetWorkflow = createAssetWorkflowIndex();
+    const buildTargets = enabledBuildTargets();
+    return {
+      format: 'OmniCore.EditorCollaborationHandoff',
+      generatedAt,
+      author: options.author || null,
+      reviewer: options.reviewer || null,
+      note: options.note || '',
+      workspace: cloneState(current.workspace || {}),
+      scene: {
+        name: current.scene?.name || 'untitled',
+        entityCount: (current.scene?.entities || []).length
+      },
+      readiness: {
+        ready: readiness.ok && assetWorkflow.unresolvedReferences.length === 0,
+        issues: readiness.issues,
+        unresolvedReferences: assetWorkflow.unresolvedReferences
+      },
+      files: {
+        projectFiles: Object.keys(normalizeProjectFilesState(current.projectFiles)).length,
+        assets: assetWorkflow.totalAssets,
+        scenes: countSceneAssets(assetWorkflow.assets),
+        sourceFiles: (current.workspace?.sourceFiles || []).length
+      },
+      buildTargets
+    };
+  }
+
+  function createProjectGovernanceReport() {
+    const assetWorkflow = createAssetWorkflowIndex();
+    const buildTargets = enabledBuildTargets();
+    const projectFiles = Object.keys(normalizeProjectFilesState(current.projectFiles));
+    const checklist = [
+      checkItem('workspace-opened', Boolean(current.workspace?.root || current.workspace?.name), 'Open or scan a project workspace.'),
+      checkItem('asset-workflow-index', assetWorkflow.totalAssets > 0, 'Index project assets and scene references.'),
+      checkItem('collaboration-handoff', true, 'Export collaboration handoff before review.'),
+      checkItem('project-files-present', projectFiles.length > 0, 'Track project files in the editor workspace.'),
+      checkItem('platform-targets', buildTargets.includes('web') && buildTargets.includes('wechat'), 'Keep Web and WeChat targets configured.'),
+      checkItem('authoring-health', assetWorkflow.unresolvedReferences.length === 0, 'Resolve missing scene asset references.')
+    ];
+    return {
+      format: 'OmniCore.EditorGovernanceReport',
+      generatedAt: new Date().toISOString(),
+      workspace: cloneState(current.workspace || {}),
+      coverage: {
+        projectFiles: projectFiles.length,
+        assets: assetWorkflow.totalAssets,
+        sceneReferences: assetWorkflow.sceneReferences.length,
+        unresolvedReferences: assetWorkflow.unresolvedReferences.length,
+        buildTargets
+      },
+      checklist,
+      ready: checklist.every((item) => item.status === 'covered')
+    };
+  }
+
+  function exportMatureEditorBundle(options = {}) {
+    const generatedAt = options.generatedAt || new Date().toISOString();
+    return {
+      format: 'OmniCore.MatureEditorBundle',
+      version: 1,
+      generatedAt,
+      authoring: exportAuthoringBundle({ ...options, generatedAt }),
+      assetWorkflow: createAssetWorkflowIndex(),
+      collaboration: createCollaborationHandoff({ ...options, generatedAt }),
+      governance: createProjectGovernanceReport()
+    };
+  }
+
+  function getWorkflowAssets() {
+    const candidates = [
+      ...(Array.isArray(current.assets) ? current.assets : []),
+      ...(Array.isArray(current.workspace?.assets) ? current.workspace.assets : []),
+      ...(Array.isArray(current.workspace?.scenes) ? current.workspace.scenes : [])
+    ].map(normalizeAssetEntry);
+    const byPath = new Map();
+    for (const asset of candidates) {
+      if (!asset.path || byPath.has(asset.path)) continue;
+      byPath.set(asset.path, asset);
+    }
+    return [...byPath.values()].sort((left, right) => left.path.localeCompare(right.path));
+  }
+
+  function collectSceneAssetReferences() {
+    const references = [];
+    for (const entity of current.scene?.entities || []) {
+      for (const [field, value] of Object.entries(entity)) {
+        if (!isAssetReferenceField(field, value)) continue;
+        references.push({
+          entityId: entity.id || null,
+          entityName: entity.name || null,
+          field,
+          path: slash(value)
+        });
+      }
+      for (const [field, value] of Object.entries(entity.material || {})) {
+        if (!isAssetReferenceField(field, value)) continue;
+        references.push({
+          entityId: entity.id || null,
+          entityName: entity.name || null,
+          field: `material.${field}`,
+          path: slash(value)
+        });
+      }
+    }
+    return references.sort((left, right) => `${left.path}:${left.entityId}`.localeCompare(`${right.path}:${right.entityId}`));
+  }
+
+  function enabledBuildTargets() {
+    const settings = normalizeBuildSettingsState(current.buildSettings);
+    return Object.entries(settings.targets || {})
+      .filter(([, config]) => config.enabled)
+      .map(([target]) => target)
+      .sort((left, right) => left.localeCompare(right));
+  }
+
+  function countSceneAssets(assets) {
+    return assets.filter((asset) => asset.type === 'scene').length || (current.workspace?.scenes || []).length || (current.sceneTabs || []).length;
+  }
+
+  function checkItem(id, ok, action) {
+    return {
+      id,
+      status: ok ? 'covered' : 'missing',
+      action
     };
   }
 
@@ -3588,15 +3749,19 @@ function normalizePrefabHotEditState(value = {}) {
 function normalizeBuildSettingsState(value = {}) {
   const defaults = defaultBuildTargets();
   const targets = value.targets || {};
+  const enabledTargets = Array.isArray(targets) ? new Set(targets) : null;
   return {
     targets: Object.fromEntries(Object.entries(defaults).map(([platform, config]) => [
       platform,
       {
         ...config,
-        ...(targets[platform] || {}),
-        enabled: Boolean(targets[platform]?.enabled ?? config.enabled)
+        ...(!enabledTargets ? (targets[platform] || {}) : {}),
+        enabled: enabledTargets
+          ? enabledTargets.has(platform)
+          : Boolean(targets[platform]?.enabled ?? config.enabled)
       }
-    ]))
+    ])),
+    budgets: normalizeBuildBudgetsState(value.budgets || value)
   };
 }
 
@@ -3607,6 +3772,13 @@ function defaultBuildTargets() {
     electron: { enabled: false, compression: 'asar', iconSize: 256, configStrategy: 'desktop' },
     steam: { enabled: false, compression: 'store', iconSize: 256, configStrategy: 'depot' },
     itch: { enabled: false, compression: 'brotli', iconSize: 256, configStrategy: 'portable' }
+  };
+}
+
+function normalizeBuildBudgetsState(value = {}) {
+  return {
+    maxBundleKb: Math.max(1, Number(value.maxBundleKb || 1024)),
+    maxWechatBytes: Math.max(1, Number(value.maxWechatBytes || 4 * 1024 * 1024))
   };
 }
 
@@ -4371,6 +4543,13 @@ function assetType(asset = {}) {
 function isSceneAsset(asset = {}) {
   const entryPath = slash(typeof asset === 'string' ? asset : asset.path || asset.url || asset.name || '');
   return assetType(asset) === 'scene' || /(^|\/)scenes\/.+\.json$/iu.test(entryPath) || /\.scene\.json$/iu.test(entryPath);
+}
+
+function isAssetReferenceField(field, value) {
+  if (typeof value !== 'string' || !value) return false;
+  if (!/(^|\/)(assets|sprites|audio|textures|ui|scenes)\//iu.test(value)) return false;
+  return /^(texture|sprite|image|asset|source|normalMap|atlas|audio|scene|background)$/iu.test(field)
+    || /asset|texture|image|sprite|map|scene|source/iu.test(field);
 }
 
 function assetIcon(asset = {}) {

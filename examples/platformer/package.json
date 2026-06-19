@@ -1,0 +1,16 @@
+{
+  "name": "@omnicore/example-platformer",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "build": "node src/main.js > ../../dist/platformer-hello.json"
+  },
+  "dependencies": {
+    "@omnicore/core": "file:../../packages/core",
+    "@omnicore/physics": "file:../../packages/physics",
+    "@omnicore/editor-protocol": "file:../../packages/editor-protocol"
+  }
+}

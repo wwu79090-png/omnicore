@@ -22,8 +22,28 @@ const metricDefinitions = [
   { key: 'complexSceneBenchmarkFps', label: '独立复杂场景 Benchmark FPS', direction: 'higher' },
   { key: 'complexScene1200DrawCalls', label: '复杂场景 Draw Calls/帧', direction: 'lower' },
   { key: 'complexScene1200CollisionPairs', label: '复杂场景碰撞对总量', direction: 'higher' },
-  { key: 'complexScene1200MaterialSwitches', label: '复杂场景动态材质切换量', direction: 'higher' }
+  { key: 'complexScene1200MaterialSwitches', label: '复杂场景动态材质切换量', direction: 'higher' },
+  { key: 'complexScene1200PhysicsMs', label: '复杂场景 Physics 查询耗时', direction: 'lower', absoluteTolerance: 0.05 },
+  { key: 'complexScene1200FrameMs', label: '复杂场景帧耗时', direction: 'lower', absoluteTolerance: 0.5 },
+  { key: 'memoryPeakMb', label: 'Benchmark 峰值内存', direction: 'lower', absoluteTolerance: 4 }
 ];
+
+const trendActionHints = {
+  particles1000AvgFps: '复查粒子更新循环和 renderer flush 频率，确认 FPS 下降不是 headless 抖动。',
+  canvas1000SpriteFps: '复查 Canvas sprite 路径的绘制批量、脏矩形和对象分配。',
+  pixi1000SpriteFps: '复查 Pixi batching 状态、texture key 分裂和 fallback 后端。',
+  complexScene1200Fps: '复查复杂场景 FPS 的 renderer batching、WebGPU command path 和 headless 帧率限制。',
+  complexSceneBenchmarkFps: '复查独立复杂场景 Benchmark FPS，优先定位 command path 或场景构建变化。',
+  particles1000DrawCalls: '复查 particle batch key 和 drawCalls 计数，避免每粒子单独提交 batch。',
+  canvasDrawCalls: '复查 Canvas drawCalls 增长来源，确认是否引入额外 pass。',
+  pixiDrawCalls: '复查 Pixi batch key、texture atlas 和 blend/material 状态分裂。',
+  complexScene1200DrawCalls: '复查复杂场景 batch/material 分组，drawCalls 上涨通常说明 batch 被拆散。',
+  entitySync500AvgMs: '复查 entity sync 的 dirty writes、结构化拷贝和对象池复用。',
+  backendSwitchAvgMs: '复查 renderer backend 切换路径的资源释放和重复初始化。',
+  complexScene1200PhysicsMs: '复查 physics 查询、碰撞索引和 tile collision binary 是否退化。',
+  complexScene1200FrameMs: '复查 frame budget 中 update/render/physics 的拆分，先用 profiler 定位最长阶段。',
+  memoryPeakMb: '复查对象池、texture/cache 生命周期和 benchmark 后释放路径，排除 leak 或常驻缓存增长。'
+};
 
 export function normalizeBenchmarkResult(result) {
   const summary = result.summary || result.metrics || {};
@@ -32,6 +52,8 @@ export function normalizeBenchmarkResult(result) {
   const enginePixi = result.enginePixi || {};
   const complexStress = result.complexStress || {};
   const complexSceneBenchmark = result.metrics?.['complex-scene-benchmark'] || result.complexSceneBenchmark || {};
+  const performanceExpectations = result.performanceExpectations || {};
+  const complexExpectation = performanceExpectations.complexScene || {};
 
   const metrics = {
     particles1000AvgFps: numberOrAverage(summary.particles1000AvgFps, builtInRuns.map((item) => item.particles1000?.fps)),
@@ -49,7 +71,10 @@ export function normalizeBenchmarkResult(result) {
     complexSceneBenchmarkFps: numberOrNull(summary.complexSceneBenchmarkFps ?? complexSceneBenchmark.fps),
     complexScene1200DrawCalls: numberOrNull(summary.complexScene1200DrawCalls ?? drawCallsPerFrame(complexStress)),
     complexScene1200CollisionPairs: numberOrNull(summary.complexScene1200CollisionPairs ?? complexStress.collisionPairs),
-    complexScene1200MaterialSwitches: numberOrNull(summary.complexScene1200MaterialSwitches ?? complexStress.materialSwitches)
+    complexScene1200MaterialSwitches: numberOrNull(summary.complexScene1200MaterialSwitches ?? complexStress.materialSwitches),
+    complexScene1200PhysicsMs: numberOrNull(summary.complexScene1200PhysicsMs ?? complexSceneBenchmark.physicsMs ?? complexExpectation.physicsMs),
+    complexScene1200FrameMs: numberOrNull(summary.complexScene1200FrameMs ?? frameMs(complexSceneBenchmark) ?? frameMs(complexStress)),
+    memoryPeakMb: numberOrNull(summary.memoryPeakMb ?? summary.peakMemoryMb ?? summary.memoryMb ?? result.memoryPeakMb ?? result.peakMemoryMb)
   };
 
   return {
@@ -61,19 +86,26 @@ export function normalizeBenchmarkResult(result) {
 export function compareBenchmarkResults({ baseline, current, threshold = 0.05 } = {}) {
   const normalizedBaseline = normalizeBenchmarkResult(baseline);
   const normalizedCurrent = normalizeBenchmarkResult(current);
+  const trend = compareBenchmarkTrend({
+    history: extractHistory(baseline),
+    current: normalizedCurrent,
+    threshold
+  });
   const metrics = metricDefinitions
     .map((definition) => compareMetric(definition, normalizedBaseline.metrics, normalizedCurrent.metrics, threshold))
     .filter(Boolean);
   const regressions = metrics.filter((metric) => metric.regressed);
+  const allRegressions = regressions.concat(trend.regressions);
 
   return {
     generatedAt: new Date().toISOString(),
     threshold,
-    passed: regressions.length === 0,
+    passed: allRegressions.length === 0,
     baseline: normalizedBaseline.metrics,
     current: normalizedCurrent.metrics,
     metrics,
-    regressions
+    regressions,
+    trend
   };
 }
 
@@ -107,6 +139,18 @@ export function formatRegressionReport(comparison) {
     }
   } else {
     lines.push('', '未发现超过阈值的性能下降。');
+  }
+
+  lines.push('', '## 历史趋势回归');
+  if (!comparison.trend || comparison.trend.sampleCount === 0) {
+    lines.push('未提供历史样本；仅执行当前报告与单一 baseline 的兼容比较。');
+  } else if (!comparison.trend.regressions.length) {
+    lines.push(`最近 ${comparison.trend.sampleCount} 个历史样本未发现超过阈值的趋势回归。`);
+  } else {
+    lines.push(`最近 ${comparison.trend.sampleCount} 个历史样本发现趋势回归：`);
+    for (const metric of comparison.trend.regressions) {
+      lines.push(`- \`${metric.key}\`：历史中位数 ${formatNumber(metric.baseline)}，当前 ${formatNumber(metric.current)}，回归 ${formatPercent(metric.regressionRatio)}。建议：${metric.action}`);
+    }
   }
 
   return `${lines.join('\n')}\n`;
@@ -147,6 +191,48 @@ function compareMetric(definition, baseline, current, threshold) {
   };
 }
 
+function compareBenchmarkTrend({ history = [], current, threshold }) {
+  const historyMetrics = history
+    .map((item) => normalizeBenchmarkResult(item).metrics)
+    .filter((metrics) => Object.keys(metrics).length > 0);
+  const trendBaseline = buildTrendBaseline(historyMetrics);
+  const metrics = metricDefinitions
+    .map((definition) => compareMetric(definition, trendBaseline, current.metrics, threshold))
+    .filter(Boolean)
+    .map((metric) => ({
+      ...metric,
+      source: 'history',
+      action: trendActionHints[metric.key] || '复查该指标对应的 benchmark 场景、最近提交和环境差异。'
+    }));
+  const regressions = metrics.filter((metric) => metric.regressed);
+
+  return {
+    sampleCount: historyMetrics.length,
+    baseline: trendBaseline,
+    metrics,
+    regressions
+  };
+}
+
+function extractHistory(baseline = {}) {
+  if (Array.isArray(baseline.history)) return baseline.history;
+  if (Array.isArray(baseline.benchmarkHistory)) return baseline.benchmarkHistory;
+  if (Array.isArray(baseline.trendHistory)) return baseline.trendHistory;
+  return [];
+}
+
+function buildTrendBaseline(historyMetrics) {
+  const baseline = {};
+  for (const definition of metricDefinitions) {
+    const values = historyMetrics
+      .map((metrics) => metrics[definition.key])
+      .filter((value) => Number.isFinite(value));
+    const value = median(values);
+    if (Number.isFinite(value)) baseline[definition.key] = value;
+  }
+  return baseline;
+}
+
 function zeroBaselineRegression(direction, baseline, current) {
   if (direction === 'lower' && current > baseline) return Number.POSITIVE_INFINITY;
   if (direction === 'higher' && current < baseline) return Number.POSITIVE_INFINITY;
@@ -159,6 +245,15 @@ function drawCallsPerFrame(result = {}) {
   if (Number.isFinite(result.drawCalls)) return result.drawCalls;
   if (Number.isFinite(result.totalDrawCalls) && Number.isFinite(result.frames) && result.frames > 0) {
     return Number((result.totalDrawCalls / result.frames).toFixed(2));
+  }
+  return null;
+}
+
+function frameMs(result = {}) {
+  if (Number.isFinite(result.frameMs)) return result.frameMs;
+  if (Number.isFinite(result.msPerFrame)) return result.msPerFrame;
+  if (Number.isFinite(result.ms) && Number.isFinite(result.frames) && result.frames > 0) {
+    return Number((result.ms / result.frames).toFixed(3));
   }
   return null;
 }
@@ -178,6 +273,19 @@ function average(values) {
   const numericValues = values.map(numberOrNull).filter((value) => Number.isFinite(value));
   if (!numericValues.length) return null;
   return Number((numericValues.reduce((sum, value) => sum + value, 0) / numericValues.length).toFixed(2));
+}
+
+function median(values) {
+  const numericValues = values
+    .map(numberOrNull)
+    .filter((value) => Number.isFinite(value))
+    .sort((left, right) => left - right);
+  if (!numericValues.length) return null;
+  const middle = Math.floor(numericValues.length / 2);
+  const value = numericValues.length % 2 === 0
+    ? (numericValues[middle - 1] + numericValues[middle]) / 2
+    : numericValues[middle];
+  return Number(value.toFixed(3));
 }
 
 function formatNumber(value) {

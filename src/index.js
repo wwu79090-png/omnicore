@@ -143,6 +143,8 @@ import findPath from './compute/Pathfinding.js';
 import WasmLoader from './wasm/WasmLoader.js';
 import RenderLayerManager from './renderer/RenderLayerManager.js';
 import PixiBatchAdapter, { CommandBuffer } from './renderer/PixiBatchAdapter.js';
+import { PixiFrameworkBridge, createPixiFrameworkAdoptionPlan } from './renderer/PixiFrameworkBridge.js';
+import { PhaserCompatScene, createPhaserCompatScene } from './compat/phaser/PhaserCompat.js';
 import Kernel from './microkernel/Kernel.js';
 import RendererAdapter from './microkernel/RendererAdapter.js';
 import SplashScreen from './microkernel/SplashScreen.js';
@@ -163,9 +165,14 @@ import EngineQualityHarness, {
   runDeterminismCheck,
   runEngineQualityGate,
   runInvariantCheck,
+  runTrendCheck,
   stableHash,
   stableStringify
 } from './quality/EngineQualityHarness.js';
+import { buildEditorMarketReadiness } from './editor/EditorMarketReadiness.js';
+import { buildEditorLongTermMaturity } from './editor/EditorLongTermMaturity.js';
+import { buildMarketEngineComparison, renderMarketEngineComparisonMarkdown } from './quality/MarketEngineComparison.js';
+import { buildMarketPositioningScorecard } from './quality/MarketPositioningScorecard.js';
 
 let activeDebugAPI = createDebugAPI({ debug: false });
 const Debug = {
@@ -507,7 +514,7 @@ const addonRegistry = new Map();
 
 const GENEALOGY = Object.freeze({
   engine: 'OmniCore',
-  author: 'OmniCore Open Engine Maintainers',
+  author: '杀戮 (Shalu) | QQ 3424636983 | WeChat lookkiitylou',
   philosophy: ['logic-driven-rendering', 'microkernel', 'native-interaction', 'graceful-degradation'],
   timestamp: new Date().toISOString(),
   sealedTimestamp: null,
@@ -823,6 +830,7 @@ export {
   EntitySpatialIndex,
   DualSpatialIndex,
   EngineQualityHarness,
+  PhaserCompatScene,
   ExportPaywall,
   FeedbackWidget,
   FixedMemoryPool,
@@ -872,6 +880,7 @@ export {
   PhysicsQuery,
   PixiRenderer,
   PixiBatchAdapter,
+  PixiFrameworkBridge,
   PixiRendererAddon,
   PluginRecommendationEngine,
   PlaySession,
@@ -889,6 +898,7 @@ export {
   runDeterminismCheck,
   runEngineQualityGate,
   runInvariantCheck,
+  runTrendCheck,
   RenderLayerManager,
   RenderWorkerBridge,
   RemoteDevTools,
@@ -946,7 +956,14 @@ export {
   assertRendererBackend,
   Bus,
   benchmarkECSParticles,
+  buildEditorLongTermMaturity,
+  buildEditorMarketReadiness,
+  buildMarketEngineComparison,
+  buildMarketPositioningScorecard,
   createLeanRuntime,
+  createPhaserCompatScene,
+  createPixiFrameworkAdoptionPlan,
+  renderMarketEngineComparisonMarkdown,
   addon,
   calculateDamage,
   disableAddon,

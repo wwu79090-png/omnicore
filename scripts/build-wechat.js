@@ -5,6 +5,13 @@ import { pathToFileURL } from 'node:url';
 
 const FOUR_MB = 4 * 1024 * 1024;
 const DEFAULT_IGNORED = new Set(['.git', 'node_modules', 'coverage']);
+const DEFAULT_IGNORED_FILE_PATTERNS = [
+  /^quality-report(?:[-\w]*)?\.json$/iu,
+  /^production-ready(?:[-\w]*)?\.json$/iu,
+  /^engine-improvements(?:[-\w]*)?\.json$/iu,
+  /^engine-doctor(?:[-\w]*)?\.json$/iu,
+  /^.*-check\.json$/iu
+];
 
 function parseArgs(argv) {
   const options = {
@@ -92,6 +99,7 @@ export default function buildWechatPackage(options = {}) {
 function copyDirectory(source, out) {
   for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
     if (DEFAULT_IGNORED.has(entry.name)) continue;
+    if (entry.isFile() && DEFAULT_IGNORED_FILE_PATTERNS.some((pattern) => pattern.test(entry.name))) continue;
     const from = path.join(source, entry.name);
     const to = path.join(out, entry.name);
     if (path.resolve(from) === path.resolve(out)) continue;

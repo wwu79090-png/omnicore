@@ -452,16 +452,20 @@ function normalizePrefabHotEdit(value = {}) {
 
 function normalizeBuildSettings(value = {}) {
   const targets = value.targets || {};
+  const enabledTargets = Array.isArray(targets) ? new Set(targets) : null;
   const defaults = defaultBuildTargets();
   return {
     targets: Object.fromEntries(Object.entries(defaults).map(([platform, config]) => [
       platform,
       {
         ...config,
-        ...(targets[platform] || {}),
-        enabled: Boolean(targets[platform]?.enabled ?? config.enabled)
+        ...(!enabledTargets ? (targets[platform] || {}) : {}),
+        enabled: enabledTargets
+          ? enabledTargets.has(platform)
+          : Boolean(targets[platform]?.enabled ?? config.enabled)
       }
-    ]))
+    ])),
+    budgets: normalizeBuildBudgets(value.budgets || value)
   };
 }
 
@@ -472,6 +476,13 @@ function defaultBuildTargets() {
     electron: { enabled: false, compression: 'asar', iconSize: 256, configStrategy: 'desktop' },
     steam: { enabled: false, compression: 'store', iconSize: 256, configStrategy: 'depot' },
     itch: { enabled: false, compression: 'brotli', iconSize: 256, configStrategy: 'portable' }
+  };
+}
+
+function normalizeBuildBudgets(value = {}) {
+  return {
+    maxBundleKb: Math.max(1, Number(value.maxBundleKb || 1024)),
+    maxWechatBytes: Math.max(1, Number(value.maxWechatBytes || 4 * 1024 * 1024))
   };
 }
 

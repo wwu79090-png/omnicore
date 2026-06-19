@@ -130,6 +130,92 @@ describe('OmniCore plugin installer platform', () => {
 
     await expect(installer.install('bad-plugin', { source: 'npm:bad-plugin' })).rejects.toThrow(/malicious|dangerous/iu);
   });
+
+  it('requires declared permissions, sha256 integrity, and blocks dangerous bundle files with error codes', async () => {
+    const { PluginInstaller } = await importModule('src/package/PluginInstaller.js');
+    const root = makeProjectRoot();
+    const installer = new PluginInstaller({
+      root,
+      downloader: async () => ({
+        manifest: {
+          name: 'unsafe-plugin',
+          displayName: 'Unsafe Plugin',
+          version: '1.0.0',
+          main: 'src/index.js',
+          author: 'unknown',
+          license: 'MIT',
+          permissions: ['filesystem', 'network'],
+          sha256: 'not-a-sha'
+        },
+        files: {
+          'plugin.json': '{}',
+          'src/index.js': 'export default function plugin() { return true; }\n',
+          '.github/workflows/publish.yml': 'name: publish\n'
+        }
+      })
+    });
+
+    await expect(installer.install('unsafe-plugin', { source: 'npm:unsafe-plugin' })).rejects.toMatchObject({
+      code: 'plugin-security-audit-failed',
+      details: expect.objectContaining({
+        errors: expect.arrayContaining([
+          expect.objectContaining({ code: 'undeclared-permission-justification' }),
+          expect.objectContaining({ code: 'invalid-plugin-sha256' }),
+          expect.objectContaining({ code: 'dangerous-plugin-file' })
+        ])
+      })
+    });
+  });
+
+  it('does not expose paid plugin license keys in install results or written files', async () => {
+    const { PluginInstaller } = await importModule('src/package/PluginInstaller.js');
+    const root = makeProjectRoot();
+    const installer = new PluginInstaller({
+      root,
+      payment: {
+        async requestPayment() {
+          return { ok: true, licenseKey: 'secret-license-key', receiptId: 'receipt-2' };
+        }
+      },
+      decryptor: {
+        async decrypt(bundle) {
+          return {
+            ...bundle,
+            encrypted: false,
+            files: {
+              'plugin.json': JSON.stringify(bundle.manifest, null, 2),
+              'src/index.js': 'export default function paid() { return true; }\n'
+            }
+          };
+        }
+      },
+      downloader: async () => ({
+        encrypted: true,
+        manifest: {
+          name: 'paid-safe',
+          displayName: 'Paid Safe',
+          version: '1.0.0',
+          main: 'src/index.js',
+          author: 'Studio',
+          license: 'Commercial',
+          packageName: '@omnicore/paid-safe',
+          isPaid: true,
+          priceCents: 1200,
+          paymentProvider: 'qrcode',
+          permissions: [],
+          sha256: '0'.repeat(64)
+        }
+      })
+    });
+
+    const result = await installer.install('paid-safe', { source: 'npm:@omnicore/paid-safe' });
+    const resultJson = JSON.stringify(result);
+    const pluginJson = readFileSync(path.join(root, 'addons', 'paid-safe', 'plugin.json'), 'utf8');
+
+    expect(resultJson).not.toContain('secret-license-key');
+    expect(pluginJson).not.toContain('secret-license-key');
+    expect(result.receipt).toEqual({ ok: true, receiptId: 'receipt-2' });
+  });
 });
 
 function makeProjectRoot() {

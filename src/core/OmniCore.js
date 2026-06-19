@@ -1,3 +1,9 @@
+/*!
+ * OmniCore
+ * Copyright (c) 2026 杀戮 (Shalu)
+ * QQ: 3424636983
+ * WeChat: lookkiitylou
+ */
 import {
   createCanvas,
   detectEnvironment,

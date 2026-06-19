@@ -233,7 +233,9 @@ describe('lean microkernel runtime and developer tooling', () => {
     const OmniCore = (await import('../src/index.js')).default;
     const genealogy = OmniCore.Genealogy();
     expect(genealogy.engine).toBe('OmniCore');
-    expect(genealogy.author).toContain('OmniCore');
+    expect(genealogy.author).toContain('杀戮 (Shalu)');
+    expect(genealogy.author).toContain('3424636983');
+    expect(genealogy.author).toContain('lookkiitylou');
     expect(genealogy.timestamp).toMatch(/\d{4}-\d{2}-\d{2}T/);
   }, 60000);
 });

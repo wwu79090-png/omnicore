@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OmniCore Web 2D 引擎候选</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Inter, "Microsoft YaHei", Arial, sans-serif;
+        color: #172026;
+        background: #f7f8fa;
+      }
+      main {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 40px 20px;
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: 40px;
+        line-height: 1.15;
+      }
+      .lead {
+        max-width: 760px;
+        color: #42515c;
+        font-size: 18px;
+        line-height: 1.7;
+      }
+      .score-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 12px;
+        margin-top: 28px;
+      }
+      .score-item {
+        min-height: 116px;
+        padding: 18px;
+        border: 1px solid #d9e0e7;
+        border-radius: 8px;
+        background: #ffffff;
+      }
+      .score-item strong {
+        display: block;
+        font-size: 17px;
+        margin-bottom: 8px;
+      }
+      .score-item span {
+        color: #52616c;
+        line-height: 1.55;
+      }
+      .evidence {
+        margin-top: 32px;
+        padding: 20px;
+        border-left: 4px solid #0c7c59;
+        background: #ffffff;
+      }
+      code {
+        padding: 2px 5px;
+        border-radius: 4px;
+        background: #edf2f5;
+      }
+    </style>
+  </head>
+  <body>
+    <main data-market-positioning="web-2d" data-score-target="90">
+      <h1>Web 2D 引擎候选</h1>
+      <p class="lead">
+        OmniCore 把 Phaser 迁移、Pixi 上层框架、低代码编辑器、微信小游戏发布、插件安全和质量门禁收进同一套市场评分，目标是所有关键维度达到 90 分以上。
+      </p>
+
+      <section class="score-strip" aria-label="Market positioning targets">
+        <article class="score-item">
+          <strong>Phaser 迁移</strong>
+          <span>兼容 preload/create/update、资源加载、sprite 工厂、Arcade physics、keyboard input 和 tween。</span>
+        </article>
+        <article class="score-item">
+          <strong>Pixi 上层框架</strong>
+          <span>保留 PixiRenderer，同时补齐 display object 挂载、纹理生命周期、filter preset 和 Loop 接管路径。</span>
+        </article>
+        <article class="score-item">
+          <strong>低代码编辑器</strong>
+          <span>覆盖 dock 工作台、工程保存、撤销重做、自动恢复、EventSheet、UI、数据表和行为树导出。</span>
+        </article>
+        <article class="score-item">
+          <strong>Web 2D 发布证据</strong>
+          <span>通过 <code>benchmark:ci</code>、<code>quality:gate</code>、<code>build:wechat</code> 和 doctor 输出持续验收。</span>
+        </article>
+      </section>
+
+      <section class="evidence">
+        <strong>marketPositioningScorecard</strong>
+        <p>评分低于 90 会进入质量报告和 doctor next actions，作为 Construct / Cocos / Godot / Phaser / Pixi 对比下的生产成熟度证据。</p>
+      </section>
+    </main>
+  </body>
+</html>

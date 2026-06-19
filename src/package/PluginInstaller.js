@@ -16,6 +16,15 @@ import { createOmniError } from '../core/OmniError.js';
 
 const execFileAsync = promisify(execFile);
 const REQUIRED_PLUGIN_FIELDS = ['name', 'displayName', 'version', 'main', 'author', 'license'];
+const PRIVILEGED_PLUGIN_PERMISSIONS = new Set(['filesystem', 'network', 'payment', 'native', 'process']);
+const BLOCKED_PLUGIN_FILE_PATTERNS = [
+  /^\.github\/workflows\//iu,
+  /^\.npmrc$/iu,
+  /^\.yarnrc(?:\.yml)?$/iu,
+  /^\.pnpmfile\.cjs$/iu,
+  /(^|\/)(preinstall|postinstall|install)\.(?:js|cjs|mjs|sh|ps1|bat|cmd)$/iu
+];
+const SHA256_PATTERN = /^[a-f0-9]{64}$/iu;
 
 export class PluginInstaller {
   constructor({
@@ -46,8 +55,8 @@ export class PluginInstaller {
     };
     let bundle = await this.downloader(request);
     let pluginManifest = normalizeManifest(bundle?.manifest || manifest || manifestFromFiles(bundle?.files), name);
-    const manifestReview = auditPluginManifest(pluginManifest);
-    if (!manifestReview.ok) throw dangerousBundleError(manifestReview);
+    let manifestReview = auditPluginManifest(pluginManifest);
+    if (!manifestReview.ok) throw dangerousBundleError(reviewWithAvailableFiles(manifestReview, bundle));
 
     let receipt = null;
     if (pluginManifest.isPaid) {
@@ -62,6 +71,9 @@ export class PluginInstaller {
         bundle = await this.decryptor.decrypt(bundle, receipt.licenseKey);
       }
       pluginManifest = normalizeManifest(bundle?.manifest || pluginManifest, name);
+      manifestReview = auditPluginManifest(pluginManifest);
+      if (!manifestReview.ok) throw dangerousBundleError(reviewWithAvailableFiles(manifestReview, bundle));
+      receipt = sanitizeReceipt(receipt);
     }
 
     const files = await resolveBundleFiles(bundle, {
@@ -171,6 +183,53 @@ function auditPluginManifest(manifest = {}) {
       });
     }
   }
+  if (manifest.sha256 && !SHA256_PATTERN.test(String(manifest.sha256))) {
+    errors.push({
+      code: 'invalid-plugin-sha256',
+      path: 'plugin.json:sha256',
+      message: 'Plugin sha256 must be a 64 character hex digest.'
+    });
+  }
+  if (manifest.signature && typeof manifest.signature !== 'string') {
+    errors.push({
+      code: 'invalid-plugin-signature',
+      path: 'plugin.json:signature',
+      message: 'Plugin signature must be a string.'
+    });
+  }
+  const permissions = Array.isArray(manifest.permissions) ? manifest.permissions : [];
+  if (manifest.permissions && !Array.isArray(manifest.permissions)) {
+    errors.push({
+      code: 'invalid-plugin-permissions',
+      path: 'plugin.json:permissions',
+      message: 'Plugin permissions must be an array.'
+    });
+  }
+  const justifications = manifest.permissionJustifications || {};
+  if (justifications && typeof justifications !== 'object') {
+    errors.push({
+      code: 'invalid-permission-justifications',
+      path: 'plugin.json:permissionJustifications',
+      message: 'Permission justifications must be an object.'
+    });
+  }
+  for (const permission of permissions) {
+    if (typeof permission !== 'string' || !permission.trim()) {
+      errors.push({
+        code: 'invalid-plugin-permission',
+        path: 'plugin.json:permissions',
+        message: 'Plugin permissions must be non-empty strings.'
+      });
+      continue;
+    }
+    if (PRIVILEGED_PLUGIN_PERMISSIONS.has(permission) && !String(justifications?.[permission] || '').trim()) {
+      errors.push({
+        code: 'undeclared-permission-justification',
+        path: `plugin.json:permissionJustifications.${permission}`,
+        message: `Privileged permission "${permission}" requires a justification.`
+      });
+    }
+  }
   if (manifest.isPaid && !manifest.priceCents) {
     warnings.push({ code: 'missing-price', message: 'Paid plugins should declare priceCents.' });
   }
@@ -186,6 +245,11 @@ function auditPluginFiles(files = {}) {
   for (const [filePath, content] of Object.entries(files)) {
     if (filePath.includes('..') || path.isAbsolute(filePath)) {
       errors.push({ code: 'dangerous-path', path: filePath, message: 'Bundle path escapes addon directory.' });
+      continue;
+    }
+    const normalizedPath = filePath.replace(/\\/gu, '/');
+    if (BLOCKED_PLUGIN_FILE_PATTERNS.some((pattern) => pattern.test(normalizedPath))) {
+      errors.push({ code: 'dangerous-plugin-file', path: filePath, message: 'Plugin bundle contains a blocked automation or installer file.' });
       continue;
     }
     const text = String(content || '');
@@ -221,7 +285,27 @@ function combineReviews(...reviews) {
 
 function dangerousBundleError(review) {
   const detail = review.errors.map((error) => `${error.code}:${error.path || 'manifest'}`).join(', ');
-  return pluginInstallerError(`dangerous or malicious plugin bundle blocked: ${detail}`);
+  return pluginInstallerError(`dangerous or malicious plugin bundle blocked: ${detail}`, {
+    code: 'plugin-security-audit-failed',
+    details: review
+  });
+}
+
+function reviewWithAvailableFiles(manifestReview, bundle) {
+  if (!bundle?.files) return manifestReview;
+  return combineReviews(manifestReview, auditPluginFiles(bundle.files));
+}
+
+function sanitizeReceipt(receipt) {
+  if (!receipt || typeof receipt !== 'object') return receipt;
+  const {
+    licenseKey,
+    privateKey,
+    secret,
+    token,
+    ...safeReceipt
+  } = receipt;
+  return safeReceipt;
 }
 
 async function resolveBundleFiles(bundle = {}, { name, unzipper } = {}) {

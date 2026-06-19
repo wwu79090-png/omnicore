@@ -168,6 +168,100 @@ describe('benchmark threshold regression gate', () => {
     });
   });
 
+  it('normalizes long-running trend metrics without requiring new baseline fields', () => {
+    const normalized = normalizeBenchmarkResult({
+      summary: {
+        complexScene1200PhysicsMs: 0.42,
+        complexScene1200FrameMs: 8.4,
+        memoryPeakMb: 96
+      }
+    });
+
+    expect(normalized.metrics).toMatchObject({
+      complexScene1200PhysicsMs: 0.42,
+      complexScene1200FrameMs: 8.4,
+      memoryPeakMb: 96
+    });
+  });
+
+  it('fails historical trend regressions across fps, draw calls, memory, physics, and frame time', () => {
+    const history = [
+      {
+        generatedAt: '2026-06-17T00:00:00.000Z',
+        summary: {
+          complexScene1200Fps: 144,
+          complexScene1200DrawCalls: 4,
+          memoryPeakMb: 90,
+          complexScene1200PhysicsMs: 0.2,
+          complexScene1200FrameMs: 6.9
+        }
+      },
+      {
+        generatedAt: '2026-06-18T00:00:00.000Z',
+        summary: {
+          complexScene1200Fps: 142,
+          complexScene1200DrawCalls: 4,
+          memoryPeakMb: 92,
+          complexScene1200PhysicsMs: 0.21,
+          complexScene1200FrameMs: 7
+        }
+      },
+      {
+        generatedAt: '2026-06-19T00:00:00.000Z',
+        summary: {
+          complexScene1200Fps: 143,
+          complexScene1200DrawCalls: 4,
+          memoryPeakMb: 91,
+          complexScene1200PhysicsMs: 0.19,
+          complexScene1200FrameMs: 6.8
+        }
+      }
+    ];
+
+    const comparison = compareBenchmarkResults({
+      baseline: { summary: baseline.summary, history },
+      current: {
+        summary: {
+          ...baseline.summary,
+          complexScene1200Fps: 128,
+          complexScene1200DrawCalls: 5,
+          memoryPeakMb: 104,
+          complexScene1200PhysicsMs: 0.28,
+          complexScene1200FrameMs: 8.1
+        }
+      },
+      threshold: 0.05
+    });
+    const report = formatRegressionReport(comparison);
+
+    expect(comparison.passed).toBe(false);
+    expect(comparison.trend.sampleCount).toBe(3);
+    expect(comparison.trend.regressions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: 'complexScene1200Fps', action: expect.stringContaining('FPS') }),
+      expect.objectContaining({ key: 'complexScene1200DrawCalls', action: expect.stringContaining('batch') }),
+      expect.objectContaining({ key: 'memoryPeakMb', action: expect.stringContaining('leak') }),
+      expect.objectContaining({ key: 'complexScene1200PhysicsMs', action: expect.stringContaining('physics') }),
+      expect.objectContaining({ key: 'complexScene1200FrameMs', action: expect.stringContaining('frame') })
+    ]));
+    expect(report).toContain('历史趋势回归');
+    expect(report).toContain('建议');
+  });
+
+  it('keeps old single-baseline reports compatible when no history exists', () => {
+    const comparison = compareBenchmarkResults({
+      baseline,
+      current: { summary: { ...baseline.summary, canvasDrawCalls: 1000 } },
+      threshold: 0.05
+    });
+
+    expect(comparison.passed).toBe(true);
+    expect(comparison.trend).toMatchObject({
+      sampleCount: 0,
+      regressions: []
+    });
+    expect(formatRegressionReport(comparison)).toContain('未提供历史样本');
+  });
+
   it('fails when complex scene FPS regresses beyond threshold', () => {
     const comparison = compareBenchmarkResults({
       baseline,

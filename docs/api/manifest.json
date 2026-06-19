@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-19T16:14:51.376Z",
+  "generatedAt": "2026-06-19T19:00:03.421Z",
   "modules": [
     {
       "path": "addons/Ad.js",
@@ -185,6 +185,14 @@
       "summary": "Commercial export gate for one-click publishing features. Runtime engine APIs remain open-source. This gate is only for packaged one-click app-store export scaffolds such as WeChat, Douyin, and hosted HTML5. @example const paywall = new ExportPaywall({ license: process.env.OMNICORE_PRO_LICENSE }); paywall.assertExport('wechat');",
       "exports": [
         "ExportPaywall"
+      ]
+    },
+    {
+      "path": "compat/phaser/PhaserCompat.js",
+      "summary": "",
+      "exports": [
+        "PhaserCompatScene",
+        "createPhaserCompatScene"
       ]
     },
     {
@@ -664,6 +672,20 @@
       "summary": "",
       "exports": [
         "AssetBrowser"
+      ]
+    },
+    {
+      "path": "editor/EditorLongTermMaturity.js",
+      "summary": "",
+      "exports": [
+        "buildEditorLongTermMaturity"
+      ]
+    },
+    {
+      "path": "editor/EditorMarketReadiness.js",
+      "summary": "",
+      "exports": [
+        "buildEditorMarketReadiness"
       ]
     },
     {
@@ -1149,7 +1171,31 @@
         "runDeterminismCheck",
         "runInvariantCheck",
         "runBudgetCheck",
+        "runTrendCheck",
         "runEngineQualityGate"
+      ]
+    },
+    {
+      "path": "quality/ImprovementPlanner.js",
+      "summary": "",
+      "exports": [
+        "buildEngineImprovementPlan",
+        "formatEngineImprovementMarkdown"
+      ]
+    },
+    {
+      "path": "quality/MarketEngineComparison.js",
+      "summary": "",
+      "exports": [
+        "buildMarketEngineComparison",
+        "renderMarketEngineComparisonMarkdown"
+      ]
+    },
+    {
+      "path": "quality/MarketPositioningScorecard.js",
+      "summary": "",
+      "exports": [
+        "buildMarketPositioningScorecard"
       ]
     },
     {
@@ -1185,6 +1231,14 @@
       "exports": [
         "CommandBuffer",
         "PixiBatchAdapter"
+      ]
+    },
+    {
+      "path": "renderer/PixiFrameworkBridge.js",
+      "summary": "",
+      "exports": [
+        "PixiFrameworkBridge",
+        "createPixiFrameworkAdoptionPlan"
       ]
     },
     {

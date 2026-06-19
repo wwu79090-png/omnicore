@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>OmniCore Migration Guides</title>
+    <style>
+      body { margin: 0; background: #f8fafc; color: #0f172a; font: 14px system-ui, sans-serif; }
+      main { max-width: 1080px; margin: 0 auto; padding: 40px 20px; }
+      h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: 0; }
+      .summary { max-width: 760px; color: #475569; line-height: 1.7; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin-top: 24px; }
+      article { border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; padding: 16px; }
+      h2 { margin: 0 0 8px; font-size: 18px; }
+      p { line-height: 1.6; }
+      .risk { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #fef3c7; color: #92400e; }
+      a { color: #0369a1; font-weight: 600; }
+      code { display: block; margin-top: 10px; padding: 8px; border-radius: 6px; background: #0f172a; color: #a7f3d0; overflow-x: auto; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>OmniCore 迁移入口</h1>
+      <p class="summary">这些指南面向已经熟悉 Phaser、Construct/GDevelop 或 Cocos Creator 的开发者。目标不是承诺无损迁移，而是用一个小关卡、一个事件表或一个组件在 30 分钟内验证 OmniCore 是否适合新项目。</p>
+
+      <section class="grid" aria-label="Migration guide cards">
+        <article data-migration-guide="phaser" data-risk-level="medium">
+          <h2>从 Phaser 迁移</h2>
+          <span class="risk">风险等级: medium</span>
+          <p>适合 Scene、Sprite、Tween、Input 和 Tilemap 为主的 HTML5 2D 项目。Arcade Physics 细节行为需要重点验证。</p>
+          <a href="../../docs/migration/from-phaser.md">打开 Phaser 迁移指南</a>
+          <code>npm test -- tests/omnicore.test.js</code>
+        </article>
+
+        <article data-migration-guide="construct" data-risk-level="medium">
+          <h2>从 Construct / GDevelop 迁移</h2>
+          <span class="risk">风险等级: medium</span>
+          <p>适合把事件表逻辑转成 JSON Event Sheet，并逐步引入 JavaScript、测试和 CI 的团队。</p>
+          <a href="../../docs/migration/from-construct.md">打开 Construct 迁移指南</a>
+          <code>npm test -- tests/lowcode-editor-suite.test.js</code>
+        </article>
+
+        <article data-migration-guide="cocos" data-risk-level="medium">
+          <h2>从 Cocos Creator 迁移</h2>
+          <span class="risk">风险等级: medium</span>
+          <p>适合 Web、小游戏和轻量 2D 项目。完整 3D、原生插件和成熟编辑器资产流不建议迁移。</p>
+          <a href="../../docs/migration/from-cocos.md">打开 Cocos 迁移指南</a>
+          <code>npm run build:wechat</code>
+        </article>
+      </section>
+
+      <section aria-label="Trial checklist">
+        <h2>30 分钟试用路径</h2>
+        <p>先跑模板，再跑测试和构建，最后迁移一个最小功能。完整清单见 <a href="../../docs/adoption/30-minute-trial.md">OmniCore 30 分钟试用清单</a>。</p>
+      </section>
+    </main>
+  </body>
+</html>

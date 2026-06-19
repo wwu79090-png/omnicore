@@ -99,6 +99,47 @@ describe('quality report generation', () => {
     for (const dimension of Object.values(report.non3DMarketScorecard.dimensions)) {
       expect(dimension.score).toBeGreaterThanOrEqual(80);
     }
+    expect(report.engineImprovementPlan).toMatchObject({
+      summary: expect.objectContaining({
+        totalOpportunities: expect.any(Number),
+        p0Count: expect.any(Number)
+      }),
+      nextActions: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'runtime-frame-profiler-hotspots',
+          command: expect.any(String)
+        })
+      ])
+    });
+    expect(report.engineImprovementPlan.summary.totalOpportunities).toBeGreaterThanOrEqual(30);
+    expect(report.marketPositioningScorecard).toMatchObject({
+      target: 90,
+      allAboveTarget: true,
+      dimensions: {
+        web2DEngineCandidate: expect.objectContaining({ score: expect.any(Number), missing: [] }),
+        phaserMigrationAppeal: expect.objectContaining({ score: expect.any(Number), missing: [] }),
+        pixiFrameworkLayer: expect.objectContaining({ score: expect.any(Number), missing: [] }),
+        editorLowCodeMaturity: expect.objectContaining({ score: expect.any(Number), missing: [] })
+      }
+    });
+    expect(report.marketEngineComparison).toMatchObject({
+      generatedBy: 'OmniCore market engine comparison',
+      omnicore: expect.objectContaining({
+        targetDimensionsAbove90: true,
+        dimensions: expect.objectContaining({
+          editorLongTermMaturity: expect.objectContaining({
+            score: expect.any(Number)
+          })
+        })
+      }),
+      competitors: expect.objectContaining({
+        'phaser-3.80.1': expect.objectContaining({ name: 'Phaser 3.80.1' }),
+        'pixijs-8': expect.objectContaining({ name: 'PixiJS 8' }),
+        'construct-3': expect.objectContaining({ name: 'Construct 3' }),
+        'cocos-creator': expect.objectContaining({ name: 'Cocos Creator' }),
+        godot: expect.objectContaining({ name: 'Godot' })
+      })
+    });
     expect(report.overallScore).toBeGreaterThanOrEqual(78);
   });
 

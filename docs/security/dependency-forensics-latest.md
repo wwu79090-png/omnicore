@@ -1,9 +1,9 @@
 # OmniCore Dependency Forensics Report
 
-- Generated: 2026-06-19T16:25:57.400Z
+- Generated: 2026-06-19T18:59:07.462Z
 - Root: C:\Users\39120\Documents\引擎开发
-- Packages scanned: 648
-- Packages with lifecycle scripts: 187
+- Packages scanned: 658
+- Packages with lifecycle scripts: 190
 - High-risk findings: 0
 
 ## HIGH RISK
@@ -13,6 +13,8 @@ No HIGH RISK findings detected.
 ## Lifecycle Script Inventory
 
 - ajv@8.20.0: prepublish
+- @electron/get@5.0.0: prepare, prepublishOnly
+- @electron-internal/extract-zip@1.0.3: prepublishOnly
 - @eslint/eslintrc@2.1.4: prepare
 - @humanwhocodes/config-array@0.13.0: prepublish
 - @humanwhocodes/module-importer@1.0.1: prepare
@@ -187,6 +189,7 @@ No HIGH RISK findings detected.
 - minimatch@10.2.5: prepare, prepublishOnly
 - uc.micro@2.1.0: prepublishOnly
 - unbox-primitive@1.1.0: prepublish, prepublishOnly
+- undici@7.28.0: prepare
 - whatwg-encoding@3.1.1: prepare
 - whatwg-url@14.2.0: prepare
 - which@2.0.2: prepublish

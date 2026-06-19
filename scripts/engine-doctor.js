@@ -10,10 +10,13 @@ import {
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
+  buildMarketAdoptionReadiness,
   buildMarketCompetitivenessScorecard,
   buildMarketReadiness,
   buildNon3DMarketScorecard
 } from './generate-quality-report.js';
+import { buildEngineImprovementPlan } from '../src/quality/ImprovementPlanner.js';
+import { buildMarketPositioningScorecard } from '../src/quality/MarketPositioningScorecard.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FOUR_MB = 4 * 1024 * 1024;
@@ -27,10 +30,16 @@ export function createEngineDoctorReport({
   const marketReadiness = buildMarketReadiness({ projectRoot: normalizedRoot, packageSummary });
   const non3DMarketScorecard = buildNon3DMarketScorecard({ projectRoot: normalizedRoot, packageSummary });
   const marketCompetitiveness = buildMarketCompetitivenessScorecard({ projectRoot: normalizedRoot, packageSummary });
+  const marketAdoptionReadiness = buildMarketAdoptionReadiness({ projectRoot: normalizedRoot, packageSummary });
+  const marketPositioningScorecard = buildMarketPositioningScorecard({ projectRoot: normalizedRoot, packageSummary });
+  const engineImprovementPlan = buildEngineImprovementPlan();
   const categories = {
     releaseGates: evaluateReleaseGates(marketReadiness),
     non3DStrength: evaluateScorecard(non3DMarketScorecard, 'non-3D market scorecard'),
     marketProof: evaluateScorecard(marketCompetitiveness, 'market competitiveness'),
+    adoptionReadiness: evaluateScorecard(marketAdoptionReadiness, 'market adoption readiness'),
+    marketPositioning: evaluateScorecard(marketPositioningScorecard, 'market positioning scorecard'),
+    improvementBacklog: evaluateImprovementBacklog(engineImprovementPlan),
     wechatPackage: evaluateWechatPackage(normalizedRoot),
     verificationEvidence: evaluateVerificationEvidence(normalizedRoot)
   };
@@ -41,6 +50,11 @@ export function createEngineDoctorReport({
     ready: nextActions.length === 0,
     score,
     categories,
+    improvementBacklog: {
+      summary: engineImprovementPlan.summary,
+      nextActions: engineImprovementPlan.nextActions
+    },
+    marketPositioningScorecard,
     nextActions
   };
 }
@@ -111,6 +125,22 @@ function evaluateScorecard(scorecard, label) {
     score: scorecard.overallScore,
     severity: risks.length ? 'warning' : 'info',
     message: risks.length ? risks.join('; ') : `${label} is above target`
+  };
+}
+
+function evaluateImprovementBacklog(plan) {
+  const total = Number(plan?.summary?.totalOpportunities || 0);
+  const p0Count = Number(plan?.summary?.p0Count || 0);
+  const ok = total >= 30 && p0Count >= 5;
+  return {
+    ok,
+    severity: ok ? 'info' : 'warning',
+    score: ok ? 100 : Math.min(90, Math.round((total / 30) * 100)),
+    opportunities: total,
+    p0Count,
+    message: ok
+      ? `engine improvement backlog is actionable with ${total} opportunities`
+      : 'engine improvement backlog is too small or lacks P0 actions'
   };
 }
 
@@ -185,6 +215,24 @@ function buildNextActions(categories) {
       reason: categories.marketProof.message
     });
   }
+  if (!categories.adoptionReadiness.ok) {
+    actions.push({
+      command: 'node scripts/generate-quality-report.js --out quality-report.json',
+      reason: categories.adoptionReadiness.message
+    });
+  }
+  if (!categories.marketPositioning.ok) {
+    actions.push({
+      command: 'node scripts/generate-quality-report.js --out quality-report.json',
+      reason: categories.marketPositioning.message
+    });
+  }
+  if (!categories.improvementBacklog.ok) {
+    actions.push({
+      command: 'npm run improvements -- --out dist/engine-improvements.json --markdown docs/release-notes/engine-improvements.md',
+      reason: categories.improvementBacklog.message
+    });
+  }
   if (!categories.releaseGates.ok) {
     actions.push({
       command: 'npm run quality:gate',
@@ -197,11 +245,14 @@ function buildNextActions(categories) {
 function calculateDoctorScore(categories) {
   if (Object.values(categories).every((category) => category.ok)) return 100;
   const weights = {
-    releaseGates: 25,
-    non3DStrength: 20,
-    marketProof: 20,
-    wechatPackage: 20,
-    verificationEvidence: 15
+    releaseGates: 22,
+    non3DStrength: 15,
+    marketProof: 15,
+    adoptionReadiness: 10,
+    marketPositioning: 8,
+    improvementBacklog: 8,
+    wechatPackage: 14,
+    verificationEvidence: 8
   };
   return Math.round(Object.entries(weights).reduce((sum, [key, weight]) => {
     const category = categories[key] || {};

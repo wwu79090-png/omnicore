@@ -59,13 +59,13 @@ function firstJsDoc(source) {
 }
 
 function renderHtml({ generatedAt, modules }) {
-  const rows = modules.map((module) => `
-    <article>
-      <h2>${escapeHtml(module.path)}</h2>
-      <p>${escapeHtml(module.summary)}</p>
-      <code>${escapeHtml(module.exports.join(', '))}</code>
-    </article>
-  `).join('');
+  const rows = modules.map((module) => [
+    '    <article>',
+    `      <h2>${escapeHtml(module.path)}</h2>`,
+    `      <p>${escapeHtml(module.summary)}</p>`,
+    `      <code>${escapeHtml(module.exports.join(', '))}</code>`,
+    '    </article>'
+  ].join('\n')).join('\n');
   return `<!doctype html>
 <html lang="zh-CN">
   <head>

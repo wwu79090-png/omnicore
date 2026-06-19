@@ -1,0 +1,372 @@
+{
+  "generatedBy": "OmniCore market engine comparison",
+  "generatedAt": "2026-06-19T18:10:25.431Z",
+  "targetScore": 90,
+  "dimensions": {
+    "web2DEngineCandidate": "Web 2D 引擎候选",
+    "phaserMigrationAppeal": "Phaser 迁移吸引力",
+    "pixiFrameworkLayer": "Pixi 上层框架竞争力",
+    "editorLowCodeMaturity": "编辑器/低代码成熟度",
+    "editorLongTermMaturity": "编辑器长期成熟度",
+    "platformPublishing": "平台发布闭环",
+    "productionQuality": "质量门禁/工程化",
+    "ecosystemMaturity": "生态成熟度"
+  },
+  "omnicore": {
+    "name": "OmniCore",
+    "positioning": "2D-first Web game engine with editor, migration, Pixi bridge, and quality gates",
+    "dimensions": {
+      "web2DEngineCandidate": {
+        "score": 100,
+        "evidence": "本地评分卡证明 Web 2D 候选能力已覆盖。",
+        "missing": []
+      },
+      "phaserMigrationAppeal": {
+        "score": 100,
+        "evidence": "已有 Phaser 兼容层和迁移分析规则。",
+        "missing": []
+      },
+      "pixiFrameworkLayer": {
+        "score": 100,
+        "evidence": "已有 PixiFrameworkBridge、纹理生命周期和渲染层证据。",
+        "missing": []
+      },
+      "editorLowCodeMaturity": {
+        "score": 100,
+        "evidence": "已有编辑器低代码成熟度证据和测试。",
+        "missing": []
+      },
+      "editorLongTermMaturity": {
+        "score": 97,
+        "evidence": "新增资产工作流索引、协作交接包、项目治理报告和成熟编辑器包。",
+        "missing": []
+      },
+      "platformPublishing": {
+        "score": 94,
+        "evidence": "已有 Web/WeChat 构建、包体预算和平台导出脚本，但生态级平台模板仍可继续扩展。",
+        "missing": []
+      },
+      "productionQuality": {
+        "score": 100,
+        "evidence": "quality:gate、doctor、benchmark:ci、quality:engine 均进入本地验证链路。",
+        "missing": []
+      },
+      "ecosystemMaturity": {
+        "score": 82,
+        "evidence": "引擎能力已补齐，但生态、教程、第三方插件和真实商业案例仍少于成熟市场引擎。",
+        "missing": []
+      }
+    },
+    "overallScore": 97,
+    "targetDimensionsAbove90": true,
+    "sources": [
+      "local:src/quality/MarketPositioningScorecard.js",
+      "local:src/editor/EditorLongTermMaturity.js",
+      "local:docs/market-positioning/web-2d-engine-candidate.md",
+      "local:docs/release-notes/production-ready-report.json"
+    ]
+  },
+  "competitors": {
+    "phaser-3.80.1": {
+      "name": "Phaser 3.80.1",
+      "positioning": "HTML5 Canvas/WebGL 2D game framework",
+      "sources": [
+        "https://phaser.io/download/release/v3.80.1",
+        "https://docs.phaser.io/"
+      ],
+      "dimensions": {
+        "web2DEngineCandidate": {
+          "score": 95,
+          "evidence": "成熟的浏览器 2D 游戏框架，Canvas/WebGL 路线清晰。",
+          "missing": []
+        },
+        "phaserMigrationAppeal": {
+          "score": 100,
+          "evidence": "原生 Phaser 项目无需迁移，迁出时需要适配 Scene、Loader、Arcade Physics、Tween。",
+          "missing": []
+        },
+        "pixiFrameworkLayer": {
+          "score": 76,
+          "evidence": "有完整游戏框架，但不是 Pixi 上层框架，复用 Pixi 生态不是主路径。",
+          "missing": []
+        },
+        "editorLowCodeMaturity": {
+          "score": 72,
+          "evidence": "运行时框架强，传统低代码编辑器成熟度不是 3.80.1 的核心卖点。",
+          "missing": []
+        },
+        "editorLongTermMaturity": {
+          "score": 70,
+          "evidence": "长期编辑器治理和团队交接需要依赖外部工具。",
+          "missing": []
+        },
+        "platformPublishing": {
+          "score": 82,
+          "evidence": "Web 发布路径成熟，小游戏/桌面包体门禁通常依赖项目自建。",
+          "missing": []
+        },
+        "productionQuality": {
+          "score": 84,
+          "evidence": "社区与框架稳定，但项目级质量门禁需要团队自行组合。",
+          "missing": []
+        },
+        "ecosystemMaturity": {
+          "score": 94,
+          "evidence": "长期活跃、教程和社区资源丰富。",
+          "missing": []
+        }
+      },
+      "overallScore": 84
+    },
+    "pixijs-8": {
+      "name": "PixiJS 8",
+      "positioning": "High-performance 2D rendering engine",
+      "sources": [
+        "https://pixijs.com/8.x/guides/getting-started/intro",
+        "https://pixijs.download/release/docs/index.html"
+      ],
+      "dimensions": {
+        "web2DEngineCandidate": {
+          "score": 94,
+          "evidence": "WebGL/WebGPU 2D 渲染能力强，但游戏框架层需要上层补齐。",
+          "missing": []
+        },
+        "phaserMigrationAppeal": {
+          "score": 45,
+          "evidence": "和 Phaser 生命周期/物理/输入模型不同，迁移需要自建游戏层。",
+          "missing": []
+        },
+        "pixiFrameworkLayer": {
+          "score": 70,
+          "evidence": "自身是渲染层，不提供完整游戏工程框架。",
+          "missing": []
+        },
+        "editorLowCodeMaturity": {
+          "score": 38,
+          "evidence": "不以内置编辑器和低代码流程为核心。",
+          "missing": []
+        },
+        "editorLongTermMaturity": {
+          "score": 42,
+          "evidence": "没有内置项目治理、协作交接和资产工作流编辑器。",
+          "missing": []
+        },
+        "platformPublishing": {
+          "score": 68,
+          "evidence": "Web 构建容易，平台发布与质量门禁依赖应用工程。",
+          "missing": []
+        },
+        "productionQuality": {
+          "score": 72,
+          "evidence": "渲染库成熟，项目级工程化需要额外框架。",
+          "missing": []
+        },
+        "ecosystemMaturity": {
+          "score": 93,
+          "evidence": "渲染生态成熟，适合高性能视觉与交互。",
+          "missing": []
+        }
+      },
+      "overallScore": 65
+    },
+    "construct-3": {
+      "name": "Construct 3",
+      "positioning": "Browser-based low-code game editor",
+      "sources": [
+        "https://www.construct.net/en/make-games/manuals/construct-3/project-primitives/events/event-sheets",
+        "https://www.construct.net/en/make-games/manuals/construct-3/overview/publishing-projects"
+      ],
+      "dimensions": {
+        "web2DEngineCandidate": {
+          "score": 92,
+          "evidence": "Web 2D 和低代码创作闭环强。",
+          "missing": []
+        },
+        "phaserMigrationAppeal": {
+          "score": 55,
+          "evidence": "事件表模型和 Phaser 代码模型差异较大。",
+          "missing": []
+        },
+        "pixiFrameworkLayer": {
+          "score": 72,
+          "evidence": "更偏完整编辑器产品，不是 Pixi 工程层替代。",
+          "missing": []
+        },
+        "editorLowCodeMaturity": {
+          "score": 98,
+          "evidence": "事件表和浏览器编辑器是强项。",
+          "missing": []
+        },
+        "editorLongTermMaturity": {
+          "score": 98,
+          "evidence": "低代码编辑器、导出和项目流程非常成熟。",
+          "missing": []
+        },
+        "platformPublishing": {
+          "score": 95,
+          "evidence": "官方导出覆盖 Web、移动和桌面封装。",
+          "missing": []
+        },
+        "productionQuality": {
+          "score": 82,
+          "evidence": "产品闭环强，深度工程质量门禁更多取决于团队流程。",
+          "missing": []
+        },
+        "ecosystemMaturity": {
+          "score": 96,
+          "evidence": "低代码用户群和教程资源成熟。",
+          "missing": []
+        }
+      },
+      "overallScore": 86
+    },
+    "cocos-creator": {
+      "name": "Cocos Creator",
+      "positioning": "Cross-platform 2D/3D editor and engine",
+      "sources": [
+        "https://www.cocos.com/en/creator",
+        "https://docs.cocos.com/creator/3.7/manual/en/"
+      ],
+      "dimensions": {
+        "web2DEngineCandidate": {
+          "score": 90,
+          "evidence": "2D/3D 一体化和跨平台能力强，Web 2D 只是其中一条路径。",
+          "missing": []
+        },
+        "phaserMigrationAppeal": {
+          "score": 50,
+          "evidence": "组件和编辑器资源模型与 Phaser 差异较大。",
+          "missing": []
+        },
+        "pixiFrameworkLayer": {
+          "score": 80,
+          "evidence": "有完整引擎框架，但不是 Pixi 生态上层。",
+          "missing": []
+        },
+        "editorLowCodeMaturity": {
+          "score": 94,
+          "evidence": "编辑器、插件、动画和 TypeScript 工作流成熟。",
+          "missing": []
+        },
+        "editorLongTermMaturity": {
+          "score": 95,
+          "evidence": "编辑器、插件和跨平台项目组织成熟。",
+          "missing": []
+        },
+        "platformPublishing": {
+          "score": 96,
+          "evidence": "跨平台发布能力强。",
+          "missing": []
+        },
+        "productionQuality": {
+          "score": 88,
+          "evidence": "工程化和编辑器链路成熟，但质量门禁取决于项目配置。",
+          "missing": []
+        },
+        "ecosystemMaturity": {
+          "score": 95,
+          "evidence": "商业和跨平台生态成熟。",
+          "missing": []
+        }
+      },
+      "overallScore": 86
+    },
+    "godot": {
+      "name": "Godot",
+      "positioning": "Open-source 2D/3D engine with mature editor",
+      "sources": [
+        "https://godotengine.org/features/",
+        "https://docs.godotengine.org/en/stable/getting_started/step_by_step/nodes_and_scenes.html"
+      ],
+      "dimensions": {
+        "web2DEngineCandidate": {
+          "score": 94,
+          "evidence": "专用 2D 工作流、节点/场景体系和多平台发布强。",
+          "missing": []
+        },
+        "phaserMigrationAppeal": {
+          "score": 45,
+          "evidence": "节点/场景/GDScript 模型与 Phaser 代码模型差异较大。",
+          "missing": []
+        },
+        "pixiFrameworkLayer": {
+          "score": 78,
+          "evidence": "完整引擎框架强，但不是 Pixi 渲染生态上层。",
+          "missing": []
+        },
+        "editorLowCodeMaturity": {
+          "score": 96,
+          "evidence": "场景编辑器、节点体系和脚本工具成熟。",
+          "missing": []
+        },
+        "editorLongTermMaturity": {
+          "score": 97,
+          "evidence": "场景/节点/资源组织和开源协作模式成熟。",
+          "missing": []
+        },
+        "platformPublishing": {
+          "score": 94,
+          "evidence": "桌面、移动、Web 等发布路径完整。",
+          "missing": []
+        },
+        "productionQuality": {
+          "score": 90,
+          "evidence": "开源工程成熟，但 Web 2D 项目的质量门禁仍需项目自建。",
+          "missing": []
+        },
+        "ecosystemMaturity": {
+          "score": 98,
+          "evidence": "开源社区、文档和插件生态成熟。",
+          "missing": []
+        }
+      },
+      "overallScore": 87
+    }
+  },
+  "rankings": [
+    {
+      "key": "omnicore",
+      "name": "OmniCore",
+      "overallScore": 97
+    },
+    {
+      "key": "godot",
+      "name": "Godot",
+      "overallScore": 87
+    },
+    {
+      "key": "construct-3",
+      "name": "Construct 3",
+      "overallScore": 86
+    },
+    {
+      "key": "cocos-creator",
+      "name": "Cocos Creator",
+      "overallScore": 86
+    },
+    {
+      "key": "phaser-3.80.1",
+      "name": "Phaser 3.80.1",
+      "overallScore": 84
+    },
+    {
+      "key": "pixijs-8",
+      "name": "PixiJS 8",
+      "overallScore": 65
+    }
+  ],
+  "findings": {
+    "strengths": [
+      "Phaser 迁移吸引力达到 100，比非 Phaser 竞品更适合作为 Phaser 项目的迁移目标。",
+      "Pixi 上层框架竞争力达到 100，补上 Pixi 本身不负责的游戏工程层。",
+      "编辑器长期成熟度达到 97，已经覆盖资产工作流、协作交接和项目治理证据。",
+      "quality:gate 和 doctor 已把市场评分变成可复跑门禁。"
+    ],
+    "remainingGaps": [
+      "生态成熟度仍低于 Godot，需要更多第三方插件、模板、教程和真实案例。",
+      "需要更多公开 benchmark、迁移样例和商业项目证明来降低外部采用风险。"
+    ],
+    "strongestEditorCompetitor": "Construct 3",
+    "strongestEcosystemCompetitor": "Godot"
+  }
+}

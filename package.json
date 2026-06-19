@@ -1,9 +1,15 @@
 {
   "name": "omnicore",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "OmniCore 2D-first Web game engine core with native WebGPU rendering, event sheets, component prefabs, and industrial asset pipelines.",
+  "author": "杀戮 (Shalu) (QQ 3424636983, WeChat lookkiitylou)",
   "type": "module",
   "main": "src/index.js",
+  "workspaces": [
+    "packages/*",
+    "examples/*",
+    "tools/*"
+  ],
   "exports": {
     ".": "./src/index.js",
     "./lean": "./src/lean/index.js",
@@ -18,6 +24,7 @@
   },
   "files": [
     "src",
+    "dist",
     "examples",
     "scripts",
     "create-omnicore-plugin-sdk",
@@ -38,6 +45,8 @@
     "build": "vite build",
     "postbuild": "node scripts/verify-build-output.js",
     "build:prod": "vite build --mode production",
+    "build:workspace": "node tools/build/index.js",
+    "demo:platformer": "node examples/platformer/src/main.js",
     "build:wechat": "node scripts/build-wechat.js",
     "build:mobile": "node scripts/generate-mobile-shells.js",
     "build:addon": "node scripts/build-addon.js",
@@ -70,6 +79,9 @@
     "production-ready": "node scripts/production-ready.js",
     "quality:gate": "node scripts/production-ready.js --verify",
     "quality:engine": "node scripts/engine-quality-gate.js",
+    "acceptance:core-experience": "node scripts/core-experience-acceptance.js",
+    "improvements": "node scripts/engine-improvements.js",
+    "market:compare": "node scripts/market-engine-compare.js",
     "doctor": "node scripts/engine-doctor.js",
     "benchmark": "node scripts/benchmark.js",
     "benchmark:mobile": "node scripts/benchmark.js complex-scene-benchmark",

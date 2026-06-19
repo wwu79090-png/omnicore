@@ -17,6 +17,18 @@ describe('OmniCore Engine Doctor', () => {
     expect(report.score).toBe(100);
     expect(report.categories.wechatPackage).toMatchObject({ ok: true, bytes: expect.any(Number), fileCount: 3 });
     expect(report.categories.marketProof.ok).toBe(true);
+    expect(report.categories.adoptionReadiness.ok).toBe(true);
+    expect(report.categories.marketPositioning.ok).toBe(true);
+    expect(report.marketPositioningScorecard).toMatchObject({
+      target: 90,
+      allAboveTarget: true
+    });
+    expect(report.categories.improvementBacklog).toMatchObject({
+      ok: true,
+      opportunities: expect.any(Number),
+      p0Count: expect.any(Number)
+    });
+    expect(report.improvementBacklog.summary.totalOpportunities).toBeGreaterThanOrEqual(30);
     expect(report.nextActions).toEqual([]);
   });
 
@@ -94,6 +106,7 @@ function createDoctorFixture({ includeWechatPackage }) {
       'quality:engine': 'node scripts/engine-quality-gate.js',
       'quality:gate': 'node scripts/production-ready.js --verify',
       'production-ready': 'node scripts/production-ready.js',
+      editor: 'node packages/omnicore-editor/bin/omnicore-editor.cjs',
       doctor: 'node scripts/engine-doctor.js'
     }
   });
@@ -104,6 +117,11 @@ function createDoctorFixture({ includeWechatPackage }) {
     'docs/platforms/wechat-mini-game-publish.md',
     'docs/getting-started-zero.zh-CN.md',
     'docs/getting-started.md',
+    'docs/migration/from-phaser.md',
+    'docs/migration/from-construct.md',
+    'docs/migration/from-cocos.md',
+    'docs/adoption/30-minute-trial.md',
+    'docs/market-positioning/web-2d-engine-candidate.md',
     'docs/api.md',
     'docs/api/README.zh-CN.md',
     'docs/api/public-api-policy.md',
@@ -129,20 +147,34 @@ function createDoctorFixture({ includeWechatPackage }) {
     'src/package/PluginInstaller.js',
     'website/marketplace/index.html',
     'website/marketplace/omni-particles/index.html',
+    'website/migration/index.html',
     'website/tutorials/index.html',
     '.github/workflows/marketplace-review.yml',
     'tests/plugin-installer-platform.test.js',
     'tests/marketplace-platform.test.js',
+    'tests/market-adoption-readiness.test.js',
     'scripts/build-wechat.js',
     'scripts/performance-budget.js',
     'packages/omnicore-editor/scripts/package-desktop.cjs',
     'scripts/production-ready.js',
     'scripts/engine-quality-gate.js',
     'scripts/engine-doctor.js',
+    'scripts/engine-improvements.js',
     'src/quality/EngineQualityHarness.js',
+    'src/quality/ImprovementPlanner.js',
+    'src/quality/MarketPositioningScorecard.js',
+    'src/compat/phaser/PhaserCompat.js',
+    'src/renderer/PixiFrameworkBridge.js',
+    'src/renderer/PixiRenderer.js',
+    'src/renderer/PixiTextureLifecycle.js',
+    'src/renderer/Filters.js',
+    'src/renderer/RenderLayerManager.js',
+    'src/debug/FrameProfiler.js',
+    'src/editor/EditorMarketReadiness.js',
     'docs/security/security.md',
     'website/editor/index.html',
     'website/plugins/index.html',
+    'website/market-positioning/index.html',
     'create-omnicore-plugin-sdk/index.mjs',
     'packages/omnicore-plugin-wechat-monetization/package.json',
     'src/index.js',
@@ -157,7 +189,16 @@ function createDoctorFixture({ includeWechatPackage }) {
     'tests/dx-experience.test.js',
     'tests/performance-refactor.test.js',
     'tests/physics-backends.test.js',
+    'tests/editor-market-readiness.test.js',
+    'tests/editor-maturity-ui.test.js',
+    'tests/market-90-scorecard.test.js',
+    'tests/phaser-compat-layer.test.js',
+    'tests/pixi-framework-layer.test.js',
+    'tests/web2d-market-position.test.js',
+    'tests/benchmark-threshold.test.js',
+    'tests/migration-analysis.test.js',
     'examples/template-platformer/DEBUGGING.md',
+    'examples/template-platformer/README.md',
     'examples/template-rpg/DEBUGGING.md',
     'examples/template-interactive/DEBUGGING.md',
     'tests/market-competitiveness-score.test.js'

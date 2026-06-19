@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const isProduction = mode === 'production' || process.env.NODE_ENV === 'production';
   const buildTimestamp = new Date().toISOString();
-  const banner = `/*! OmniCore | author=OmniCore Open Engine Maintainers | built=${buildTimestamp} | proof=OmniCore.Genealogy() */`;
+  const banner = `/*! OmniCore | Copyright (c) 2026 杀戮 (Shalu) | QQ=3424636983 | WeChat=lookkiitylou | built=${buildTimestamp} | proof=OmniCore.Genealogy() */`;
   const sourceMapEnabled = readBoolean(env.OMNICORE_SOURCEMAP, !isProduction);
   const outputMinify = isProduction
     ? {

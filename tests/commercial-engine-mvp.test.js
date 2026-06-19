@@ -218,6 +218,7 @@ describe('commercial engine MVP - persistence, networking, and engineering group
 
       expect(result.modules.length).toBeGreaterThan(0);
       expect(html).toContain('OmniCore API');
+      expect(html).not.toMatch(/[ \t]+$/m);
       expect(manifest.modules.some((module) => module.exports.includes('Game'))).toBe(true);
       expect(cname.trim()).toBe('docs.omnicore.dev');
     } finally {

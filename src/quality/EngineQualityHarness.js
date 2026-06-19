@@ -173,18 +173,76 @@ export function runBudgetCheck({
   };
 }
 
+export function runTrendCheck({
+  baseline = {},
+  current = {},
+  tolerances = {}
+} = {}) {
+  const failures = [];
+  const comparisons = [];
+  const metrics = new Set([
+    ...Object.keys(baseline || {}),
+    ...Object.keys(current || {})
+  ]);
+
+  for (const metric of metrics) {
+    const baselineValue = Number(baseline[metric]);
+    const currentValue = Number(current[metric]);
+    if (!Number.isFinite(baselineValue) || !Number.isFinite(currentValue) || baselineValue === 0) continue;
+    const direction = metric.toLowerCase().includes('fps') ? 'lower-is-worse' : 'higher-is-worse';
+    const toleranceKey = direction === 'lower-is-worse' ? `${metric}Drop` : `${metric}Increase`;
+    const tolerance = normalizeTolerance(tolerances[toleranceKey] ?? tolerances[metric] ?? tolerances.default);
+    const ratio = direction === 'lower-is-worse'
+      ? (baselineValue - currentValue) / Math.abs(baselineValue)
+      : (currentValue - baselineValue) / Math.abs(baselineValue);
+    const regression = ratio > tolerance;
+    const comparison = {
+      metric,
+      baseline: baselineValue,
+      current: currentValue,
+      direction,
+      tolerance,
+      changeRatio: Number(ratio.toFixed(4)),
+      changePercent: Number((ratio * 100).toFixed(2)),
+      regression
+    };
+    comparisons.push(comparison);
+    if (regression) {
+      failures.push({
+        code: 'trend-regression',
+        metric,
+        baseline: baselineValue,
+        current: currentValue,
+        tolerance,
+        changePercent: comparison.changePercent,
+        message: `${metric} regressed by ${comparison.changePercent}% against baseline.`
+      });
+    }
+  }
+
+  return {
+    name: 'trends',
+    ok: failures.length === 0,
+    comparisons,
+    failures,
+    suggestions: failures.map((failure) => trendSuggestion(failure))
+  };
+}
+
 export function runEngineQualityGate({
   determinism = null,
   world = null,
   invariants = {},
   metrics = {},
   budgets = DEFAULT_BUDGETS,
+  trend = null,
   generatedAt = new Date().toISOString()
 } = {}) {
   const checks = [];
   if (determinism) checks.push(runDeterminismCheck(determinism));
   if (world) checks.push(runInvariantCheck(world, invariants));
   if (metrics || budgets) checks.push(runBudgetCheck({ metrics, budgets }));
+  if (trend) checks.push(runTrendCheck(trend));
 
   const failures = checks.flatMap((check) => {
     if (check.ok) return [];
@@ -322,11 +380,28 @@ function budgetSuggestion(failure) {
   return `${failure.metric} exceeded budget by ${failure.overBy}.`;
 }
 
+function trendSuggestion(failure) {
+  const metric = String(failure.metric || '');
+  if (metric.toLowerCase().includes('fps')) return `FPS trend dropped ${failure.changePercent}%; compare renderer backend, batching, and scene-update changes against the baseline run.`;
+  if (metric.toLowerCase().includes('draw')) return `drawCalls increased ${failure.changePercent}%; inspect batch breaks, atlas churn, and material switching.`;
+  if (metric.toLowerCase().includes('memory')) return `memoryMB increased ${failure.changePercent}%; inspect asset residency, texture lifecycle, and object pool growth.`;
+  if (metric.toLowerCase().includes('physics')) return `physics cost increased ${failure.changePercent}%; inspect broadphase pair counts and sleep/wake thresholds.`;
+  if (metric.toLowerCase().includes('frame')) return `frame time increased ${failure.changePercent}%; inspect profiler hot sections and per-frame allocations.`;
+  return `${metric} regressed ${failure.changePercent}% against the previous baseline.`;
+}
+
+function normalizeTolerance(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 0.05;
+  return Math.max(0, number);
+}
+
 export default {
   stableStringify,
   stableHash,
   runDeterminismCheck,
   runInvariantCheck,
   runBudgetCheck,
+  runTrendCheck,
   runEngineQualityGate
 };

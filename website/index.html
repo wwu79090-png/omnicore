@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="OmniCore v1.0.0, a 2D-first web game engine for web, editor, plugin, and industrial asset pipelines.">
+    <title>OmniCore v1.0.0</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      :root {
+        color-scheme: light;
+        --ink: #111827;
+        --muted: #4b5563;
+        --line: #d1d5db;
+        --paper: #f8fafc;
+        --white: #ffffff;
+        --blue: #1d4ed8;
+        --teal: #0f766e;
+        --green: #15803d;
+        --amber: #b45309;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 15px/1.6 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px clamp(18px, 4vw, 52px);
+        border-bottom: 1px solid var(--line);
+        background: rgba(248, 250, 252, 0.94);
+        backdrop-filter: blur(12px);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        letter-spacing: 0;
+      }
+
+      .brand img {
+        width: 32px;
+        height: 32px;
+        object-fit: contain;
+      }
+
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+      }
+
+      a {
+        color: var(--blue);
+        text-decoration: none;
+        font-weight: 700;
+      }
+
+      main {
+        overflow: hidden;
+      }
+
+      .hero {
+        position: relative;
+        min-height: 72vh;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-content: center;
+        padding: clamp(48px, 8vw, 96px) clamp(18px, 4vw, 52px);
+        border-bottom: 1px solid var(--line);
+        background: #eef2f7;
+      }
+
+      .hero::after {
+        content: "";
+        position: absolute;
+        right: clamp(20px, 8vw, 140px);
+        bottom: clamp(20px, 8vw, 88px);
+        width: min(42vw, 420px);
+        aspect-ratio: 1;
+        background: url("/assets/branding/logo-highres.png") center / contain no-repeat;
+        opacity: 0.14;
+        pointer-events: none;
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 860px;
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 720px;
+        font-size: clamp(44px, 8vw, 88px);
+        line-height: 0.98;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        max-width: 760px;
+        margin: 24px 0 0;
+        color: var(--muted);
+        font-size: 20px;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 9px 14px;
+        border: 1px solid var(--ink);
+        border-radius: 6px;
+        background: var(--ink);
+        color: var(--white);
+      }
+
+      .button.secondary {
+        background: var(--white);
+        color: var(--ink);
+      }
+
+      section {
+        padding: 44px clamp(18px, 4vw, 52px);
+      }
+
+      h2 {
+        margin: 0 0 20px;
+        font-size: 26px;
+        line-height: 1.2;
+        letter-spacing: 0;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .metric {
+        min-height: 132px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--white);
+      }
+
+      .metric strong {
+        display: block;
+        color: var(--ink);
+        font-size: 28px;
+        line-height: 1.1;
+        letter-spacing: 0;
+      }
+
+      .metric span {
+        display: block;
+        margin-top: 8px;
+        color: var(--muted);
+      }
+
+      .metric:nth-child(1) strong { color: var(--green); }
+      .metric:nth-child(2) strong { color: var(--blue); }
+      .metric:nth-child(3) strong { color: var(--teal); }
+      .metric:nth-child(4) strong { color: var(--amber); }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .panel {
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--white);
+      }
+
+      .panel h3 {
+        margin: 0 0 8px;
+        font-size: 18px;
+        letter-spacing: 0;
+      }
+
+      .panel p,
+      footer p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      code {
+        color: var(--teal);
+        font-family: Consolas, "SFMono-Regular", monospace;
+      }
+
+      footer {
+        padding: 28px clamp(18px, 4vw, 52px) 40px;
+        border-top: 1px solid var(--line);
+        background: var(--white);
+      }
+
+      @media (max-width: 860px) {
+        header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .metrics,
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .hero {
+          min-height: auto;
+        }
+
+        .hero::after {
+          width: 280px;
+          opacity: 0.08;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <img src="/assets/branding/logo-highres.png" alt="OmniCore logo">
+        <span>OmniCore v1.0.0</span>
+      </div>
+      <nav aria-label="Primary">
+        <a href="/website/playground/">Playground</a>
+        <a href="/website/plugins/">Plugins</a>
+        <a href="/website/migration/">Migration</a>
+        <a href="https://www.npmjs.com/package/omnicore">NPM</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-content">
+          <h1>OmniCore</h1>
+          <p class="lead">A 2D-first web game engine with PixiJS rendering, visual event sheets, plugin workflows, editor tooling, and industrial asset pipelines for shipping browser games.</p>
+          <div class="actions">
+            <a class="button" href="https://www.npmjs.com/package/omnicore">Install from NPM</a>
+            <a class="button secondary" href="/website/playground/">Open Playground</a>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="release-data">
+        <h2 id="release-data">Release Data</h2>
+        <div class="metrics">
+          <div class="metric"><strong>521/521</strong><span>Vitest checks passed before release.</span></div>
+          <div class="metric"><strong>654.11 kB</strong><span>Generated <code>dist/omnicore.esm.js</code> artifact.</span></div>
+          <div class="metric"><strong>33.36 kB</strong><span>Lean core ESM output after production build.</span></div>
+          <div class="metric"><strong>0</strong><span>High-risk dependency and deprecated API findings.</span></div>
+        </div>
+      </section>
+
+      <section aria-labelledby="core-capabilities">
+        <h2 id="core-capabilities">Core Capabilities</h2>
+        <div class="grid">
+          <article class="panel">
+            <h3>2D Runtime</h3>
+            <p>Scene stack, fixed-step loop, camera, tweening, input, loaders, Canvas fallback, and PixiJS v8 renderer integration.</p>
+          </article>
+          <article class="panel">
+            <h3>Editor Workflow</h3>
+            <p>Visual event graph, live inspection, low-code export paths, package tools, diagnostics, and feedback hooks for teams.</p>
+          </article>
+          <article class="panel">
+            <h3>Production Pipeline</h3>
+            <p>Dependency forensics, build output verification, benchmark gates, WeChat export helpers, and plugin marketplace scaffolding.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Copyright (c) 2026 杀戮 (Shalu). QQ 3424636983. WeChat lookkiitylou.</p>
+    </footer>
+  </body>
+</html>

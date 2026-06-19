@@ -107,6 +107,10 @@ describe('OmniCore experience gap closure', () => {
     const out = path.join(temp, 'out');
     mkdirSync(source, { recursive: true });
     writeFileSync(path.join(source, 'game.js'), 'console.log("small");\n');
+    writeFileSync(path.join(source, 'quality-report.json'), '{}\n');
+    writeFileSync(path.join(source, 'quality-report-check.json'), '{}\n');
+    writeFileSync(path.join(source, 'engine-improvements.json'), '{}\n');
+    writeFileSync(path.join(source, 'production-ready-check.json'), '{}\n');
 
     expect(JSON.parse(readFileSync('package.json', 'utf8')).scripts['build:wechat']).toContain('scripts/build-wechat.js');
 
@@ -119,6 +123,10 @@ describe('OmniCore experience gap closure', () => {
     expect(readFileSync(path.join(out, 'omnicore-debug-proxy.js'), 'utf8')).toContain('player.x');
     expect(readFileSync(path.join(out, 'omnicore-debug-proxy.js'), 'utf8')).toContain('player.hp');
     expect(readFileSync(path.join(out, 'omnicore-debug-proxy.js'), 'utf8')).toContain('console.info');
+    expect(existsSync(path.join(out, 'quality-report.json'))).toBe(false);
+    expect(existsSync(path.join(out, 'quality-report-check.json'))).toBe(false);
+    expect(existsSync(path.join(out, 'engine-improvements.json'))).toBe(false);
+    expect(existsSync(path.join(out, 'production-ready-check.json'))).toBe(false);
 
     const oversized = path.join(temp, 'oversized');
     mkdirSync(oversized, { recursive: true });

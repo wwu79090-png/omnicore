@@ -1,4 +1,10 @@
-# OmniCore
+# OmniCore v1.0.0
+
+![Tests](https://img.shields.io/badge/tests-521%2F521%20passed-16a34a)
+![Build](https://img.shields.io/badge/build-passing-0f766e)
+![ESM](https://img.shields.io/badge/esm-654.11%20kB-2563eb)
+![Lean Core](https://img.shields.io/badge/lean%20core-33.36%20kB-7c3aed)
+![Security](https://img.shields.io/badge/high--risk%20deps-0-16a34a)
 
 OmniCore 是一个 HTML5 2D/2.5D 优先游戏引擎骨架：默认使用 PixiJS v8 做 2D 渲染，提供 Phaser 风格场景栈和 Tween、Construct/GDevelop 风格 JSON Event Sheet、Cocos 风格 `addComponent()`，并把 Three.js 作为独立的装饰背景层延迟加载。
 
@@ -992,3 +998,11 @@ await OmniCore.useAddon('standard', {
 | --- | ---: | --- | --- | --- |
 | 无 | 0 | 无 | 无 | 当前未发现废弃 API |
 <!-- OMNICORE_DEPRECATED_API_TABLE:end -->
+
+## 反馈通道与作者联系方式
+
+- 作者：杀戮 (Shalu)
+- QQ：3424636983
+- 微信：lookkiitylou
+- GitHub Issues：用于 Bug 报告、复现工程和功能建议。
+- NPM：`omnicore` 包页面用于版本订阅与安装反馈。

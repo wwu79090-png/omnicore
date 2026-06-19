@@ -1,6 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { buildEngineImprovementPlan } from '../src/quality/ImprovementPlanner.js';
+import { buildMarketEngineComparison } from '../src/quality/MarketEngineComparison.js';
+import { buildMarketPositioningScorecard } from '../src/quality/MarketPositioningScorecard.js';
 
 const root = process.cwd();
 const RELEASE_GATE_SCRIPTS = [
@@ -34,10 +37,16 @@ const MARKET_DOC_FILES = [
   'README.md',
   'docs/market-benchmark-report.md',
   'docs/platforms/wechat-minigame.md',
-  'docs/getting-started-zero.zh-CN.md'
+  'docs/getting-started-zero.zh-CN.md',
+  'docs/migration/from-phaser.md',
+  'docs/migration/from-construct.md',
+  'docs/migration/from-cocos.md',
+  'docs/adoption/30-minute-trial.md',
+  'website/migration/index.html'
 ];
 const NON_3D_MARKET_TARGET = 80;
 const MARKET_COMPETITIVENESS_TARGET = 90;
+const MARKET_ADOPTION_TARGET = 90;
 const NON_3D_MARKET_DIMENSIONS = [
   {
     key: 'editorUx',
@@ -228,6 +237,43 @@ const MARKET_COMPETITIVENESS_DIMENSIONS = [
     ]
   }
 ];
+const MARKET_ADOPTION_DIMENSIONS = [
+  {
+    key: 'migrationGuides',
+    label: '竞品迁移指南',
+    notes: ['phaser-scene-map', 'construct-event-sheet-map', 'cocos-component-map'],
+    checks: [
+      { file: 'docs/migration/from-phaser.md' },
+      { file: 'docs/migration/from-construct.md' },
+      { file: 'docs/migration/from-cocos.md' },
+      { test: 'tests/market-adoption-readiness.test.js' }
+    ]
+  },
+  {
+    key: 'trialPath',
+    label: '30 分钟试用路径',
+    notes: ['create-app', 'run-template', 'test-build', 'console-audit'],
+    checks: [
+      { file: 'docs/adoption/30-minute-trial.md' },
+      { file: 'docs/getting-started.md' },
+      { file: 'examples/template-platformer/README.md' },
+      { script: 'test' },
+      { script: 'build' }
+    ]
+  },
+  {
+    key: 'publicEntryPoints',
+    label: '公开采用入口',
+    notes: ['migration-page', 'case-studies', 'market-benchmark', 'readme-positioning'],
+    checks: [
+      { file: 'website/migration/index.html' },
+      { file: 'website/case-studies.html' },
+      { file: 'website/case-studies.md' },
+      { file: 'docs/market-benchmark-report.md' },
+      { file: 'README.md' }
+    ]
+  }
+];
 
 function parseArgs(argv) {
   const options = { out: path.join(root, 'dist', 'quality-report.json') };
@@ -313,6 +359,10 @@ export function generateQualityReport({ out = path.join(root, 'dist', 'quality-r
   const marketReadiness = buildMarketReadiness();
   const non3DMarketScorecard = buildNon3DMarketScorecard();
   const marketCompetitiveness = buildMarketCompetitivenessScorecard();
+  const marketAdoptionReadiness = buildMarketAdoptionReadiness();
+  const marketPositioningScorecard = buildMarketPositioningScorecard();
+  const marketEngineComparison = buildMarketEngineComparison({ scorecard: marketPositioningScorecard });
+  const engineImprovementPlan = buildEngineImprovementPlan();
   const overallScore = Math.round((capabilityScore * 0.55) + (marketReadiness.score * 0.45));
   const report = {
     generatedAt: new Date().toISOString(),
@@ -321,6 +371,10 @@ export function generateQualityReport({ out = path.join(root, 'dist', 'quality-r
     marketReadiness,
     non3DMarketScorecard,
     marketCompetitiveness,
+    marketAdoptionReadiness,
+    marketPositioningScorecard,
+    marketEngineComparison,
+    engineImprovementPlan,
     overallScore,
     sections
   };
@@ -402,6 +456,31 @@ export function buildMarketCompetitivenessScorecard({
   return {
     target,
     excluded: ['full-3d'],
+    overallScore,
+    allAboveTarget: dimensionScores.every((score) => score >= target),
+    dimensions,
+    risks: Object.entries(dimensions)
+      .filter(([, dimension]) => dimension.score < target)
+      .map(([key, dimension]) => `${key} below target: ${dimension.score}`)
+  };
+}
+
+export function buildMarketAdoptionReadiness({
+  projectRoot = root,
+  packageSummary = readPackageSummary(projectRoot),
+  target = MARKET_ADOPTION_TARGET
+} = {}) {
+  const scripts = packageSummary?.scripts || {};
+  const dimensions = Object.fromEntries(
+    MARKET_ADOPTION_DIMENSIONS.map((dimension) => [
+      dimension.key,
+      scoreCheckDimension(dimension, projectRoot, scripts)
+    ])
+  );
+  const dimensionScores = Object.values(dimensions).map((dimension) => dimension.score);
+  const overallScore = averageScore(dimensionScores);
+  return {
+    target,
     overallScore,
     allAboveTarget: dimensionScores.every((score) => score >= target),
     dimensions,

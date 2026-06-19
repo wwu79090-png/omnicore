@@ -4,6 +4,7 @@ import {
   runDeterminismCheck,
   runEngineQualityGate,
   runInvariantCheck,
+  runTrendCheck,
   stableHash,
   stableStringify
 } from '../src/quality/EngineQualityHarness.js';
@@ -93,6 +94,37 @@ describe('engine quality harness', () => {
     expect(result.suggestions.join('\n')).toContain('drawCalls');
   });
 
+  it('detects benchmark trend regressions before absolute budgets fail', () => {
+    const result = runTrendCheck({
+      baseline: {
+        fps: 60,
+        frameMs: 15,
+        drawCalls: 500,
+        memoryMB: 220
+      },
+      current: {
+        fps: 54,
+        frameMs: 16,
+        drawCalls: 575,
+        memoryMB: 245
+      },
+      tolerances: {
+        fpsDrop: 0.05,
+        frameMsIncrease: 0.1,
+        drawCallsIncrease: 0.1,
+        memoryMBIncrease: 0.1
+      }
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.failures).toEqual(expect.arrayContaining([
+      expect.objectContaining({ metric: 'fps', code: 'trend-regression' }),
+      expect.objectContaining({ metric: 'drawCalls', code: 'trend-regression' }),
+      expect.objectContaining({ metric: 'memoryMB', code: 'trend-regression' })
+    ]));
+    expect(result.suggestions.join('\n')).toContain('FPS');
+  });
+
   it('combines checks into a scored quality gate report', () => {
     const report = runEngineQualityGate({
       determinism: {
@@ -121,11 +153,28 @@ describe('engine quality harness', () => {
     expect(report.failures).toEqual([]);
   });
 
+  it('includes trend checks in the combined quality gate', () => {
+    const report = runEngineQualityGate({
+      trend: {
+        baseline: { fps: 60, frameMs: 12, drawCalls: 300 },
+        current: { fps: 55, frameMs: 13.5, drawCalls: 360 },
+        tolerances: { fpsDrop: 0.03, frameMsIncrease: 0.1, drawCallsIncrease: 0.1 }
+      }
+    });
+
+    expect(report.ok).toBe(false);
+    expect(report.checks.map((check) => check.name)).toEqual(['budgets', 'trends']);
+    expect(report.failures).toEqual(expect.arrayContaining([
+      expect.objectContaining({ check: 'trends', metric: 'fps' })
+    ]));
+  });
+
   it('exposes the quality harness from the public package entry', async () => {
     const module = await import('../src/index.js');
 
     expect(module.default.Quality).toBe(module.EngineQualityHarness);
     expect(module.EngineQualityHarness.runEngineQualityGate).toBe(module.runEngineQualityGate);
+    expect(module.EngineQualityHarness.runTrendCheck).toBe(module.runTrendCheck);
     expect(typeof module.stableHash).toBe('function');
   });
 });
