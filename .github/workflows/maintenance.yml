@@ -1,0 +1,83 @@
+name: OmniCore Maintenance
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1'
+  push:
+    branches:
+      - main
+      - 'release/**'
+  release:
+    types:
+      - published
+
+jobs:
+  health-and-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium firefox webkit
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Contract tests
+        run: npm run test:contract
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Health check
+        run: npm run health -- --quick
+
+      - name: Security detection
+        run: npm run security-check -- --dry-run
+
+      - name: Deprecated API audit
+        run: npm run audit:deprecated
+
+      - name: Generate release notes draft when CHANGELOG is stale
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          mkdir -p docs/release-notes
+          if git diff --quiet HEAD~1 -- CHANGELOG.md; then
+            {
+              echo "# OmniCore v${VERSION} CI Draft Release Notes"
+              echo
+              echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              echo
+              echo "## Commits"
+              git log --oneline -20
+            } > "docs/release-notes/v${VERSION}-ci-draft.md"
+          else
+            echo "CHANGELOG.md changed in this range; draft generation skipped."
+          fi
+
+      - name: Upload maintenance reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: omnicore-maintenance-reports
+          path: |
+            docs/release-notes/*health*.json
+            docs/release-notes/*audit*.md
+            docs/security/security-check-latest.json

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+test-results/
+.vite/
+.superpowers/
+.tmp-editor-server/
+docs/release-notes/benchmark-current.json
+docs/release-notes/performance-regression-report.md
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store

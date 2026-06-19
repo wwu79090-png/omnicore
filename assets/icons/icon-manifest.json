@@ -1,0 +1,34 @@
+{
+  "source": "C:\\Users\\39120\\Documents\\引擎开发\\assets\\logo_highres.png",
+  "generatedAt": "2026-06-18T10:12:41.846Z",
+  "note": "Generated without third-party image dependencies; files preserve source PNG pixels for platform packaging.",
+  "targets": {
+    "web/favicon.png": {
+      "size": 32
+    },
+    "web/icon-192.png": {
+      "size": 192
+    },
+    "web/icon-512.png": {
+      "size": 512
+    },
+    "wechat/icon.png": {
+      "size": 144
+    },
+    "wechat/icon-192.png": {
+      "size": 192
+    },
+    "electron/icon-16.png": {
+      "size": 16
+    },
+    "electron/icon-32.png": {
+      "size": 32
+    },
+    "electron/icon-256.png": {
+      "size": 256
+    },
+    "electron/icon-512.png": {
+      "size": 512
+    }
+  }
+}

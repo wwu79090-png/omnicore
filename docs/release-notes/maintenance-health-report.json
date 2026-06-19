@@ -1,0 +1,69 @@
+{
+  "generatedAt": "2026-06-18T10:50:28.601Z",
+  "full": false,
+  "status": "pass",
+  "checks": [
+    {
+      "name": "memory",
+      "durationMs": 750,
+      "baseline": 50141280,
+      "current": 50255472,
+      "growthRatio": 0.002277404964532218,
+      "status": "pass",
+      "threshold": 0.2
+    },
+    {
+      "name": "backends",
+      "status": "pass",
+      "results": [
+        {
+          "requested": "pixi",
+          "active": "pixi",
+          "canvasCount": 1,
+          "status": "pass"
+        },
+        {
+          "requested": "canvas",
+          "active": "canvas",
+          "canvasCount": 1,
+          "status": "pass"
+        },
+        {
+          "requested": "webgl",
+          "active": "webgl",
+          "canvasCount": 1,
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "playwright",
+      "status": "pass",
+      "results": [
+        {
+          "browser": "Chrome",
+          "status": "pass",
+          "pageStatus": "当前后端：pixi",
+          "canvasCount": 1
+        },
+        {
+          "browser": "Firefox",
+          "status": "skip",
+          "reason": "browserType.launch: Executable doesn't exist at C:\\Users\\39120\\AppData\\Local\\ms-playwright\\firefox-1532\\firefox\\firefox.exe"
+        },
+        {
+          "browser": "Safari(WebKit)",
+          "status": "pass",
+          "pageStatus": "当前后端：pixi",
+          "canvasCount": 1
+        },
+        {
+          "browser": "Edge",
+          "status": "pass",
+          "pageStatus": "当前后端：pixi",
+          "canvasCount": 1
+        }
+      ]
+    }
+  ]
+}

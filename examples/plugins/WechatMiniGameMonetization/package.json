@@ -1,0 +1,12 @@
+{
+  "name": "@omnicore/example-wechat-minigame-monetization",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 127.0.0.1"
+  },
+  "dependencies": {
+    "@omnicore/plugin-wechat-monetization": "file:../../../packages/omnicore-plugin-wechat-monetization"
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "generatedAt": "2026-06-18T13:46:26.956Z",
+  "builtInRuns": [
+    {
+      "particles1000": {
+        "frames": 90,
+        "ms": 1468,
+        "fps": 61,
+        "drawCallsPerFrame": 1001,
+        "totalDrawCalls": 90090
+      },
+      "entitySync500": {
+        "entities": 500,
+        "ticks": 240,
+        "dirtyWrites": 120000,
+        "ms": 1.4
+      },
+      "backendSwitch": {
+        "from": "pixi",
+        "to": "canvas",
+        "ms": 0.2
+      }
+    },
+    {
+      "particles1000": {
+        "frames": 90,
+        "ms": 1485,
+        "fps": 61,
+        "drawCallsPerFrame": 1001,
+        "totalDrawCalls": 90090
+      },
+      "entitySync500": {
+        "entities": 500,
+        "ticks": 240,
+        "dirtyWrites": 120000,
+        "ms": 1.1
+      },
+      "backendSwitch": {
+        "from": "pixi",
+        "to": "canvas",
+        "ms": 0.2
+      }
+    },
+    {
+      "particles1000": {
+        "frames": 90,
+        "ms": 1494,
+        "fps": 60,
+        "drawCallsPerFrame": 1001,
+        "totalDrawCalls": 90090
+      },
+      "entitySync500": {
+        "entities": 500,
+        "ticks": 240,
+        "dirtyWrites": 120000,
+        "ms": 1.2
+      },
+      "backendSwitch": {
+        "from": "pixi",
+        "to": "canvas",
+        "ms": 0.2
+      }
+    }
+  ],
+  "engineCanvas": {
+    "requested": "canvas",
+    "active": "canvas",
+    "sprites": 1000,
+    "frames": 120,
+    "ms": 1982,
+    "fps": 61,
+    "measuredFps": 61,
+    "drawCallsPerFrame": 1000,
+    "batchStats": null
+  },
+  "enginePixi": {
+    "requested": "pixi",
+    "active": "pixi",
+    "sprites": 1000,
+    "frames": 120,
+    "ms": 2082,
+    "fps": 60,
+    "measuredFps": 58,
+    "drawCallsPerFrame": 1,
+    "batchStats": {
+      "drawCalls": 1,
+      "batchCount": 1,
+      "spriteCount": 1000,
+      "nonBatchableCount": 0,
+      "fpsTarget": 60,
+      "batchKeys": [
+        "source:0|inherit|batch"
+      ]
+    }
+  },
+  "summary": {
+    "particles1000AvgFps": 60.67,
+    "entitySync500AvgMs": 1.23,
+    "backendSwitchAvgMs": 0.2,
+    "particles1000DrawCalls": 1001,
+    "canvas1000SpriteFps": 61,
+    "pixi1000SpriteFps": 60,
+    "canvasDrawCalls": 1000,
+    "pixiDrawCalls": 1
+  }
+}

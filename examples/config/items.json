@@ -1,0 +1,16 @@
+{
+  "potion": {
+    "id": "potion",
+    "name": "Potion",
+    "type": "consumable",
+    "price": 30,
+    "effects": [{ "kind": "heal", "value": 50 }]
+  },
+  "iron_sword": {
+    "id": "iron_sword",
+    "name": "Iron Sword",
+    "type": "weapon",
+    "price": 120,
+    "params": { "attack": 8 }
+  }
+}

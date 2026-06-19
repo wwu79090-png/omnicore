@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="Code Awakener development screenshot mock">
+  <rect width="960" height="540" fill="#0f172a"/>
+  <rect x="48" y="48" width="864" height="444" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+  <rect x="84" y="96" width="240" height="320" fill="#1f2937"/>
+  <rect x="360" y="96" width="480" height="64" fill="#0b1120" stroke="#475569"/>
+  <rect x="360" y="188" width="480" height="64" fill="#0b1120" stroke="#475569"/>
+  <rect x="360" y="280" width="480" height="64" fill="#0b1120" stroke="#475569"/>
+  <circle cx="204" cy="188" r="48" fill="#38bdf8"/>
+  <rect x="156" y="260" width="96" height="96" fill="#22c55e"/>
+  <text x="360" y="134" fill="#e2e8f0" font-family="monospace" font-size="28">代码觉醒者</text>
+  <text x="360" y="226" fill="#94a3b8" font-family="monospace" font-size="20">状态：开发中</text>
+  <text x="360" y="318" fill="#94a3b8" font-family="monospace" font-size="20">OmniCore: Scene / Store / Debug / Offline</text>
+</svg>

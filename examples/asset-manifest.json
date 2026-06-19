@@ -1,0 +1,24 @@
+{
+  "assets": [
+    {
+      "key": "demoStats",
+      "url": "/examples/data/demo-stats.csv",
+      "type": "text"
+    },
+    {
+      "key": "hero",
+      "url": "/assets/sprites/default/hero.svg",
+      "type": "image"
+    },
+    {
+      "key": "tile",
+      "url": "/assets/sprites/default/tile.svg",
+      "type": "image"
+    },
+    {
+      "key": "cloud",
+      "url": "/assets/sprites/default/cloud.svg",
+      "type": "image"
+    }
+  ]
+}

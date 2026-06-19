@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <rect width="640" height="360" fill="#0f172a"/>
+  <g fill="#111827" stroke="#334155">
+    <rect x="80" y="54" width="60" height="60"/><rect x="148" y="54" width="60" height="60"/><rect x="216" y="54" width="60" height="60"/><rect x="284" y="54" width="60" height="60"/>
+    <rect x="80" y="122" width="60" height="60"/><rect x="148" y="122" width="60" height="60" fill="#475569"/><rect x="216" y="122" width="60" height="60"/><rect x="284" y="122" width="60" height="60"/>
+    <rect x="80" y="190" width="60" height="60"/><rect x="148" y="190" width="60" height="60"/><rect x="216" y="190" width="60" height="60"/><rect x="284" y="190" width="60" height="60"/>
+  </g>
+  <polyline points="110,84 178,84 246,152 314,220 420,220 500,280" fill="none" stroke="#22c55e" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="80" y="320" fill="#e5e7eb" font-family="system-ui" font-size="28">A* Pathfinding</text>
+</svg>

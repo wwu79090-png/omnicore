@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>AiPathfinding Demo</title>
+    <style>
+      body { margin: 0; font: 14px system-ui, sans-serif; background: #0f172a; color: #e5e7eb; }
+      main { max-width: 720px; margin: 0 auto; padding: 28px 20px; }
+      .grid { display: grid; grid-template-columns: repeat(8, 32px); gap: 4px; margin-top: 18px; }
+      .cell { width: 32px; height: 32px; border: 1px solid #334155; background: #111827; display: grid; place-items: center; }
+      .wall { background: #475569; }
+      .path { background: #22c55e; color: #052e16; }
+    </style>
+  </head>
+  <body>
+    <main data-omnicore-plugin-demo="AiPathfinding">
+      <h1>AiPathfinding</h1>
+      <p>Shortest path preview for tile-based enemy navigation.</p>
+      <div class="grid" id="grid"></div>
+    </main>
+    <script type="module">
+      import plugin from '../src/index.js';
+
+      const grid = [
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0, 1, 1, 0],
+        [0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 1, 0, 0],
+        [0, 1, 0, 1, 0, 1, 0, 0]
+      ];
+      const api = plugin.install({ grid });
+      const path = api.findPath({ x: 0, y: 0 }, { x: 7, y: 4 });
+      const pathKeys = new Set(path.map((point) => `${point.x}:${point.y}`));
+      const root = document.querySelector('#grid');
+      grid.forEach((row, y) => row.forEach((value, x) => {
+        const cell = document.createElement('div');
+        cell.className = `cell${value ? ' wall' : ''}${pathKeys.has(`${x}:${y}`) ? ' path' : ''}`;
+        cell.textContent = pathKeys.has(`${x}:${y}`) ? String(path.findIndex((point) => point.x === x && point.y === y)) : '';
+        root.appendChild(cell);
+      }));
+    </script>
+  </body>
+</html>

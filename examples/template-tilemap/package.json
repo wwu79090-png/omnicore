@@ -1,0 +1,13 @@
+{
+  "name": "omnicore-template-tilemap",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 0.0.0.0"
+  },
+  "dependencies": {
+    "omnicore": "file:../..",
+    "vite": "^8.0.16"
+  }
+}

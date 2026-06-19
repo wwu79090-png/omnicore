@@ -1,0 +1,53 @@
+name: Docs Sync
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  docs-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Generate API docs
+        run: npm run docs:build
+
+      - name: Detect docs/api changes
+        id: docs_diff
+        shell: bash
+        run: |
+          if git diff --quiet -- docs/api docs/api-site; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create docs update PR
+        if: steps.docs_diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: automation/update-docs
+          title: 更新文档
+          commit-message: docs: update generated API docs
+          body: 自动同步最新源码生成的 docs/api 与 docs/api-site 文档。
+          add-paths: |
+            docs/api
+            docs/api-site

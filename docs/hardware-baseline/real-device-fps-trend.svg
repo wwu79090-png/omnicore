@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="234" viewBox="0 0 760 234" role="img" aria-label="OmniCore Real Device FPS Trend">
+  <style>
+    .bg { fill: #0f172a; }
+    .title { fill: #e5e7eb; font: 700 18px system-ui, sans-serif; }
+    .label { fill: #cbd5e1; font: 12px system-ui, sans-serif; }
+    .value { fill: #94a3b8; font: 12px system-ui, sans-serif; }
+    .bar { fill: #22c55e; }
+    .spark { fill: none; stroke: #38bdf8; stroke-width: 2; }
+  </style>
+  <rect class="bg" width="760" height="234"></rect>
+  <text x="28" y="32" class="title">OmniCore Real Device FPS Trend</text>
+  
+      <text x="28" y="58" class="label">Budget Android</text>
+      <rect x="180" y="43" width="300" height="16" rx="3" class="bar"></rect>
+      <text x="490" y="55" class="value">45.0 FPS</text>
+      <polyline class="spark" points="285.0,73.0 375.0,71.1 465.0,68.9"></polyline>
+    
+      <text x="28" y="112" class="label">iPhone 11</text>
+      <rect x="180" y="97" width="387" height="16" rx="3" class="bar"></rect>
+      <text x="577" y="109" class="value">58.0 FPS</text>
+      <polyline class="spark" points="285.0,120.6 375.0,119.0 465.0,117.9"></polyline>
+    
+      <text x="28" y="166" class="label">Snapdragon 865 Android</text>
+      <rect x="180" y="151" width="420" height="16" rx="3" class="bar"></rect>
+      <text x="610" y="163" class="value">63.0 FPS</text>
+      <polyline class="spark" points="285.0,172.3 375.0,171.1 465.0,170.0"></polyline>
+    
+</svg>

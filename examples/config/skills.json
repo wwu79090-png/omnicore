@@ -1,0 +1,16 @@
+{
+  "slash": {
+    "id": "slash",
+    "name": "Slash",
+    "cost": 3,
+    "scope": "enemy",
+    "formula": "attack * 1.5"
+  },
+  "fireball": {
+    "id": "fireball",
+    "name": "Fireball",
+    "cost": 8,
+    "scope": "allEnemies",
+    "formula": "magic * 2"
+  }
+}

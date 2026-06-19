@@ -1,0 +1,6 @@
+{
+  "target": "wechat",
+  "imageQuality": 0.6,
+  "webpFallback": true,
+  "description": "微信小游戏端默认 60% 图片质量，控制包体和低端机解码压力。"
+}

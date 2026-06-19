@@ -1,0 +1,564 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OmniCore QA Runtime</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f172a'/%3E%3Cpath d='M8 19 16 6l8 13-8 7z' fill='%2338bdf8'/%3E%3C/svg%3E" />
+    <style>body { margin:0; background:#020617; color:#e2e8f0; }</style>
+  </head>
+  <body>
+    <div id="game" style="width:640px;height:360px"></div>
+    <script type="module">
+      const _mod = await import('/dist/omnicore.esm.js');
+      const OmniCore = _mod.default || _mod;
+      const {
+        Game,
+        Scene,
+        Sprite,
+        ObjectPool,
+        Tilemap,
+        EventSheet,
+        PhysicsWorld,
+        CollisionMask
+      } = OmniCore;
+
+      const SIZE = { width: 640, height: 360 };
+      const QA_ASSETS = {
+        hero: '/assets/sprites/default/hero.svg',
+        tile: '/assets/sprites/default/tile.svg',
+        cloud: '/assets/sprites/default/cloud.svg'
+      };
+      const IS_WEBKIT_RUNTIME = /Safari/i.test(navigator.userAgent)
+        && !/(Chrome|Chromium|CriOS|Edg|OPR|Firefox|FxiOS)/i.test(navigator.userAgent);
+
+      async function ensureQaAssets(game) {
+        if (!game?.assetLoader || game.__qaAssetsReady) return;
+        game.__qaAssetsReady = true;
+        await game.assetLoader.loadImages([
+          { key: 'hero', url: QA_ASSETS.hero, width: 16, height: 16 },
+          { key: 'tile', url: QA_ASSETS.tile, width: 16, height: 16 },
+          { key: 'cloud', url: QA_ASSETS.cloud, width: 18, height: 18 }
+        ]);
+      }
+
+      function waitFrames(count = 1) {
+        return new Promise((resolve) => {
+          let remaining = count;
+          const step = () => {
+            remaining -= 1;
+            if (remaining <= 0) {
+              resolve();
+            } else {
+              requestAnimationFrame(step);
+            }
+          };
+          requestAnimationFrame(step);
+        });
+      }
+
+      async function waitForCondition(predicate, frameLimit = 30) {
+        for (let frame = 0; frame < frameLimit; frame += 1) {
+          if (predicate()) return true;
+          await waitFrames(1);
+        }
+        return Boolean(predicate());
+      }
+
+      async function measureFps(game, frameCount = 180, { warmupFrames = 30, trimRatio = 0.05 } = {}) {
+        await waitFrames(warmupFrames);
+        const samples = [];
+        await new Promise((resolve) => {
+          let last = performance.now();
+          let left = frameCount;
+          const step = (time) => {
+            const dt = time - last;
+            if (Number.isFinite(dt) && dt > 0) {
+              samples.push(dt);
+            }
+            last = time;
+            left -= 1;
+            if (left <= 0) {
+              resolve();
+              return;
+            }
+            requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        });
+        const ordered = [...samples].sort((a, b) => a - b);
+        const trim = Math.floor(ordered.length * trimRatio);
+        const stableSamples = ordered.slice(trim, Math.max(trim + 1, ordered.length - trim));
+        const avgFrame = stableSamples.reduce((sum, val) => sum + val, 0) / Math.max(1, stableSamples.length);
+        const maxFrame = Math.max.apply(Math, stableSamples);
+        const minFrame = Math.min.apply(Math, stableSamples);
+        return {
+          frameCount: samples.length,
+          stableFrameCount: stableSamples.length,
+          avgFrameMs: avgFrame,
+          avgFps: avgFrame > 0 ? Number((1000 / avgFrame).toFixed(2)) : 0,
+          minFps: maxFrame > 0 ? Number((1000 / maxFrame).toFixed(2)) : 0,
+          maxFps: minFrame > 0 ? Number((1000 / minFrame).toFixed(2)) : 0
+        };
+      }
+
+      function captureCanvasDataUrl() {
+        const canvas = document.querySelector('#game canvas');
+        return canvas ? canvas.toDataURL('image/png') : null;
+      }
+
+      async function imageDataFromDataUrl(dataUrl) {
+        const image = new Image();
+        image.src = dataUrl;
+        await new Promise((resolve, reject) => {
+          image.onload = resolve;
+          image.onerror = reject;
+        });
+        const c = document.createElement('canvas');
+        c.width = image.naturalWidth;
+        c.height = image.naturalHeight;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(image, 0, 0);
+        return ctx.getImageData(0, 0, c.width, c.height);
+      }
+
+      async function compareCanvasData(beforeUrl, afterUrl) {
+        if (!beforeUrl || !afterUrl) {
+          return { mismatchPixels: null, totalPixels: null, ratio: null, ok: false, reason: 'missing data' };
+        }
+
+        const before = await imageDataFromDataUrl(beforeUrl);
+        const after = await imageDataFromDataUrl(afterUrl);
+        const width = Math.min(before.width, after.width);
+        const height = Math.min(before.height, after.height);
+        const beforeData = before.data;
+        const afterData = after.data;
+        const strideBefore = before.width * 4;
+        const strideAfter = after.width * 4;
+        let mismatch = 0;
+        for (let y = 0; y < height; y += 1) {
+          const rowOffsetBefore = y * strideBefore;
+          const rowOffsetAfter = y * strideAfter;
+          for (let x = 0; x < width * 4; x += 4) {
+            const beforeIndex = rowOffsetBefore + x;
+            const afterIndex = rowOffsetAfter + x;
+            if (
+              beforeData[beforeIndex] !== afterData[afterIndex]
+              || beforeData[beforeIndex + 1] !== afterData[afterIndex + 1]
+              || beforeData[beforeIndex + 2] !== afterData[afterIndex + 2]
+              || beforeData[beforeIndex + 3] !== afterData[afterIndex + 3]
+            ) {
+              mismatch += 1;
+            }
+          }
+        }
+        const totalPixels = width * height;
+        const ratio = totalPixels ? mismatch / totalPixels : 1;
+        return {
+          mismatchPixels: mismatch,
+          totalPixels,
+          ratio: Number(ratio.toFixed(6)),
+          ok: totalPixels === 0 ? false : ratio <= 0.01
+        };
+      }
+
+      function buildSpriteScene(name, count = 120) {
+        const scene = new Scene(name);
+        for (let i = 0; i < count; i += 1) {
+          scene.add(new Sprite(QA_ASSETS.hero, {
+            x: (i * 12) % SIZE.width,
+            y: Math.floor(i / 20) * 12,
+            width: 10,
+            height: 10
+          }));
+        }
+        return scene;
+      }
+
+      function createPerfSprite(options = {}) {
+        const sprite = new Sprite(IS_WEBKIT_RUNTIME ? 'lite-particle' : QA_ASSETS.hero, {
+          ...options,
+          color: '#38bdf8',
+          label: !IS_WEBKIT_RUNTIME
+        });
+        if (IS_WEBKIT_RUNTIME) {
+          sprite.render = (ctx) => {
+            if (!sprite.visible || !ctx) return;
+            ctx.save();
+            ctx.globalAlpha = sprite.alpha;
+            ctx.fillStyle = sprite.color || '#38bdf8';
+            ctx.fillRect(sprite.x, sprite.y, sprite.width, sprite.height);
+            ctx.restore();
+          };
+        }
+        return sprite;
+      }
+
+      async function createGame(renderer = 'pixi', extra = {}) {
+        const game = new Game({
+          parent: '#game',
+          width: SIZE.width,
+          height: SIZE.height,
+          renderer,
+          autoStart: true,
+          autoAttach: true,
+          webglRestoreTimeout: 400,
+          debug: false,
+          ...extra
+        });
+        await game.init();
+        await ensureQaAssets(game);
+        return game;
+      }
+
+      async function runWithGame(renderer, fn, extra = {}) {
+        const root = document.querySelector('#game');
+        root.innerHTML = '';
+        const game = await createGame(renderer, extra);
+        try {
+          return await fn(game);
+        } finally {
+          game.destroy();
+          root.innerHTML = '';
+        }
+      }
+
+      async function testBaseline() {
+        return runWithGame('pixi', async (game) => {
+          const scene = new Scene('baseline');
+          scene.add(createPerfSprite({
+            x: 16,
+            y: 16,
+            width: 8,
+            height: 8
+          }));
+          game.scene.register(scene);
+          await game.scene.push('baseline');
+          await waitFrames(24);
+          const fps = await measureFps(game, 180, { warmupFrames: 45, trimRatio: 0.1 });
+          return {
+            requestedRenderer: 'pixi',
+            renderer: game.renderer?.backend || 'unknown',
+            avgFps: fps.avgFps,
+            minFps: fps.minFps,
+            maxFps: fps.maxFps,
+            frameCount: fps.frameCount,
+            status: fps.avgFps >= 60 ? 'pass' : 'fail'
+          };
+        });
+      }
+
+      async function testCore() {
+        return runWithGame('pixi', async (game) => {
+          const checks = {};
+          const sceneA = new Scene('scene-a');
+          const sceneB = new Scene('scene-b');
+
+          let componentMounted = false;
+          let componentUpdated = false;
+          let globalEventData = null;
+
+          class Health {
+            constructor() {
+              this.alive = false;
+            }
+
+            onAdd() {
+              this.alive = true;
+              componentMounted = true;
+            }
+
+            update() {
+              componentUpdated = true;
+            }
+
+            onRemove() {
+              this.alive = false;
+            }
+          }
+
+          const hero = new Sprite(QA_ASSETS.hero, { x: 20, y: 20, width: 16, height: 16 });
+          const healthComponent = hero.addComponent(Health);
+          sceneA.add(hero);
+
+          const mapJson = {
+            width: 4,
+            height: 4,
+            tilewidth: 16,
+            tileheight: 16,
+            layers: [
+              {
+                id: 1,
+                name: 'Ground',
+                type: 'tilelayer',
+                width: 4,
+                height: 4,
+                data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0]
+              },
+              {
+                id: 2,
+                name: 'Collisions',
+                type: 'objectgroup',
+                objects: [{ id: 1, name: 'wall', x: 0, y: 0, width: 16, height: 16 }]
+              }
+            ]
+          };
+          const map = Tilemap.parse(mapJson);
+          const ground = map.getTileLayer('Ground');
+          const collisions = map.getCollisionObjects('Collisions');
+          if (ground) {
+            for (let i = 0; i < ground.data.length; i += 1) {
+              if (!ground.data[i]) {
+                continue;
+              }
+              sceneA.add(new Sprite(QA_ASSETS.tile, {
+                x: (i % ground.width) * 16,
+                y: Math.floor(i / ground.width) * 16,
+                width: 16,
+                height: 16
+              }));
+            }
+          }
+
+          sceneB.add(new Sprite(QA_ASSETS.cloud, { x: 80, y: 80, width: 18, height: 18 }));
+          game.scene.register(sceneA);
+          game.scene.register(sceneB);
+          await game.scene.push('scene-a');
+          await waitFrames(2);
+          sceneA.update(16, performance.now());
+          await waitForCondition(() => componentUpdated && game.scene.current === sceneA && hero.parent === sceneA, 30);
+          const entityReady = hero.parent === sceneA && game.scene.current === sceneA && hero.getComponent(Health) === healthComponent;
+          const componentAliveAfterMount = componentMounted && componentUpdated && healthComponent?.alive === true;
+
+          await game.scene.replace('scene-b');
+          const switched = game.scene.current?.name === 'scene-b';
+
+          game.events.on('qa-global', (payload) => {
+            globalEventData = payload;
+          });
+          game.events.emit('qa-global', { ok: true });
+
+          const world = new PhysicsWorld();
+          const bodyA = { id: 'player', collisionFilter: CollisionMask.filter('player', 'enemy') };
+          const bodyB = { id: 'enemy', collisionFilter: CollisionMask.filter('enemy', 'player') };
+          const hits = [];
+          world.onCollision(bodyA, (target, payload) => {
+            hits.push({ from: 'a', target: target?.id || 'none' });
+          });
+          world.onCollision(bodyB, (target, payload) => {
+            hits.push({ from: 'b', target: target?.id || 'none' });
+          });
+          world.emitCollision({
+            id: 'bodyA',
+            collisionFilter: bodyA.collisionFilter
+          }, {
+            id: 'bodyB',
+            collisionFilter: bodyB.collisionFilter
+          }, bodyA, bodyB, { pair: { bodyA: bodyA, bodyB: bodyB } });
+
+          const eventTrace = [];
+          const sheet = EventSheet.parse({
+            events: [
+              {
+                conditions: [{ op: 'equals', left: 'state.step', right: 1 }],
+                actions: [
+                  { op: 'emit', event: 'trace', payload: { order: 1 } },
+                  { op: 'emit', event: 'trace', payload: { order: 2 } }
+                ]
+              },
+              {
+                conditions: [{ op: 'equals', left: 'state.step', right: 1 }],
+                actions: [{ op: 'emit', event: 'trace', payload: { order: 3 } }]
+              }
+            ]
+          });
+          const runtime = {
+            state: { step: 1 },
+            emit(event, payload) {
+              if (event === 'trace') {
+                eventTrace.push(payload.order);
+              }
+            }
+          };
+          sheet.run(runtime);
+
+          const pool = new ObjectPool(() => ({ payload: 'raw', alive: false }), (item) => {
+            item.payload = 'reset';
+            item.alive = false;
+          });
+          for (let i = 0; i < 1000; i += 1) {
+            const item = pool.acquire();
+            item.payload = 'v-' + i;
+            item.alive = true;
+            pool.release(item);
+          }
+          const first = pool.acquire();
+          const second = pool.acquire();
+          const poolReset = first.payload === 'reset' && first.alive === false;
+          pool.release(first);
+          pool.release(second);
+
+          checks['组件挂载/更新'] = entityReady && componentAliveAfterMount;
+          checks['场景切换'] = switched;
+          checks['全局事件'] = globalEventData?.ok === true;
+          checks['Tilemap解析'] = map && ground && ground.width === 4 && collisions.length === 1 && game.scene.current?.children?.length > 0;
+          checks['物理碰撞'] = hits.length >= 2;
+          checks['事件顺序'] = eventTrace.join(',') === '1,2,3';
+          checks['对象池1000次'] = pool.active.size === 0 && pool.available.length >= 1 && poolReset;
+
+          return checks;
+        });
+      }
+
+      async function testDefense() {
+        const checks = {};
+
+        const bad = await runWithGame('pixi', async (game) => {
+          const originalFetcher = game.assetLoader.fetcher;
+          game.assetLoader.fetcher = async () => ({
+            ok: false,
+            status: 404,
+            statusText: 'Not Found',
+            headers: new Headers()
+          });
+          const badAsset = await game.assetLoader.loadImage({
+            key: 'qa-bad',
+            url: '/qa-missing-simulated.png',
+            width: 24,
+            height: 24
+          });
+          game.assetLoader.fetcher = originalFetcher;
+          return !!(badAsset && (badAsset.fallback || badAsset.displayObject));
+        });
+        checks['错误资源占位'] = bad;
+
+        const fallback = await runWithGame('pixi', async (game) => {
+          const scene = new Scene('loss');
+          scene.add(new Sprite(QA_ASSETS.hero, { width: 8, height: 8, x: 10, y: 10 }));
+          game.scene.register(scene);
+          await game.scene.push('loss');
+          await waitFrames(6);
+
+          const canvas = game.core?.canvas || document.querySelector('#game canvas');
+          const evt = new Event('webglcontextlost', { bubbles: false, cancelable: true });
+          canvas.dispatchEvent(evt);
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          return game.renderer?.backend === 'canvas';
+        });
+        checks['WebGL上下文丢失回退'] = fallback;
+
+        const clock = await (async () => {
+          return runWithGame('pixi', async (game) => {
+            const scene = new Scene('time');
+            let updates = 0;
+            const box = new Sprite(QA_ASSETS.hero, { width: 8, height: 8, x: 30, y: 30 });
+            box.update = () => {
+              updates += 1;
+              box.x += 1;
+            };
+            scene.add(box);
+            game.scene.register(scene);
+            await game.scene.push('time');
+
+            const originalDate = Date.now;
+            const originalNow = performance.now.bind(performance);
+            let t = 10000;
+            Date.now = () => {
+              t -= 1200;
+              return t;
+            };
+            performance.now = () => {
+              t -= 1200;
+              return t;
+            };
+            await waitFrames(30);
+            Date.now = originalDate;
+            performance.now = originalNow;
+
+            const stable = Number.isFinite(box.x) && Number.isFinite(updates) && updates > 0;
+            return { stable, updates };
+          });
+        })();
+        checks['系统时间异常'] = (await clock).stable === true;
+
+        const poolNoLeak = (() => {
+          const p = new ObjectPool(() => ({ value: 1, name: 'dirty' }), (item) => {
+            item.value = 0;
+            item.name = 'reset';
+          });
+          const a = p.acquire();
+          a.value = 999;
+          a.name = 'dirty';
+          p.release(a);
+          const b = p.acquire();
+          const ok = b.value === 0 && b.name === 'reset';
+          p.release(b);
+          return ok;
+        })();
+        checks['对象池无残留'] = poolNoLeak;
+
+        return checks;
+      }
+
+      async function testPerformance() {
+        const pixi = await runWithGame('pixi', async (game) => {
+          const scene = new Scene('pixi-perf');
+          for (let i = 0; i < 1000; i += 1) {
+            scene.add(createPerfSprite({
+              x: (i * 11) % SIZE.width,
+              y: Math.floor(i / 20) * 8,
+              width: 4,
+              height: 4
+            }));
+          }
+          game.scene.register(scene);
+          await game.scene.push('pixi-perf');
+          await waitFrames(24);
+          const fps = await measureFps(game, 360);
+          return { ...fps, backend: game.renderer?.backend || 'unknown' };
+        });
+
+        const canvas = await runWithGame('canvas', async (game) => {
+          const scene = new Scene('canvas-perf');
+          for (let i = 0; i < 1000; i += 1) {
+            scene.add(createPerfSprite({
+              x: (i * 11) % SIZE.width,
+              y: Math.floor(i / 20) * 8,
+              width: 4,
+              height: 4
+            }));
+          }
+          game.scene.register(scene);
+          await game.scene.push('canvas-perf');
+          await waitFrames(24);
+          const fps = await measureFps(game, 360);
+          return { ...fps, backend: game.renderer?.backend || 'unknown' };
+        }, { renderer: 'canvas' });
+
+        return {
+          pixi: {
+            avgFps: pixi.avgFps,
+            minFps: pixi.minFps,
+            backend: pixi.backend,
+            status: pixi.avgFps >= 55 ? 'pass' : 'fail'
+          },
+          canvas: {
+            avgFps: canvas.avgFps,
+            minFps: canvas.minFps,
+            backend: canvas.backend,
+            status: canvas.avgFps >= 60 ? 'pass' : 'fail'
+          }
+        };
+      }
+
+      window.__runQaSuite = async () => {
+        return {
+          baseline: await testBaseline(),
+          core: await testCore(),
+          defense: await testDefense(),
+          performance: await testPerformance()
+        };
+      };
+    </script>
+  </body>
+</html>

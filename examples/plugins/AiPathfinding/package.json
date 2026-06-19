@@ -1,0 +1,7 @@
+{
+  "name": "@omnicore/plugin-ai-pathfinding",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.js",
+  "private": true
+}

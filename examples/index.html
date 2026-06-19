@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OmniCore Backend Switch</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #101820;
+        color: #f8fafc;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      #game-container {
+        width: 100vw;
+        height: 100vh;
+      }
+
+      .hud {
+        position: fixed;
+        left: 16px;
+        top: 16px;
+        display: flex;
+        gap: 8px;
+        z-index: 10;
+      }
+
+      .hud button {
+        border: 1px solid #64d2ff;
+        background: #16212b;
+        color: #f8fafc;
+        height: 34px;
+        padding: 0 12px;
+        cursor: pointer;
+      }
+
+      .hud button:hover {
+        background: #203141;
+      }
+
+      #status {
+        position: fixed;
+        left: 16px;
+        bottom: 14px;
+        color: #cbd5e1;
+        font-size: 13px;
+      }
+
+      .feedback-link {
+        position: fixed;
+        right: 16px;
+        top: 16px;
+        z-index: 11;
+        border: 1px solid #64d2ff;
+        background: #16212b;
+        color: #f8fafc;
+        height: 34px;
+        padding: 7px 12px 0;
+        text-decoration: none;
+        box-sizing: border-box;
+      }
+
+      .feedback-link:hover {
+        background: #203141;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container"></div>
+    <div class="hud">
+      <button data-backend="pixi">Pixi</button>
+      <button data-backend="canvas">Canvas</button>
+      <button data-backend="webgl">WebGL</button>
+    </div>
+    <a id="feedback-link" class="feedback-link" target="_blank" rel="noreferrer">反馈</a>
+    <div id="status">OmniCore booting...</div>
+    <script type="module">
+      import OmniCore, { Scene } from '/src/index.js';
+
+      const container = document.querySelector('#game-container');
+      const status = document.querySelector('#status');
+      const feedback = document.querySelector('#feedback-link');
+      const engineVersion = '0.2.0';
+      const changelogUrl = new URL('/CHANGELOG.md', window.location.origin).href;
+      const issueUrl = new URL('https://github.com/omnicorejs/omnicore/issues/new');
+      issueUrl.searchParams.set('title', `[OmniCore ${engineVersion}] 示例反馈`);
+      issueUrl.searchParams.set(
+        'body',
+        `Version: ${engineVersion}\nChangelog: ${changelogUrl}\n\n请描述你看到的问题：`
+      );
+      feedback.href = issueUrl.href;
+      let currentGame = null;
+
+      class DemoPaint {
+        constructor(name) {
+          this.name = name;
+          this.type = 'demo-paint';
+          this.zIndex = 1;
+          this.displayObject = null;
+        }
+
+        render(ctx) {
+          ctx.save();
+          ctx.fillStyle = '#1b2a33';
+          ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+          ctx.fillStyle = '#64d2ff';
+          ctx.fillRect(72, 92, 150, 150);
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = '24px system-ui, sans-serif';
+          ctx.fillText(`Backend: ${this.name}`, 72, 285);
+          ctx.restore();
+        }
+
+        toPixiObject({ Container, Graphics, Text }) {
+          const root = new Container();
+          const box = new Graphics()
+            .rect(72, 92, 150, 150)
+            .fill({ color: 0x64d2ff });
+          const label = new Text({
+            text: `Backend: ${this.name}`,
+            style: { fill: 0xf8fafc, fontSize: 24, fontFamily: 'system-ui, sans-serif' }
+          });
+          label.x = 72;
+          label.y = 270;
+          root.addChild(box, label);
+          return root;
+        }
+      }
+
+      class DemoScene extends Scene {
+        constructor(backend) {
+          super('backend-demo');
+          this.backend = backend;
+        }
+
+        create() {
+          this.add(new DemoPaint(this.backend));
+        }
+      }
+
+      function resetWebGLState(canvases) {
+        for (const canvas of canvases) {
+          try {
+            const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
+            gl?.getExtension('WEBGL_lose_context')?.loseContext();
+          } catch {
+            // Browsers can reject context access after Pixi owns the canvas.
+          }
+        }
+      }
+
+      function clearCanvasContainer() {
+        const canvases = [...container.querySelectorAll('canvas')];
+        canvases.forEach((canvas) => canvas.remove());
+        return canvases;
+      }
+
+      async function switchEngine(backend) {
+        status.textContent = `切换到 ${backend} 中...`;
+        console.log(`[OmniCore example] switchStart -> ${backend}`);
+
+        if (currentGame) {
+          currentGame.destroy();
+          currentGame = null;
+        }
+
+        const removedCanvases = clearCanvasContainer();
+        resetWebGLState(removedCanvases);
+
+        const game = new OmniCore.Game({
+          parent: '#game-container',
+          width: window.innerWidth,
+          height: window.innerHeight,
+          renderer: backend,
+          autoResize: true,
+          autoStart: false,
+          switchStart: (next) => {
+            status.textContent = `切换到 ${next} 中...`;
+          },
+          switchComplete: (next) => {
+            status.textContent = `当前后端：${next}`;
+          }
+        });
+
+        currentGame = await game.init();
+        currentGame.scene.register(new DemoScene(backend));
+        await currentGame.scene.push('backend-demo');
+        currentGame.renderer.renderScene(currentGame.scene.current);
+        currentGame.hooks.switchComplete?.(backend, currentGame);
+        currentGame.start();
+
+        console.log(`[OmniCore example] switchComplete -> ${backend}`, currentGame);
+      }
+
+      window.switchEngine = switchEngine;
+
+      for (const button of document.querySelectorAll('[data-backend]')) {
+        button.addEventListener('click', () => switchEngine(button.dataset.backend));
+      }
+
+      await switchEngine('pixi');
+    </script>
+  </body>
+</html>

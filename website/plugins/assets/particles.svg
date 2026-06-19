@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <rect width="640" height="360" fill="#111827"/>
+  <g fill="#7dd3fc">
+    <circle cx="320" cy="178" r="18"/><circle cx="238" cy="116" r="8"/><circle cx="402" cy="108" r="11"/><circle cx="458" cy="214" r="7"/><circle cx="184" cy="224" r="10"/>
+  </g>
+  <g fill="#22c55e" opacity=".9">
+    <circle cx="284" cy="86" r="6"/><circle cx="350" cy="74" r="5"/><circle cx="370" cy="248" r="9"/><circle cx="268" cy="256" r="7"/>
+  </g>
+  <path d="M320 178l-82-62M320 178l82-70M320 178l138 36M320 178l-136 46" stroke="#38bdf8" stroke-width="3" opacity=".5"/>
+  <text x="82" y="318" fill="#e5e7eb" font-family="system-ui" font-size="28">3D Particles</text>
+</svg>

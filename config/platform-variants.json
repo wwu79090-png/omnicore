@@ -1,0 +1,23 @@
+{
+  "default": "web",
+  "variants": {
+    "web": {
+      "basePath": "/assets/web",
+      "scale": 1,
+      "textureQuality": 1,
+      "audioBitrate": 160
+    },
+    "wechat": {
+      "basePath": "/assets/wechat",
+      "scale": 0.5,
+      "textureQuality": 0.6,
+      "audioBitrate": 96
+    },
+    "electron": {
+      "basePath": "/assets/electron",
+      "scale": 1,
+      "textureQuality": 0.9,
+      "audioBitrate": 192
+    }
+  }
+}

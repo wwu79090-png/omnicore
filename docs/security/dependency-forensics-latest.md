@@ -1,0 +1,201 @@
+# OmniCore Dependency Forensics Report
+
+- Generated: 2026-06-19T12:47:06.202Z
+- Root: C:\Users\39120\Documents\引擎开发
+- Packages scanned: 648
+- Packages with lifecycle scripts: 187
+- High-risk findings: 0
+
+## HIGH RISK
+
+No HIGH RISK findings detected.
+
+## Lifecycle Script Inventory
+
+- ajv@8.20.0: prepublish
+- @eslint/eslintrc@2.1.4: prepare
+- @humanwhocodes/config-array@0.13.0: prepublish
+- @humanwhocodes/module-importer@1.0.1: prepare
+- @jridgewell/sourcemap-codec@1.5.5: prepublishOnly
+- earcut@2.2.4: prepublishOnly
+- eventemitter3@4.0.7: prepublishOnly
+- acorn@8.17.0: prepare
+- ajv@6.15.0: prepublish
+- array-buffer-byte-length@1.0.2: prepublish, prepublishOnly
+- array-includes@3.1.9: prepublish, prepublishOnly
+- array.prototype.findlastindex@1.2.6: prepublish, prepublishOnly
+- array.prototype.flat@1.3.3: prepublish, prepublishOnly
+- array.prototype.flatmap@1.3.3: prepublish, prepublishOnly
+- arraybuffer.prototype.slice@1.0.4: prepublish, prepublishOnly
+- async-function@1.0.0: prepublish, prepublishOnly
+- available-typed-arrays@1.0.7: prepublish, prepublishOnly
+- call-bind@1.0.9: prepublish, prepublishOnly
+- call-bind-apply-helpers@1.0.2: prepublish, prepublishOnly
+- call-bound@1.0.4: prepublish, prepublishOnly
+- cliui@9.0.1: prepare
+- resolve@1.22.12: prepublish, prepublishOnly
+- yargs-parser@20.2.9: prepare
+- resolve@1.22.12: prepublish, prepublishOnly
+- yargs-parser@20.2.9: prepare
+- resolve@1.22.12: prepublish, prepublishOnly
+- yargs-parser@20.2.9: prepare
+- core-util-is@1.0.3: prepublishOnly
+- cosmiconfig@9.0.2: prepare, prepublishOnly
+- cssstyle@4.6.0: prepublishOnly
+- data-view-buffer@1.0.2: prepublish, prepublishOnly
+- data-view-byte-length@1.0.2: prepublish, prepublishOnly
+- data-view-byte-offset@1.0.1: prepublish, prepublishOnly
+- define-data-property@1.1.4: prepublish, prepublishOnly
+- define-properties@1.2.1: prepublish, prepublishOnly
+- dunder-proto@1.0.1: prepublish, prepublishOnly
+- earcut@3.0.2: prepublishOnly
+- entities@6.0.1: prepublishOnly
+- es-abstract@1.24.2: prepublish, prepublishOnly
+- es-abstract-get@1.0.0: prepublish, prepublishOnly
+- es-define-property@1.0.1: prepublish, prepublishOnly
+- es-errors@1.3.0: prepublish, prepublishOnly
+- es-object-atoms@1.1.2: prepublish, prepublishOnly
+- es-set-tostringtag@2.1.0: prepublish, prepublishOnly
+- es-shim-unscopables@1.1.0: prepublish, prepublishOnly
+- es-to-primitive@1.3.1: prepublish, prepublishOnly
+- eslint-config-airbnb-base@15.0.0: prepublish, prepublishOnly
+- eslint-import-resolver-node@0.3.10: prepublishOnly
+- eslint-module-utils@2.13.0: prepublishOnly
+- eslint-plugin-import@2.32.0: prepublish, prepublishOnly
+- eslint-scope@7.2.2: prepublishOnly
+- eslint-visitor-keys@3.4.3: prepare
+- espree@9.6.1: prepublishOnly
+- esquery@1.7.0: prepublishOnly
+- estree-walker@3.0.3: prepublishOnly
+- eventemitter3@5.0.4: prepublishOnly
+- fast-deep-equal@3.1.3: prepublish
+- fast-levenshtein@2.0.6: prepublish
+- fdir@6.5.0: prepublishOnly
+- function-bind@1.1.2: prepublish, prepublishOnly
+- function.prototype.name@1.2.0: prepublish, prepublishOnly
+- functions-have-names@1.2.3: prepublish, prepublishOnly
+- generator-function@2.0.1: prepublish, prepublishOnly
+- get-caller-file@2.0.5: prepare
+- get-east-asian-width@1.6.0: prepublish
+- get-intrinsic@1.3.0: prepublish, prepublishOnly
+- cliui@7.0.4: prepare
+- yargs@16.2.0: prepare
+- yargs-parser@20.2.9: prepare
+- get-proto@1.0.1: prepublish, prepublishOnly
+- get-symbol-description@1.1.0: prepublish, prepublishOnly
+- resolve@1.22.12: prepublish, prepublishOnly
+- yargs-parser@20.2.9: prepare
+- ini@1.3.8: prepublishOnly
+- glob@7.2.3: prepublish
+- globalthis@1.0.4: prepublish, prepublishOnly
+- gopd@1.2.0: prepublish, prepublishOnly
+- graphemer@1.4.0: prepublishOnly
+- has-bigints@1.1.0: prepublish, prepublishOnly
+- has-property-descriptors@1.0.2: prepublish, prepublishOnly
+- has-proto@1.2.0: prepublish, prepublishOnly
+- has-symbols@1.1.0: prepublish, prepublishOnly
+- has-tostringtag@1.0.2: prepublish, prepublishOnly
+- hasown@2.0.4: prepublish, prepublishOnly
+- hosted-git-info@4.1.0: prepublishOnly
+- lru-cache@6.0.0: prepublishOnly
+- ignore@5.3.2: prepublishOnly
+- internal-slot@1.1.0: prepublish, prepublishOnly
+- is-array-buffer@3.0.5: prepublish, prepublishOnly
+- is-async-function@2.1.1: prepublish, prepublishOnly
+- is-bigint@1.1.0: prepublish, prepublishOnly
+- is-boolean-object@1.2.2: prepublish, prepublishOnly
+- is-callable@1.2.7: prepublish, prepublishOnly
+- is-core-module@2.16.2: prepublish, prepublishOnly
+- is-data-view@1.0.2: prepublish, prepublishOnly
+- is-date-object@1.1.0: prepublish, prepublishOnly
+- is-document.all@1.0.0: prepublish, prepublishOnly
+- is-finalizationregistry@1.1.1: prepublish, prepublishOnly
+- is-generator-function@1.1.2: prepublish, prepublishOnly
+- is-map@2.0.3: prepublish, prepublishOnly
+- is-negative-zero@2.0.3: prepublish, prepublishOnly
+- is-number-object@1.1.1: prepublish, prepublishOnly
+- is-regex@1.2.1: prepublish, prepublishOnly
+- is-set@2.0.3: prepublish, prepublishOnly
+- is-shared-array-buffer@1.0.4: prepublish, prepublishOnly
+- is-string@1.1.1: prepublish, prepublishOnly
+- is-symbol@1.1.1: prepublish, prepublishOnly
+- is-typed-array@1.1.15: prepublish, prepublishOnly
+- is-weakmap@2.0.2: prepublish, prepublishOnly
+- is-weakref@1.1.1: prepublish, prepublishOnly
+- is-weakset@2.0.4: prepublish, prepublishOnly
+- ismobilejs@1.1.1: prepare
+- jsdom@26.1.0: prepare
+- json-parse-even-better-errors@2.3.1: prepublishOnly
+- json5@1.0.2: prepublishOnly
+- keyv@4.5.4: prepare
+- kind-of@6.0.3: prepublish
+- lightningcss@1.32.0: prepare, prepublishOnly
+- linkify-it@5.0.1: prepublishOnly
+- lru-cache@10.4.3: prepare, prepublishOnly
+- markdown-it@14.2.0: prepublishOnly
+- entities@4.5.0: prepare
+- math-intrinsics@1.1.0: prepublish, prepublishOnly
+- mdurl@2.0.0: prepublishOnly
+- meow@13.2.0: prepare
+- minimist@1.2.8: prepublish, prepublishOnly
+- node-exports-info@1.6.0: prepublish, prepublishOnly
+- normalize-package-data@3.0.3: prepublishOnly
+- npm-check-updates@18.3.1: prepare, prepublishOnly
+- object-inspect@1.13.4: prepublish, prepublishOnly
+- object.assign@4.1.7: prepublish, prepublishOnly
+- object.entries@1.1.9: prepublish, prepublishOnly
+- object.fromentries@2.0.8: prepublish, prepublishOnly
+- object.groupby@1.0.3: prepublish, prepublishOnly
+- object.values@1.2.1: prepublish, prepublishOnly
+- own-keys@1.0.1: prepublish, prepublishOnly
+- parse-svg-path@0.2.0: prepublishOnly
+- pixi.js@8.19.0: prepare
+- possible-typed-array-names@1.1.0: prepublish, prepublishOnly
+- q@1.5.1: prepublish
+- qs@6.15.2: prepublish, prepublishOnly
+- resolve@1.22.12: prepublish, prepublishOnly
+- reflect.getprototypeof@1.0.10: prepublish, prepublishOnly
+- regexp.prototype.flags@1.5.4: prepublish, prepublishOnly
+- resolve@2.0.0-next.7: prepublish, prepublishOnly
+- safe-array-concat@1.1.4: prepublish, prepublishOnly
+- safe-push-apply@1.0.0: prepublish, prepublishOnly
+- safe-regex-test@1.1.0: prepublish, prepublishOnly
+- set-function-length@1.2.2: prepublish, prepublishOnly
+- set-function-name@2.0.2: prepublish, prepublishOnly
+- set-proto@1.0.0: prepublish, prepublishOnly
+- side-channel@1.1.1: prepublish, prepublishOnly
+- side-channel-list@1.0.1: prepublish, prepublishOnly
+- side-channel-map@1.0.1: prepublish, prepublishOnly
+- side-channel-weakmap@1.0.2: prepublish, prepublishOnly
+- cliui@7.0.4: prepare
+- yargs@16.2.0: prepare
+- yargs-parser@20.2.9: prepare
+- stop-iteration-iterator@1.1.0: prepublish, prepublishOnly
+- string.prototype.trim@1.2.11: prepublish, prepublishOnly
+- string.prototype.trimend@1.0.10: prepublish, prepublishOnly
+- string.prototype.trimstart@1.0.8: prepublish, prepublishOnly
+- supports-preserve-symlinks-flag@1.0.0: prepublish, prepublishOnly
+- tiny-lru@11.4.7: prepare
+- tinyexec@1.2.4: prepare
+- tr46@5.1.1: prepublish
+- typed-array-buffer@1.0.3: prepublish, prepublishOnly
+- typed-array-byte-length@1.0.3: prepublish, prepublishOnly
+- typed-array-byte-offset@1.0.4: prepublish, prepublishOnly
+- typed-array-length@1.0.8: prepublish, prepublishOnly
+- balanced-match@4.0.4: prepare, prepublishOnly
+- brace-expansion@5.0.6: prepare, prepublishOnly
+- minimatch@10.2.5: prepare, prepublishOnly
+- uc.micro@2.1.0: prepublishOnly
+- unbox-primitive@1.1.0: prepublish, prepublishOnly
+- whatwg-encoding@3.1.1: prepare
+- whatwg-url@14.2.0: prepare
+- which@2.0.2: prepublish
+- which-boxed-primitive@1.1.1: prepublish, prepublishOnly
+- which-builtin-type@1.2.1: prepublish, prepublishOnly
+- which-collection@1.0.2: prepublish, prepublishOnly
+- which-typed-array@1.1.22: prepublish, prepublishOnly
+- xmlchars@2.2.0: prepublishOnly
+- y18n@5.0.8: prepare
+- yaml@2.9.0: prepublishOnly
+- yargs@18.0.0: prepare
+- yargs-parser@22.0.0: prepare

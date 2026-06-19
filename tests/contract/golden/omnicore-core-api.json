@@ -1,0 +1,2189 @@
+{
+  "Game": {
+    "arity": 0,
+    "instanceProperties": [
+      {
+        "kind": "property",
+        "name": "abtest",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "adaptiveQualityManager",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "adaptiveQualityResult",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "aiCommand",
+        "valueType": "AICommandService"
+      },
+      {
+        "kind": "property",
+        "name": "aiImporter",
+        "valueType": "AIImporter"
+      },
+      {
+        "kind": "property",
+        "name": "analytics",
+        "valueType": "Analytics"
+      },
+      {
+        "kind": "property",
+        "name": "apiQuickPanel",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "assetLoader",
+        "valueType": "AssetLoader"
+      },
+      {
+        "kind": "property",
+        "name": "audio",
+        "valueType": "AudioManager"
+      },
+      {
+        "kind": "property",
+        "name": "auth",
+        "valueType": "AuthManager"
+      },
+      {
+        "kind": "property",
+        "name": "backend",
+        "valueType": "BackendManager"
+      },
+      {
+        "kind": "property",
+        "name": "camera",
+        "valueType": "Camera"
+      },
+      {
+        "kind": "property",
+        "name": "config",
+        "valueType": "Object"
+      },
+      {
+        "kind": "property",
+        "name": "core",
+        "valueType": "CoreContext"
+      },
+      {
+        "kind": "property",
+        "name": "crashReporter",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "culling",
+        "valueType": "ViewportCulling"
+      },
+      {
+        "kind": "property",
+        "name": "database",
+        "valueType": "Database"
+      },
+      {
+        "kind": "property",
+        "name": "debugRenderer",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "destroyed",
+        "valueType": "boolean"
+      },
+      {
+        "kind": "property",
+        "name": "developerReport",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "deviceProfile",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "deviceProfiler",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "dimension3D",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "dimension3DUnsubscribe",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "editor",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "editorPanel",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "emergencyOverlay",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "environment",
+        "valueType": "Object"
+      },
+      {
+        "kind": "property",
+        "name": "events",
+        "valueType": "EventBus"
+      },
+      {
+        "kind": "property",
+        "name": "feedbackWidget",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "frameProfiler",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "headless",
+        "valueType": "boolean"
+      },
+      {
+        "kind": "property",
+        "name": "hooks",
+        "valueType": "Object"
+      },
+      {
+        "kind": "property",
+        "name": "hotReload",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "hotfixManager",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "initialized",
+        "valueType": "boolean"
+      },
+      {
+        "kind": "property",
+        "name": "input",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "inspector",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "liveInspector",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "loader",
+        "valueType": "Loader"
+      },
+      {
+        "kind": "property",
+        "name": "logForwarder",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "logger",
+        "valueType": "Logger"
+      },
+      {
+        "kind": "property",
+        "name": "loop",
+        "valueType": "Loop"
+      },
+      {
+        "kind": "property",
+        "name": "metrics",
+        "valueType": "PerformanceMetrics"
+      },
+      {
+        "kind": "property",
+        "name": "microkernelBridge",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "net",
+        "valueType": "NetManager"
+      },
+      {
+        "kind": "property",
+        "name": "performanceMonitor",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "platform",
+        "valueType": "Object"
+      },
+      {
+        "kind": "property",
+        "name": "playSession",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "profilerWaterfallPanel",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "remoteDevTools",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "renderer",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "rendererManager",
+        "valueType": "RendererManager"
+      },
+      {
+        "kind": "property",
+        "name": "scene",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "sleepWake",
+        "valueType": "SleepWakeSystem"
+      },
+      {
+        "kind": "property",
+        "name": "snapshot",
+        "valueType": "Snapshot"
+      },
+      {
+        "kind": "method",
+        "name": "storage",
+        "valueType": "function"
+      },
+      {
+        "kind": "property",
+        "name": "store",
+        "valueType": "Store"
+      },
+      {
+        "kind": "property",
+        "name": "telemetryCollector",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "telemetryDashboard",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "telemetryUnpatches",
+        "valueType": "array"
+      },
+      {
+        "kind": "property",
+        "name": "timeGuard",
+        "valueType": "TimeGuard"
+      },
+      {
+        "kind": "property",
+        "name": "timer",
+        "valueType": "Timer"
+      },
+      {
+        "kind": "property",
+        "name": "transitionLayer",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "tutorialGuide",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "versionDialog",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "webglContext",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "worker",
+        "valueType": "WorkerManager"
+      }
+    ],
+    "name": "Game",
+    "prototypeMethods": [
+      {
+        "arity": 0,
+        "async": false,
+        "kind": "method",
+        "name": "_attachRuntimeExtensions"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "kind": "method",
+        "name": "_attachTelemetryInstrumentation"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "kind": "method",
+        "name": "_detachRuntimeExtensions"
+      },
+      {
+        "arity": 0,
+        "async": true,
+        "kind": "method",
+        "name": "_runAdaptiveQuality"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "kind": "method",
+        "name": "destroy"
+      },
+      {
+        "arity": 0,
+        "async": true,
+        "kind": "method",
+        "name": "init"
+      }
+    ],
+    "staticMethods": []
+  },
+  "Renderer": {
+    "PixiRenderer": {
+      "arity": 0,
+      "instanceProperties": [
+        {
+          "kind": "property",
+          "name": "app",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "autoResize",
+          "valueType": "boolean"
+        },
+        {
+          "kind": "property",
+          "name": "autoZReorder",
+          "valueType": "boolean"
+        },
+        {
+          "kind": "property",
+          "name": "backend",
+          "valueType": "string"
+        },
+        {
+          "kind": "property",
+          "name": "background",
+          "valueType": "string"
+        },
+        {
+          "kind": "property",
+          "name": "batchAdapter",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "batchOptimizer",
+          "valueType": "BatchOptimizer"
+        },
+        {
+          "kind": "property",
+          "name": "batchStats",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "batchStatsDirty",
+          "valueType": "boolean"
+        },
+        {
+          "kind": "property",
+          "name": "canvas",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "commandBufferEnabled",
+          "valueType": "boolean"
+        },
+        {
+          "kind": "property",
+          "name": "commandCapacity",
+          "valueType": "number"
+        },
+        {
+          "kind": "property",
+          "name": "ctx",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "debugOverlay",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "debugRenderer",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "destroyed",
+          "valueType": "boolean"
+        },
+        {
+          "kind": "property",
+          "name": "displayPools",
+          "valueType": "Map"
+        },
+        {
+          "kind": "property",
+          "name": "enableBloom",
+          "valueType": "boolean"
+        },
+        {
+          "kind": "property",
+          "name": "entitySnapshots",
+          "valueType": "Map"
+        },
+        {
+          "kind": "property",
+          "name": "events",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "fallbackReason",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "height",
+          "valueType": "number"
+        },
+        {
+          "kind": "property",
+          "name": "isMobile",
+          "valueType": "boolean"
+        },
+        {
+          "kind": "property",
+          "name": "lastBatchChildCount",
+          "valueType": "number"
+        },
+        {
+          "kind": "property",
+          "name": "lastSceneDiff",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "layerManager",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "metrics",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "nextDisplayId",
+          "valueType": "number"
+        },
+        {
+          "kind": "property",
+          "name": "particleLimit",
+          "valueType": "number"
+        },
+        {
+          "kind": "property",
+          "name": "qualityProfile",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "sceneDisplayObjects",
+          "valueType": "Map"
+        },
+        {
+          "kind": "property",
+          "name": "sceneTextures",
+          "valueType": "Map"
+        },
+        {
+          "kind": "property",
+          "name": "spritePool",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "spritePoolSize",
+          "valueType": "number"
+        },
+        {
+          "kind": "property",
+          "name": "stage",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "store",
+          "valueType": "undefined"
+        },
+        {
+          "kind": "property",
+          "name": "textureCache",
+          "valueType": "Map"
+        },
+        {
+          "kind": "property",
+          "name": "unsubscribeEntities",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "width",
+          "valueType": "number"
+        }
+      ],
+      "name": "PixiRenderer",
+      "prototypeMethods": [
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_applyEntityDiff"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_applySceneDiff"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_applyStageOrder"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_childKey"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "_createSceneDiff"
+        },
+        {
+          "arity": 2,
+          "async": false,
+          "kind": "method",
+          "name": "_drawCanvasDebugCommand"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "_drawFallbackOverlay"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_enqueueDrawCall"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_ensurePixiDisplayObject"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "_ensureSpritePool"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "_flushDebugOverlay"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "_getCanvasContext"
+        },
+        {
+          "arity": 2,
+          "async": false,
+          "kind": "method",
+          "name": "_normalizeDisplayObject"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_poolKey"
+        },
+        {
+          "arity": 2,
+          "async": false,
+          "kind": "method",
+          "name": "_releaseDisplayObject"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_releaseSceneRecord"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_removeMissingDisplayObjects"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_renderCanvas"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_renderCommandBufferedScene"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_renderEntitiesCanvas"
+        },
+        {
+          "arity": 2,
+          "async": false,
+          "kind": "method",
+          "name": "_renderLayerId"
+        },
+        {
+          "arity": 2,
+          "async": false,
+          "kind": "method",
+          "name": "_renderPlainEntity"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_resolveTexture"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_stageContains"
+        },
+        {
+          "arity": 2,
+          "async": false,
+          "kind": "method",
+          "name": "_submitCommandBuffer"
+        },
+        {
+          "arity": 2,
+          "async": false,
+          "kind": "method",
+          "name": "_syncDisplayObject"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_syncPixiScene"
+        },
+        {
+          "arity": 2,
+          "async": false,
+          "kind": "method",
+          "name": "_syncPixiSprite"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_takeDisplayObject"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "_takeSpriteDisplayObject"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_textureCommandKey"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "_updateBatchStats"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "_updateCommandBufferStats"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_visibleChildren"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "applyAdjustment"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "applyBloom"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "applyGlitch"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "applyMobileOptimizations"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "bindStore"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "destroy"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "fade"
+        },
+        {
+          "arity": 0,
+          "async": true,
+          "kind": "method",
+          "name": "init"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "negotiateAddonContract"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "releaseSceneTextures"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "render"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "renderScene"
+        },
+        {
+          "arity": 2,
+          "async": false,
+          "kind": "method",
+          "name": "resize"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "setQualityProfile"
+        }
+      ],
+      "staticMethods": []
+    },
+    "RenderLayerManager": {
+      "arity": 0,
+      "instanceProperties": [
+        {
+          "kind": "property",
+          "name": "container",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "dirty",
+          "valueType": "boolean"
+        },
+        {
+          "kind": "property",
+          "name": "records",
+          "valueType": "Map"
+        },
+        {
+          "kind": "property",
+          "name": "store",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "unsubscribe",
+          "valueType": "null"
+        }
+      ],
+      "name": "RenderLayerManager",
+      "prototypeMethods": [
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "apply"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "destroy"
+        },
+        {
+          "arity": 2,
+          "async": false,
+          "kind": "method",
+          "name": "register"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "sort"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "unregister"
+        }
+      ],
+      "staticMethods": []
+    },
+    "RendererManager": {
+      "arity": 0,
+      "instanceProperties": [
+        {
+          "kind": "property",
+          "name": "attempts",
+          "valueType": "array"
+        },
+        {
+          "kind": "method",
+          "name": "createRenderer",
+          "valueType": "function"
+        },
+        {
+          "kind": "property",
+          "name": "fallbackOrder",
+          "valueType": "array"
+        },
+        {
+          "kind": "property",
+          "name": "lastError",
+          "valueType": "null"
+        },
+        {
+          "kind": "property",
+          "name": "logger",
+          "valueType": "null"
+        }
+      ],
+      "name": "RendererManager",
+      "prototypeMethods": [
+        {
+          "arity": 0,
+          "async": true,
+          "kind": "method",
+          "name": "create"
+        }
+      ],
+      "staticMethods": []
+    },
+    "functions": [
+      {
+        "arity": 0,
+        "async": false,
+        "name": "CommandBuffer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "OffscreenCanvasRenderer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PixiBatchAdapter"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PixiRenderer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RenderLayerManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RenderWorkerBridge"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RendererManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "StaticBatchCompiler"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "WebGLContextManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "WebGPURenderer"
+      }
+    ],
+    "keys": [
+      "CommandBuffer",
+      "Filters",
+      "OffscreenCanvasRenderer",
+      "PixiBatchAdapter",
+      "PixiRenderer",
+      "RenderLayerManager",
+      "RenderWorkerBridge",
+      "RendererBackend",
+      "RendererManager",
+      "StaticBatchCompiler",
+      "WebGLContextManager",
+      "WebGPURenderer"
+    ]
+  },
+  "Store": {
+    "arity": 0,
+    "instanceProperties": [
+      {
+        "kind": "property",
+        "name": "debug",
+        "valueType": "boolean"
+      },
+      {
+        "kind": "property",
+        "name": "dependencyGraph",
+        "valueType": "Map"
+      },
+      {
+        "kind": "property",
+        "name": "derived",
+        "valueType": "Map"
+      },
+      {
+        "kind": "property",
+        "name": "derivedFlushScheduled",
+        "valueType": "boolean"
+      },
+      {
+        "kind": "property",
+        "name": "derivedFlushing",
+        "valueType": "boolean"
+      },
+      {
+        "kind": "property",
+        "name": "emergencyPatch",
+        "valueType": "Object"
+      },
+      {
+        "kind": "property",
+        "name": "initialTypes",
+        "valueType": "Map"
+      },
+      {
+        "kind": "property",
+        "name": "middlewares",
+        "valueType": "array"
+      },
+      {
+        "kind": "property",
+        "name": "stores",
+        "valueType": "Map"
+      }
+    ],
+    "name": "Store",
+    "prototypeMethods": [
+      {
+        "arity": 2,
+        "async": false,
+        "kind": "method",
+        "name": "_addDependencyEdge"
+      },
+      {
+        "arity": 2,
+        "async": false,
+        "kind": "method",
+        "name": "_applyEmergencyPatch"
+      },
+      {
+        "arity": 3,
+        "async": false,
+        "kind": "method",
+        "name": "_applyMiddleware"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "kind": "method",
+        "name": "_flushDerived"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "kind": "method",
+        "name": "_markDerivedDependents"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "kind": "method",
+        "name": "_recomputeDerived"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "kind": "method",
+        "name": "_scheduleDerivedFlush"
+      },
+      {
+        "arity": 2,
+        "async": false,
+        "kind": "method",
+        "name": "_warnTypeDrift"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "kind": "method",
+        "name": "atom"
+      },
+      {
+        "arity": 3,
+        "async": false,
+        "kind": "method",
+        "name": "derive"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "kind": "method",
+        "name": "get"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "kind": "method",
+        "name": "injectBackend"
+      },
+      {
+        "arity": 2,
+        "async": false,
+        "kind": "method",
+        "name": "set"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "kind": "method",
+        "name": "snapshot"
+      },
+      {
+        "arity": 2,
+        "async": false,
+        "kind": "method",
+        "name": "subscribe"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "kind": "method",
+        "name": "underive"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "kind": "method",
+        "name": "use"
+      }
+    ],
+    "staticMethods": [
+      {
+        "arity": 2,
+        "async": false,
+        "name": "_assertPluginManifest"
+      },
+      {
+        "arity": 2,
+        "async": false,
+        "name": "_createPluginSandbox"
+      },
+      {
+        "arity": 1,
+        "async": true,
+        "name": "_loadPluginManifest"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "_resolveModuleUrl"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "configurePluginMarket"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "getPlugin"
+      },
+      {
+        "arity": 1,
+        "async": true,
+        "name": "install"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "registerPlugin"
+      }
+    ]
+  },
+  "defaultExport": {
+    "functions": [
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ABTest"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AICommandService"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AIImporter"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AITilemapGenerator"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AdaptiveQualityManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Analytics"
+      },
+      {
+        "arity": 2,
+        "async": false,
+        "name": "Animation"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AnimationEditor"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "AnimationStateMachine"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ApiQuickPanel"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AssetBrowser"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AssetLoader"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AssetPatchManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AudioAddon"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AudioEditor"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AudioManager"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "BehaviorTree"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Camera"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "CanvasRendererAddon"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ChunkCache"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "ChunkManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "CollisionMask"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "CommandBuffer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ComputeRuntime"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "CrashReporter"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "DataTable"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "DataTableEditor"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Database"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "DebugConsole"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "DebugRenderer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Deprecation"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "DevProfile"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "DeveloperUsageReport"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "DeviceProfiler"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Dimension3D"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "DragonBonesAdapter"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "DualSpatialIndex"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Editor"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "EditorOverlay"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "EditorPanel"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "EditorPlugin"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "EditorPluginCascade"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ElectronNativeBridge"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "EmergencyOverlay"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "EntitySpatialIndex"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ErrorDiagnostics"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "EventBus"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "EventSheet"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ExportPaywall"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "FeedbackWidget"
+      },
+      {
+        "arity": 2,
+        "async": false,
+        "name": "FixedMemoryPool"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "FrameProfiler"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Game"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Genealogy"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "HotReload"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "HotfixManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "I18n"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Input"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "InputManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "InputSequence"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Kernel"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Light2D"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "LiveInspector"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Loader"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Localization"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "LogForwarder"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Loop"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "MarketplaceServer"
+      },
+      {
+        "arity": 2,
+        "async": false,
+        "name": "MovementSystem"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "NavigationAgent2D"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Net"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "NetRoom"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Node"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "ObjectPool"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "OffscreenCanvasRenderer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PackageManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ParticleEditorPanel"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PerformanceMetrics"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PerformanceMonitor"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PhysicsQuery"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PhysicsWorld"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PixiBatchAdapter"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PixiRendererAddon"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PlatformAdapter"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PlatformVariantResolver"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PlaySession"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PluginRecommendationEngine"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PoolRegistry"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PrefabManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PrefabRegistry"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ProfilerWaterfallPanel"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RealtimeConnection"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "RemoteDevTools"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RenderLayerManager"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "RenderSystem"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RenderWorkerBridge"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RendererAdapter"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RendererManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RuntimeLiveSyncBridge"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Sandbox"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SandboxBus"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "Scene"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SkeletalAnimation"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SkeletonAnimationEditor"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SleepWakeSystem"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Snapshot"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SpineAdapter"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SpinePixiRuntimeAdapter"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SplashScreen"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "Sprite"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "StateBehaviorTree"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "StaticBatchCompiler"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Storage"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Store"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "TaskManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "TaskScheduler"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "TelemetryCollector"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "TelemetryDashboard"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Tilemap"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "TilemapLoader"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "TimeGuard"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Timeline"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Timer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "TutorialGuide"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "Tween"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "VersionDialog"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ViewportCulling"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "VisualEventGraph"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "WasmLoader"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "WebGPURenderer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "WebTransportConnection"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Worker"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "WorkerManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "World"
+      },
+      {
+        "arity": 2,
+        "async": false,
+        "name": "addon"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "assertRendererBackend"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "benchmarkECSParticles"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "calculateDamage"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "connectEditorSync"
+      },
+      {
+        "arity": 0,
+        "async": true,
+        "name": "createLeanRuntime"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "detectEnvironment"
+      },
+      {
+        "arity": 1,
+        "async": true,
+        "name": "disableAddon"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "findPath"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "help"
+      },
+      {
+        "arity": 2,
+        "async": false,
+        "name": "install"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "isDebugBuildEnabled"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "listHelp"
+      },
+      {
+        "arity": 1,
+        "async": true,
+        "name": "loadPhysics"
+      },
+      {
+        "arity": 4,
+        "async": false,
+        "name": "safeInitialize"
+      },
+      {
+        "arity": 1,
+        "async": true,
+        "name": "use"
+      },
+      {
+        "arity": 1,
+        "async": true,
+        "name": "useAddon"
+      }
+    ],
+    "keys": [
+      "ABTest",
+      "AICommandService",
+      "AIImporter",
+      "AITilemapGenerator",
+      "Ad",
+      "AdaptiveQualityManager",
+      "Analytics",
+      "Animation",
+      "AnimationEditor",
+      "AnimationStateMachine",
+      "ApiQuickPanel",
+      "AssetBrowser",
+      "AssetLoader",
+      "AssetPatchManager",
+      "AudioAddon",
+      "AudioEditor",
+      "AudioManager",
+      "Backend",
+      "BehaviorTree",
+      "Bootstrap",
+      "Bus",
+      "Camera",
+      "CanvasRendererAddon",
+      "ChunkCache",
+      "ChunkManager",
+      "CollisionMask",
+      "CommandBuffer",
+      "Components",
+      "ComputeRuntime",
+      "Console",
+      "CrashReporter",
+      "DB",
+      "DataTable",
+      "DataTableEditor",
+      "Database",
+      "Debug",
+      "DebugConsole",
+      "DebugRenderer",
+      "Deprecation",
+      "DevProfile",
+      "DeveloperUsageReport",
+      "DeviceProfiler",
+      "Dimension3D",
+      "DragonBonesAdapter",
+      "DualSpatialIndex",
+      "ECS",
+      "Editor",
+      "EditorOverlay",
+      "EditorPanel",
+      "EditorPlugin",
+      "EditorPluginCascade",
+      "ElectronNativeBridge",
+      "EmergencyOverlay",
+      "Entity",
+      "EntitySpatialIndex",
+      "ErrorDiagnostics",
+      "EventBus",
+      "EventSheet",
+      "ExportPaywall",
+      "FeedbackWidget",
+      "FixedMemoryPool",
+      "FrameProfiler",
+      "Game",
+      "Genealogy",
+      "HotReload",
+      "HotfixManager",
+      "I18n",
+      "Input",
+      "InputManager",
+      "InputSequence",
+      "Kernel",
+      "Lean",
+      "LeanAddons",
+      "LeanCore",
+      "License",
+      "Light2D",
+      "LiveInspector",
+      "Loader",
+      "Localization",
+      "LogForwarder",
+      "Loop",
+      "MarketplaceServer",
+      "Math",
+      "MovementSystem",
+      "NavigationAgent2D",
+      "Net",
+      "NetRoom",
+      "Node",
+      "OBundle",
+      "ObjectPool",
+      "OffscreenCanvasRenderer",
+      "PackageManager",
+      "ParticleEditorPanel",
+      "Payment",
+      "PerformanceMetrics",
+      "PerformanceMonitor",
+      "PhysicsQuery",
+      "PhysicsWorld",
+      "PixiBatchAdapter",
+      "PixiRendererAddon",
+      "PlatformAdapter",
+      "PlatformVariantResolver",
+      "PlaySession",
+      "PluginRecommendationEngine",
+      "Pool",
+      "PoolRegistry",
+      "Prefab",
+      "PrefabManager",
+      "PrefabRegistry",
+      "ProfilerWaterfallPanel",
+      "Query",
+      "RealtimeConnection",
+      "RemoteDevTools",
+      "RenderLayerManager",
+      "RenderSystem",
+      "RenderWorkerBridge",
+      "Renderer",
+      "RendererAdapter",
+      "RendererBackend",
+      "RendererManager",
+      "RuntimeLiveSyncBridge",
+      "Sandbox",
+      "SandboxBus",
+      "Scene",
+      "SkeletalAnimation",
+      "SkeletonAnimationEditor",
+      "SleepWakeSystem",
+      "Snapshot",
+      "SpineAdapter",
+      "SpinePixiRuntimeAdapter",
+      "SplashScreen",
+      "Sprite",
+      "StateBehaviorTree",
+      "StaticBatchCompiler",
+      "Storage",
+      "Store",
+      "System",
+      "Task",
+      "TaskManager",
+      "TaskScheduler",
+      "TelemetryCollector",
+      "TelemetryDashboard",
+      "Templates",
+      "Tilemap",
+      "TilemapLoader",
+      "TimeGuard",
+      "Timeline",
+      "Timer",
+      "TutorialGuide",
+      "Tween",
+      "UI",
+      "VersionDialog",
+      "ViewportCulling",
+      "VisualEventGraph",
+      "WasmLoader",
+      "WebGPURenderer",
+      "WebTransportConnection",
+      "WechatMiniGameMonetization",
+      "Worker",
+      "WorkerManager",
+      "World",
+      "addon",
+      "assertRendererBackend",
+      "benchmarkECSParticles",
+      "calculateDamage",
+      "connectEditorSync",
+      "createLeanRuntime",
+      "detectEnvironment",
+      "disableAddon",
+      "findPath",
+      "help",
+      "install",
+      "isDebugBuildEnabled",
+      "listHelp",
+      "loadPhysics",
+      "safeInitialize",
+      "use",
+      "useAddon"
+    ]
+  },
+  "package": "omnicore",
+  "schemaVersion": 1
+}

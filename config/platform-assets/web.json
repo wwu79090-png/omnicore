@@ -1,0 +1,6 @@
+{
+  "target": "web",
+  "imageQuality": 1,
+  "webpFallback": true,
+  "description": "Web 端保留原始质量，Loader 会按浏览器能力优先使用 webp。"
+}

@@ -1,0 +1,29 @@
+name: Plugin submission
+description: Submit an OmniCore plugin for review.
+title: "[Plugin] "
+labels:
+  - plugin
+  - ecosystem
+body:
+  - type: input
+    id: package
+    attributes:
+      label: npm package
+      description: Published package name or repository URL.
+      placeholder: "@scope/omnicore-my-plugin"
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What does the plugin add to OmniCore?
+    validations:
+      required: true
+  - type: input
+    id: demo
+    attributes:
+      label: Demo URL
+      description: Link to a runnable demo or repo example.
+    validations:
+      required: true

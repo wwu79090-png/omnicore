@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>OmniCore Plugins</title>
+    <style>
+      body { margin: 0; font: 14px system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+      main { max-width: 1120px; margin: 0 auto; padding: 32px 20px; }
+      header { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 18px; }
+      h1 { font-size: 30px; margin: 0; letter-spacing: 0; }
+      a { color: #7dd3fc; }
+      .submit { padding: 8px 12px; border: 1px solid #38bdf8; border-radius: 6px; text-decoration: none; }
+      .market-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+      .plugin-card { border: 1px solid #334155; background: #111827; border-radius: 8px; overflow: hidden; }
+      .plugin-card img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #020617; }
+      .plugin-card div { padding: 12px; }
+      .plugin-card h2 { margin: 0 0 6px; font-size: 16px; }
+      .plugin-card p { margin: 0 0 10px; color: #cbd5e1; }
+      code { display: block; padding: 8px; overflow-x: auto; border: 1px solid #334155; border-radius: 6px; color: #a7f3d0; background: #020617; }
+      .directory { margin-top: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+      .directory article { border: 1px solid #334155; padding: 10px; background: #111827; border-radius: 8px; }
+      .directory h3 { margin: 0 0 6px; font-size: 13px; }
+      .asset-library { margin-top: 28px; padding: 16px; border: 1px solid #334155; background: #111827; border-radius: 8px; }
+      .asset-library h2 { margin: 0 0 8px; font-size: 18px; }
+      .asset-library p { margin: 0; color: #cbd5e1; }
+      .asset-packs { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 12px; }
+      .asset-packs article { border: 1px solid #334155; border-radius: 8px; padding: 10px; background: #020617; }
+      .asset-packs h3 { margin: 0 0 6px; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>OmniCore 官方插件市场</h1>
+          <p>官方插件数量: 15</p>
+        </div>
+        <a class="submit" href="../../.github/ISSUE_TEMPLATE/plugin_submission.yml">Submit Plugin</a>
+      </header>
+
+      <section class="market-grid" aria-label="Featured official plugins">
+        <article class="plugin-card">
+          <img src="./assets/pathfinding.svg" alt="A* Pathfinding plugin screenshot">
+          <div>
+            <h2>A* Pathfinding</h2>
+            <p>Tile-based enemy navigation with a small A* style API.</p>
+            <code>npm install @omnicore/plugin-ai-pathfinding</code>
+            <p><a href="../../examples/plugins/AiPathfinding/demo/index.html">Open demo</a></p>
+          </div>
+        </article>
+        <article class="plugin-card">
+          <img src="./assets/cloud-save.svg" alt="Cloud Save plugin screenshot">
+          <div>
+            <h2>Cloud Save</h2>
+            <p>Local-first save slots with a cloud adapter hook for production.</p>
+            <code>npm install @omnicore/plugin-save-cloud</code>
+            <p><a href="../../examples/plugins/SaveCloud/demo/index.html">Open demo</a></p>
+          </div>
+        </article>
+        <article class="plugin-card">
+          <img src="./assets/particles.svg" alt="3D Particles plugin screenshot">
+          <div>
+            <h2>3D Particles</h2>
+            <p>2.5D burst particles that run without adding rendering dependencies.</p>
+            <code>npm install @omnicore/plugin-three-d-particles</code>
+            <p><a href="../../examples/plugins/ThreeDParticles/demo/index.html">Open demo</a></p>
+          </div>
+        </article>
+        <article class="plugin-card">
+          <img src="./assets/localization.svg" alt="Localization plugin screenshot">
+          <div>
+            <h2>Localization</h2>
+            <p>Runtime locale switching and parameterized strings for UI-heavy games.</p>
+            <code>npm install @omnicore/plugin-localization</code>
+          </div>
+        </article>
+        <article class="plugin-card">
+          <img src="./assets/camera-shake.svg" alt="Camera Shake plugin screenshot">
+          <div>
+            <h2>Camera Shake</h2>
+            <p>Reusable screen shake presets for combat, explosions, and impacts.</p>
+            <code>npm install @omnicore/plugin-camera-shake</code>
+          </div>
+        </article>
+        <article class="plugin-card">
+          <img src="./assets/wechat-monetization.svg" alt="WeChat Mini Game Monetization plugin screenshot">
+          <div>
+            <h2>WeChat Mini Game Monetization</h2>
+            <p>微信小游戏支付、激励视频广告和 banner 广告的官方轻量接入层。</p>
+            <code>npm install @omnicore/plugin-wechat-monetization</code>
+            <p><a href="../../examples/plugins/WechatMiniGameMonetization/demo/index.html">Open demo</a></p>
+          </div>
+        </article>
+      </section>
+
+      <section class="asset-library" aria-label="Free and commercial 2D asset library">
+        <h2>免费/商用 2D 素材库</h2>
+        <p>面向零基础策划和独立开发者的 .omni-asset 起步包，默认使用 CC0-1.0 授权，可免费商用。</p>
+        <div class="asset-packs">
+          <article>
+            <h3>Starter Pixel CC0</h3>
+            <p>16x16 角色、草地、箱子、NPC 和基础图集。</p>
+            <code>starter-pixel-cc0.omni-asset</code>
+          </article>
+          <article>
+            <h3>RPG Props CC0</h3>
+            <p>门、宝箱、药水、路牌和 UI 小图标。</p>
+            <code>rpg-props-cc0.omni-asset</code>
+          </article>
+          <article>
+            <h3>Jam Audio CC0</h3>
+            <p>短循环 BGM、点击音、拾取音和战斗反馈音。</p>
+            <code>jam-audio-cc0.omni-asset</code>
+          </article>
+        </div>
+      </section>
+
+      <section class="directory" aria-label="Official plugin directory">
+        <article><h3>AiPathfinding</h3><code>await OmniCore.use(AiPathfinding)</code></article>
+        <article><h3>UIManager</h3><code>await OmniCore.use(UIManager)</code></article>
+        <article><h3>ParticlePack</h3><code>await OmniCore.use(ParticlePack)</code></article>
+        <article><h3>ThreeDParticles</h3><code>await OmniCore.use(ThreeDParticles)</code></article>
+        <article><h3>Localization</h3><code>await OmniCore.use(Localization)</code></article>
+        <article><h3>AudioMixer</h3><code>await OmniCore.use(AudioMixer)</code></article>
+        <article><h3>3DDecorator</h3><code>await OmniCore.use(ThreeDDecorator)</code></article>
+        <article><h3>CameraShake</h3><code>await OmniCore.use(CameraShake)</code></article>
+        <article><h3>DebugConsole</h3><code>await OmniCore.use(DebugConsole)</code></article>
+        <article><h3>Achievement</h3><code>await OmniCore.use(Achievement)</code></article>
+        <article><h3>SaveCloud</h3><code>await OmniCore.use(SaveCloud)</code></article>
+        <article><h3>TimelineAnimator</h3><code>await OmniCore.use(TimelineAnimator)</code></article>
+        <article><h3>Payment</h3><code>await OmniCore.use(Payment)</code></article>
+        <article><h3>Ad</h3><code>await OmniCore.use(Ad)</code></article>
+        <article><h3>WechatMiniGameMonetization</h3><code>await OmniCore.use(WechatMiniGameMonetization)</code></article>
+      </section>
+    </main>
+  </body>
+</html>

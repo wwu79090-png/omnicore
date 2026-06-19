@@ -1,0 +1,231 @@
+#!/usr/bin/env node
+import { readFileSync } from 'node:fs';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { DEPRECATED_APIS } from '../src/core/Deprecation.js';
+
+const DEFAULT_IGNORED = new Set(['.git', 'node_modules', 'dist', 'coverage']);
+const DEFAULT_EXTENSIONS = new Set(['.js', '.mjs', '.html']);
+const README_START = '<!-- OMNICORE_DEPRECATED_API_TABLE:start -->';
+const README_END = '<!-- OMNICORE_DEPRECATED_API_TABLE:end -->';
+
+export async function auditDeprecatedApis({
+  root = process.cwd(),
+  srcDir = path.join(root, 'src'),
+  scanDirs = [srcDir],
+  ignored = DEFAULT_IGNORED,
+  extensions = DEFAULT_EXTENSIONS
+} = {}) {
+  const includeRegistry = path.resolve(root) === path.resolve(process.cwd());
+  const definitions = [
+    ...(includeRegistry ? DEPRECATED_APIS.map((entry) => ({
+      api: entry.api,
+      pattern: entry.pattern,
+      replacement: entry.replacement,
+      removeIn: entry.removeIn,
+      since: entry.since,
+      source: 'registry'
+    })) : []),
+    ...(await scanJsDocDeprecatedDefinitions({ root, srcDir, ignored, extensions }))
+  ];
+  const files = [];
+  for (const dir of scanDirs) files.push(...await walk(dir, { ignored, extensions }));
+  const entries = definitions.map((definition) => ({
+    ...definition,
+    locations: findCallSites({ root, files, definition }),
+  })).map((entry) => ({
+    ...entry,
+    callCount: entry.locations.length
+  })).filter((entry) => entry.callCount > 0);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    entries
+  };
+}
+
+export async function scanJsDocDeprecatedDefinitions({
+  root = process.cwd(),
+  srcDir = path.join(root, 'src'),
+  ignored = DEFAULT_IGNORED,
+  extensions = DEFAULT_EXTENSIONS
+} = {}) {
+  const jsExtensions = new Set([...extensions].filter((extension) => ['.js', '.mjs'].includes(extension)));
+  const files = await walk(srcDir, { ignored, extensions: jsExtensions });
+  const definitions = [];
+  for (const file of files) {
+    const content = await readFile(file, 'utf8');
+    definitions.push(...parseDeprecatedJsDoc(content, path.relative(root, file)));
+  }
+  return definitions;
+}
+
+export function parseDeprecatedJsDoc(content, file = '') {
+  const definitions = [];
+  const pattern = /\/\*\*([\s\S]*?)\*\/\s*(?:export\s+)?(?:async\s+)?(?:function|class|const|let|var)\s+([A-Za-z_$][\w$]*)/g;
+  let match = pattern.exec(content);
+  while (match) {
+    const [, jsdoc, name] = match;
+    if (/@deprecated\b/.test(jsdoc)) {
+      definitions.push({
+        api: name,
+        pattern: `${name}(`,
+        replacement: extractTag(jsdoc, 'replacement') || extractReplacementFromDeprecated(jsdoc) || '未指定',
+        removeIn: extractTag(jsdoc, 'removeIn') || extractTag(jsdoc, 'remove-in') || '未指定',
+        since: extractTag(jsdoc, 'since') || '未指定',
+        source: 'jsdoc',
+        definedIn: file
+      });
+    }
+    match = pattern.exec(content);
+  }
+  return definitions;
+}
+
+export async function writeDeprecatedReport({ reportPath, audit }) {
+  await mkdir(path.dirname(reportPath), { recursive: true });
+  await writeFile(reportPath, renderDeprecatedReport(audit));
+}
+
+export function renderDeprecatedReport({ generatedAt, entries }) {
+  const lines = [
+    '# Deprecated API Audit',
+    '',
+    `Generated: ${generatedAt}`,
+    '',
+    entries.length ? '| API | Calls | Replacement | Remove In | Locations |' : 'No deprecated APIs found.',
+    entries.length ? '| --- | ---: | --- | --- | --- |' : ''
+  ].filter(Boolean);
+
+  entries.forEach((entry) => {
+    const locations = entry.locations.length
+      ? entry.locations.map((location) => `${location.file}:${location.line}`).join('<br>')
+      : '无调用';
+    lines.push(`| \`${entry.api}\` | ${entry.callCount} | \`${entry.replacement}\` | ${entry.removeIn} | ${locations} |`);
+  });
+
+  return `${lines.join('\n')}\n`;
+}
+
+export async function updateReadmeDeprecatedPlan({
+  readmePath = path.join(process.cwd(), 'README.md'),
+  entries = []
+} = {}) {
+  let readme = await readFile(readmePath, 'utf8');
+  const section = renderReadmeDeprecatedPlan(entries);
+  const startIndex = readme.indexOf(README_START);
+  const endIndex = readme.indexOf(README_END);
+
+  if (startIndex >= 0 && endIndex > startIndex) {
+    readme = `${readme.slice(0, startIndex)}${section}${readme.slice(endIndex + README_END.length)}`;
+  } else {
+    readme = `${readme.trimEnd()}\n\n${section}\n`;
+  }
+
+  await writeFile(readmePath, readme);
+}
+
+export function renderReadmeDeprecatedPlan(entries = []) {
+  const lines = [
+    README_START,
+    '## 废弃API迁移计划表',
+    '',
+    '| 废弃 API | 调用次数 | 替代方案 | 预计移除版本 | 迁移状态 |',
+    '| --- | ---: | --- | --- | --- |'
+  ];
+
+  if (!entries.length) {
+    lines.push('| 无 | 0 | 无 | 无 | 当前未发现废弃 API |');
+  } else {
+    entries.forEach((entry) => {
+      const status = entry.callCount > 0 ? '需要迁移' : '可按版本计划移除';
+      lines.push(`| \`${entry.api}\` | ${entry.callCount} | \`${entry.replacement}\` | ${entry.removeIn} | ${status} |`);
+    });
+  }
+
+  lines.push(README_END);
+  return lines.join('\n');
+}
+
+async function walk(dir, { ignored, extensions }) {
+  const entries = await readdir(dir, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    if (ignored.has(entry.name)) continue;
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) files.push(...await walk(fullPath, { ignored, extensions }));
+    else if (extensions.has(path.extname(entry.name))) files.push(fullPath);
+  }
+  return files;
+}
+
+function findCallSites({ root, files, definition }) {
+  const locations = [];
+  for (const file of files) {
+    const content = readFileSync(file, 'utf8');
+    const lines = content.split(/\r?\n/);
+    lines.forEach((line, index) => {
+      if (!line.includes(definition.pattern)) return;
+      if (isDefinitionLine(line, definition.api)) return;
+      if (definition.source === 'registry' && file.endsWith(path.join('src', 'core', 'Deprecation.js'))) return;
+      locations.push({
+        file: path.relative(root, file).replace(/\\/g, '/'),
+        line: index + 1
+      });
+    });
+  }
+  return locations;
+}
+
+function isDefinitionLine(line, api) {
+  const escaped = escapeRegExp(api.replace(/^OmniCore\./, '').split('.').pop());
+  return new RegExp(`\\b(function|class|const|let|var)\\s+${escaped}\\b`).test(line);
+}
+
+function extractTag(jsdoc, tag) {
+  const match = jsdoc.match(new RegExp(`@${escapeRegExp(tag)}\\s+([^\\n\\r*]+)`));
+  return match?.[1]?.trim() || '';
+}
+
+function extractReplacementFromDeprecated(jsdoc) {
+  const match = jsdoc.match(/@deprecated\s+(?:Use|use|请改用)\s+`?([A-Za-z_$][\w$.:]*)`?/);
+  return match?.[1] || '';
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function parseArgs(argv) {
+  const options = {
+    reportPath: path.join(process.cwd(), 'docs', 'release-notes', 'deprecated-audit-latest.md'),
+    readmePath: path.join(process.cwd(), 'README.md'),
+    strict: false
+  };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === '--report') {
+      index += 1;
+      options.reportPath = path.resolve(argv[index]);
+    } else if (arg === '--readme') {
+      index += 1;
+      options.readmePath = path.resolve(argv[index]);
+    } else if (arg === '--strict') options.strict = true;
+  }
+  return options;
+}
+
+function isCli() {
+  return process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+}
+
+if (isCli()) {
+  const options = parseArgs(process.argv.slice(2));
+  const audit = await auditDeprecatedApis();
+  await writeDeprecatedReport({ reportPath: options.reportPath, audit });
+  await updateReadmeDeprecatedPlan({ readmePath: options.readmePath, entries: audit.entries });
+  const totalCalls = audit.entries.reduce((sum, entry) => sum + entry.callCount, 0);
+  console.log(`${totalCalls} deprecated API call(s) found. Report: ${options.reportPath}`);
+  if (totalCalls && options.strict) process.exitCode = 1;
+}

@@ -1,0 +1,190 @@
+{
+  "command": "npm run benchmark:mobile",
+  "metrics": [
+    "fps",
+    "p95FrameMs",
+    "memoryMb"
+  ],
+  "devices": [
+    {
+      "id": "budget-android",
+      "label": "Budget Android",
+      "tier": "low",
+      "os": "Android 12 Chrome",
+      "gpu": "Mali-G52"
+    },
+    {
+      "id": "iphone-11",
+      "label": "iPhone 11",
+      "tier": "mid",
+      "os": "iOS 18 Safari",
+      "gpu": "Apple A13"
+    },
+    {
+      "id": "snapdragon-865",
+      "label": "Snapdragon 865 Android",
+      "tier": "upper-mid",
+      "os": "Android 14 Chrome",
+      "gpu": "Adreno 650"
+    }
+  ],
+  "history": [
+    {
+      "recordedAt": "2026-04-01T02:00:00.000Z",
+      "deviceId": "iphone-11",
+      "label": "iPhone 11",
+      "scenario": "complex-scene-benchmark",
+      "commit": "hw-iphone11-apr",
+      "fps": 51,
+      "p95FrameMs": 20.3,
+      "memoryMb": 276,
+      "notes": "manual Safari run, 1200 entities"
+    },
+    {
+      "recordedAt": "2026-04-01T02:10:00.000Z",
+      "deviceId": "snapdragon-865",
+      "label": "Snapdragon 865 Android",
+      "scenario": "complex-scene-benchmark",
+      "commit": "hw-s865-apr",
+      "fps": 57,
+      "p95FrameMs": 18.9,
+      "memoryMb": 292,
+      "notes": "Chrome stable"
+    },
+    {
+      "recordedAt": "2026-04-01T02:20:00.000Z",
+      "deviceId": "budget-android",
+      "label": "Budget Android",
+      "scenario": "complex-scene-benchmark",
+      "commit": "hw-budget-apr",
+      "fps": 34,
+      "p95FrameMs": 31.8,
+      "memoryMb": 318,
+      "notes": "hundred-yuan class Android"
+    },
+    {
+      "recordedAt": "2026-05-01T02:00:00.000Z",
+      "deviceId": "iphone-11",
+      "label": "iPhone 11",
+      "scenario": "complex-scene-benchmark",
+      "commit": "hw-iphone11-may",
+      "fps": 55,
+      "p95FrameMs": 18.7,
+      "memoryMb": 260,
+      "notes": "renderer diff update"
+    },
+    {
+      "recordedAt": "2026-05-01T02:10:00.000Z",
+      "deviceId": "snapdragon-865",
+      "label": "Snapdragon 865 Android",
+      "scenario": "complex-scene-benchmark",
+      "commit": "hw-s865-may",
+      "fps": 60,
+      "p95FrameMs": 17.1,
+      "memoryMb": 278,
+      "notes": "atlas fallback enabled"
+    },
+    {
+      "recordedAt": "2026-05-01T02:20:00.000Z",
+      "deviceId": "budget-android",
+      "label": "Budget Android",
+      "scenario": "complex-scene-benchmark",
+      "commit": "hw-budget-may",
+      "fps": 39,
+      "p95FrameMs": 27.4,
+      "memoryMb": 304,
+      "notes": "sleep-wake optimization"
+    },
+    {
+      "recordedAt": "2026-06-01T02:00:00.000Z",
+      "deviceId": "iphone-11",
+      "label": "iPhone 11",
+      "scenario": "complex-scene-benchmark",
+      "commit": "hw-iphone11-jun",
+      "fps": 58,
+      "p95FrameMs": 17.4,
+      "memoryMb": 252,
+      "notes": "worker sync and pooling"
+    },
+    {
+      "recordedAt": "2026-06-01T02:10:00.000Z",
+      "deviceId": "snapdragon-865",
+      "label": "Snapdragon 865 Android",
+      "scenario": "complex-scene-benchmark",
+      "commit": "hw-s865-jun",
+      "fps": 63,
+      "p95FrameMs": 16.4,
+      "memoryMb": 270,
+      "notes": "complex-scene benchmark gate"
+    },
+    {
+      "recordedAt": "2026-06-01T02:20:00.000Z",
+      "deviceId": "budget-android",
+      "label": "Budget Android",
+      "scenario": "complex-scene-benchmark",
+      "commit": "hw-budget-jun",
+      "fps": 45,
+      "p95FrameMs": 23.9,
+      "memoryMb": 286,
+      "notes": "pooling and draw-call cap"
+    }
+  ],
+  "latest": {
+    "iphone-11": {
+      "recordedAt": "2026-06-01T02:00:00.000Z",
+      "deviceId": "iphone-11",
+      "label": "iPhone 11",
+      "scenario": "complex-scene-benchmark",
+      "commit": "hw-iphone11-jun",
+      "fps": 58,
+      "p95FrameMs": 17.4,
+      "memoryMb": 252,
+      "notes": "worker sync and pooling"
+    },
+    "snapdragon-865": {
+      "recordedAt": "2026-06-01T02:10:00.000Z",
+      "deviceId": "snapdragon-865",
+      "label": "Snapdragon 865 Android",
+      "scenario": "complex-scene-benchmark",
+      "commit": "hw-s865-jun",
+      "fps": 63,
+      "p95FrameMs": 16.4,
+      "memoryMb": 270,
+      "notes": "complex-scene benchmark gate"
+    },
+    "budget-android": {
+      "recordedAt": "2026-06-01T02:20:00.000Z",
+      "deviceId": "budget-android",
+      "label": "Budget Android",
+      "scenario": "complex-scene-benchmark",
+      "commit": "hw-budget-jun",
+      "fps": 45,
+      "p95FrameMs": 23.9,
+      "memoryMb": 286,
+      "notes": "pooling and draw-call cap"
+    }
+  },
+  "trends": {
+    "iphone-11": {
+      "samples": 3,
+      "minFps": 51,
+      "maxFps": 58,
+      "latestFps": 58,
+      "deltaFps": 7
+    },
+    "snapdragon-865": {
+      "samples": 3,
+      "minFps": 57,
+      "maxFps": 63,
+      "latestFps": 63,
+      "deltaFps": 6
+    },
+    "budget-android": {
+      "samples": 3,
+      "minFps": 34,
+      "maxFps": 45,
+      "latestFps": 45,
+      "deltaFps": 11
+    }
+  }
+}

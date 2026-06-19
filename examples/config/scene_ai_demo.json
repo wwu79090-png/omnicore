@@ -1,0 +1,11 @@
+{
+  "name": "ai-maze-demo",
+  "type": "scene",
+  "children": [
+    { "type": "sprite", "name": "monster-1", "texture": "enemy", "x": 96, "y": 96 },
+    { "type": "sprite", "name": "monster-2", "texture": "enemy", "x": 180, "y": 128 },
+    { "type": "sprite", "name": "monster-3", "texture": "enemy", "x": 240, "y": 192 },
+    { "type": "sprite", "name": "chest-1", "texture": "chest", "x": 320, "y": 160 },
+    { "type": "sprite", "name": "chest-2", "texture": "chest", "x": 420, "y": 220 }
+  ]
+}

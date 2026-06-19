@@ -1,0 +1,16 @@
+{
+  "slime": {
+    "id": "slime",
+    "name": "Slime",
+    "hp": 24,
+    "params": { "attack": 4, "defense": 1 },
+    "drops": [{ "item": "potion", "rate": 0.2 }]
+  },
+  "goblin": {
+    "id": "goblin",
+    "name": "Goblin",
+    "hp": 48,
+    "params": { "attack": 9, "defense": 3 },
+    "skills": ["slash"]
+  }
+}

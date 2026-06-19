@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OmniCore Online Scene Editor</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f172a'/%3E%3Cpath d='M8 19 16 6l8 13-8 7z' fill='%2338bdf8'/%3E%3C/svg%3E">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #10151f; color: #e5e7eb; font-family: Inter, system-ui, sans-serif; }
+    #game { position: fixed; inset: 0; }
+    #game canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+    .toolbar { position: fixed; top: 12px; right: 332px; display: flex; gap: 8px; z-index: 10; }
+    .toolbar button, .panel button { border: 1px solid rgba(148, 163, 184, 0.5); background: rgba(15, 23, 42, 0.82); color: #f8fafc; padding: 8px 10px; border-radius: 6px; cursor: pointer; }
+    .panel { position: fixed; top: 0; right: 0; width: 320px; height: 100%; padding: 16px; background: rgba(15, 23, 42, 0.82); border-left: 1px solid rgba(148, 163, 184, 0.35); backdrop-filter: blur(10px); z-index: 9; overflow: auto; }
+    .panel h1 { margin: 0 0 4px; font-size: 16px; }
+    .panel p { margin: 0 0 12px; color: #94a3b8; font-size: 12px; }
+    .entity { width: 100%; text-align: left; margin-bottom: 6px; }
+    .entity.active { border-color: #22d3ee; color: #67e8f9; }
+    label { display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 8px; margin: 10px 0; font-size: 12px; color: #cbd5e1; }
+    input { width: 100%; background: rgba(2, 6, 23, 0.72); border: 1px solid rgba(148, 163, 184, 0.35); color: #f8fafc; border-radius: 4px; padding: 7px; }
+    pre { white-space: pre-wrap; background: rgba(2, 6, 23, 0.72); border-radius: 6px; padding: 10px; color: #bfdbfe; max-height: 180px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <main id="game" aria-label="editor.omnicore.dev"></main>
+  <div class="toolbar">
+    <button id="addBox">添加方块</button>
+    <button id="saveScene">保存场景</button>
+    <button id="exportJson">导出为 JSON</button>
+  </div>
+  <aside class="panel">
+    <h1>editor.omnicore.dev</h1>
+    <p>拖拽方块，调整坐标，保存标准 Scene.json。</p>
+    <section>
+      <h2 style="font-size:13px;margin:14px 0 8px;">Entity 树</h2>
+      <div id="entityList"></div>
+    </section>
+    <section>
+      <h2 style="font-size:13px;margin:14px 0 8px;">属性</h2>
+      <div id="props"></div>
+    </section>
+    <pre id="output"></pre>
+  </aside>
+
+  <script type="module">
+    import OmniCore, { Scene, Sprite } from '../../src/index.js';
+
+    let selected = null;
+
+    class EditorScene extends Scene {
+      create() {
+        this.entities = [
+          this.add(makeBox('player', 96, 96, '#38bdf8')),
+          this.add(makeBox('npc', 240, 144, '#facc15')),
+          this.add(makeBox('crate', 384, 220, '#fb7185'))
+        ];
+      }
+    }
+
+    function makeBox(name, x, y, color) {
+      const sprite = new Sprite(name, { x, y, width: 48, height: 48 });
+      sprite.name = name;
+      sprite.color = color;
+      sprite.scale = 1;
+      sprite.rotation = 0;
+      sprite.render = (ctx) => {
+        ctx.save();
+        ctx.translate(sprite.x, sprite.y);
+        ctx.rotate(sprite.rotation);
+        ctx.scale(sprite.scale, sprite.scale);
+        ctx.fillStyle = sprite.color;
+        ctx.fillRect(0, 0, sprite.width, sprite.height);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '12px sans-serif';
+        ctx.fillText(sprite.name, 6, 28);
+        if (selected === sprite) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(-4, -4, sprite.width + 8, sprite.height + 8);
+        }
+        ctx.restore();
+      };
+      return sprite;
+    }
+
+    const game = await new OmniCore.Game({
+      parent: '#game',
+      width: window.innerWidth,
+      height: window.innerHeight,
+      renderer: 'canvas',
+      autoResize: true,
+      autoStart: true,
+      debug: true,
+      editor: false
+    }).init();
+    const scene = new EditorScene('editor');
+    game.scene.register(scene);
+    await game.scene.push('editor');
+
+    selected = scene.children[0];
+    let dragging = false;
+    let dragOffset = { x: 0, y: 0 };
+    const list = document.getElementById('entityList');
+    const props = document.getElementById('props');
+    const output = document.getElementById('output');
+
+    renderPanel();
+    updateOutput();
+
+    game.core.canvas.addEventListener('pointerdown', (event) => {
+      const point = pointerPoint(event);
+      selected = [...scene.children].reverse().find((entity) => hit(entity, point)) || selected;
+      if (selected) {
+        dragging = true;
+        dragOffset = { x: point.x - selected.x, y: point.y - selected.y };
+        game.store.set('editor:selected', selected.name);
+      }
+      renderPanel();
+    });
+    game.core.canvas.addEventListener('pointermove', (event) => {
+      if (!dragging || !selected) return;
+      const point = pointerPoint(event);
+      selected.x = Math.round(point.x - dragOffset.x);
+      selected.y = Math.round(point.y - dragOffset.y);
+      syncStore(selected);
+      renderPanel();
+    });
+    window.addEventListener('pointerup', () => { dragging = false; });
+
+    document.getElementById('addBox').addEventListener('click', () => {
+      const index = scene.children.length + 1;
+      selected = scene.add(makeBox(`entity-${index}`, 120 + index * 20, 120 + index * 16, '#a78bfa'));
+      renderPanel();
+      updateOutput();
+    });
+    document.getElementById('saveScene').addEventListener('click', () => {
+      localStorage.setItem('omnicore:editor:lastScene', JSON.stringify(toSceneJson(), null, 2));
+      updateOutput('已保存到 localStorage: omnicore:editor:lastScene');
+    });
+    document.getElementById('exportJson').addEventListener('click', downloadScene);
+    window.downloadScene = downloadScene;
+
+    function pointerPoint(event) {
+      const rect = game.core.canvas.getBoundingClientRect();
+      return {
+        x: (event.clientX - rect.left) * (game.core.canvas.width / rect.width),
+        y: (event.clientY - rect.top) * (game.core.canvas.height / rect.height)
+      };
+    }
+
+    function hit(entity, point) {
+      const scale = entity.scale || 1;
+      return point.x >= entity.x && point.x <= entity.x + entity.width * scale
+        && point.y >= entity.y && point.y <= entity.y + entity.height * scale;
+    }
+
+    function renderPanel() {
+      list.innerHTML = '';
+      for (const entity of scene.children) {
+        const button = document.createElement('button');
+        button.className = `entity${entity === selected ? ' active' : ''}`;
+        button.textContent = `${entity.name} (${Math.round(entity.x)}, ${Math.round(entity.y)})`;
+        button.addEventListener('click', () => {
+          selected = entity;
+          syncStore(entity);
+          renderPanel();
+        });
+        list.appendChild(button);
+      }
+      renderProps();
+      updateOutput();
+    }
+
+    function renderProps() {
+      props.innerHTML = '';
+      if (!selected) return;
+      for (const key of ['x', 'y', 'scale', 'rotation']) {
+        const label = document.createElement('label');
+        label.textContent = key;
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.step = key === 'rotation' ? '0.05' : '1';
+        input.value = selected[key] ?? (key === 'scale' ? 1 : 0);
+        input.addEventListener('input', () => {
+          selected[key] = Number(input.value);
+          syncStore(selected);
+          updateOutput();
+        });
+        label.appendChild(input);
+        props.appendChild(label);
+      }
+    }
+
+    function syncStore(entity) {
+      game.store.set(`editor:entity:${entity.name}`, {
+        x: entity.x,
+        y: entity.y,
+        scale: entity.scale || 1,
+        rotation: entity.rotation || 0
+      });
+    }
+
+    function toSceneJson() {
+      return {
+        type: 'OmniCore.Scene',
+        name: 'editor',
+        entities: scene.children.map((entity) => ({
+          id: entity.name,
+          type: 'sprite',
+          texture: entity.texture,
+          x: entity.x,
+          y: entity.y,
+          scale: entity.scale || 1,
+          rotation: entity.rotation || 0,
+          props: { color: entity.color, width: entity.width, height: entity.height }
+        }))
+      };
+    }
+
+    function updateOutput(prefix = '') {
+      output.textContent = `${prefix ? `${prefix}\n\n` : ''}${JSON.stringify(toSceneJson(), null, 2)}`;
+    }
+
+    function downloadScene() {
+      const blob = new Blob([JSON.stringify(toSceneJson(), null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'Scene.json';
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>

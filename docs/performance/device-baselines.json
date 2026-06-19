@@ -1,0 +1,156 @@
+{
+  "metrics": [
+    "fps",
+    "p95FrameMs",
+    "memoryMb"
+  ],
+  "devices": [
+    {
+      "id": "iphone-12",
+      "label": "iPhone 12",
+      "tier": "mid",
+      "os": "iOS 18 Safari",
+      "gpu": "Apple A14"
+    },
+    {
+      "id": "pixel-5",
+      "label": "Pixel 5",
+      "tier": "low-mid",
+      "os": "Android 15 Chrome",
+      "gpu": "Adreno 620"
+    },
+    {
+      "id": "windows-midrange",
+      "label": "Windows Midrange",
+      "tier": "desktop-mid",
+      "os": "Windows 11 Chrome",
+      "gpu": "RTX 3060 Laptop"
+    }
+  ],
+  "history": [
+    {
+      "recordedAt": "2026-06-13T02:00:00.000Z",
+      "deviceId": "pixel-5",
+      "label": "Pixel 5",
+      "scenario": "complex-scene-benchmark",
+      "commit": "baseline-001",
+      "fps": 48,
+      "p95FrameMs": 21.4,
+      "memoryMb": 286,
+      "notes": "1200 entities, static materials"
+    },
+    {
+      "recordedAt": "2026-06-15T02:00:00.000Z",
+      "deviceId": "pixel-5",
+      "label": "Pixel 5",
+      "scenario": "complex-scene-benchmark",
+      "commit": "baseline-002",
+      "fps": 52,
+      "p95FrameMs": 19.7,
+      "memoryMb": 268,
+      "notes": "worker sync enabled"
+    },
+    {
+      "recordedAt": "2026-06-13T02:10:00.000Z",
+      "deviceId": "iphone-12",
+      "label": "iPhone 12",
+      "scenario": "complex-scene-benchmark",
+      "commit": "baseline-001",
+      "fps": 55,
+      "p95FrameMs": 18.6,
+      "memoryMb": 242,
+      "notes": "Safari hardware run"
+    },
+    {
+      "recordedAt": "2026-06-15T02:10:00.000Z",
+      "deviceId": "iphone-12",
+      "label": "iPhone 12",
+      "scenario": "complex-scene-benchmark",
+      "commit": "baseline-002",
+      "fps": 58,
+      "p95FrameMs": 17.2,
+      "memoryMb": 236,
+      "notes": "renderer diff sync"
+    },
+    {
+      "recordedAt": "2026-06-13T02:20:00.000Z",
+      "deviceId": "windows-midrange",
+      "label": "Windows Midrange",
+      "scenario": "complex-scene-benchmark",
+      "commit": "baseline-001",
+      "fps": 119,
+      "p95FrameMs": 9.1,
+      "memoryMb": 318,
+      "notes": "Chrome discrete GPU"
+    },
+    {
+      "recordedAt": "2026-06-15T02:20:00.000Z",
+      "deviceId": "windows-midrange",
+      "label": "Windows Midrange",
+      "scenario": "complex-scene-benchmark",
+      "commit": "baseline-002",
+      "fps": 144,
+      "p95FrameMs": 7.4,
+      "memoryMb": 304,
+      "notes": "complex-scene-benchmark optimized"
+    }
+  ],
+  "latest": {
+    "pixel-5": {
+      "recordedAt": "2026-06-15T02:00:00.000Z",
+      "deviceId": "pixel-5",
+      "label": "Pixel 5",
+      "scenario": "complex-scene-benchmark",
+      "commit": "baseline-002",
+      "fps": 52,
+      "p95FrameMs": 19.7,
+      "memoryMb": 268,
+      "notes": "worker sync enabled"
+    },
+    "iphone-12": {
+      "recordedAt": "2026-06-15T02:10:00.000Z",
+      "deviceId": "iphone-12",
+      "label": "iPhone 12",
+      "scenario": "complex-scene-benchmark",
+      "commit": "baseline-002",
+      "fps": 58,
+      "p95FrameMs": 17.2,
+      "memoryMb": 236,
+      "notes": "renderer diff sync"
+    },
+    "windows-midrange": {
+      "recordedAt": "2026-06-15T02:20:00.000Z",
+      "deviceId": "windows-midrange",
+      "label": "Windows Midrange",
+      "scenario": "complex-scene-benchmark",
+      "commit": "baseline-002",
+      "fps": 144,
+      "p95FrameMs": 7.4,
+      "memoryMb": 304,
+      "notes": "complex-scene-benchmark optimized"
+    }
+  },
+  "trends": {
+    "pixel-5": {
+      "samples": 2,
+      "minFps": 48,
+      "maxFps": 52,
+      "latestFps": 52,
+      "deltaFps": 4
+    },
+    "iphone-12": {
+      "samples": 2,
+      "minFps": 55,
+      "maxFps": 58,
+      "latestFps": 58,
+      "deltaFps": 3
+    },
+    "windows-midrange": {
+      "samples": 2,
+      "minFps": 119,
+      "maxFps": 144,
+      "latestFps": 144,
+      "deltaFps": 25
+    }
+  }
+}

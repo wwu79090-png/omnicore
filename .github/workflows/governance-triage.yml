@@ -1,0 +1,25 @@
+name: Governance Triage
+
+on:
+  workflow_dispatch:
+    inputs:
+      evidence:
+        description: Path to contributor PR evidence JSON
+        required: false
+        default: governance-evidence.json
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Analyze promotion evidence
+        run: node scripts/governance-triage.js --input "${{ inputs.evidence }}"

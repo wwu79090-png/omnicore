@@ -1,0 +1,35 @@
+{
+  "name": "omnicore-editor",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "main": "electron.main.cjs",
+  "bin": {
+    "omnicore-editor": "bin/omnicore-editor.cjs"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 43210",
+    "desktop": "electron .",
+    "package:desktop": "node scripts/package-desktop.cjs",
+    "build": "vite build"
+  },
+  "build": {
+    "productName": "OmniCore Editor",
+    "appId": "dev.omnicore.editor",
+    "desktopTargets": [
+      "omnicore-editor.exe",
+      "OmniCore Editor.app"
+    ],
+    "files": [
+      "dist",
+      "electron.main.cjs",
+      "preload.cjs",
+      "package.json"
+    ]
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "vite": "^8.0.16"
+  }
+}

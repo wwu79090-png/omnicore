@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="Code Awakener development screenshot mockup">
+  <rect width="960" height="540" fill="#10151f"/>
+  <rect x="40" y="40" width="880" height="460" fill="#172033" stroke="#38bdf8" stroke-width="2"/>
+  <rect x="96" y="120" width="96" height="96" fill="#38bdf8"/>
+  <rect x="240" y="120" width="96" height="96" fill="#facc15"/>
+  <rect x="384" y="120" width="96" height="96" fill="#fb7185"/>
+  <rect x="96" y="280" width="768" height="48" fill="#1f2937"/>
+  <rect x="96" y="352" width="480" height="26" fill="#22c55e"/>
+  <text x="96" y="82" fill="#e5e7eb" font-family="monospace" font-size="28">代码觉醒者 - OmniCore 实战开发中</text>
+  <text x="96" y="430" fill="#94a3b8" font-family="monospace" font-size="18">状态：核心玩法原型、场景编辑、RPG 数据流验证</text>
+</svg>

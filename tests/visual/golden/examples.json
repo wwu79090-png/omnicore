@@ -1,0 +1,45 @@
+{
+  "threshold": 0.001,
+  "examples": [
+    {
+      "name": "template-2d-platformer",
+      "snapshot": "tests/visual/golden/template-2d-platformer.png"
+    },
+    {
+      "name": "template-2d-rpg",
+      "snapshot": "tests/visual/golden/template-2d-rpg.png"
+    },
+    {
+      "name": "template-rpg",
+      "snapshot": "tests/visual/golden/template-rpg.png"
+    },
+    {
+      "name": "template-interactive",
+      "snapshot": "tests/visual/golden/template-interactive.png"
+    },
+    {
+      "name": "template-tilemap",
+      "snapshot": "tests/visual/golden/template-tilemap.png"
+    },
+    {
+      "name": "game-demo",
+      "snapshot": "tests/visual/golden/game-demo.png"
+    },
+    {
+      "name": "playground",
+      "snapshot": "tests/visual/golden/playground.png"
+    },
+    {
+      "name": "core-runtime-systems",
+      "snapshot": "tests/visual/golden/core-runtime-systems.png"
+    },
+    {
+      "name": "offscreen-transfer",
+      "snapshot": "tests/visual/golden/offscreen-transfer.png"
+    },
+    {
+      "name": "synth-audio",
+      "snapshot": "tests/visual/golden/synth-audio.png"
+    }
+  ]
+}

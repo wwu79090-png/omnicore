@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OmniCore auto-move Plugin</title>
+    <style>body{margin:0;background:#0f172a}#game{width:100vw;height:100vh}</style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <script type="module">
+      import OmniCore from '../../../src/index.js';
+      import autoMove from './src/index.js';
+
+      const game = await new OmniCore.Game({
+        parent: '#game',
+        width: 480,
+        height: 270,
+        renderer: 'canvas'
+      }).init();
+      const scene = new OmniCore.Scene('plugin-demo');
+      const player = scene.add(new OmniCore.Sprite('auto-move', { x: 80, y: 120, width: 64, height: 32 }));
+      game.scene.register(scene);
+      await game.scene.push('plugin-demo');
+      autoMove.install({ game, target: player, speed: 80 });
+    </script>
+  </body>
+</html>

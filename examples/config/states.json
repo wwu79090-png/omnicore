@@ -1,0 +1,14 @@
+{
+  "poison": {
+    "id": "poison",
+    "name": "Poison",
+    "duration": 5,
+    "tick": { "kind": "damage", "value": 4 }
+  },
+  "guard": {
+    "id": "guard",
+    "name": "Guard",
+    "duration": 1,
+    "params": { "defenseRate": 1.5 }
+  }
+}

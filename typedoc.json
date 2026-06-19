@@ -1,0 +1,13 @@
+{
+  "entryPoints": [
+    "src/index.js",
+    "src/dimension3d/Dimension3D.js",
+    "src/assets/PlatformVariantResolver.js",
+    "src/editor/RuntimeLiveSyncBridge.js"
+  ],
+  "tsconfig": "tsconfig.docs.json",
+  "out": "docs/api-typedoc",
+  "name": "OmniCore API",
+  "readme": "docs/quickstart.md",
+  "includeVersion": true
+}

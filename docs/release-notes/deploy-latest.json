@@ -1,0 +1,20 @@
+{
+  "target": "vercel",
+  "dryRun": true,
+  "steps": [
+    "build",
+    "compress-assets",
+    "upload-cdn"
+  ],
+  "dist": "C:\\Users\\39120\\Documents\\引擎开发\\dist",
+  "compressedFiles": [
+    "dist/Audio-Be0LCda9.js.gz",
+    "dist/omnicore-core.iife.js.gz",
+    "dist/omnicore-core.js.gz",
+    "dist/omnicore.iife.js.gz",
+    "dist/omnicore.js.gz",
+    "dist/OmniCoreBridge-_ZjqsG5K.js.gz"
+  ],
+  "shareUrl": "https://preview.omnicore.dev/vercel/dry-run",
+  "generatedAt": "2026-06-18T13:58:29.584Z"
+}

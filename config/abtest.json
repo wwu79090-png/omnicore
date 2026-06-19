@@ -1,0 +1,22 @@
+{
+  "experiments": {
+    "rendererMode": {
+      "variants": [
+        {
+          "id": "control",
+          "weight": 50,
+          "config": {
+            "renderer": "canvas"
+          }
+        },
+        {
+          "id": "offscreen",
+          "weight": 50,
+          "config": {
+            "renderer": "offscreen"
+          }
+        }
+      ]
+    }
+  }
+}

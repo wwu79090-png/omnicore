@@ -1,0 +1,13 @@
+{
+  "name": "@omnicore/plugin-save-cloud",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Official OmniCore cloud save plugin with local-first fallback.",
+  "main": "src/index.js",
+  "scripts": {
+    "demo": "vite demo"
+  },
+  "peerDependencies": {
+    "omnicore": "workspace:*"
+  }
+}

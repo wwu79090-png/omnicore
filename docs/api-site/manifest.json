@@ -1,0 +1,1166 @@
+{
+  "generatedAt": "2026-06-18T14:56:39.028Z",
+  "modules": [
+    {
+      "path": "addons/Audio.js",
+      "summary": "Optional Web Audio addon for microkernel mode.",
+      "exports": [
+        "AudioAddon"
+      ]
+    },
+    {
+      "path": "addons/CanvasRenderer.js",
+      "summary": "Canvas renderer addon used by optional microkernel RendererAdapter. @example const renderer = new CanvasRendererAddon({ width: 800, height: 600 }); renderer.init({ canvas });",
+      "exports": [
+        "CanvasRendererAddon"
+      ]
+    },
+    {
+      "path": "addons/PixiRenderer.js",
+      "summary": "Pixi renderer addon used by optional microkernel RendererAdapter. It intentionally depends on a host-provided global `PIXI` to avoid adding weight to projects that do not enable microkernel rendering.",
+      "exports": [
+        "PixiRendererAddon"
+      ]
+    },
+    {
+      "path": "ai/AICommandService.js",
+      "summary": "",
+      "exports": [
+        "AICommandService"
+      ]
+    },
+    {
+      "path": "analytics/Analytics.js",
+      "summary": "",
+      "exports": [
+        "Analytics"
+      ]
+    },
+    {
+      "path": "animation/Animation.js",
+      "summary": "SpriteSheet frame animation controller. Frames can be an array or a map of animation names to arrays. Each frame is written to `sprite.frame` and `sprite.texture` so existing Sprite rendering paths can consume it. @example const animation = new Animation(sprite, { run: ['run-0', 'run-1'] }, { frameRate: 12 }); animation.play('run'); scene.add(sprite.addAnimation(animation));",
+      "exports": [
+        "Animation"
+      ]
+    },
+    {
+      "path": "animation/SkeletalAnimation.js",
+      "summary": "Shared MVP skeleton animation facade for Spine and DragonBones assets.",
+      "exports": [
+        "SkeletalAnimation",
+        "SpineAdapter",
+        "DragonBonesAdapter"
+      ]
+    },
+    {
+      "path": "assets/OBundle.js",
+      "summary": "",
+      "exports": [
+        "LoadedOBundle"
+      ]
+    },
+    {
+      "path": "audio/AudioEditor.js",
+      "summary": "",
+      "exports": [
+        "AudioEditor"
+      ]
+    },
+    {
+      "path": "audio/AudioManager.js",
+      "summary": "Web Audio wrapper with decoded sound pools. @example const audio = new AudioManager(); await audio.load('click', '/audio/click.ogg'); audio.play('click', { volume: 0.5 });",
+      "exports": [
+        "AudioManager"
+      ]
+    },
+    {
+      "path": "behavior/BehaviorTree.js",
+      "summary": "JSON behavior tree runtime for Event Sheet scale-ups. Supports `selector`, `sequence`, `condition`, `action`, and `repeat` nodes so designers can express branches such as \"if A exists and B is close, do C, otherwise repeat D\" without hand-written update code. @example const tree = BehaviorTree.fromJSON({ type: 'selector', children: [ { type: 'sequence', children: [ { type: 'condition', op: 'exists', target: 'entities.player' }, { type: 'action', op: 'call', name: 'attack' } ] }, { type: 'action', op: 'call', name: 'patrol' } ] }); tree.tick(runtime);",
+      "exports": [
+        "BehaviorTree"
+      ]
+    },
+    {
+      "path": "behaviortree/BehaviorTree.js",
+      "summary": "State-machine behavior tree used by EventSheet. It keeps state transitions declarative while using Store as the source of truth. `onStateEnter` and `onStateExit` hooks reuse EventSheet-style actions. @example const tree = new BehaviorTree({ initial: 'idle', states: { idle: { transitions: [] } } }, { store }); tree.attach();",
+      "exports": [
+        "BehaviorTree"
+      ]
+    },
+    {
+      "path": "bridge/AddonBridge.js",
+      "summary": "Owns addon registration and activation for microkernel mode.",
+      "exports": [
+        "AddonBridge"
+      ]
+    },
+    {
+      "path": "bridge/LifecycleBridge.js",
+      "summary": "Owns optional microkernel splash lifecycle.",
+      "exports": [
+        "LifecycleBridge"
+      ]
+    },
+    {
+      "path": "bridge/OmniCoreBridge.js",
+      "summary": "Scheduler bridge between legacy OmniCore.Game and optional microkernel mode. Concrete logic lives in LifecycleBridge, RendererBridge, and AddonBridge.",
+      "exports": [
+        "OmniCoreBridge"
+      ]
+    },
+    {
+      "path": "bridge/RendererBridge.js",
+      "summary": "Owns microkernel renderer adapter initialization and teardown.",
+      "exports": [
+        "RendererBridge"
+      ]
+    },
+    {
+      "path": "camera/Camera.js",
+      "summary": "2D camera utility with follow, zoom, and shake. The camera is available as `game.camera` and injected into scenes as `scene.camera`. @example scene.camera.follow(player, { lerp: 0.2 }); scene.camera.zoom(1.5); scene.camera.shake(180, 8);",
+      "exports": [
+        "Camera"
+      ]
+    },
+    {
+      "path": "commercial/ExportPaywall.js",
+      "summary": "Commercial export gate for one-click publishing features. Runtime engine APIs remain open-source. This gate is only for packaged one-click app-store export scaffolds such as WeChat, Douyin, and hosted HTML5. @example const paywall = new ExportPaywall({ license: process.env.OMNICORE_PRO_LICENSE }); paywall.assertExport('wechat');",
+      "exports": [
+        "ExportPaywall"
+      ]
+    },
+    {
+      "path": "compliance/AuthManager.js",
+      "summary": "Real-name authentication hook facade. OmniCore does not implement a jurisdiction-specific identity provider. Games install a hook and the engine calls it consistently across platforms. @example OmniCore.System.Auth.setHook(async (profile) => provider.verify(profile)); const result = await OmniCore.System.Auth.verify({ playerId: 'u1' });",
+      "exports": [
+        "AuthManager"
+      ]
+    },
+    {
+      "path": "compliance/License.js",
+      "summary": "Commercial license hook placeholder. The default validator is permissive so open-source runtime behavior remains unchanged. Commercial builds can inject a strict validator later.",
+      "exports": [
+        "License"
+      ]
+    },
+    {
+      "path": "compute/ComputeRuntime.js",
+      "summary": "Compute facade for high-frequency gameplay logic.",
+      "exports": [
+        "ComputeRuntime"
+      ]
+    },
+    {
+      "path": "compute/DamageFormula.js",
+      "summary": "Default OmniCore damage formula.",
+      "exports": [
+        "calculateDamage"
+      ]
+    },
+    {
+      "path": "compute/Pathfinding.js",
+      "summary": "A* pathfinding with optional WASM-backed Manhattan heuristic.",
+      "exports": [
+        "findPath"
+      ]
+    },
+    {
+      "path": "config/defaults.js",
+      "summary": "",
+      "exports": [
+        "DEFAULT_CANVAS_WIDTH",
+        "DEFAULT_CANVAS_HEIGHT",
+        "DEFAULT_RENDERER_BACKEND",
+        "DEFAULT_PLATFORM",
+        "DEFAULT_BACKGROUND_COLOR",
+        "DEFAULT_ASSET_MANIFEST",
+        "DEFAULT_AUTO_RESIZE",
+        "DEFAULT_AUTO_START",
+        "DEFAULT_AUTO_ATTACH",
+        "DEFAULT_DEBUG",
+        "DEFAULT_ENGINE_VERSION",
+        "DEFAULT_DIMENSION3D_BACKEND",
+        "DEFAULT_LOADER_TIMEOUT_MS",
+        "DEFAULT_LOADER_RETRIES",
+        "DEFAULT_LOOP_FPS",
+        "DEFAULT_MICROKERNEL_RENDERER",
+        "DEFAULT_ASSET_DIRECTORIES",
+        "DEFAULT_GAME_CONFIG",
+        "DEFAULT_RENDERER_CONFIG"
+      ]
+    },
+    {
+      "path": "core/Bootstrap.js",
+      "summary": "Bootstrapping helpers for standard OmniCore configuration and DOM attachment. @example const config = normalizeConfig({ width: 960, height: 540, platform: 'web' }); const container = resolveContainer(config.container);",
+      "exports": [
+        "STANDARD_DIRECTORIES",
+        "normalizeConfig",
+        "hasDocument",
+        "resolveContainer",
+        "createCanvas",
+        "removeContainerCanvases",
+        "createNoopCanvasContext",
+        "detectEnvironment",
+        "safeInitialize"
+      ]
+    },
+    {
+      "path": "core/Deprecation.js",
+      "summary": "Deprecated API registry and forwarding helpers. @example await Deprecation.forward({ api: 'OmniCore.Backend.use', since: '0.2.0', removeIn: '1.0.0', replacement: 'OmniCore.Backend.switch', target: () => OmniCore.Backend.switch('canvas') });",
+      "exports": [
+        "DEPRECATED_APIS",
+        "Deprecation"
+      ]
+    },
+    {
+      "path": "core/ECS/ComponentStorage.js",
+      "summary": "",
+      "exports": [
+        "ComponentStorage"
+      ]
+    },
+    {
+      "path": "core/ECS/index.js",
+      "summary": "",
+      "exports": [
+        "benchmarkECSParticles"
+      ]
+    },
+    {
+      "path": "core/ECS/Systems.js",
+      "summary": "",
+      "exports": [
+        "MovementSystem",
+        "RenderSystem"
+      ]
+    },
+    {
+      "path": "core/ECS/World.js",
+      "summary": "",
+      "exports": [
+        "World"
+      ]
+    },
+    {
+      "path": "core/EntitySpatialIndex.js",
+      "summary": "Uniform-grid spatial index for 2D entities. Entities are assigned to one 32x32 cell by their `x` and `y` position. When possible, the index installs lightweight setters so moving an indexed entity updates cell membership immediately. @example const enemy = OmniCore.Query.add({ x: 64, y: 32, kind: 'enemy' }); const nearby = OmniCore.Query.inRadius(player.x, player.y, 160, (item) => item.kind === 'enemy');",
+      "exports": [
+        "EntitySpatialIndex",
+        "createQueryNamespace"
+      ]
+    },
+    {
+      "path": "core/EventBus.js",
+      "summary": "Tiny event emitter used by scenes, UI elements, loader, and debug tooling. @example const bus = new EventBus(); const off = bus.on('ready', (payload) => console.log(payload)); bus.emit('ready', { scene: 'boot' }); off();",
+      "exports": [
+        "EventBus"
+      ]
+    },
+    {
+      "path": "core/EventListenerRegistry.js",
+      "summary": "Tracks EventBus listeners owned by entity instances and clears them on destroy.",
+      "exports": [
+        "EventListenerRegistry",
+        "DEFAULT_EVENT_LISTENER_REGISTRY",
+        "attachEntityEventTracking",
+        "getEntityListenerCount",
+        "cleanupEntityListeners"
+      ]
+    },
+    {
+      "path": "core/Logger.js",
+      "summary": "Namespaced logger with debug gating. @example const logger = new Logger({ debug: true }); logger.info('renderer', 'Pixi renderer initialized');",
+      "exports": [
+        "Logger"
+      ]
+    },
+    {
+      "path": "core/MemoryPool.js",
+      "summary": "",
+      "exports": [
+        "FixedMemoryPool",
+        "PoolRegistry"
+      ]
+    },
+    {
+      "path": "core/OmniCore.js",
+      "summary": "OmniCore.Game and core runtime composition. Owns WebGL/Canvas context management, automatic fallback, autoResize, module wiring, debug lookup, platform adapters, and experimental renderer backend switching. @example const game = new OmniCore.Game({ width: 960, height: 540, renderer: 'pixi', platform: 'web', debug: true }); await game.init(); await OmniCore.Backend.switch('canvas'); // experimental",
+      "exports": [
+        "BackendManager",
+        "Backend",
+        "Game"
+      ]
+    },
+    {
+      "path": "core/OmniError.js",
+      "summary": "",
+      "exports": [
+        "formatOmniMessage",
+        "OmniError",
+        "createOmniError",
+        "toOmniError",
+        "normalizeNativeError",
+        "warnMessage",
+        "errorMessage"
+      ]
+    },
+    {
+      "path": "core/PrefabRegistry.js",
+      "summary": "",
+      "exports": [
+        "PrefabRegistry"
+      ]
+    },
+    {
+      "path": "core/TaskManager.js",
+      "summary": "Generator-based coroutine task runner using an independent timer loop. @example OmniCore.Task.start(function* showThenHide() { yield OmniCore.Task.wait(2000); button.visible = true; yield OmniCore.Task.wait(1000); button.visible = false; });",
+      "exports": [
+        "TaskManager"
+      ]
+    },
+    {
+      "path": "core/Templates.js",
+      "summary": "",
+      "exports": [
+        "Player",
+        "installTopdownPlayer"
+      ]
+    },
+    {
+      "path": "core/TimeGuard.js",
+      "summary": "",
+      "exports": [
+        "TimeGuard"
+      ]
+    },
+    {
+      "path": "core/Timer.js",
+      "summary": "Frame-updated timer collection independent from browser setInterval drift. @example const timer = new Timer(); timer.after(500, () => scene.push('menu')); loop.subscribe((dt) => timer.update(dt * 1000));",
+      "exports": [
+        "Timer"
+      ]
+    },
+    {
+      "path": "core/TransitionLayer.js",
+      "summary": "DOM transition barrier placed above the game canvas.",
+      "exports": [
+        "TransitionLayer"
+      ]
+    },
+    {
+      "path": "data/DataTable.js",
+      "summary": "CSV data parser for small gameplay tables. @example const table = DataTable.fromCSV('id,hp\\nhero,10'); table.find('id', 'hero').hp; // \"10\"",
+      "exports": [
+        "DataTable"
+      ]
+    },
+    {
+      "path": "data/DataTableEditor.js",
+      "summary": "",
+      "exports": [
+        "DataTableEditor"
+      ]
+    },
+    {
+      "path": "data/EventSheet.js",
+      "summary": "JSON-based Event Sheet runtime inspired by Construct 3 and GDevelop. Events execute from top to bottom. Each event has `conditions` and `actions`. @example const sheet = EventSheet.parse({ events: [{ conditions: [{ op: 'equals', left: 'state.score', right: 3 }], actions: [{ op: 'set', target: 'state.win', value: true }] }] }); sheet.run({ state: { score: 3 } });",
+      "exports": [
+        "EventSheet"
+      ]
+    },
+    {
+      "path": "data/I18n.js",
+      "summary": "Minimal i18n dictionary. @example const i18n = new I18n({ en: { start: 'Start {name}' } }, 'en'); i18n.t('start', { name: 'Game' });",
+      "exports": [
+        "I18n"
+      ]
+    },
+    {
+      "path": "database/Database.js",
+      "summary": "JSON RPG data center for items, enemies, skills, and states. @example await DB.load({ items: '/config/items.json' }); const potion = DB.get('items', 'potion');",
+      "exports": [
+        "Database",
+        "DB"
+      ]
+    },
+    {
+      "path": "debug/ApiQuickPanel.js",
+      "summary": "",
+      "exports": [
+        "ApiQuickPanel"
+      ]
+    },
+    {
+      "path": "debug/CrashReporter.js",
+      "summary": "Production crash reporter MVP.",
+      "exports": [
+        "CrashReporter",
+        "resolveTelemetryConfig"
+      ]
+    },
+    {
+      "path": "debug/DebugConsole.js",
+      "summary": "WebSocket debug terminal for device logs and OmniCore events. @example const consoleSync = new DebugConsole({ events: game.events }); consoleSync.attach();",
+      "exports": [
+        "DebugConsole"
+      ]
+    },
+    {
+      "path": "debug/DebugRenderer.js",
+      "summary": "",
+      "exports": [
+        "isDebugBuildEnabled",
+        "DebugRenderer",
+        "createDebugAPI"
+      ]
+    },
+    {
+      "path": "debug/DeveloperUsageReport.js",
+      "summary": "Aggregates debug API usage for documentation and onboarding reports.",
+      "exports": [
+        "DeveloperUsageReport"
+      ]
+    },
+    {
+      "path": "debug/DevProfile.js",
+      "summary": "",
+      "exports": [
+        "DevProfile"
+      ]
+    },
+    {
+      "path": "debug/EmergencyOverlay.js",
+      "summary": "Debug-only fatal error and warning overlay.",
+      "exports": [
+        "EmergencyOverlay",
+        "formatEmergencyMessage"
+      ]
+    },
+    {
+      "path": "debug/ErrorDiagnostics.js",
+      "summary": "Friendly diagnostics for common developer errors.",
+      "exports": [
+        "ErrorDiagnostics"
+      ]
+    },
+    {
+      "path": "debug/Inspector.js",
+      "summary": "Debug inspector registry. When `debug: true`, `OmniCore.lookup(name)` becomes available globally for inspecting the current game, renderer, store, loader, and scene. @example const inspector = new Inspector(game); inspector.attach(); globalThis.OmniCore.lookup('renderer');",
+      "exports": [
+        "Inspector"
+      ]
+    },
+    {
+      "path": "debug/LiveInspector.js",
+      "summary": "Debug object tree editor for scene entities.",
+      "exports": [
+        "LiveInspector"
+      ]
+    },
+    {
+      "path": "debug/LogForwarder.js",
+      "summary": "Browser-side debug log forwarder. When enabled in a real device build, console output is mirrored to the local `npm run log-server` WebSocket endpoint so mobile logs can be inspected from the PC terminal. @example const forwarder = new LogForwarder({ url: 'ws://192.168.1.8:8787' }); forwarder.attach();",
+      "exports": [
+        "LogForwarder"
+      ]
+    },
+    {
+      "path": "debug/PerformanceMetrics.js",
+      "summary": "Lightweight runtime performance metric collector. Core paths can call `measure(name, fn)` or `record(name, duration)` and the collected data can be exported as JSON for CI or remote debugging. @example const metrics = new PerformanceMetrics({ enabled: true }); metrics.measure('renderer.renderScene', () => renderer.renderScene(scene));",
+      "exports": [
+        "PerformanceMetrics"
+      ]
+    },
+    {
+      "path": "debug/PerformanceMonitor.js",
+      "summary": "Debug-only runtime performance monitor. Shows FPS, render time, active GameObject count, and memory usage in the top-right corner when `debug: true`. It also warns when FPS remains below a threshold for several consecutive frames. @example const monitor = new PerformanceMonitor({ debug: true }); monitor.attach(); monitor.update({ fps: 58, renderMs: 2.4, gameObjects: 12 });",
+      "exports": [
+        "PerformanceMonitor"
+      ]
+    },
+    {
+      "path": "debug/RemoteDevTools.js",
+      "summary": "Remote debug snapshot broadcaster. The class is intentionally transport-light: production tools may pass a real WebSocket server, while tests can pass any object with `clients[].send()`. @example const tools = new RemoteDevTools(game, { debug: true, server }); tools.attach();",
+      "exports": [
+        "RemoteDevTools"
+      ]
+    },
+    {
+      "path": "debug/TelemetryCollector.js",
+      "summary": "Debug-only API telemetry collector.",
+      "exports": [
+        "TelemetryCollector"
+      ]
+    },
+    {
+      "path": "debug/TelemetryDashboard.js",
+      "summary": "Debug overlay for API usage trends and heatmaps.",
+      "exports": [
+        "TelemetryDashboard"
+      ]
+    },
+    {
+      "path": "debug/TutorialGuide.js",
+      "summary": "Debug-only tutorial hint overlay for API targets.",
+      "exports": [
+        "TutorialGuide"
+      ]
+    },
+    {
+      "path": "debug/VersionDialog.js",
+      "summary": "Changelog dialog displayed when the stored version differs from the runtime version. @example const dialog = new VersionDialog(game, { version: '1.0.0', changelog: '- Added demo' }); dialog.showIfNeeded();",
+      "exports": [
+        "VersionDialog"
+      ]
+    },
+    {
+      "path": "dimension3d/Dimension3D.js",
+      "summary": "Independent decorative 3D background layer for Three.js. This layer owns a separate canvas and lifecycle, but intentionally exposes only a single static glTF/GLB model as a non-interactive visual background. No 3D collisions, glTF animation playback, or camera controls are provided. @example const dimension = new Dimension3D({ canvas, decorativeModel: { url: '/models/cyberpunk-city.glb', rotationSpeed: { y: 0.2 } } }); await dimension.init(); dimension.render(1 / 60);",
+      "exports": [
+        "Dimension3D"
+      ]
+    },
+    {
+      "path": "docs/ApiDocGenerator.js",
+      "summary": "Generate a small structured API documentation site from source exports.",
+      "exports": [
+        "generateApiDocs"
+      ]
+    },
+    {
+      "path": "editor/EditorPanel.js",
+      "summary": "Debug-mode in-game entity editor panel. @example const panel = new EditorPanel(game); panel.attach();",
+      "exports": [
+        "EditorPanel"
+      ]
+    },
+    {
+      "path": "editor/EditorPlugin.js",
+      "summary": "Lightweight visual scene editor activated by `OmniCore.Game({ editor: true })`. The editor is isolated in HTML overlays and only talks to the engine through scene children, renderer redraws, and Store synchronization. @example const game = await new OmniCore.Game({ parent: '#game', editor: true }).init(); game.editor.exportScene();",
+      "exports": [
+        "EditorPlugin"
+      ]
+    },
+    {
+      "path": "editor/ParticleEditorPanel.js",
+      "summary": "Debug-only particle parameter editor.",
+      "exports": [
+        "ParticleEditorPanel"
+      ]
+    },
+    {
+      "path": "editor/PluginRecommendationEngine.js",
+      "summary": "Built-in rule engine for editor plugin recommendations.",
+      "exports": [
+        "PluginRecommendationEngine"
+      ]
+    },
+    {
+      "path": "editor/RuntimeEditors.js",
+      "summary": "",
+      "exports": [
+        "SkeletonAnimationEditor",
+        "DataTableEditor",
+        "AudioEditor"
+      ]
+    },
+    {
+      "path": "editor/SkeletonAnimationEditor.js",
+      "summary": "",
+      "exports": [
+        "SkeletonAnimationEditor"
+      ]
+    },
+    {
+      "path": "experiments/ABTest.js",
+      "summary": "",
+      "exports": [
+        "ABTest"
+      ]
+    },
+    {
+      "path": "feedback/FeedbackWidget.js",
+      "summary": "Local feedback collection widget.",
+      "exports": [
+        "FeedbackWidget"
+      ]
+    },
+    {
+      "path": "help/HelpRegistry.js",
+      "summary": "@param {string} apiName API name. @returns {object} Help descriptor.",
+      "exports": [
+        "help",
+        "listHelp"
+      ]
+    },
+    {
+      "path": "hotfix/HotfixManager.js",
+      "summary": "",
+      "exports": [
+        "HotfixManager"
+      ]
+    },
+    {
+      "path": "hotreload/HotReload.js",
+      "summary": "Runtime hot reload adapter for assets and JSON config. @example const hot = new HotReload({ url: 'ws://localhost:35729', assetLoader, database }); hot.connect();",
+      "exports": [
+        "HotReload"
+      ]
+    },
+    {
+      "path": "importer/AIImporter.js",
+      "summary": "Natural language scene importer backed by an LLM endpoint. @example const importer = new AIImporter({ endpoint: '/api/llm' }); const sceneJson = await importer.generateScene('maze with 3 monsters');",
+      "exports": [
+        "AIImporter"
+      ]
+    },
+    {
+      "path": "input/InputManager.js",
+      "summary": "Keyboard and pointer input manager. Input is intentionally small and lifecycle-bound to `Game`. Scenes receive `scene.input` automatically, and `SceneManager.update()` refreshes it before calling the active scene update. @example const input = new InputManager({ target: game.core.canvas }); input.pointer.on('click', ({ x, y }) => console.log(x, y)); if (input.keyboard.isDown('Space')) player.jump();",
+      "exports": [
+        "InputManager"
+      ]
+    },
+    {
+      "path": "input/InputSequence.js",
+      "summary": "Key sequence recognizer for QTE and combo inputs.",
+      "exports": [
+        "InputSequence"
+      ]
+    },
+    {
+      "path": "lean/addons/Audio.js",
+      "summary": "Web Audio addon with external sound hooks and a small synth helper.",
+      "exports": [
+        "AudioAddon"
+      ]
+    },
+    {
+      "path": "lean/addons/DevTools.js",
+      "summary": "Development tools addon: tilde console, live inspector, performance panel, and remote log forwarding hook.",
+      "exports": [
+        "DevToolsAddon"
+      ]
+    },
+    {
+      "path": "lean/addons/Input.js",
+      "summary": "Native input addon based on EventTarget and AbortController.",
+      "exports": [
+        "InputAddon"
+      ]
+    },
+    {
+      "path": "lean/addons/Physics.js",
+      "summary": "Lightweight collision addon plus lazy external physics loader.",
+      "exports": [
+        "PhysicsAddon"
+      ]
+    },
+    {
+      "path": "lean/addons/Renderer.js",
+      "summary": "Lean renderer addon with Pixi/global-PIXI routing and Canvas fallback.",
+      "exports": [
+        "RendererAddon"
+      ]
+    },
+    {
+      "path": "lean/addons/Resources.js",
+      "summary": "Resource pipeline addon: bundles, HMR hooks, asset packing, and audit entry.",
+      "exports": [
+        "ResourcesAddon"
+      ]
+    },
+    {
+      "path": "lean/addons/Scene.js",
+      "summary": "Scene stack addon with node tree and visual transition hooks.",
+      "exports": [
+        "SceneAddon"
+      ]
+    },
+    {
+      "path": "lean/addons/Storage.js",
+      "summary": "Persistence addon for localStorage/IndexedDB-like adapters, slots, snapshots, version migration, rollback, and automatic repair.",
+      "exports": [
+        "StorageAddon"
+      ]
+    },
+    {
+      "path": "lean/core/Bootstrap.js",
+      "summary": "Lean bootstrapper: platform detection, splash screen, crash capture, and addon orchestration. @example const bootstrap = new Bootstrap({ addons: { renderer } }); await bootstrap.start();",
+      "exports": [
+        "Bootstrap",
+        "detectPlatform"
+      ]
+    },
+    {
+      "path": "lean/core/EventBus.js",
+      "summary": "Dependency-free event bus for the lean OmniCore microkernel. @example const bus = new EventBus(); const off = bus.on('ready', (payload) => console.log(payload)); bus.emit('ready', { ok: true }); off();",
+      "exports": [
+        "EventBus"
+      ]
+    },
+    {
+      "path": "lean/core/Store.js",
+      "summary": "Reactive dependency-free state store with version migration and emergency repair hooks. @example const store = new Store({ initialState: { hp: 10 }, version: '1.0.0' }); store.watch('hp', (hp) => console.log(hp)); store.set('hp', 9);",
+      "exports": [
+        "Store"
+      ]
+    },
+    {
+      "path": "lean/index.js",
+      "summary": "Creates the addon-driven lean OmniCore runtime. @example const runtime = await createLeanRuntime({ renderer: { backend: 'canvas' } }); runtime.addons.renderer.drawRect({ x: 10, y: 10, width: 32, height: 32 });",
+      "exports": [
+        "Core",
+        "Addons"
+      ]
+    },
+    {
+      "path": "lighting/Light2D.js",
+      "summary": "Lightweight 2D light descriptors and shadow helpers.",
+      "exports": [
+        "Light2D"
+      ]
+    },
+    {
+      "path": "loader/AssetLoader.js",
+      "summary": "Defensive image asset loader with missing-texture fallback. Single image failures are converted into a generated Pixi.Graphics square so bundle loading can continue and scenes can still render a visible placeholder. @example const loader = new AssetLoader(); const hero = await loader.loadImage({ key: 'hero', url: '/hero.png' }); scene.add(new OmniCore.Sprite(hero.texture || hero.displayObject));",
+      "exports": [
+        "AssetLoader"
+      ]
+    },
+    {
+      "path": "loader/Loader.js",
+      "summary": "Asset loader with manifest preflight, timeout, retry, and friendly errors. @example const loader = new Loader({ timeout: 5000, retries: 1 }); const assets = await loader.loadBundle([ { key: 'hero', url: '/assets/sprites/default/default-tilesheet.svg', type: 'blob' } ]);",
+      "exports": [
+        "FriendlyLoadError",
+        "Loader"
+      ]
+    },
+    {
+      "path": "loop/Loop.js",
+      "summary": "Fixed-step requestAnimationFrame loop. Locks updates to 60 FPS, reports delta/interpolation, and pauses/resumes on page visibility changes. The internal ticker is intentionally not exposed. @example const loop = new Loop(); loop.subscribe((dt, time, alpha) => scene.update(dt, time, alpha)); loop.start();",
+      "exports": [
+        "Loop",
+        "resolveFrameRate"
+      ]
+    },
+    {
+      "path": "marketplace/MarketplaceServer.js",
+      "summary": "",
+      "exports": [
+        "MarketplaceServer"
+      ]
+    },
+    {
+      "path": "math/Easing.js",
+      "summary": "OmniCore Easing library. Provides Phaser-style named easing functions for Tweens while staying framework independent. @example import { Easing } from 'omnicore'; const half = Easing.inOutCubic(0.5); const fn = Easing.get('outBounce');",
+      "exports": [
+        "Easing"
+      ]
+    },
+    {
+      "path": "math/Rect.js",
+      "summary": "Axis-aligned rectangle utility for UI hit testing and simple bounds checks. @example const bounds = new Rect(0, 0, 64, 64); if (bounds.contains(pointer.x, pointer.y)) button.dispatch('click');",
+      "exports": [
+        "Rect"
+      ]
+    },
+    {
+      "path": "math/Vec2.js",
+      "summary": "2D vector helper for positions, velocities, and offsets. @example const velocity = new Vec2(3, 4).normalize().scale(120); sprite.x += velocity.x * dt;",
+      "exports": [
+        "Vec2"
+      ]
+    },
+    {
+      "path": "microkernel/Kernel.js",
+      "summary": "Optional microkernel runtime for addon-based extensions. This module is isolated from the legacy `OmniCore.Game` implementation and is only activated through `microkernel.enabled`. @example const kernel = new Kernel(); kernel.addon('telemetry', { init() {}, destroy() {} }); kernel.use('telemetry');",
+      "exports": [
+        "Kernel"
+      ]
+    },
+    {
+      "path": "microkernel/RendererAdapter.js",
+      "summary": "Renderer abstraction for optional microkernel mode. @example const renderer = new RendererAdapter({ adapter: 'auto' }); await renderer.init({ canvas });",
+      "exports": [
+        "RendererAdapter"
+      ]
+    },
+    {
+      "path": "microkernel/SplashScreen.js",
+      "summary": "Optional startup splash screen for microkernel mode. @example const splash = new SplashScreen({ text: 'OmniCore Booting' }); splash.show(); await splash.hide();",
+      "exports": [
+        "SplashScreen"
+      ]
+    },
+    {
+      "path": "net/NetManager.js",
+      "summary": "Network and persistence wrappers. @example const net = new NetManager(); const profile = await net.get('/api/profile'); StorageManager.set('save', { level: 3 });",
+      "exports": [
+        "NetManager",
+        "StorageManager"
+      ]
+    },
+    {
+      "path": "net/RealtimeConnection.js",
+      "summary": "WebSocket-compatible realtime connection wrapper.",
+      "exports": [
+        "RealtimeConnection"
+      ]
+    },
+    {
+      "path": "net/Room.js",
+      "summary": "Room-style WebSocket wrapper for multiplayer MVPs.",
+      "exports": [
+        "NetRoom"
+      ]
+    },
+    {
+      "path": "net/WebTransportConnection.js",
+      "summary": "Experimental Chrome WebTransport realtime wrapper.",
+      "exports": [
+        "WebTransportConnection"
+      ]
+    },
+    {
+      "path": "node/Node.js",
+      "summary": "Hierarchical runtime node used by prefabs and data-driven scenes. @example const root = new Node({ name: 'Root' }); root.addChild(new Node({ name: 'Enemy' })); root.getChild('Enemy');",
+      "exports": [
+        "Node"
+      ]
+    },
+    {
+      "path": "optimization/AdaptiveQualityManager.js",
+      "summary": "Applies rendering-only quality degradation from a device profile.",
+      "exports": [
+        "AdaptiveQualityManager"
+      ]
+    },
+    {
+      "path": "optimization/DeviceProfiler.js",
+      "summary": "Startup device profiler for adaptive rendering quality.",
+      "exports": [
+        "DeviceProfiler"
+      ]
+    },
+    {
+      "path": "optimization/SleepWakeSystem.js",
+      "summary": "Distance-based sleep and wake system for NPCs and enemies. Entities can opt in with `kind: 'npc'`, `kind: 'enemy'`, `tags: ['npc']`, or `sleepable: true`. Sleeping entities skip logic updates until the player is back inside the wake radius. @example const sleepWake = new SleepWakeSystem({ player, distance: 640 }); if (sleepWake.shouldUpdate(enemy, scene)) enemy.update(delta);",
+      "exports": [
+        "SleepWakeSystem"
+      ]
+    },
+    {
+      "path": "optimization/ViewportCulling.js",
+      "summary": "Viewport culling helper for large RPG maps. The system keeps render and update decisions data-driven. Any entity with `cullable: false`, `alwaysUpdate`, or `alwaysRender` can opt out while Sprite and Tilemap-like chunks use shared rectangle intersection checks. @example const culling = new ViewportCulling({ viewport: { x: 0, y: 0, width: 960, height: 540 } }); if (culling.shouldRender(sprite)) sprite.render(ctx);",
+      "exports": [
+        "ViewportCulling"
+      ]
+    },
+    {
+      "path": "package/PackageManager.js",
+      "summary": "REST-backed plugin package resolver.",
+      "exports": [
+        "PackageManager"
+      ]
+    },
+    {
+      "path": "physics/CollisionMask.js",
+      "summary": "Collision category and mask helpers. @example CollisionMask.filter('bullet', 'enemy');",
+      "exports": [
+        "CATEGORY_BITS",
+        "CollisionMask"
+      ]
+    },
+    {
+      "path": "physics/PhysicsCollisionSync.js",
+      "summary": "Keeps Matter body coordinates aligned with render entity coordinates.",
+      "exports": [
+        "PhysicsCollisionSync",
+        "DEFAULT_PHYSICS_COLLISION_SYNC",
+        "syncPhysicsBodyToEntity"
+      ]
+    },
+    {
+      "path": "physics/PhysicsQuery.js",
+      "summary": "Matter-compatible spatial query facade. Uses Matter.Query when available and falls back to deterministic rectangle math for tests, headless runtime, and lightweight adapters.",
+      "exports": [
+        "PhysicsQuery"
+      ]
+    },
+    {
+      "path": "physics/PhysicsWorld.js",
+      "summary": "Lightweight Matter facade for gravity and filtered collision callbacks. @example const world = new PhysicsWorld(); world.gravity({ x: 0, y: 1 });",
+      "exports": [
+        "PhysicsWorld"
+      ]
+    },
+    {
+      "path": "platform/ElectronNativeBridge.js",
+      "summary": "",
+      "exports": [
+        "ElectronNativeBridge"
+      ]
+    },
+    {
+      "path": "platform/PlatformAdapter.js",
+      "summary": "Cross-platform adapter helpers for Web, Electron, and WeChat Mini Game. @example const files = PlatformAdapter.generateElectronFiles({ appName: 'My Game' }); const wechat = PlatformAdapter.adaptWechat(wx);",
+      "exports": [
+        "PlatformAdapter"
+      ]
+    },
+    {
+      "path": "pool/ObjectPool.js",
+      "summary": "Generic object pool for bullets, particles, temporary vectors, and UI nodes. @example const bullets = new ObjectPool(() => new Sprite('bullet'), (bullet) => bullet.visible = false); const bullet = bullets.acquire(); bullets.release(bullet);",
+      "exports": [
+        "ObjectPool"
+      ]
+    },
+    {
+      "path": "prefab/PrefabManager.js",
+      "summary": "JSON prefab instantiator with Cocos-style component mounting. @example const enemy = PrefabManager.instantiate({ type: 'sprite', texture: 'enemy', components: [{ type: EnemyAI, options: { speed: 90 } }] }, 100, 200);",
+      "exports": [
+        "PrefabManager"
+      ]
+    },
+    {
+      "path": "renderer/BatchOptimizer.js",
+      "summary": "Pixi sprite batch analyzer. Pixi's BatchRenderer can merge sprites when they share the same texture source and render state. This helper keeps OmniCore's scene sync aligned with those constraints and exposes deterministic draw-call telemetry for tests, debug panels, and benchmark thresholds.",
+      "exports": [
+        "BatchOptimizer"
+      ]
+    },
+    {
+      "path": "renderer/Filters.js",
+      "summary": "PixiJS v8 filter helpers. @example const bloom = createBloomFilter({ threshold: 0.4, bloomScale: 1.2 }); renderer.applyFilter(sprite, bloom);",
+      "exports": [
+        "appendFilter",
+        "createBloomFilter",
+        "createAdjustmentFilter",
+        "createGlitchFilter",
+        "createColorMatrixFilter",
+        "createNoiseFilter"
+      ]
+    },
+    {
+      "path": "renderer/OffscreenCanvasRenderer.js",
+      "summary": "OffscreenCanvas-backed 2D renderer. The main thread only serializes high-level draw commands. A dedicated Worker owns the canvas context after `transferControlToOffscreen()`.",
+      "exports": [
+        "OffscreenCanvasRenderer",
+        "serializeScene"
+      ]
+    },
+    {
+      "path": "renderer/PixiBatchAdapter.js",
+      "summary": "",
+      "exports": [
+        "CommandBuffer",
+        "PixiBatchAdapter"
+      ]
+    },
+    {
+      "path": "renderer/PixiRenderer.js",
+      "summary": "PixiJS v8 backed 2D renderer with Canvas fallback. Pixi lifecycle is sealed behind this wrapper. OmniCore does not expose Pixi's ticker; rendering is driven by OmniCore.Loop. @example const renderer = new PixiRenderer({ backend: 'pixi', canvas, width: 800, height: 600 }); await renderer.init(); renderer.applyBloom(sprite.displayObject);",
+      "exports": [
+        "PixiRenderer"
+      ]
+    },
+    {
+      "path": "renderer/PixiTextureLifecycle.js",
+      "summary": "Reference-counted Pixi texture lifecycle guard.",
+      "exports": [
+        "PixiTextureLifecycle",
+        "DEFAULT_PIXI_TEXTURE_LIFECYCLE",
+        "attachTexture",
+        "detachTexture",
+        "cleanupUnusedTextures",
+        "getTextureRefCount"
+      ]
+    },
+    {
+      "path": "renderer/RendererBackend.js",
+      "summary": "",
+      "exports": [
+        "assertRendererBackend"
+      ]
+    },
+    {
+      "path": "renderer/RendererManager.js",
+      "summary": "Multi-backend renderer manager with automatic fallback. @example const manager = new RendererManager({ createRenderer }); const renderer = await manager.create('auto'); // pixi -> canvas",
+      "exports": [
+        "RendererManager"
+      ]
+    },
+    {
+      "path": "renderer/RenderLayerManager.js",
+      "summary": "Store-driven display list ordering. @example const layers = new RenderLayerManager({ store, container: pixiContainer }); layers.register('hero', heroDisplayObject);",
+      "exports": [
+        "RenderLayerManager"
+      ]
+    },
+    {
+      "path": "renderer/RenderWorkerBridge.js",
+      "summary": "Thin OffscreenCanvas worker bridge for renderer backends. The main thread still builds draw instructions, while the bridge owns the message boundary for texture upload and GPU command submission workers.",
+      "exports": [
+        "RenderWorkerBridge"
+      ]
+    },
+    {
+      "path": "renderer/WebGLContextManager.js",
+      "summary": "WebGL context loss/restoration manager. The manager listens to browser `webglcontextlost` and `webglcontextrestored` events, prevents the default hard failure path, and calls a canvas fallback hook when the context cannot be restored quickly. @example const manager = new WebGLContextManager({ canvas, onFallback: () => OmniCore.Backend.switch('canvas') });",
+      "exports": [
+        "WebGLContextManager"
+      ]
+    },
+    {
+      "path": "renderer/WebGPURenderer.js",
+      "summary": "MVP WebGPU renderer abstraction. It detects WebGPU, configures the canvas context, and converts scene children into serializable draw instructions. A worker bridge can consume those instructions through OffscreenCanvas when the host provides a worker.",
+      "exports": [
+        "WebGPURenderer",
+        "collectDrawInstructions"
+      ]
+    },
+    {
+      "path": "scene/Scene.js",
+      "summary": "Scene and Sprite primitives. Scene mirrors Phaser's small lifecycle surface while keeping plugins explicit. Sprite supports Cocos-style `addComponent()` without bringing an editor runtime. @example const scene = new Scene('play'); const hero = scene.add(new Sprite('hero.png')); hero.addComponent(class Health { constructor(owner) { this.owner = owner; } });",
+      "exports": [
+        "Sprite",
+        "Scene"
+      ]
+    },
+    {
+      "path": "scene/SceneManager.js",
+      "summary": "Phaser-inspired scene stack manager. Supports `push`, `pop`, `replace`, `fadeIn`, and `fadeOut` while destroying popped scene resources automatically. @example const scenes = new SceneManager(game); scenes.register(new Scene('menu')); await scenes.push('menu', { fadeIn: 250 });",
+      "exports": [
+        "SceneManager"
+      ]
+    },
+    {
+      "path": "store/Store.js",
+      "summary": "Nano Stores based global state registry. Renderer backends inject their current identity here so cross-backend state is retained during experimental renderer switching. @example const store = new Store({ score: 0 }); store.subscribe('score', (score) => uiScore.text = String(score)); store.injectBackend('pixi');",
+      "exports": [
+        "Store"
+      ]
+    },
+    {
+      "path": "tilemap/AITilemapGenerator.js",
+      "summary": "Deterministic prompt-to-tilemap fallback for debug tooling.",
+      "exports": [
+        "AITilemapGenerator"
+      ]
+    },
+    {
+      "path": "tilemap/ChunkCache.js",
+      "summary": "Small cache for tilemap chunks. @example const cache = new ChunkCache(); cache.set('Ground:0:0', chunk);",
+      "exports": [
+        "ChunkCache"
+      ]
+    },
+    {
+      "path": "tilemap/ChunkManager.js",
+      "summary": "Runtime chunk loader/unloader for OmniCore.Tilemap. Chunks are generated in pixel-sized windows so a 16px tile map with `chunkPixelSize: 64` produces 4x4 tile chunks. @example const manager = new ChunkManager(tilemap, { chunkPixelSize: 64 }); manager.update(cameraViewport);",
+      "exports": [
+        "ChunkManager"
+      ]
+    },
+    {
+      "path": "tilemap/Tilemap.js",
+      "summary": "Minimal Tiled JSON parser for tile and object layers. @example const map = Tilemap.parse(tiledJson); const ground = map.getTileLayer('Ground'); ground.tileAt(4, 2);",
+      "exports": [
+        "Tilemap"
+      ]
+    },
+    {
+      "path": "tilemap/TilemapLoader.js",
+      "summary": "Tiled JSON loader for OmniCore tilemaps. @example const loader = new TilemapLoader(); const map = await loader.load('/maps/world.json');",
+      "exports": [
+        "TilemapLoader"
+      ]
+    },
+    {
+      "path": "timeline/Timeline.js",
+      "summary": "Timeline animation controller driven by JSON keyframes. @example const timeline = new Timeline({ targets: { hero } }); timeline.load({ duration: 1000, tracks: [...] }).play(); timeline.update(16);",
+      "exports": [
+        "Timeline"
+      ]
+    },
+    {
+      "path": "timer/Timer.js",
+      "summary": "Frame-driven timer utility. `Game` owns one Timer instance and updates it from the Loop. Scenes receive it as `scene.timer`. @example scene.timer.delay(500, () => scene.game.scene.push('menu')); scene.timer.interval(1000, () => spawnEnemy());",
+      "exports": [
+        "Timer"
+      ]
+    },
+    {
+      "path": "tween/Tween.js",
+      "summary": "Lightweight Phaser-inspired Tween. Supports numeric target properties, `{ from, to, start }` descriptors, `yoyo`, `repeat`, callbacks, and manual updates from OmniCore.Loop. @example const tween = new Tween(sprite, { x: { from: 0, to: 320 }, alpha: 0.5, duration: 600, ease: 'outCubic', yoyo: true, repeat: 1 }); loop.subscribe((dt) => tween.update(dt * 1000));",
+      "exports": [
+        "Tween"
+      ]
+    },
+    {
+      "path": "ui/Button.js",
+      "summary": "Canvas-rendered button. @example const button = new Button('Switch', { x: 16, y: 16, width: 120, height: 36 }); button.onClick(() => OmniCore.Backend.switch('canvas'));",
+      "exports": [
+        "Button"
+      ]
+    },
+    {
+      "path": "ui/UIButton.js",
+      "summary": "",
+      "exports": [
+        "UIButton"
+      ]
+    },
+    {
+      "path": "ui/UIElement.js",
+      "summary": "Native Canvas UI primitive. UI elements are declared as objects and rendered by Canvas; OmniCore never generates UI source code. @example const panel = new UIElement({ x: 20, y: 20, width: 200, height: 64, zIndex: 2 }); panel.on('click', () => console.log('clicked'));",
+      "exports": [
+        "UIElement",
+        "sortByZIndex"
+      ]
+    },
+    {
+      "path": "ui/UIScrollView.js",
+      "summary": "",
+      "exports": [
+        "UIScrollView"
+      ]
+    },
+    {
+      "path": "ui/UITextInput.js",
+      "summary": "",
+      "exports": [
+        "UITextInput"
+      ]
+    },
+    {
+      "path": "visualgraph/VisualEventGraph.js",
+      "summary": "Debug-only visual event graph editor. @example const graph = new VisualEventGraph({ debug: true }); graph.addNode({ id: 'check', type: 'condition', data: { op: 'equals' } }); graph.exportJSON();",
+      "exports": [
+        "VisualEventGraph"
+      ]
+    },
+    {
+      "path": "wasm/kernels/omnicore_compute.wasm.js",
+      "summary": "",
+      "exports": [
+        "OMNICORE_COMPUTE_WASM_BYTES"
+      ]
+    },
+    {
+      "path": "wasm/WasmLoader.js",
+      "summary": "Small WebAssembly.instantiate facade with fetch and byte-array support.",
+      "exports": [
+        "WasmLoader"
+      ]
+    },
+    {
+      "path": "worker/WorkerManager.js",
+      "summary": "Worker task facade with main-thread fallback. @example const worker = new WorkerManager(); worker.register('sum', ({ values }) => values.reduce((a, b) => a + b, 0)); await worker.run('sum', { values: [1, 2, 3] });",
+      "exports": [
+        "WorkerManager"
+      ]
+    }
+  ]
+}

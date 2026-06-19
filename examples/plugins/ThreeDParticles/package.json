@@ -1,0 +1,13 @@
+{
+  "name": "@omnicore/plugin-three-d-particles",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Official OmniCore 3D particle plugin with no extra dependencies.",
+  "main": "src/index.js",
+  "scripts": {
+    "demo": "vite demo"
+  },
+  "peerDependencies": {
+    "omnicore": "workspace:*"
+  }
+}

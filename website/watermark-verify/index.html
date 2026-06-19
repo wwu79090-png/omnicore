@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OmniCore Watermark Verify</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 720px; }
+      textarea { width: 100%; min-height: 260px; font-family: ui-monospace, monospace; }
+      output { display: block; margin-top: 1rem; padding: 1rem; border: 1px solid #bbb; }
+    </style>
+  </head>
+  <body>
+    <h1>OmniCore Watermark Verify</h1>
+    <input id="file" type="file" accept=".js,.mjs">
+    <textarea id="source" spellcheck="false"></textarea>
+    <button id="verify" type="button">Verify</button>
+    <output id="result">Waiting for file.</output>
+    <script>
+      const start = '/*OMNICORE_WATERMARK:';
+      const end = '*/';
+      const sourceInput = document.querySelector('#source');
+      const result = document.querySelector('#result');
+      document.querySelector('#file').addEventListener('change', async (event) => {
+        sourceInput.value = await event.target.files[0].text();
+      });
+      document.querySelector('#verify').addEventListener('click', () => {
+        result.textContent = JSON.stringify(verify(sourceInput.value), null, 2);
+      });
+      function verify(source, key = 'omnicore-official') {
+        const metadata = readMetadata(source);
+        if (!metadata) return { valid: false, status: 'missing-watermark' };
+        const clean = strip(source).trimEnd();
+        const expected = fnv1a(`${key}\0${metadata.nonce}\0${clean}`);
+        return { valid: expected === metadata.signature, status: expected === metadata.signature ? 'official' : 'tampered' };
+      }
+      function strip(source) {
+        return String(source)
+          .replace(/\n?;\(\(\) => \{ const __omnicore_wm = \(n\) => [\s\S]*?\}\)\(\);\n?/u, '\n')
+          .replace(/\n?\/\*OMNICORE_WATERMARK:[\s\S]*?\*\/\n?/u, '\n');
+      }
+      function readMetadata(source) {
+        const s = String(source).lastIndexOf(start);
+        if (s < 0) return null;
+        const e = String(source).indexOf(end, s + start.length);
+        if (e < 0) return null;
+        try { return JSON.parse(String(source).slice(s + start.length, e)); } catch { return null; }
+      }
+      function fnv1a(value) {
+        let hash = 0x811c9dc5;
+        for (let i = 0; i < value.length; i += 1) {
+          hash ^= value.charCodeAt(i);
+          hash = Math.imul(hash, 0x01000193) >>> 0;
+        }
+        return hash.toString(16).padStart(8, '0');
+      }
+    </script>
+  </body>
+</html>

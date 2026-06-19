@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>WechatMiniGameMonetization Demo</title>
+    <style>
+      body { margin: 0; font: 14px system-ui, sans-serif; color: #e5e7eb; background: #0f172a; }
+      main { max-width: 720px; margin: 0 auto; padding: 28px 20px; }
+      button { margin-right: 8px; padding: 8px 10px; color: #e5e7eb; background: #111827; border: 1px solid #334155; }
+      pre { padding: 12px; overflow: auto; background: #020617; border: 1px solid #334155; }
+    </style>
+  </head>
+  <body>
+    <main data-omnicore-plugin-demo="WechatMiniGameMonetization">
+      <h1>WechatMiniGameMonetization</h1>
+      <button id="pay">Mock Pay</button>
+      <button id="reward">Mock Reward Ad</button>
+      <pre id="log"></pre>
+    </main>
+    <script type="module">
+      import plugin, { createMockWx } from '../src/index.js';
+
+      const log = [];
+      const OmniCore = {};
+      plugin.install(OmniCore, { wx: createMockWx(log) });
+      const output = document.querySelector('#log');
+      const render = () => {
+        output.textContent = JSON.stringify(log, null, 2);
+      };
+      document.querySelector('#pay').addEventListener('click', async () => {
+        await OmniCore.Payment.requestPayment({ offerId: 'demo-offer' });
+        render();
+      });
+      document.querySelector('#reward').addEventListener('click', async () => {
+        await OmniCore.Ad.showRewardedVideoAd('demo-reward');
+        render();
+      });
+      render();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-06-18T13:46:26.956Z",
+  "summary": {
+    "particles1000AvgFps": 60.67,
+    "entitySync500AvgMs": 1.23,
+    "backendSwitchAvgMs": 0.2,
+    "particles1000DrawCalls": 1001,
+    "canvas1000SpriteFps": 61,
+    "pixi1000SpriteFps": 60,
+    "canvasDrawCalls": 1000,
+    "pixiDrawCalls": 1
+  }
+}

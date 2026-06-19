@@ -1,0 +1,157 @@
+{
+  "generatedAt": "2026-06-19T12:44:03.434Z",
+  "version": "0.1.0",
+  "ready": true,
+  "score": 99,
+  "marketReadiness": {
+    "score": 99,
+    "releaseGates": {
+      "label": "发布门禁",
+      "score": 100,
+      "missing": [],
+      "checks": [
+        {
+          "name": "lint",
+          "command": "eslint -c .eslintrc.json --no-eslintrc src tests scripts --ext .js,.mjs",
+          "present": true
+        },
+        {
+          "name": "test",
+          "command": "vitest run",
+          "present": true
+        },
+        {
+          "name": "test:contract",
+          "command": "node scripts/contract-test.js",
+          "present": true
+        },
+        {
+          "name": "benchmark:ci",
+          "command": "node scripts/benchmark-threshold.js",
+          "present": true
+        },
+        {
+          "name": "build",
+          "command": "vite build",
+          "present": true
+        },
+        {
+          "name": "postbuild",
+          "command": "node scripts/verify-build-output.js",
+          "present": true
+        },
+        {
+          "name": "security-check",
+          "command": "node scripts/security-check.js",
+          "present": true
+        }
+      ]
+    },
+    "platformCoverage": {
+      "label": "平台覆盖",
+      "score": 100,
+      "missing": [],
+      "checks": [
+        {
+          "name": "test:e2e",
+          "command": "playwright test tests/e2e",
+          "present": true
+        },
+        {
+          "name": "test:visual",
+          "command": "node scripts/visual-regression.js --threshold 0.005",
+          "present": true
+        },
+        {
+          "name": "test:wechat",
+          "command": "node scripts/test-wechat.js",
+          "present": true
+        },
+        {
+          "name": "test:minigame",
+          "command": "node scripts/test-minigame.js",
+          "present": true
+        },
+        {
+          "name": "export:platform",
+          "command": "node scripts/export-platform.js",
+          "present": true
+        },
+        {
+          "name": "build:platform-assets",
+          "command": "node scripts/build-platform-assets.js",
+          "present": true
+        }
+      ]
+    },
+    "apiStability": {
+      "label": "API 稳定性",
+      "score": 96,
+      "publicExportCount": 183,
+      "policy": {
+        "file": "docs/api/public-api-policy.md",
+        "present": true
+      },
+      "warnings": [],
+      "checks": [
+        {
+          "file": "scripts/contract-test.js",
+          "present": true
+        },
+        {
+          "file": "tests/contract/core-contract.test.js",
+          "present": true
+        },
+        {
+          "file": "tests/contract/golden/omnicore-core-api.json",
+          "present": true
+        },
+        {
+          "file": "docs/api.md",
+          "present": true
+        },
+        {
+          "file": "docs/api/README.zh-CN.md",
+          "present": true
+        },
+        {
+          "file": "docs/api/public-api-policy.md",
+          "present": true
+        }
+      ],
+      "missing": []
+    },
+    "marketDocumentation": {
+      "label": "市场文档",
+      "score": 100,
+      "missing": [],
+      "checks": [
+        {
+          "file": "README.md",
+          "present": true
+        },
+        {
+          "file": "docs/market-benchmark-report.md",
+          "present": true
+        },
+        {
+          "file": "docs/platforms/wechat-minigame.md",
+          "present": true
+        },
+        {
+          "file": "docs/getting-started-zero.zh-CN.md",
+          "present": true
+        }
+      ]
+    },
+    "risks": []
+  },
+  "verification": {
+    "enabled": false,
+    "ok": true,
+    "failed": [],
+    "defaultScripts": [],
+    "results": []
+  },
+  "findings": []
+}

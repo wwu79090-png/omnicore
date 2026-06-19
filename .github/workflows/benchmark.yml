@@ -1,0 +1,154 @@
+name: Benchmark Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  benchmark:
+    name: ${{ matrix.device }} 1000 Sprite FPS gate
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - device: Pixel 5
+            runner: ubuntu-latest
+            profile: low-end-android
+            cpu_cores: 2
+            memory_gb: 4
+            artifact: pixel5
+          - device: iPhone 12
+            runner: macos-15
+            profile: low-end-ios
+            cpu_cores: 2
+            memory_gb: 4
+            artifact: iphone12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Restore benchmark baseline cache
+        uses: actions/cache/restore@v4
+        with:
+          path: stored-benchmark.json
+          key: omnicore-stored-benchmark-${{ matrix.artifact }}-${{ github.base_ref || 'main' }}
+          restore-keys: |
+            omnicore-stored-benchmark-${{ matrix.artifact }}-
+            omnicore-stored-benchmark-
+
+      - name: Load main branch stored benchmark
+        shell: bash
+        run: |
+          if [ -f stored-benchmark.json ]; then
+            echo "Using cached stored-benchmark.json"
+          elif git show origin/main:tests/benchmark/fixtures/stored-benchmark.json > stored-benchmark.json 2>/dev/null; then
+            echo "Using main branch stored-benchmark.json"
+          else
+            cp tests/benchmark/fixtures/baseline.json stored-benchmark.json
+          fi
+
+      - name: Run npm run benchmark on ${{ matrix.device }}
+        env:
+          OMNICORE_DEVICE_PROFILE: ${{ matrix.profile }}
+          OMNICORE_DEVICE_CPU_CORES: 2
+          OMNICORE_DEVICE_MEMORY_GB: 4
+          OMNICORE_BENCHMARK_LABEL: "${{ matrix.device }} 1000 Sprite >=45 FPS"
+          OMNICORE_BENCHMARK_MIN_FPS: 45
+        shell: bash
+        run: |
+          mkdir -p docs/release-notes
+          npm run benchmark | tee docs/release-notes/benchmark-current-${{ matrix.artifact }}.log
+
+      - name: Evaluate 5 percent benchmark gate
+        id: benchmark_gate
+        continue-on-error: true
+        shell: bash
+        run: |
+          npm run benchmark:ci -- \
+            --current docs/release-notes/benchmark-current-${{ matrix.artifact }}.log \
+            --baseline stored-benchmark.json \
+            --output docs/release-notes/performance-regression-report-${{ matrix.artifact }}.md \
+            --threshold 0.05
+
+      - name: Keep legacy benchmark report path
+        if: always()
+        shell: bash
+        run: |
+          if [ -f docs/release-notes/performance-regression-report-${{ matrix.artifact }}.md ]; then
+            cp docs/release-notes/performance-regression-report-${{ matrix.artifact }}.md docs/release-notes/performance-regression-report.md
+          fi
+
+      - name: Update stored benchmark on main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.benchmark_gate.outcome == 'success'
+        shell: bash
+        run: cp docs/release-notes/benchmark-current-${{ matrix.artifact }}.log stored-benchmark.json
+
+      - name: Save benchmark baseline cache
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.benchmark_gate.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: stored-benchmark.json
+          key: omnicore-stored-benchmark-${{ matrix.artifact }}-main-${{ github.sha }}
+
+      - name: Add benchmark report to summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f docs/release-notes/performance-regression-report-${{ matrix.artifact }}.md ]; then
+            cat docs/release-notes/performance-regression-report-${{ matrix.artifact }}.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload benchmark reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnicore-benchmark-report-${{ matrix.artifact }}
+          if-no-files-found: error
+          path: |
+            stored-benchmark.json
+            docs/release-notes/benchmark-current-${{ matrix.artifact }}.log
+            docs/release-notes/performance-regression-report-${{ matrix.artifact }}.md
+            docs/release-notes/performance-regression-report.md
+
+      - name: Comment performance regression report
+        if: github.event_name == 'pull_request' && steps.benchmark_gate.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('docs/release-notes/performance-regression-report-${{ matrix.artifact }}.md', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
+
+      - name: Fail on benchmark regression
+        if: steps.benchmark_gate.outcome == 'failure'
+        run: exit 1

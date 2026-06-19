@@ -1,0 +1,23 @@
+{
+  "name": "@omnicore/core-wasm",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "adapters/node.js",
+  "exports": {
+    ".": "./adapters/node.js",
+    "./node": "./adapters/node.js",
+    "./cloudflare-worker": "./adapters/cloudflare-worker.js",
+    "./minimal": "./src/generated-minimal-wasm.js"
+  },
+  "scripts": {
+    "build": "node build.js"
+  },
+  "files": [
+    "adapters",
+    "build.js",
+    "dist",
+    "examples",
+    "include",
+    "src"
+  ]
+}

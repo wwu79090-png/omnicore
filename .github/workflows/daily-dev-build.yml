@@ -1,0 +1,63 @@
+name: Daily Dev Build
+
+on:
+  schedule:
+    # 00:00 Asia/Shanghai equals 16:00 UTC on the previous day.
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Build production bundle
+        run: npm run build:prod
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnicore-daily-dev-build
+          path: |
+            dist
+            examples
+            website/editor
+
+      - name: Publish dist snapshot to dev branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -rf /tmp/omnicore-dev-build
+          mkdir -p /tmp/omnicore-dev-build
+          cp -R dist /tmp/omnicore-dev-build/dist
+          cp -R examples /tmp/omnicore-dev-build/examples
+          cp -R website /tmp/omnicore-dev-build/website
+          git checkout --orphan dev-build
+          git rm -rf . >/dev/null 2>&1 || true
+          mkdir -p public
+          cp -R /tmp/omnicore-dev-build/dist public/dist
+          cp -R /tmp/omnicore-dev-build/examples public/examples
+          cp -R /tmp/omnicore-dev-build/website public/website
+          printf '{"builtAt":"%s","source":"daily-dev-build"}\n' "$(date -u +%FT%TZ)" > public/dev-build.json
+          git add public
+          git commit -m "chore: daily dev build"
+          git push origin dev-build:dev --force

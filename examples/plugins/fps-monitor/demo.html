@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OmniCore fps-monitor Plugin</title>
+    <style>body{margin:0;background:#0f172a}#game{width:100vw;height:100vh}</style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <script type="module">
+      import OmniCore from '../../../src/index.js';
+      import fpsMonitor from './src/index.js';
+
+      const game = await new OmniCore.Game({
+        parent: '#game',
+        width: 480,
+        height: 270,
+        renderer: 'canvas'
+      }).init();
+      fpsMonitor.install({ game });
+      const scene = new OmniCore.Scene('plugin-demo');
+      scene.add(new OmniCore.Sprite('fps-plugin', { x: 80, y: 70, width: 90, height: 40 }));
+      game.scene.register(scene);
+      await game.scene.push('plugin-demo');
+    </script>
+  </body>
+</html>

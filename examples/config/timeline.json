@@ -1,0 +1,26 @@
+{
+  "duration": 1200,
+  "loop": false,
+  "tracks": [
+    {
+      "target": "hero",
+      "property": "x",
+      "keyframes": [
+        { "time": 0, "value": 48 },
+        { "time": 600, "value": 180, "ease": "outCubic" },
+        { "time": 1200, "value": 240, "ease": "inOutCubic" }
+      ]
+    },
+    {
+      "target": "hero",
+      "property": "alpha",
+      "keyframes": [
+        { "time": 0, "value": 0 },
+        { "time": 300, "value": 1, "ease": "linear" }
+      ]
+    }
+  ],
+  "events": [
+    { "time": 600, "name": "spawn", "payload": { "prefab": "slime", "count": 2 } }
+  ]
+}

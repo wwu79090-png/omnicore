@@ -1,0 +1,27 @@
+name: PR Quality
+
+on:
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm test -- --coverage --coverage.include "src/core/**" --coverage.include "src/renderer/**" --coverage.include "src/store/**" --coverage.thresholds.lines 100 --coverage.thresholds.functions 100 --coverage.thresholds.branches 100 --coverage.thresholds.statements 100
+      - run: npm run test:e2e
+      - run: node scripts/visual-regression.js --golden tests/visual/golden/examples.json --out docs/release-notes/visual-regression-report.json
+      - run: node scripts/compare-screenshots.js --baseline tests/e2e/__screenshots__/editor-baseline.png --current "tests/e2e/__screenshots__/editor-current-*.png" --threshold 0.05 --out docs/release-notes/screenshot-diff-report.md
+      - run: npm run benchmark:ci
+      - uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-report
+          path: |
+            tests/e2e/__screenshots__
+            docs/release-notes/screenshot-diff-report.md

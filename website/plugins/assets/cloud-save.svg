@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <rect width="640" height="360" fill="#0f172a"/>
+  <path d="M202 224h236c42 0 76-30 76-68 0-36-30-66-69-68-18-38-58-62-104-62-56 0-103 36-114 86-39 4-69 28-69 58 0 30 20 54 44 54z" fill="#164e63" stroke="#38bdf8" stroke-width="6"/>
+  <rect x="250" y="134" width="140" height="84" rx="8" fill="#020617" stroke="#7dd3fc"/>
+  <text x="284" y="184" fill="#a7f3d0" font-family="system-ui" font-size="24">slot-1</text>
+  <text x="86" y="312" fill="#e5e7eb" font-family="system-ui" font-size="28">Cloud Save</text>
+</svg>

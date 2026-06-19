@@ -1,0 +1,37 @@
+{
+  "duration": 600,
+  "branches": [
+    {
+      "condition": {
+        "op": "lt",
+        "left": "state.hp",
+        "right": 30
+      },
+      "events": [
+        {
+          "time": 120,
+          "name": "lowHp",
+          "payload": {
+            "line": "Fall back and regroup."
+          }
+        }
+      ]
+    },
+    {
+      "condition": {
+        "op": "gte",
+        "left": "state.hp",
+        "right": 30
+      },
+      "events": [
+        {
+          "time": 120,
+          "name": "healthy",
+          "payload": {
+            "line": "Push forward."
+          }
+        }
+      ]
+    }
+  ]
+}

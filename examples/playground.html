@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OmniCore Examples Playground</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f172a'/%3E%3Cpath d='M8 19 16 6l8 13-8 7z' fill='%2338bdf8'/%3E%3C/svg%3E" />
+    <style>
+      body {
+        margin: 0;
+        color: #e2e8f0;
+        background: #0f172a;
+        font: 14px system-ui, sans-serif;
+      }
+      header,
+      main {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+        gap: 16px;
+      }
+      button {
+        display: block;
+        width: 100%;
+        margin-bottom: 8px;
+        padding: 9px 10px;
+        color: #e2e8f0;
+        background: #111827;
+        border: 1px solid #334155;
+        text-align: left;
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: #38bdf8;
+      }
+      #stage {
+        min-height: 320px;
+        padding: 12px;
+        background: #020617;
+        border: 1px solid #1e293b;
+      }
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>OmniCore 示例库</h1>
+      <p>点击左侧示例即可按 ES module 动态加载运行，无需本地依赖。</p>
+    </header>
+    <main class="grid">
+      <nav>
+        <button type="button" data-example="./modules/basic-scene.js">基础场景</button>
+        <button type="button" data-example="./modules/store-counter.js">Store 计数器</button>
+      </nav>
+      <section id="stage" aria-live="polite"></section>
+    </main>
+    <script type="module">
+      const stage = document.querySelector('#stage');
+      let cleanup = null;
+
+      async function loadExample(url) {
+        cleanup?.();
+        stage.textContent = '加载中...';
+        const module = await import(url);
+        stage.textContent = '';
+        cleanup = await module.run({ container: stage });
+      }
+
+      document.querySelectorAll('[data-example]').forEach((button) => {
+        button.addEventListener('click', () => loadExample(button.dataset.example));
+      });
+
+      loadExample('./modules/basic-scene.js');
+    </script>
+  </body>
+</html>

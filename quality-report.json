@@ -1,0 +1,1638 @@
+{
+  "generatedAt": "2026-06-19T09:50:54.060Z",
+  "basis": {
+    "source": "scripts/generate-quality-report.js",
+    "generatedReport": "quality-report.current.json",
+    "verificationCommand": "npm test -- tests/quality-report.test.js tests/editor-mvp-upgrade.test.js tests/editor-runtime-parity.test.js tests/desktop-editor-packaging.test.js tests/live-edit-play-mode.test.js tests/animation-timeline-state-machine.test.js tests/animation-authoring-closed-loop.test.js tests/commercial-engine-core.test.js tests/build-asset-pipeline.test.js tests/asset-pipeline-industrial.test.js tests/advanced-capabilities.test.js tests/benchmark/complex-scene.test.js tests/benchmark-threshold.test.js tests/hardware-baseline-official.test.js tests/build-game-demo-script.test.js tests/official-plugin-scale.test.js tests/plugin-marketplace-page.test.js tests/ecosystem.test.js tests/verify-build-output.test.js tests/release-automation.test.js",
+    "verificationResult": "passed: 20 files, 70 tests",
+    "verificationScope": "mapped implementation, tests, docs, website, release, benchmark, examples, and plugin ecosystem checks"
+  },
+  "summary": {
+    "completed": 56,
+    "total": 56,
+    "coverage": 100,
+    "categories": [
+      {
+        "id": "sceneEditor",
+        "label": "完整场景编辑器",
+        "completed": 6,
+        "total": 6,
+        "coverage": 100
+      },
+      {
+        "id": "animationSystem",
+        "label": "动画系统",
+        "completed": 3,
+        "total": 3,
+        "coverage": 100
+      },
+      {
+        "id": "assetPipeline",
+        "label": "资源管线",
+        "completed": 5,
+        "total": 5,
+        "coverage": 100
+      },
+      {
+        "id": "realDeviceBenchmark",
+        "label": "真机 benchmark",
+        "completed": 7,
+        "total": 7,
+        "coverage": 100
+      },
+      {
+        "id": "officialExamples",
+        "label": "官方示例项目",
+        "completed": 3,
+        "total": 3,
+        "coverage": 100
+      },
+      {
+        "id": "pluginEcosystem",
+        "label": "插件生态",
+        "completed": 9,
+        "total": 9,
+        "coverage": 100
+      },
+      {
+        "id": "marketReadiness",
+        "label": "市场与发布就绪",
+        "completed": 23,
+        "total": 23,
+        "coverage": 100
+      }
+    ]
+  },
+  "categories": [
+    {
+      "id": "sceneEditor",
+      "label": "完整场景编辑器",
+      "completed": 6,
+      "total": 6,
+      "coverage": 100,
+      "items": [
+        {
+          "id": "packages/omnicore-editor/src/editor-app.js",
+          "title": "packages/omnicore-editor/src/editor-app.js",
+          "completed": true,
+          "implementation": [
+            "packages/omnicore-editor/src/editor-app.js"
+          ],
+          "tests": [
+            "tests/editor-mvp-upgrade.test.js",
+            "tests/editor-runtime-parity.test.js",
+            "tests/desktop-editor-packaging.test.js",
+            "tests/live-edit-play-mode.test.js"
+          ],
+          "documentation": [
+            "docs/superpowers/specs/2026-06-19-live-edit-play-mode-design.md",
+            "docs/api/README.zh-CN.md",
+            "website/editor/index.html"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "packages/omnicore-editor/src/live-sync-protocol.js",
+          "title": "packages/omnicore-editor/src/live-sync-protocol.js",
+          "completed": true,
+          "implementation": [
+            "packages/omnicore-editor/src/live-sync-protocol.js"
+          ],
+          "tests": [
+            "tests/editor-mvp-upgrade.test.js",
+            "tests/editor-runtime-parity.test.js",
+            "tests/desktop-editor-packaging.test.js",
+            "tests/live-edit-play-mode.test.js"
+          ],
+          "documentation": [
+            "docs/superpowers/specs/2026-06-19-live-edit-play-mode-design.md",
+            "docs/api/README.zh-CN.md",
+            "website/editor/index.html"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "packages/omnicore-editor/electron.main.cjs",
+          "title": "packages/omnicore-editor/electron.main.cjs",
+          "completed": true,
+          "implementation": [
+            "packages/omnicore-editor/electron.main.cjs"
+          ],
+          "tests": [
+            "tests/editor-mvp-upgrade.test.js",
+            "tests/editor-runtime-parity.test.js",
+            "tests/desktop-editor-packaging.test.js",
+            "tests/live-edit-play-mode.test.js"
+          ],
+          "documentation": [
+            "docs/superpowers/specs/2026-06-19-live-edit-play-mode-design.md",
+            "docs/api/README.zh-CN.md",
+            "website/editor/index.html"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "packages/omnicore-editor/bin/omnicore-editor.cjs",
+          "title": "packages/omnicore-editor/bin/omnicore-editor.cjs",
+          "completed": true,
+          "implementation": [
+            "packages/omnicore-editor/bin/omnicore-editor.cjs"
+          ],
+          "tests": [
+            "tests/editor-mvp-upgrade.test.js",
+            "tests/editor-runtime-parity.test.js",
+            "tests/desktop-editor-packaging.test.js",
+            "tests/live-edit-play-mode.test.js"
+          ],
+          "documentation": [
+            "docs/superpowers/specs/2026-06-19-live-edit-play-mode-design.md",
+            "docs/api/README.zh-CN.md",
+            "website/editor/index.html"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "src/editor/EditorPluginCascade.js",
+          "title": "src/editor/EditorPluginCascade.js",
+          "completed": true,
+          "implementation": [
+            "src/editor/EditorPluginCascade.js"
+          ],
+          "tests": [
+            "tests/editor-mvp-upgrade.test.js",
+            "tests/editor-runtime-parity.test.js",
+            "tests/desktop-editor-packaging.test.js",
+            "tests/live-edit-play-mode.test.js"
+          ],
+          "documentation": [
+            "docs/superpowers/specs/2026-06-19-live-edit-play-mode-design.md",
+            "docs/api/README.zh-CN.md",
+            "website/editor/index.html"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "src/editor/EditorOverlay.js",
+          "title": "src/editor/EditorOverlay.js",
+          "completed": true,
+          "implementation": [
+            "src/editor/EditorOverlay.js"
+          ],
+          "tests": [
+            "tests/editor-mvp-upgrade.test.js",
+            "tests/editor-runtime-parity.test.js",
+            "tests/desktop-editor-packaging.test.js",
+            "tests/live-edit-play-mode.test.js"
+          ],
+          "documentation": [
+            "docs/superpowers/specs/2026-06-19-live-edit-play-mode-design.md",
+            "docs/api/README.zh-CN.md",
+            "website/editor/index.html"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        }
+      ]
+    },
+    {
+      "id": "animationSystem",
+      "label": "动画系统",
+      "completed": 3,
+      "total": 3,
+      "coverage": 100,
+      "items": [
+        {
+          "id": "src/editor/AnimationEditor.js",
+          "title": "src/editor/AnimationEditor.js",
+          "completed": true,
+          "implementation": [
+            "src/editor/AnimationEditor.js"
+          ],
+          "tests": [
+            "tests/animation-timeline-state-machine.test.js",
+            "tests/animation-authoring-closed-loop.test.js",
+            "tests/commercial-engine-core.test.js"
+          ],
+          "documentation": [
+            "docs/api/manifest.json",
+            "README.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "src/animations/AnimationStateMachine.js",
+          "title": "src/animations/AnimationStateMachine.js",
+          "completed": true,
+          "implementation": [
+            "src/animations/AnimationStateMachine.js"
+          ],
+          "tests": [
+            "tests/animation-timeline-state-machine.test.js",
+            "tests/animation-authoring-closed-loop.test.js",
+            "tests/commercial-engine-core.test.js"
+          ],
+          "documentation": [
+            "docs/api/manifest.json",
+            "README.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "src/animation/SkeletalAnimation.js",
+          "title": "src/animation/SkeletalAnimation.js",
+          "completed": true,
+          "implementation": [
+            "src/animation/SkeletalAnimation.js"
+          ],
+          "tests": [
+            "tests/animation-timeline-state-machine.test.js",
+            "tests/animation-authoring-closed-loop.test.js",
+            "tests/commercial-engine-core.test.js"
+          ],
+          "documentation": [
+            "docs/api/manifest.json",
+            "README.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        }
+      ]
+    },
+    {
+      "id": "assetPipeline",
+      "label": "资源管线",
+      "completed": 5,
+      "total": 5,
+      "coverage": 100,
+      "items": [
+        {
+          "id": "scripts/pipeline.js",
+          "title": "scripts/pipeline.js",
+          "completed": true,
+          "implementation": [
+            "scripts/pipeline.js"
+          ],
+          "tests": [
+            "tests/build-asset-pipeline.test.js",
+            "tests/asset-pipeline-industrial.test.js",
+            "tests/advanced-capabilities.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/tutorial-first-hour.md",
+            "docs/api/README.zh-CN.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "scripts/import-assets.js",
+          "title": "scripts/import-assets.js",
+          "completed": true,
+          "implementation": [
+            "scripts/import-assets.js"
+          ],
+          "tests": [
+            "tests/build-asset-pipeline.test.js",
+            "tests/asset-pipeline-industrial.test.js",
+            "tests/advanced-capabilities.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/tutorial-first-hour.md",
+            "docs/api/README.zh-CN.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "scripts/asset-importer.js",
+          "title": "scripts/asset-importer.js",
+          "completed": true,
+          "implementation": [
+            "scripts/asset-importer.js"
+          ],
+          "tests": [
+            "tests/build-asset-pipeline.test.js",
+            "tests/asset-pipeline-industrial.test.js",
+            "tests/advanced-capabilities.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/tutorial-first-hour.md",
+            "docs/api/README.zh-CN.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "scripts/pack-assets.js",
+          "title": "scripts/pack-assets.js",
+          "completed": true,
+          "implementation": [
+            "scripts/pack-assets.js"
+          ],
+          "tests": [
+            "tests/build-asset-pipeline.test.js",
+            "tests/asset-pipeline-industrial.test.js",
+            "tests/advanced-capabilities.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/tutorial-first-hour.md",
+            "docs/api/README.zh-CN.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "scripts/build-platform-assets.js",
+          "title": "scripts/build-platform-assets.js",
+          "completed": true,
+          "implementation": [
+            "scripts/build-platform-assets.js"
+          ],
+          "tests": [
+            "tests/build-asset-pipeline.test.js",
+            "tests/asset-pipeline-industrial.test.js",
+            "tests/advanced-capabilities.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/tutorial-first-hour.md",
+            "docs/api/README.zh-CN.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        }
+      ]
+    },
+    {
+      "id": "realDeviceBenchmark",
+      "label": "真机 benchmark",
+      "completed": 7,
+      "total": 7,
+      "coverage": 100,
+      "items": [
+        {
+          "id": "scripts/benchmark.js",
+          "title": "scripts/benchmark.js",
+          "completed": true,
+          "implementation": [
+            "scripts/benchmark.js"
+          ],
+          "tests": [
+            "tests/benchmark/complex-scene.test.js",
+            "tests/benchmark-threshold.test.js",
+            "tests/hardware-baseline-official.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/hardware-baseline/hardware-baseline.json",
+            "docs/hardware-baseline/real-device-fps-trend.svg"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "scripts/update-hardware-baseline.js",
+          "title": "scripts/update-hardware-baseline.js",
+          "completed": true,
+          "implementation": [
+            "scripts/update-hardware-baseline.js"
+          ],
+          "tests": [
+            "tests/benchmark/complex-scene.test.js",
+            "tests/benchmark-threshold.test.js",
+            "tests/hardware-baseline-official.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/hardware-baseline/hardware-baseline.json",
+            "docs/hardware-baseline/real-device-fps-trend.svg"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "docs/hardware-baseline/hardware-baseline.json",
+          "title": "docs/hardware-baseline/hardware-baseline.json",
+          "completed": true,
+          "implementation": [
+            "docs/hardware-baseline/hardware-baseline.json"
+          ],
+          "tests": [
+            "tests/benchmark/complex-scene.test.js",
+            "tests/benchmark-threshold.test.js",
+            "tests/hardware-baseline-official.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/hardware-baseline/hardware-baseline.json",
+            "docs/hardware-baseline/real-device-fps-trend.svg"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "docs/hardware-baseline/real-device-fps-trend.svg",
+          "title": "docs/hardware-baseline/real-device-fps-trend.svg",
+          "completed": true,
+          "implementation": [
+            "docs/hardware-baseline/real-device-fps-trend.svg"
+          ],
+          "tests": [
+            "tests/benchmark/complex-scene.test.js",
+            "tests/benchmark-threshold.test.js",
+            "tests/hardware-baseline-official.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/hardware-baseline/hardware-baseline.json",
+            "docs/hardware-baseline/real-device-fps-trend.svg"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": ".github/workflows/benchmark.yml",
+          "title": ".github/workflows/benchmark.yml",
+          "completed": true,
+          "implementation": [
+            ".github/workflows/benchmark.yml"
+          ],
+          "tests": [
+            "tests/benchmark/complex-scene.test.js",
+            "tests/benchmark-threshold.test.js",
+            "tests/hardware-baseline-official.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/hardware-baseline/hardware-baseline.json",
+            "docs/hardware-baseline/real-device-fps-trend.svg"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "playwright.config.js",
+          "title": "playwright.config.js",
+          "completed": true,
+          "implementation": [
+            "playwright.config.js"
+          ],
+          "tests": [
+            "tests/benchmark/complex-scene.test.js",
+            "tests/benchmark-threshold.test.js",
+            "tests/hardware-baseline-official.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/hardware-baseline/hardware-baseline.json",
+            "docs/hardware-baseline/real-device-fps-trend.svg"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "tests/benchmark/complex-scene.test.js",
+          "title": "tests/benchmark/complex-scene.test.js",
+          "completed": true,
+          "implementation": [
+            "tests/benchmark/complex-scene.test.js"
+          ],
+          "tests": [
+            "tests/benchmark/complex-scene.test.js",
+            "tests/benchmark-threshold.test.js",
+            "tests/hardware-baseline-official.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/hardware-baseline/hardware-baseline.json",
+            "docs/hardware-baseline/real-device-fps-trend.svg"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        }
+      ]
+    },
+    {
+      "id": "officialExamples",
+      "label": "官方示例项目",
+      "completed": 3,
+      "total": 3,
+      "coverage": 100,
+      "items": [
+        {
+          "id": "examples/template-platformer/src/main.js",
+          "title": "examples/template-platformer/src/main.js",
+          "completed": true,
+          "implementation": [
+            "examples/template-platformer/src/main.js"
+          ],
+          "tests": [
+            "tests/visual/golden/examples.json",
+            "tests/e2e/game-smoke.spec.js",
+            "tests/build-game-demo-script.test.js"
+          ],
+          "documentation": [
+            "examples/template-platformer/README.md",
+            "examples/template-rpg/README.md",
+            "examples/template-tilemap/README.md",
+            "examples/index.html"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "examples/template-rpg/src/main.js",
+          "title": "examples/template-rpg/src/main.js",
+          "completed": true,
+          "implementation": [
+            "examples/template-rpg/src/main.js"
+          ],
+          "tests": [
+            "tests/visual/golden/examples.json",
+            "tests/e2e/game-smoke.spec.js",
+            "tests/build-game-demo-script.test.js"
+          ],
+          "documentation": [
+            "examples/template-platformer/README.md",
+            "examples/template-rpg/README.md",
+            "examples/template-tilemap/README.md",
+            "examples/index.html"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "examples/template-tilemap/src/main.js",
+          "title": "examples/template-tilemap/src/main.js",
+          "completed": true,
+          "implementation": [
+            "examples/template-tilemap/src/main.js"
+          ],
+          "tests": [
+            "tests/visual/golden/examples.json",
+            "tests/e2e/game-smoke.spec.js",
+            "tests/build-game-demo-script.test.js"
+          ],
+          "documentation": [
+            "examples/template-platformer/README.md",
+            "examples/template-rpg/README.md",
+            "examples/template-tilemap/README.md",
+            "examples/index.html"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        }
+      ]
+    },
+    {
+      "id": "pluginEcosystem",
+      "label": "插件生态",
+      "completed": 9,
+      "total": 9,
+      "coverage": 100,
+      "items": [
+        {
+          "id": "src/addons/CameraShake.js",
+          "title": "src/addons/CameraShake.js",
+          "completed": true,
+          "implementation": [
+            "src/addons/CameraShake.js"
+          ],
+          "tests": [
+            "tests/official-plugin-scale.test.js",
+            "tests/plugin-marketplace-page.test.js",
+            "tests/ecosystem.test.js",
+            "tests/advanced-capabilities.test.js"
+          ],
+          "documentation": [
+            "website/plugins/index.html",
+            "README.md",
+            "docs/api/README.zh-CN.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "src/addons/Localization.js",
+          "title": "src/addons/Localization.js",
+          "completed": true,
+          "implementation": [
+            "src/addons/Localization.js"
+          ],
+          "tests": [
+            "tests/official-plugin-scale.test.js",
+            "tests/plugin-marketplace-page.test.js",
+            "tests/ecosystem.test.js",
+            "tests/advanced-capabilities.test.js"
+          ],
+          "documentation": [
+            "website/plugins/index.html",
+            "README.md",
+            "docs/api/README.zh-CN.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "src/addons/ParticlePack.js",
+          "title": "src/addons/ParticlePack.js",
+          "completed": true,
+          "implementation": [
+            "src/addons/ParticlePack.js"
+          ],
+          "tests": [
+            "tests/official-plugin-scale.test.js",
+            "tests/plugin-marketplace-page.test.js",
+            "tests/ecosystem.test.js",
+            "tests/advanced-capabilities.test.js"
+          ],
+          "documentation": [
+            "website/plugins/index.html",
+            "README.md",
+            "docs/api/README.zh-CN.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "src/addons/ThreeDParticles.js",
+          "title": "src/addons/ThreeDParticles.js",
+          "completed": true,
+          "implementation": [
+            "src/addons/ThreeDParticles.js"
+          ],
+          "tests": [
+            "tests/official-plugin-scale.test.js",
+            "tests/plugin-marketplace-page.test.js",
+            "tests/ecosystem.test.js",
+            "tests/advanced-capabilities.test.js"
+          ],
+          "documentation": [
+            "website/plugins/index.html",
+            "README.md",
+            "docs/api/README.zh-CN.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "src/addons/AudioMixer.js",
+          "title": "src/addons/AudioMixer.js",
+          "completed": true,
+          "implementation": [
+            "src/addons/AudioMixer.js"
+          ],
+          "tests": [
+            "tests/official-plugin-scale.test.js",
+            "tests/plugin-marketplace-page.test.js",
+            "tests/ecosystem.test.js",
+            "tests/advanced-capabilities.test.js"
+          ],
+          "documentation": [
+            "website/plugins/index.html",
+            "README.md",
+            "docs/api/README.zh-CN.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "src/addons/AiPathfinding.js",
+          "title": "src/addons/AiPathfinding.js",
+          "completed": true,
+          "implementation": [
+            "src/addons/AiPathfinding.js"
+          ],
+          "tests": [
+            "tests/official-plugin-scale.test.js",
+            "tests/plugin-marketplace-page.test.js",
+            "tests/ecosystem.test.js",
+            "tests/advanced-capabilities.test.js"
+          ],
+          "documentation": [
+            "website/plugins/index.html",
+            "README.md",
+            "docs/api/README.zh-CN.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "src/addons/SaveCloud.js",
+          "title": "src/addons/SaveCloud.js",
+          "completed": true,
+          "implementation": [
+            "src/addons/SaveCloud.js"
+          ],
+          "tests": [
+            "tests/official-plugin-scale.test.js",
+            "tests/plugin-marketplace-page.test.js",
+            "tests/ecosystem.test.js",
+            "tests/advanced-capabilities.test.js"
+          ],
+          "documentation": [
+            "website/plugins/index.html",
+            "README.md",
+            "docs/api/README.zh-CN.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "website/plugins/index.html",
+          "title": "website/plugins/index.html",
+          "completed": true,
+          "implementation": [
+            "website/plugins/index.html"
+          ],
+          "tests": [
+            "tests/official-plugin-scale.test.js",
+            "tests/plugin-marketplace-page.test.js",
+            "tests/ecosystem.test.js",
+            "tests/advanced-capabilities.test.js"
+          ],
+          "documentation": [
+            "website/plugins/index.html",
+            "README.md",
+            "docs/api/README.zh-CN.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "create-omnicore-plugin-sdk/index.mjs",
+          "title": "create-omnicore-plugin-sdk/index.mjs",
+          "completed": true,
+          "implementation": [
+            "create-omnicore-plugin-sdk/index.mjs"
+          ],
+          "tests": [
+            "tests/official-plugin-scale.test.js",
+            "tests/plugin-marketplace-page.test.js",
+            "tests/ecosystem.test.js",
+            "tests/advanced-capabilities.test.js"
+          ],
+          "documentation": [
+            "website/plugins/index.html",
+            "README.md",
+            "docs/api/README.zh-CN.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        }
+      ]
+    },
+    {
+      "id": "marketReadiness",
+      "label": "市场与发布就绪",
+      "completed": 23,
+      "total": 23,
+      "coverage": 100,
+      "items": [
+        {
+          "id": "release:lint",
+          "title": "发布门禁：lint",
+          "completed": true,
+          "implementation": [
+            "package.json"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": "eslint -c .eslintrc.json --no-eslintrc src tests scripts --ext .js,.mjs",
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "release:test",
+          "title": "发布门禁：test",
+          "completed": true,
+          "implementation": [
+            "package.json"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": "vitest run",
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "release:test:contract",
+          "title": "发布门禁：test:contract",
+          "completed": true,
+          "implementation": [
+            "package.json"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": "node scripts/contract-test.js",
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "release:benchmark:ci",
+          "title": "发布门禁：benchmark:ci",
+          "completed": true,
+          "implementation": [
+            "package.json"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": "node scripts/benchmark-threshold.js",
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "release:build",
+          "title": "发布门禁：build",
+          "completed": true,
+          "implementation": [
+            "package.json"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": "vite build",
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "release:postbuild",
+          "title": "发布门禁：postbuild",
+          "completed": true,
+          "implementation": [
+            "package.json"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": "node scripts/verify-build-output.js",
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "release:security-check",
+          "title": "发布门禁：security-check",
+          "completed": true,
+          "implementation": [
+            "package.json"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": "node scripts/security-check.js",
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "platform:test:e2e",
+          "title": "平台覆盖：test:e2e",
+          "completed": true,
+          "implementation": [
+            "package.json"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": "playwright test tests/e2e",
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "platform:test:visual",
+          "title": "平台覆盖：test:visual",
+          "completed": true,
+          "implementation": [
+            "package.json"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": "node scripts/visual-regression.js --threshold 0.005",
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "platform:test:wechat",
+          "title": "平台覆盖：test:wechat",
+          "completed": true,
+          "implementation": [
+            "package.json"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": "node scripts/test-wechat.js",
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "platform:test:minigame",
+          "title": "平台覆盖：test:minigame",
+          "completed": true,
+          "implementation": [
+            "package.json"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": "node scripts/test-minigame.js",
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "platform:export:platform",
+          "title": "平台覆盖：export:platform",
+          "completed": true,
+          "implementation": [
+            "package.json"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": "node scripts/export-platform.js",
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "platform:build:platform-assets",
+          "title": "平台覆盖：build:platform-assets",
+          "completed": true,
+          "implementation": [
+            "package.json"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": "node scripts/build-platform-assets.js",
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "api:scripts/contract-test.js",
+          "title": "API 稳定性：scripts/contract-test.js",
+          "completed": true,
+          "implementation": [
+            "scripts/contract-test.js"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "api:tests/contract/core-contract.test.js",
+          "title": "API 稳定性：tests/contract/core-contract.test.js",
+          "completed": true,
+          "implementation": [
+            "tests/contract/core-contract.test.js"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "api:tests/contract/golden/omnicore-core-api.json",
+          "title": "API 稳定性：tests/contract/golden/omnicore-core-api.json",
+          "completed": true,
+          "implementation": [
+            "tests/contract/golden/omnicore-core-api.json"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "api:docs/api.md",
+          "title": "API 稳定性：docs/api.md",
+          "completed": true,
+          "implementation": [
+            "docs/api.md"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "api:docs/api/README.zh-CN.md",
+          "title": "API 稳定性：docs/api/README.zh-CN.md",
+          "completed": true,
+          "implementation": [
+            "docs/api/README.zh-CN.md"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "api:docs/api/public-api-policy.md",
+          "title": "API 稳定性：docs/api/public-api-policy.md",
+          "completed": true,
+          "implementation": [
+            "docs/api/public-api-policy.md"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "docs:README.md",
+          "title": "市场文档：README.md",
+          "completed": true,
+          "implementation": [
+            "README.md"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "docs:docs/market-benchmark-report.md",
+          "title": "市场文档：docs/market-benchmark-report.md",
+          "completed": true,
+          "implementation": [
+            "docs/market-benchmark-report.md"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "docs:docs/platforms/wechat-minigame.md",
+          "title": "市场文档：docs/platforms/wechat-minigame.md",
+          "completed": true,
+          "implementation": [
+            "docs/platforms/wechat-minigame.md"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        },
+        {
+          "id": "docs:docs/getting-started-zero.zh-CN.md",
+          "title": "市场文档：docs/getting-started-zero.zh-CN.md",
+          "completed": true,
+          "implementation": [
+            "docs/getting-started-zero.zh-CN.md"
+          ],
+          "tests": [
+            "tests/quality-report.test.js",
+            "tests/verify-build-output.test.js",
+            "tests/release-automation.test.js"
+          ],
+          "documentation": [
+            "README.md",
+            "docs/market-benchmark-report.md",
+            "docs/platforms/wechat-minigame.md",
+            "docs/getting-started-zero.zh-CN.md",
+            "docs/api/public-api-policy.md"
+          ],
+          "command": null,
+          "checks": {
+            "implementationPresent": true,
+            "testsPresent": true,
+            "documentationPresent": true
+          },
+          "missing": []
+        }
+      ]
+    }
+  ],
+  "missingItems": [],
+  "qualityImprovementAudit": {
+    "checkedAt": "2026-06-19T12:16:00.976Z",
+    "commands": [
+      {
+        "command": "npm run lint",
+        "result": "passed: 0 lint errors"
+      },
+      {
+        "command": "npm test -- tests/quality-report.test.js tests/verify-build-output.test.js",
+        "result": "passed: 2 files, 5 tests"
+      },
+      {
+        "command": "npm run production-ready -- --out production-ready.current.json",
+        "result": "ready: true, score: 99, errors: 0, warnings: 0"
+      },
+      {
+        "command": "npm run security-check",
+        "result": "passed: no known vulnerabilities recorded by generated security log"
+      },
+      {
+        "command": "npm run audit:deprecated",
+        "result": "passed: 0 deprecated API calls"
+      }
+    ],
+    "codeFixesApplied": [],
+    "nonFunctionalArtifactsUpdated": [
+      "docs/security/security.md",
+      "docs/release-notes/deprecated-audit-latest.md",
+      "quality-report.json",
+      "quality-checklist.md"
+    ],
+    "deferredItems": [
+      {
+        "id": "public-api-surface-183-exports",
+        "reason": "Production-ready score is 99 because API stability score is 96 with 183 public exports. Reducing exports would be a breaking public API change; existing docs/api/public-api-policy.md is present, so this is not treated as a code fix in this pass."
+      }
+    ]
+  }
+}

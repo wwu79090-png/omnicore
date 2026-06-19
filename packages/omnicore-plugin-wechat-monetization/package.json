@@ -1,0 +1,26 @@
+{
+  "name": "@omnicore/plugin-wechat-monetization",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Official OmniCore plugin for WeChat Mini Game payment and advertisement providers.",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "package.json"
+  ],
+  "peerDependencies": {
+    "omnicore": "*"
+  },
+  "keywords": [
+    "omnicore-plugin",
+    "wechat",
+    "payment",
+    "ads",
+    "minigame"
+  ],
+  "license": "MIT"
+}

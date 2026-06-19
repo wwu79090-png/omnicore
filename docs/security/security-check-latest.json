@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-06-19T12:14:57.167Z",
+  "outdated": {
+    "ok": true,
+    "stdout": "Checking C:\\Users\\39120\\Documents\\引擎开发\\package.json\n\nMinor   Backwards-compatible features\n playwright  ^1.57.0  →  ^1.61.0\n prettier     ^3.6.2  →   ^3.8.4\n\nMajor   Potentially breaking API changes\n eslint             ^8.57.1  →  ^10.5.0\n jsdom              ^26.1.0  →  ^29.1.1\n npm-check-updates  ^18.3.1  →  ^22.2.3\n\nRun npx npm-check-updates --format group -u to upgrade package.json\n",
+    "stderr": "\n"
+  },
+  "auditBefore": {
+    "ok": true,
+    "stdout": "{\n  \"auditReportVersion\": 2,\n  \"vulnerabilities\": {},\n  \"metadata\": {\n    \"vulnerabilities\": {\n      \"info\": 0,\n      \"low\": 0,\n      \"moderate\": 0,\n      \"high\": 0,\n      \"critical\": 0,\n      \"total\": 0\n    },\n    \"dependencies\": {\n      \"prod\": 37,\n      \"dev\": 624,\n      \"optional\": 35,\n      \"peer\": 25,\n      \"peerOptional\": 0,\n      \"total\": 682\n    }\n  }\n}\n",
+    "stderr": ""
+  },
+  "fix": {
+    "ok": true,
+    "stdout": "\nup to date, audited 651 packages in 7s\n\n168 packages are looking for funding\n  run `npm fund` for details\n\nfound 0 vulnerabilities\n",
+    "stderr": ""
+  },
+  "auditAfter": {
+    "ok": true,
+    "stdout": "{\n  \"auditReportVersion\": 2,\n  \"vulnerabilities\": {},\n  \"metadata\": {\n    \"vulnerabilities\": {\n      \"info\": 0,\n      \"low\": 0,\n      \"moderate\": 0,\n      \"high\": 0,\n      \"critical\": 0,\n      \"total\": 0\n    },\n    \"dependencies\": {\n      \"prod\": 37,\n      \"dev\": 624,\n      \"optional\": 35,\n      \"peer\": 25,\n      \"peerOptional\": 0,\n      \"total\": 682\n    }\n  }\n}\n",
+    "stderr": ""
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "apiUsage": {
+    "Kernel.use": {
+      "count": 9,
+      "avgDuration": 1
+    },
+    "Renderer.drawRect": {
+      "count": 4,
+      "avgDuration": 2
+    }
+  }
+}

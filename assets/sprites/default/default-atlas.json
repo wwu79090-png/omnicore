@@ -1,0 +1,12 @@
+{
+  "license": "CC0-1.0",
+  "source": "Original OmniCore pixel art created for this repository; free for commercial use.",
+  "image": "default-tilesheet.svg",
+  "tileSize": 16,
+  "frames": {
+    "player": { "x": 0, "y": 0, "w": 16, "h": 16 },
+    "grass": { "x": 16, "y": 0, "w": 16, "h": 16 },
+    "crate": { "x": 32, "y": 0, "w": 16, "h": 16 },
+    "npc": { "x": 48, "y": 0, "w": 16, "h": 16 }
+  }
+}

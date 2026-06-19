@@ -1,0 +1,11 @@
+{
+  "type": "sprite",
+  "texture": "enemy",
+  "width": 24,
+  "height": 24,
+  "props": {
+    "hp": 10,
+    "faction": "monster",
+    "speed": 60
+  }
+}

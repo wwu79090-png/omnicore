@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OmniCore BehaviorTree Editor</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+      main { display: grid; grid-template-columns: 220px 1fr 320px; min-height: 100vh; }
+      aside, section { padding: 16px; border-right: 1px solid #334155; }
+      button { display: block; width: 100%; margin: 0 0 8px; padding: 10px; background: #1d4ed8; color: white; border: 0; }
+      #canvas { position: relative; overflow: hidden; }
+      .node { position: absolute; min-width: 140px; padding: 10px; background: #111827; border: 1px solid #38bdf8; cursor: move; }
+      textarea { width: 100%; min-height: 70vh; background: #020617; color: #bbf7d0; border: 1px solid #334155; }
+    </style>
+  </head>
+  <body>
+    <main data-behavior-tree-editor>
+      <aside>
+        <h1>BehaviorTree</h1>
+        <button draggable="true" data-node-type="condition">条件节点</button>
+        <button draggable="true" data-node-type="action">执行节点</button>
+        <button id="export">导出 EventSheet</button>
+      </aside>
+      <section id="canvas" aria-label="Behavior tree canvas"></section>
+      <section>
+        <h2>EventSheet.json</h2>
+        <textarea id="output"></textarea>
+      </section>
+    </main>
+    <script>
+      const canvas = document.querySelector('#canvas');
+      const output = document.querySelector('#output');
+      const nodes = [];
+      let draggingType = null;
+      document.querySelectorAll('[data-node-type]').forEach((button) => {
+        button.addEventListener('dragstart', () => { draggingType = button.dataset.nodeType; });
+      });
+      canvas.addEventListener('dragover', (event) => event.preventDefault());
+      canvas.addEventListener('drop', (event) => {
+        event.preventDefault();
+        const node = addNode(draggingType || 'condition', event.offsetX, event.offsetY);
+        selectNode(node);
+      });
+      function addNode(type, x, y) {
+        const id = `${type}-${nodes.length + 1}`;
+        const element = document.createElement('article');
+        element.className = 'node';
+        element.draggable = true;
+        element.style.left = `${x}px`;
+        element.style.top = `${y}px`;
+        element.textContent = `${type}: ${id}`;
+        element.addEventListener('dragend', (event) => {
+          element.style.left = `${Math.max(0, event.offsetX)}px`;
+          element.style.top = `${Math.max(0, event.offsetY)}px`;
+        });
+        canvas.appendChild(element);
+        const node = { id, type, x, y, element };
+        nodes.push(node);
+        return node;
+      }
+      function selectNode(node) {
+        nodes.forEach((item) => { item.element.style.borderColor = '#38bdf8'; });
+        node.element.style.borderColor = '#facc15';
+      }
+      function exportEventSheet() {
+        const events = nodes.map((node) => node.type === 'condition'
+          ? { conditions: [{ op: 'truthy', left: `store.${node.id}` }], actions: [] }
+          : { conditions: [], actions: [{ op: 'emit', event: node.id }] });
+        return { events };
+      }
+      document.querySelector('#export').addEventListener('click', () => {
+        output.value = JSON.stringify(exportEventSheet(), null, 2);
+      });
+      window.exportEventSheet = exportEventSheet;
+    </script>
+  </body>
+</html>

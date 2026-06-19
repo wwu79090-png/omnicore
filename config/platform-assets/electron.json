@@ -1,0 +1,6 @@
+{
+  "target": "electron",
+  "imageQuality": 1,
+  "webpFallback": true,
+  "description": "Electron 桌面端保留原始质量，优先保证离线包素材完整度。"
+}

@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-06-18T21:20:20.391Z",
+  "threshold": 0.001,
+  "results": [
+    {
+      "name": "template-2d-platformer",
+      "diffRatio": 0,
+      "threshold": 0.001,
+      "pass": true
+    },
+    {
+      "name": "template-2d-rpg",
+      "diffRatio": 0,
+      "threshold": 0.001,
+      "pass": true
+    },
+    {
+      "name": "template-rpg",
+      "diffRatio": 0,
+      "threshold": 0.001,
+      "pass": true
+    },
+    {
+      "name": "template-interactive",
+      "diffRatio": 0,
+      "threshold": 0.001,
+      "pass": true
+    },
+    {
+      "name": "template-tilemap",
+      "diffRatio": 0,
+      "threshold": 0.001,
+      "pass": true
+    },
+    {
+      "name": "game-demo",
+      "diffRatio": 0,
+      "threshold": 0.001,
+      "pass": true
+    },
+    {
+      "name": "playground",
+      "diffRatio": 0,
+      "threshold": 0.001,
+      "pass": true
+    },
+    {
+      "name": "core-runtime-systems",
+      "diffRatio": 0,
+      "threshold": 0.001,
+      "pass": true
+    },
+    {
+      "name": "offscreen-transfer",
+      "diffRatio": 0,
+      "threshold": 0.001,
+      "pass": true
+    },
+    {
+      "name": "synth-audio",
+      "diffRatio": 0,
+      "threshold": 0.001,
+      "pass": true
+    }
+  ],
+  "pass": true
+}

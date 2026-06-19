@@ -1,0 +1,11 @@
+{
+  "version": "2026.06.18-example",
+  "scenes": {
+    "boot": {
+      "title": "Hotfix applied"
+    }
+  },
+  "functions": {
+    "computeScore": "return input.score * 2;"
+  }
+}
