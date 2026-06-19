@@ -523,9 +523,11 @@ export class Character3D {
 }
 
 export class PlaneLayer {
-  constructor({ zScale = 1, baseZ = 0 } = {}) {
+  constructor({ zScale = 1, baseZ = 0, zToYScale = 1, baseY = 0 } = {}) {
     this.zScale = zScale;
     this.baseZ = baseZ;
+    this.zToYScale = zToYScale;
+    this.baseY = baseY;
     this.items = [];
   }
 
@@ -556,10 +558,63 @@ export class PlaneLayer {
 
   applyZSort() {
     this.sorted().forEach((item, index) => {
+      item.object.zIndex = index;
+      item.object.omnicorePlaneDepth = item.depth;
       if (item.kind === '3d') item.object.renderOrder = index;
-      else item.object.zIndex = index;
     });
     return this.sorted();
+  }
+
+  worldToPlane(position = {}) {
+    const point = normalizeVector(position, DEFAULT_MODEL_TRANSFORM.position);
+    return {
+      x: point.x,
+      y: this.baseY + point.y + point.z * this.zToYScale
+    };
+  }
+
+  projectCollider3D(model = {}) {
+    const position = this.worldToPlane(model.position || model);
+    const bounds = normalizeBounds(model.bounds || model);
+    const footprintHeight = bounds.depth || bounds.height;
+    return {
+      x: position.x - bounds.width / 2,
+      y: position.y - footprintHeight / 2,
+      width: bounds.width,
+      height: footprintHeight,
+      minX: position.x - bounds.width / 2,
+      maxX: position.x + bounds.width / 2,
+      minY: position.y - footprintHeight / 2,
+      maxY: position.y + footprintHeight / 2
+    };
+  }
+
+  projectColliders3D(models = null) {
+    const source = Array.isArray(models)
+      ? models
+      : this.items.filter((item) => item.kind === '3d').map((item) => item.object);
+    return source.map((model) => ({
+      model,
+      collider: this.projectCollider3D(model)
+    }));
+  }
+
+  collides2D(rect = {}, model = {}) {
+    const projected = this.projectCollider3D(model);
+    return this.collidesProjected2D(rect, projected);
+  }
+
+  collidesProjected2D(rect = {}, projected = {}) {
+    const left = Number(rect.x ?? rect.left ?? 0);
+    const top = Number(rect.y ?? rect.top ?? 0);
+    const width = Number(rect.width ?? rect.w ?? 1);
+    const height = Number(rect.height ?? rect.h ?? 1);
+    const right = left + width;
+    const bottom = top + height;
+    return left < projected.maxX
+      && right > projected.minX
+      && top < projected.maxY
+      && bottom > projected.minY;
   }
 
   _add(kind, object, options) {
@@ -650,9 +705,11 @@ function normalizePlaneOptions(object, options, layer) {
     ? Number(options.depth)
     : Number.isFinite(Number(options.z))
       ? Number(options.z)
-      : Number.isFinite(Number(object?.zIndex))
-        ? Number(object.zIndex)
-        : Number(object?.position?.z ?? object?.y ?? 0);
+      : object?.position && Number.isFinite(Number(object.position.z))
+        ? layer.worldToPlane(object.position).y
+        : Number.isFinite(Number(object?.y))
+          ? Number(object.y)
+          : Number(object?.zIndex ?? 0);
   return {
     depth: layer.baseZ + depth * layer.zScale
   };

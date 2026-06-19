@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -9,6 +8,7 @@ const RELEASE_GATE_SCRIPTS = [
   'test',
   'test:contract',
   'benchmark:ci',
+  'performance:budget',
   'build',
   'postbuild',
   'security-check'
@@ -34,6 +34,115 @@ const MARKET_DOC_FILES = [
   'docs/market-benchmark-report.md',
   'docs/platforms/wechat-minigame.md',
   'docs/getting-started-zero.zh-CN.md'
+];
+const NON_3D_MARKET_TARGET = 80;
+const NON_3D_MARKET_DIMENSIONS = [
+  {
+    key: 'editorUx',
+    label: '编辑器体验',
+    notes: ['selection-outline', 'origin-marker', 'marquee-selection', 'copy-paste-delete', 'drag-undo'],
+    checks: [
+      { file: 'packages/omnicore-editor/src/editor-app.js' },
+      { file: 'packages/omnicore-editor/src/live-sync-protocol.js' },
+      { test: 'tests/omnicore-experience-gap.test.js' },
+      { test: 'tests/omnicore-full-stack-phase5.test.js' }
+    ]
+  },
+  {
+    key: 'platformPublishing',
+    label: '平台发布',
+    notes: ['wechat-build', '4mb-gate', 'debug-proxy', 'minigame-tests'],
+    checks: [
+      { script: 'build:wechat' },
+      { script: 'test:wechat' },
+      { script: 'test:minigame' },
+      { script: 'export:platform' },
+      { file: 'scripts/build-wechat.js' },
+      { file: 'docs/platforms/wechat-mini-game-publish.md' }
+    ]
+  },
+  {
+    key: 'migrationApiStability',
+    label: '迁移与 API 稳定',
+    notes: ['migration-cli', 'deprecated-markers', 'compatibility-aliases', 'api-audit'],
+    checks: [
+      { script: 'audit:api' },
+      { file: 'scripts/omni-migrate.js' },
+      { file: 'src/index.js' },
+      { file: 'src/store/Store.js' },
+      { file: 'src/core/Entity.js' },
+      { test: 'tests/omnicore-experience-gap.test.js' },
+      { test: 'tests/dx-experience.test.js' }
+    ]
+  },
+  {
+    key: 'onboardingDocs',
+    label: '入门与示例文档',
+    notes: ['10-minute-start', 'positioning', 'wechat-manual', 'template-debugging'],
+    checks: [
+      { file: 'README.md' },
+      { file: 'website/editor/index.html' },
+      { file: 'docs/getting-started.md' },
+      { file: 'docs/platforms/wechat-mini-game-publish.md' },
+      { file: 'examples/template-platformer/DEBUGGING.md' },
+      { file: 'examples/template-rpg/DEBUGGING.md' },
+      { file: 'examples/template-interactive/DEBUGGING.md' }
+    ]
+  },
+  {
+    key: 'pluginMarketplace',
+    label: '插件与市场',
+    notes: ['marketplace-page', 'plugin-validation', 'wechat-monetization-package', 'sdk'],
+    checks: [
+      { script: 'marketplace:validate' },
+      { file: 'website/plugins/index.html' },
+      { file: 'scripts/validate-marketplace-index.js' },
+      { file: 'packages/omnicore-plugin-wechat-monetization/package.json' },
+      { file: 'create-omnicore-plugin-sdk/index.mjs' }
+    ]
+  },
+  {
+    key: 'runtime2D',
+    label: '2D 运行时',
+    notes: ['scene-stack', 'entity-model', 'event-sheet', 'tilemap', 'physics-adapter'],
+    checks: [
+      { file: 'src/scene/Scene.js' },
+      { file: 'src/core/Entity.js' },
+      { file: 'src/data/EventSheet.js' },
+      { file: 'src/tilemap/Tilemap.js' },
+      { file: 'src/physics/PhysicsWorld.js' },
+      { test: 'tests/performance-refactor.test.js' },
+      { test: 'tests/physics-backends.test.js' }
+    ]
+  },
+  {
+    key: 'assetPipeline',
+    label: '资源管线',
+    notes: ['asset-import', 'pack-assets', 'platform-assets', 'asset-audit'],
+    checks: [
+      { script: 'audit:assets' },
+      { script: 'build:platform-assets' },
+      { file: 'scripts/asset-importer.js' },
+      { file: 'scripts/pack-assets.js' },
+      { file: 'scripts/build-platform-assets.js' }
+    ]
+  },
+  {
+    key: 'releaseQuality',
+    label: '发布质量',
+    notes: ['lint', 'tests', 'contract', 'benchmark', 'build-verification', 'production-ready'],
+    checks: [
+      { script: 'lint' },
+      { script: 'test' },
+      { script: 'test:contract' },
+      { script: 'benchmark:ci' },
+      { script: 'build' },
+      { script: 'postbuild' },
+      { script: 'production-ready' },
+      { file: 'scripts/production-ready.js' },
+      { file: 'scripts/verify-build-output.js' }
+    ]
+  }
 ];
 
 function parseArgs(argv) {
@@ -118,12 +227,14 @@ export function generateQualityReport({ out = path.join(root, 'dist', 'quality-r
   const scores = Object.values(sections).map((section) => section.score);
   const capabilityScore = averageScore(scores);
   const marketReadiness = buildMarketReadiness();
+  const non3DMarketScorecard = buildNon3DMarketScorecard();
   const overallScore = Math.round((capabilityScore * 0.55) + (marketReadiness.score * 0.45));
   const report = {
     generatedAt: new Date().toISOString(),
     package: readPackageSummary(),
     capabilityScore,
     marketReadiness,
+    non3DMarketScorecard,
     overallScore,
     sections
   };
@@ -159,6 +270,32 @@ export function buildMarketReadiness({
       ...platformCoverage.missing.map((name) => `missing platform command: ${name}`),
       ...apiStability.warnings
     ]
+  };
+}
+
+export function buildNon3DMarketScorecard({
+  projectRoot = root,
+  packageSummary = readPackageSummary(projectRoot),
+  target = NON_3D_MARKET_TARGET
+} = {}) {
+  const scripts = packageSummary?.scripts || {};
+  const dimensions = Object.fromEntries(
+    NON_3D_MARKET_DIMENSIONS.map((dimension) => [
+      dimension.key,
+      scoreCheckDimension(dimension, projectRoot, scripts)
+    ])
+  );
+  const dimensionScores = Object.values(dimensions).map((dimension) => dimension.score);
+  const overallScore = averageScore(dimensionScores);
+  return {
+    target,
+    excluded: ['full-3d'],
+    overallScore,
+    allAboveTarget: dimensionScores.every((score) => score >= target),
+    dimensions,
+    risks: Object.entries(dimensions)
+      .filter(([, dimension]) => dimension.score < target)
+      .map(([key, dimension]) => `${key} below target: ${dimension.score}`)
   };
 }
 
@@ -206,6 +343,36 @@ function scoreFileGroup(files, projectRoot, label) {
   };
 }
 
+function scoreCheckDimension(dimension, projectRoot, scripts) {
+  const checks = dimension.checks.map((check) => {
+    if (check.script) {
+      return {
+        script: check.script,
+        command: scripts[check.script] || null,
+        present: Boolean(scripts[check.script])
+      };
+    }
+    if (check.test) {
+      return {
+        test: check.test,
+        present: existsSync(path.join(projectRoot, check.test))
+      };
+    }
+    return {
+      file: check.file,
+      present: existsSync(path.join(projectRoot, check.file))
+    };
+  });
+  const present = checks.filter((check) => check.present).length;
+  return {
+    label: dimension.label,
+    score: Math.round((present / checks.length) * 100),
+    missing: checks.filter((check) => !check.present).map((check) => check.script || check.test || check.file),
+    checks,
+    notes: dimension.notes
+  };
+}
+
 function scoreApiStability(projectRoot) {
   const contract = scoreFileGroup(API_STABILITY_FILES, projectRoot, 'API 稳定性');
   const publicExportCount = countPublicExports(path.join(projectRoot, 'src', 'index.js'));
@@ -213,19 +380,32 @@ function scoreApiStability(projectRoot) {
     file: 'docs/api/public-api-policy.md',
     present: existsSync(path.join(projectRoot, 'docs/api/public-api-policy.md'))
   };
+  const contractComplete = contract.score === 100 && contract.missing.length === 0;
+  const broadSurface = publicExportCount > 160;
+  const managedBroadSurface = broadSurface && policy.present && contractComplete;
   const warnings = [];
-  if (publicExportCount > 160 && !policy.present) {
+  if (broadSurface && !policy.present) {
     warnings.push(`public API surface is broad: ${publicExportCount} named exports`);
+  } else if (broadSurface && policy.present && !contractComplete) {
+    warnings.push(`public API surface is broad and contract coverage is incomplete: ${publicExportCount} named exports`);
   }
-  const exportSurfaceScore = publicExportCount > 180
-    ? (policy.present ? 85 : 65)
-    : publicExportCount > 160
-      ? (policy.present ? 92 : 80)
-      : 100;
+  const exportSurfaceScore = managedBroadSurface
+    ? 100
+    : publicExportCount > 180
+      ? (policy.present ? 85 : 65)
+      : publicExportCount > 160
+        ? (policy.present ? 92 : 80)
+        : 100;
   return {
     label: contract.label,
     score: Math.round((contract.score * 0.7) + (exportSurfaceScore * 0.3)),
     publicExportCount,
+    exportSurface: {
+      score: exportSurfaceScore,
+      broad: broadSurface,
+      managed: managedBroadSurface,
+      contractComplete
+    },
     policy,
     warnings,
     checks: contract.checks,

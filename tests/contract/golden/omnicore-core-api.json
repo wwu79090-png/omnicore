@@ -1178,6 +1178,12 @@
         "name": "set"
       },
       {
+        "arity": 2,
+        "async": false,
+        "kind": "method",
+        "name": "setValue"
+      },
+      {
         "arity": 0,
         "async": false,
         "kind": "method",
@@ -1944,6 +1950,16 @@
       },
       {
         "arity": 0,
+        "async": false,
+        "name": "createEntity"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createGame"
+      },
+      {
+        "arity": 0,
         "async": true,
         "name": "createLeanRuntime"
       },
@@ -2170,6 +2186,8 @@
       "benchmarkECSParticles",
       "calculateDamage",
       "connectEditorSync",
+      "createEntity",
+      "createGame",
       "createLeanRuntime",
       "detectEnvironment",
       "disableAddon",

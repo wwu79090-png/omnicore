@@ -4,12 +4,13 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { JSDOM } from 'jsdom';
+import { createViteDevServerCommand } from './lib/dev-server-command.js';
+import { evaluateBrowserProbe } from './lib/health-probe.js';
 
 const args = new Set(process.argv.slice(2));
 const projectRoot = process.cwd();
 const reportPath = path.join(projectRoot, 'docs', 'release-notes', 'maintenance-health-report.json');
-const isWindows = process.platform === 'win32';
-const npmCommand = isWindows ? 'npm.cmd' : 'npm';
+const exampleHealthUrl = 'http://127.0.0.1:5173/examples/?backend=canvas';
 
 function withTimeout(promise, ms, label) {
   return Promise.race([
@@ -164,6 +165,7 @@ async function runPlaywrightScan() {
   for (const item of browsers) {
     const launcher = playwright[item.type];
     try {
+      const consoleIssues = [];
       const browser = await withTimeout(
         launcher.launch({
           headless: true,
@@ -173,15 +175,31 @@ async function runPlaywrightScan() {
         `${item.name} launch`
       );
       const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-      await page.goto('http://127.0.0.1:5173/examples/', { waitUntil: 'load', timeout: 5000 });
-      const status = await page.locator('#status').innerText({ timeout: 3000 });
+      page.on('console', (message) => {
+        if (message.type() === 'warning' || message.type() === 'error') consoleIssues.push(message.text());
+      });
+      page.on('pageerror', (error) => {
+        consoleIssues.push(error.message);
+      });
+      await page.goto(exampleHealthUrl, { waitUntil: 'commit', timeout: 10000 });
+      let fallbackBackend = null;
+      let status = await waitForBackendStatus(page, 7000);
+      if (!status.includes('当前后端')) {
+        fallbackBackend = 'canvas';
+        await page.locator('[data-backend="canvas"]').click({ timeout: 5000 });
+        status = await waitForBackendStatus(page, 10000);
+      }
       const canvasCount = await page.locator('canvas').count();
       await browser.close();
+      const result = evaluateBrowserProbe({
+        pageStatus: status,
+        canvasCount,
+        fallbackBackend,
+        consoleIssues
+      });
       results.push({
         browser: item.name,
-        status: status.includes('当前后端') && canvasCount === 1 ? 'pass' : 'fail',
-        pageStatus: status,
-        canvasCount
+        ...result
       });
     } catch (error) {
       results.push({
@@ -202,9 +220,24 @@ async function runPlaywrightScan() {
   };
 }
 
+async function waitForBackendStatus(page, timeoutMs) {
+  const started = Date.now();
+  let lastStatus = '';
+  while (Date.now() - started < timeoutMs) {
+    try {
+      lastStatus = await page.locator('#status').innerText({ timeout: 1000 });
+      if (lastStatus.includes('当前后端')) return lastStatus;
+    } catch {
+      lastStatus = '';
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  return lastStatus;
+}
+
 async function canReachExample() {
   try {
-    const response = await fetch('http://127.0.0.1:5173/examples/');
+    const response = await fetch(exampleHealthUrl);
     return response.ok;
   } catch {
     return false;
@@ -213,7 +246,12 @@ async function canReachExample() {
 
 async function ensureExampleServer() {
   if (await canReachExample()) return null;
-  const child = spawn(npmCommand, ['run', 'dev', '--', '--host', '127.0.0.1'], {
+  const serverCommand = createViteDevServerCommand({
+    root: projectRoot,
+    host: '127.0.0.1',
+    port: 5173
+  });
+  const child = spawn(serverCommand.command, serverCommand.args, {
     cwd: projectRoot,
     stdio: 'ignore',
     detached: false

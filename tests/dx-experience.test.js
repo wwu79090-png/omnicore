@@ -45,8 +45,8 @@ describe('developer experience helpers', () => {
     report.record('Renderer.drawRect', { duration: 5 });
 
     const payload = report.generate({ reason: 'test' });
-    expect(help.signature).toContain('OmniCore.Game');
-    expect(help.example).toContain('new OmniCore.Game');
+    expect(help.signature).toContain('OmniCore.createGame');
+    expect(help.example).toContain('OmniCore.createGame');
     expect(payload.calls['Renderer.drawRect'].count).toBe(2);
     expect(payload.suggestions).toEqual(expect.arrayContaining([expect.stringContaining('Renderer.drawRect')]));
   });

@@ -135,7 +135,25 @@ function instantiateComponent(component, options) {
 }
 
 export class EntityClass {
+  /**
+   * @param {string|Function|object} type Entity type, constructor, or object.
+   * @param {object} props Entity properties.
+   * @returns {object} Entity instance.
+   *
+   * @deprecated since 0.3.0, removeIn 2.0.0. Use `Entity.createEntity(type, props)` or `OmniCore.createEntity(type, props)`.
+   * @replacement Entity.createEntity
+   * @removeIn 2.0.0
+   */
   static create(type = 'Node', props = {}) {
+    return EntityClass.createEntity(type, props);
+  }
+
+  /**
+   * @param {string|Function|object} type Entity type, constructor, or object.
+   * @param {object} props Entity properties.
+   * @returns {object} Entity instance.
+   */
+  static createEntity(type = 'Node', props = {}) {
     const mergedProps = props && typeof props === 'object' ? props : {};
     let entity = null;
     const normalizedType = normalizeTypeName(type);
@@ -311,7 +329,8 @@ function serializeEntityForStore(entity) {
 }
 
 const Entity = {
-  create: EntityClass.create
+  create: EntityClass.create,
+  createEntity: EntityClass.createEntity
 };
 
 export { Entity };

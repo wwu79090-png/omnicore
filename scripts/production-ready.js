@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
 import {
   existsSync,
@@ -11,10 +10,11 @@ import {
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildMarketReadiness } from './generate-quality-report.js';
+import { createNoWarningSummary, detectOutputRisks } from './lib/output-gate.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_VERIFY_TIMEOUT_MS = 120_000;
-const DEFAULT_VERIFY_SCRIPTS = ['lint', 'test:contract', 'benchmark:ci'];
+const DEFAULT_VERIFY_SCRIPTS = ['lint', 'test:contract', 'benchmark:ci', 'performance:budget'];
 const VERIFY_OUTPUT_LIMIT = 24_000;
 
 export function createProductionReadyReport({
@@ -93,6 +93,15 @@ export function createProductionReadyReport({
       timedOut: failed.timedOut
     });
   }
+  for (const risky of verification.results.filter((item) => item.outputRisks?.length)) {
+    findings.push({
+      level: 'error',
+      file: 'verification',
+      message: `verification output contained warning/error text: ${risky.name}`,
+      command: risky.command,
+      risks: risky.outputRisks
+    });
+  }
 
   return {
     generatedAt,
@@ -101,6 +110,7 @@ export function createProductionReadyReport({
     score: marketReadiness.score,
     marketReadiness,
     verification,
+    noWarningSummary: verification.noWarningSummary,
     findings
   };
 }
@@ -169,10 +179,12 @@ function buildVerificationReport({
     })
     : [];
   const failed = results.filter((item) => !item.ok).map((item) => item.name);
+  const noWarningSummary = createNoWarningSummary(results);
   return {
     enabled,
-    ok: failed.length === 0,
+    ok: failed.length === 0 && noWarningSummary.ok,
     failed,
+    noWarningSummary,
     defaultScripts: enabled && verificationScripts.length === 0 && verificationCommands.length === 0
       ? [...DEFAULT_VERIFY_SCRIPTS]
       : [],
@@ -250,11 +262,12 @@ function runVerificationCommand(commandSpec, { cwd, timeoutMs }) {
     });
   const stdout = limitOutput(result.stdout || '');
   const stderr = limitOutput(result.stderr || '');
+  const outputRisks = detectOutputRisks({ stdout: stdout.text, stderr: stderr.text });
   const timedOut = result.error?.code === 'ETIMEDOUT';
   return {
     name: commandSpec.name,
     command,
-    ok: !result.error && result.status === 0,
+    ok: !result.error && result.status === 0 && outputRisks.length === 0,
     status: result.status,
     signal: result.signal || null,
     timedOut,
@@ -263,6 +276,7 @@ function runVerificationCommand(commandSpec, { cwd, timeoutMs }) {
     stderr: stderr.text,
     stdoutTruncated: stdout.truncated,
     stderrTruncated: stderr.truncated,
+    outputRisks,
     error: result.error ? result.error.message : null
   };
 }

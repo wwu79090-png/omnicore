@@ -1,6 +1,6 @@
 # OmniCore API Reference
 
-Generated: 2026-06-19T12:44:46.151Z
+Generated: 2026-06-19T14:21:40.290Z
 
 ## 高频 API
 
@@ -143,6 +143,17 @@ Generated: 2026-06-19T12:44:46.151Z
    * @returns {{get: Function, set: Function, subscribe: Function}} Nano store atom.
 
 ### set
+
+/**
+   * @param {string} key State key.
+   * @param {*} value Next value.
+   * @returns {*} Stored value after emergency patching.
+   *
+   * @deprecated since 0.3.0, removeIn 2.0.0. Use `store.setValue(key, value)`.
+   * @replacement Store#setValue
+   * @removeIn 2.0.0
+
+### setValue
 
 /**
    * @param {string} key State key.

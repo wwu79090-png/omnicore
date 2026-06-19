@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="360" viewBox="0 0 760 360" role="img" aria-labelledby="title desc">
+  <title id="title">WeChat Developer Tools import project diagram</title>
+  <desc id="desc">OmniCore WeChat package imported into WeChat Developer Tools.</desc>
+  <rect width="760" height="360" fill="#f8fafc"/>
+  <rect x="40" y="36" width="680" height="288" rx="10" fill="#0f172a"/>
+  <rect x="64" y="64" width="210" height="232" rx="6" fill="#111827" stroke="#334155"/>
+  <rect x="300" y="64" width="396" height="232" rx="6" fill="#ecfeff" stroke="#06b6d4"/>
+  <text x="84" y="98" fill="#e5e7eb" font-family="Arial, sans-serif" font-size="18">微信开发者工具</text>
+  <text x="84" y="136" fill="#94a3b8" font-family="Arial, sans-serif" font-size="14">1. 导入项目</text>
+  <text x="84" y="168" fill="#94a3b8" font-family="Arial, sans-serif" font-size="14">2. 选择 dist/wechat</text>
+  <text x="84" y="200" fill="#94a3b8" font-family="Arial, sans-serif" font-size="14">3. 填写 AppID</text>
+  <text x="84" y="232" fill="#94a3b8" font-family="Arial, sans-serif" font-size="14">4. 真机预览</text>
+  <rect x="334" y="96" width="320" height="48" rx="6" fill="#ffffff" stroke="#67e8f9"/>
+  <text x="354" y="126" fill="#0f172a" font-family="Consolas, monospace" font-size="14">dist/wechat/project.config.json</text>
+  <rect x="334" y="168" width="320" height="48" rx="6" fill="#ffffff" stroke="#67e8f9"/>
+  <text x="354" y="198" fill="#0f172a" font-family="Consolas, monospace" font-size="14">game.js + game.json</text>
+  <rect x="334" y="240" width="320" height="28" rx="14" fill="#16a34a"/>
+  <text x="430" y="260" fill="#ffffff" font-family="Arial, sans-serif" font-size="14">包体必须小于 4MB</text>
+</svg>

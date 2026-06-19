@@ -41,9 +41,14 @@ export function createEditorApp(root = document.querySelector('#app'), {
 } = {}) {
   let current = createEditorState(state);
   let dragSession = null;
+  let marqueeSession = null;
   let tilePaintSession = false;
+  let clipboard = [];
+  let copySerial = 1;
   let history = [cloneState(current)];
+  let historyLabels = ['Initial scene'];
   let historyIndex = 0;
+  const sceneBaselines = new Map();
   const t = createTextResolver(localization);
   const ownerWindow = root.ownerDocument?.defaultView || globalThis.window;
   root.className = 'omnicore-desktop-editor';
@@ -69,6 +74,20 @@ export function createEditorApp(root = document.querySelector('#app'), {
     EditorAPI: createEditorAPI(),
     undo,
     redo,
+    copySelection,
+    pasteSelection,
+    deleteSelection,
+    setGridSnap,
+    openCommandPalette,
+    closeCommandPalette,
+    runCommand,
+    validateScene,
+    locateSceneIssue,
+    captureSceneBaseline,
+    getSceneDiff,
+    createPrefabSnapshot,
+    getPrefabHistory,
+    toggleSceneOverlays,
     saveSnapshot,
     exportTiledJson,
     exportFlowGraphEventSheet,
@@ -99,7 +118,13 @@ export function createEditorApp(root = document.querySelector('#app'), {
       profilerFrame: next.profilerFrame || current.profilerFrame,
       database: next.database || current.database,
       lastCommandError: next.lastCommandError || current.lastCommandError,
-      dockLayout: normalizeDockLayout(next.dockLayout || current.dockLayout)
+      dockLayout: normalizeDockLayout(next.dockLayout || current.dockLayout),
+      gridSnap: next.gridSnap || current.gridSnap,
+      sceneOverlays: next.sceneOverlays || current.sceneOverlays,
+      commandPaletteOpen: next.commandPaletteOpen ?? current.commandPaletteOpen,
+      sceneValidation: next.sceneValidation || current.sceneValidation,
+      sceneIssueTargetId: next.sceneIssueTargetId ?? current.sceneIssueTargetId,
+      prefabHistory: next.prefabHistory || current.prefabHistory
     });
     renderToolbar();
     shell.textContent = '';
@@ -132,6 +157,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       shell.appendChild(regionNode);
     }
     renderStatusbar();
+    renderTransientSurfaces();
     return current;
   }
 
@@ -157,11 +183,16 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return current.dockLayout;
   }
 
-  function pushHistory(next) {
+  function pushHistory(next, label = 'Scene change') {
     const snapshot = cloneState(next);
     history = history.slice(0, historyIndex + 1);
+    historyLabels = historyLabels.slice(0, historyIndex + 1);
     history.push(snapshot);
-    if (history.length > 100) history.shift();
+    historyLabels.push(label);
+    if (history.length > 100) {
+      history.shift();
+      historyLabels.shift();
+    }
     historyIndex = history.length - 1;
     return snapshot;
   }
@@ -228,7 +259,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
         };
         current = { ...current, prefabs: [...current.prefabs, variant] };
         emit('editor:create-prefab-variant', variant);
-        pushHistory(current);
+        pushHistory(current, `Create prefab variant ${variant.id}`);
         update(current);
         return variant;
       },
@@ -262,16 +293,228 @@ export function createEditorApp(root = document.querySelector('#app'), {
       scene: { ...current.scene, entities }
     };
     emit('editor:update-entity', { id, patch, commandId: createCommandId('entity') });
-    pushHistory(current);
+    pushHistory(current, `Patch ${id}`);
     update(current);
     return entities.find((entity) => entity.id === id) || null;
   }
 
-  function selectEntity(id) {
-    current = { ...current, selectedEntityId: id };
-    emit('editor:select-entity', { id });
-    emit('editor:highlight-entity', { id });
+  function selectEntity(id, { append = false, ids = null } = {}) {
+    const nextIds = ids
+      ? [...new Set(ids.filter(Boolean).map(String))]
+      : resolveNextSelection(id, append, current);
+    current = {
+      ...current,
+      selectedEntityId: nextIds.at(-1) || null,
+      selectedEntityIds: nextIds
+    };
+    emit('editor:select-entity', { id: current.selectedEntityId, ids: nextIds });
+    emit('editor:highlight-entity', { id: current.selectedEntityId });
     update(current);
+  }
+
+  function setGridSnap(options = {}) {
+    current = {
+      ...current,
+      gridSnap: {
+        enabled: Boolean(options.enabled),
+        size: Math.max(1, Number(options.size || current.gridSnap?.size || 16))
+      }
+    };
+    emit('editor:grid-snap', current.gridSnap);
+    update(current);
+    return current.gridSnap;
+  }
+
+  function openCommandPalette() {
+    current = { ...current, commandPaletteOpen: true };
+    update(current);
+    return current.commandPaletteOpen;
+  }
+
+  function closeCommandPalette() {
+    current = { ...current, commandPaletteOpen: false };
+    update(current);
+    return current.commandPaletteOpen;
+  }
+
+  function runCommand(commandId) {
+    const normalized = String(commandId || '').trim().toLowerCase();
+    const command = normalized === 'validate' || normalized === 'scene validation'
+      ? 'scene:validate'
+      : normalized;
+    if (command === 'scene:validate') return validateScene();
+    if (command === 'overlay:collision-depth') return toggleSceneOverlays({ collision: true, depth: true });
+    return {
+      ok: false,
+      command,
+      error: 'unknown-command'
+    };
+  }
+
+  function validateScene() {
+    const issues = [];
+    const ids = new Map();
+    for (const entity of current.scene.entities) {
+      const id = String(entity.id || '');
+      if (ids.has(id)) {
+        issues.push({
+          code: 'duplicate-entity-id',
+          severity: 'error',
+          entityId: id,
+          message: `Duplicate entity id: ${id}`
+        });
+      }
+      ids.set(id, true);
+      if ((entity.type === 'sprite' || entity.sprite) && !entity.texture && !entity.sprite) {
+        issues.push({
+          code: 'missing-texture',
+          severity: 'warning',
+          entityId: id,
+          message: `Sprite entity ${id} has no texture.`
+        });
+      }
+      if (Number(entity.x) < 0 || Number(entity.y) < 0) {
+        issues.push({
+          code: 'negative-position',
+          severity: 'warning',
+          entityId: id,
+          message: `Entity ${id} is outside the positive scene plane.`
+        });
+      }
+    }
+    const result = {
+      ok: issues.length === 0,
+      checkedAt: new Date().toISOString(),
+      issues
+    };
+    current = {
+      ...current,
+      commandPaletteOpen: false,
+      sceneValidation: result
+    };
+    emit('editor:scene-validation', result);
+    update(current);
+    return result;
+  }
+
+  function locateSceneIssue(issue = {}) {
+    if (!issue.entityId) return null;
+    current = { ...current, sceneIssueTargetId: issue.entityId };
+    selectEntity(issue.entityId);
+    return issue;
+  }
+
+  function captureSceneBaseline(name = 'baseline') {
+    const snapshot = cloneState(current.scene);
+    sceneBaselines.set(name, snapshot);
+    emit('editor:scene-baseline', { name, entityCount: snapshot.entities.length });
+    return snapshot;
+  }
+
+  function getSceneDiff(name = 'baseline') {
+    const baseline = sceneBaselines.get(name) || { entities: [] };
+    return diffScenes(baseline, current.scene);
+  }
+
+  function createPrefabSnapshot(entityId = current.selectedEntityId, meta = {}) {
+    const entity = current.scene.entities.find((item) => item.id === entityId);
+    if (!entity) return null;
+    const previous = current.prefabHistory?.[entityId] || [];
+    const snapshot = {
+      id: `${entityId}@${previous.length + 1}`,
+      entityId,
+      version: previous.length + 1,
+      createdAt: new Date().toISOString(),
+      note: meta.note || '',
+      entity: cloneState(entity)
+    };
+    current = {
+      ...current,
+      prefabHistory: {
+        ...(current.prefabHistory || {}),
+        [entityId]: [...previous, snapshot]
+      }
+    };
+    emit('editor:prefab-snapshot', { entityId, version: snapshot.version });
+    update(current);
+    return snapshot;
+  }
+
+  function getPrefabHistory(entityId = current.selectedEntityId) {
+    return cloneState(current.prefabHistory?.[entityId] || []);
+  }
+
+  function toggleSceneOverlays(overlays = {}) {
+    current = {
+      ...current,
+      sceneOverlays: {
+        ...(current.sceneOverlays || {}),
+        ...overlays
+      }
+    };
+    emit('editor:scene-overlays', current.sceneOverlays);
+    update(current);
+    return current.sceneOverlays;
+  }
+
+  function copySelection() {
+    const ids = selectedIds(current);
+    clipboard = current.scene.entities
+      .filter((entity) => ids.includes(entity.id))
+      .map((entity) => cloneState(entity));
+    emit('editor:copy-entities', { ids, count: clipboard.length });
+    return clipboard.map((entity) => cloneState(entity));
+  }
+
+  function pasteSelection() {
+    if (!clipboard.length) return [];
+    const existingIds = new Set(current.scene.entities.map((entity) => entity.id));
+    const copies = clipboard.map((entity) => {
+      const id = uniqueEntityId(`${entity.id || entity.name || 'entity'}-copy-${copySerial}`, existingIds);
+      copySerial += 1;
+      existingIds.add(id);
+      return {
+        ...cloneState(entity),
+        id,
+        name: `${entity.name || entity.id || 'Entity'} Copy`,
+        x: Number(entity.x || 0) + 16,
+        y: Number(entity.y || 0) + 16
+      };
+    });
+    current = {
+      ...current,
+      scene: {
+        ...current.scene,
+        entities: [...current.scene.entities, ...copies]
+      },
+      selectedEntityId: copies.at(-1)?.id || current.selectedEntityId,
+      selectedEntityIds: copies.map((entity) => entity.id)
+    };
+    emit('editor:paste-entities', { ids: current.selectedEntityIds, count: copies.length });
+    pushHistory(current, `Paste ${copies.length} entity${copies.length === 1 ? '' : 's'}`);
+    update(current);
+    return copies;
+  }
+
+  function deleteSelection() {
+    const ids = selectedIds(current);
+    if (!ids.length) return [];
+    const idSet = new Set(ids);
+    const removed = current.scene.entities.filter((entity) => idSet.has(entity.id));
+    if (!removed.length) return [];
+    current = {
+      ...current,
+      scene: {
+        ...current.scene,
+        entities: current.scene.entities.filter((entity) => !idSet.has(entity.id))
+      },
+      selectedEntityId: null,
+      selectedEntityIds: []
+    };
+    emit('editor:delete-entities', { ids, count: removed.length });
+    pushHistory(current, `Delete ${removed.length} entity${removed.length === 1 ? '' : 's'}`);
+    update(current);
+    return removed;
   }
 
   function setGizmoMode(mode) {
@@ -292,7 +535,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     }
     current = { ...current, tilemap };
     emit('editor:update-tilemap', { tilemap });
-    pushHistory(current);
+    pushHistory(current, 'Paint tile');
     update(current);
   }
 
@@ -326,7 +569,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     current = { ...current, database };
     emit('editor:update-database-record', { table, id, patch, commandId: createCommandId('db') });
     persistDatabaseConfig(database.tables);
-    pushHistory(current);
+    pushHistory(current, 'Generate scene with AI');
     update(current);
     return record;
   }
@@ -382,7 +625,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     };
     emit('editor:ai-generate-scene', { prompt, tilemap, entities });
     emit('editor:update-tilemap', { tilemap });
-    pushHistory(current);
+    pushHistory(current, `Generate scene from AI prompt`);
     update(current);
     return { prompt, tilemap, entities };
   }
@@ -414,7 +657,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       selectedEntityId: entity.id
     };
     emit('editor:instantiate-prefab', { prefabId: entity.prefabId, entity });
-    pushHistory(current);
+    pushHistory(current, `Instantiate prefab ${entity.prefabId}`);
     update(current);
     return entity;
   }
@@ -445,7 +688,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       selectedEntityId: entity.id
     };
     emit('editor:instantiate-asset', { assetPath, entity });
-    pushHistory(current);
+    pushHistory(current, `Instantiate asset ${assetPath}`);
     update(current);
     return entity;
   }
@@ -533,7 +776,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     });
     current = { ...current, flowGraph: nextGraph };
     emit('editor:flow-graph-update', current.flowGraph);
-    pushHistory(current);
+    pushHistory(current, 'Update flow graph');
     update(current);
     return current.flowGraph;
   }
@@ -551,20 +794,117 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return message;
   }
 
-  function onPointerMove(event) {
+  function beginDrag(entity, event) {
+    const ids = selectedIds(current).includes(entity.id) ? selectedIds(current) : [entity.id];
+    const startEntities = new Map(current.scene.entities
+      .filter((item) => ids.includes(item.id))
+      .map((item) => [item.id, cloneState(item)]));
+    dragSession = {
+      ids,
+      anchorId: entity.id,
+      pointer: pointerFromEvent(event),
+      startEntities,
+      changed: false
+    };
+    current = {
+      ...current,
+      selectedEntityId: entity.id,
+      selectedEntityIds: ids,
+      simulation: { active: true, physics: true, logic: true }
+    };
+    emit('editor:simulate-start', { ids, physics: true, logic: true });
+    update(current);
+  }
+
+  function applyDrag(event) {
     if (!dragSession) return;
-    const patch = transformPatch(current.gizmoMode, event);
-    if (patch) {
-      patchEntity(dragSession.id, patch);
-      emit('editor:simulate-step', { id: dragSession.id, patch, physics: true, logic: true });
+    const pointer = pointerFromEvent(event);
+    const snappedPointer = snapEditorPoint(pointer, current);
+    const dx = pointer.x - dragSession.pointer.x;
+    const dy = pointer.y - dragSession.pointer.y;
+    const scale = Math.max(0.1, pointer.x / 100);
+    const entities = current.scene.entities.map((entity) => {
+      const start = dragSession.startEntities.get(entity.id);
+      if (!start) return entity;
+      if (current.gizmoMode === 'translate' && dragSession.ids.length === 1) return { ...entity, x: snappedPointer.x, y: snappedPointer.y };
+      if (current.gizmoMode === 'translate') {
+        const next = {
+          x: Number(start.x || 0) + dx,
+          y: Number(start.y || 0) + dy
+        };
+        const snapped = snapEditorPoint(next, current);
+        return { ...entity, x: snapped.x, y: snapped.y };
+      }
+      if (current.gizmoMode === 'rotate') return { ...entity, rotation: pointer.x / 100 };
+      if (current.gizmoMode === 'scale') return { ...entity, scaleX: scale, scaleY: scale };
+      return entity;
+    });
+    current = {
+      ...current,
+      scene: { ...current.scene, entities }
+    };
+    dragSession.changed = true;
+    emit('editor:simulate-step', { ids: dragSession.ids, patch: { x: snappedPointer.x, y: snappedPointer.y }, physics: true, logic: true });
+    update(current);
+  }
+
+  function beginMarqueeSelection(event) {
+    marqueeSession = {
+      start: pointerFromEvent(event),
+      current: pointerFromEvent(event)
+    };
+    renderMarqueeFeedback();
+  }
+
+  function finishMarqueeSelection() {
+    const rect = normalizeRect(marqueeSession.start, marqueeSession.current);
+    const ids = current.scene.entities
+      .filter((entity) => rectsIntersect(rect, entityRect(entity)))
+      .map((entity) => entity.id);
+    selectEntity(ids.at(-1) || null, { ids });
+  }
+
+  function renderMarqueeFeedback() {
+    const view = root.querySelector('[data-scene-drop-zone="true"]');
+    if (!view || !marqueeSession) return;
+    clearMarqueeFeedback();
+    const rect = normalizeRect(marqueeSession.start, marqueeSession.current);
+    const box = document.createElement('div');
+    box.className = 'selection-marquee';
+    box.dataset.selectionMarquee = 'true';
+    box.style.left = `${rect.left}px`;
+    box.style.top = `${rect.top}px`;
+    box.style.width = `${rect.width}px`;
+    box.style.height = `${rect.height}px`;
+    view.appendChild(box);
+  }
+
+  function clearMarqueeFeedback() {
+    root.querySelector('[data-selection-marquee="true"]')?.remove();
+  }
+
+  function onPointerMove(event) {
+    if (marqueeSession) {
+      marqueeSession.current = pointerFromEvent(event);
+      renderMarqueeFeedback();
+      return;
     }
+    if (!dragSession) return;
+    applyDrag(event);
   }
 
   function onPointerUp() {
     tilePaintSession = false;
+    if (marqueeSession) {
+      finishMarqueeSelection();
+      marqueeSession = null;
+      clearMarqueeFeedback();
+      return;
+    }
     if (dragSession) {
-      emit('editor:simulate-stop', { id: dragSession.id });
+      emit('editor:simulate-stop', { ids: dragSession.ids });
       current = { ...current, simulation: { active: false, physics: false, logic: false } };
+      if (dragSession.changed) pushHistory(current, `Drag ${dragSession.ids.length} entity${dragSession.ids.length === 1 ? '' : 's'}`);
       update(current);
     }
     dragSession = null;
@@ -583,11 +923,21 @@ export function createEditorApp(root = document.querySelector('#app'), {
       setGizmoMode(modes[key]);
       return;
     }
+    if (key === 'delete' || key === 'backspace') {
+      event.preventDefault?.();
+      deleteSelection();
+      return;
+    }
     const command = event.ctrlKey || event.metaKey;
     if (!command) return;
     if (key === 's') {
       event.preventDefault?.();
       saveSnapshot('keyboard');
+    }
+    if (key === 'k') {
+      event.preventDefault?.();
+      openCommandPalette();
+      return;
     }
     if (key === 'z' && event.shiftKey) {
       event.preventDefault?.();
@@ -595,6 +945,12 @@ export function createEditorApp(root = document.querySelector('#app'), {
     } else if (key === 'z') {
       event.preventDefault?.();
       undo();
+    } else if (key === 'c') {
+      event.preventDefault?.();
+      copySelection();
+    } else if (key === 'v') {
+      event.preventDefault?.();
+      pasteSelection();
     }
   }
 
@@ -653,6 +1009,56 @@ export function createEditorApp(root = document.querySelector('#app'), {
     statusbar.textContent = `${current.scene.name || 'untitled'} | ${entityCount} entities | ${current.gizmoMode} | ${mode}`;
   }
 
+  function renderTransientSurfaces() {
+    root.querySelector('[data-command-palette]')?.remove();
+    root.querySelector('[data-scene-validation]')?.remove();
+    const frame = root.querySelector('.editor-frame') || root;
+    if (current.commandPaletteOpen) frame.appendChild(createCommandPalette());
+    if (current.sceneValidation?.issues?.length) frame.appendChild(createSceneValidationPanel());
+  }
+
+  function createCommandPalette() {
+    const wrap = document.createElement('div');
+    wrap.className = 'command-palette';
+    wrap.dataset.commandPalette = 'true';
+    const input = document.createElement('input');
+    input.dataset.commandPaletteInput = 'true';
+    input.value = 'scene:validate';
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeCommandPalette();
+      if (event.key === 'Enter') runCommand(input.value);
+    });
+    const validate = document.createElement('button');
+    validate.type = 'button';
+    validate.dataset.commandId = 'scene:validate';
+    validate.textContent = 'Validate Scene';
+    validate.addEventListener('click', () => runCommand('scene:validate'));
+    const overlays = document.createElement('button');
+    overlays.type = 'button';
+    overlays.dataset.commandId = 'overlay:collision-depth';
+    overlays.textContent = 'Show Collision/Depth';
+    overlays.addEventListener('click', () => runCommand('overlay:collision-depth'));
+    wrap.append(input, validate, overlays);
+    queueMicrotask(() => input.focus?.());
+    return wrap;
+  }
+
+  function createSceneValidationPanel() {
+    const wrap = document.createElement('div');
+    wrap.className = 'scene-validation';
+    wrap.dataset.sceneValidation = 'true';
+    for (const issue of current.sceneValidation.issues) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.sceneIssue = issue.code;
+      button.dataset.sceneIssueEntity = issue.entityId || '';
+      button.textContent = `${issue.code}: ${issue.entityId || 'scene'}`;
+      button.addEventListener('click', () => locateSceneIssue(issue));
+      wrap.appendChild(button);
+    }
+    return wrap;
+  }
+
   function renderPanel(name, body) {
     const section = document.createElement('section');
     section.dataset.panel = name;
@@ -672,14 +1078,15 @@ export function createEditorApp(root = document.querySelector('#app'), {
   function renderHierarchy() {
     const list = document.createElement('ol');
     list.className = 'hierarchy-list';
+    const ids = selectedIds(current);
     for (const entity of current.scene.entities) {
       const item = document.createElement('li');
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.editorEntityId = entity.id;
       button.textContent = entity.name || entity.id;
-      button.className = entity.id === current.selectedEntityId ? 'selected' : '';
-      button.addEventListener('click', () => selectEntity(entity.id));
+      button.className = ids.includes(entity.id) ? 'selected' : '';
+      button.addEventListener('click', (event) => selectEntity(entity.id, { append: event.shiftKey }));
       item.appendChild(button);
       list.appendChild(item);
     }
@@ -738,6 +1145,11 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const view = document.createElement('div');
     view.className = 'scene-canvas';
     view.dataset.sceneDropZone = 'true';
+    view.addEventListener('mousedown', (event) => {
+      if (!event.shiftKey) return;
+      event.preventDefault();
+      beginMarqueeSelection(event);
+    });
     view.addEventListener('dragover', (event) => event.preventDefault());
     view.addEventListener('drop', (event) => {
       event.preventDefault();
@@ -749,14 +1161,28 @@ export function createEditorApp(root = document.querySelector('#app'), {
     });
 
     for (const entity of current.scene.entities) view.appendChild(createSceneNodeButton(entity));
-    wrap.append(gizmoToolbar, view);
+    if (current.sceneOverlays?.collision) {
+      for (const entity of current.scene.entities) view.appendChild(createCollisionOverlay(entity));
+    }
+    if (current.sceneOverlays?.depth) {
+      for (const entity of current.scene.entities) view.appendChild(createDepthOverlay(entity));
+    }
+    for (const entity of current.scene.entities.filter((item) => selectedIds(current).includes(item.id))) {
+      view.appendChild(createSelectionOutline(entity));
+      view.appendChild(createOriginMarker(entity));
+    }
+    wrap.append(gizmoToolbar, view, createUndoHistoryView());
     return wrap;
   }
 
   function createSceneNodeButton(entity) {
     const node = document.createElement('button');
     node.type = 'button';
-    node.className = `scene-node${entity.id === current.selectedEntityId ? ' selected' : ''}`;
+    node.className = [
+      'scene-node',
+      selectedIds(current).includes(entity.id) ? 'selected' : '',
+      current.sceneIssueTargetId === entity.id ? 'issue-target' : ''
+    ].filter(Boolean).join(' ');
     node.dataset.sceneNodeId = entity.id;
     node.textContent = entity.name || entity.id;
     node.style.left = `${entity.x || 0}px`;
@@ -764,16 +1190,76 @@ export function createEditorApp(root = document.querySelector('#app'), {
     node.style.width = `${Math.max(24, entity.width || 32)}px`;
     node.style.height = `${Math.max(24, entity.height || 32)}px`;
     node.style.transform = `rotate(${entity.rotation || 0}rad) scale(${entity.scaleX ?? 1}, ${entity.scaleY ?? 1})`;
-    node.addEventListener('click', () => selectEntity(entity.id));
+    node.addEventListener('click', (event) => selectEntity(entity.id, { append: event.shiftKey }));
     node.addEventListener('mousedown', (event) => {
       event.preventDefault();
-      selectEntity(entity.id);
-      dragSession = { id: entity.id };
-      current = { ...current, simulation: { active: true, physics: true, logic: true } };
-      emit('editor:simulate-start', { id: entity.id, physics: true, logic: true });
-      update(current);
+      event.stopPropagation();
+      selectEntity(entity.id, { append: event.shiftKey });
+      beginDrag(entity, event);
     });
     return node;
+  }
+
+  function createCollisionOverlay(entity) {
+    const collider = entity.collider || {};
+    const width = Number(collider.width || entity.width || 32);
+    const height = Number(collider.height || entity.height || 32);
+    const x = Number(entity.x || 0) + Number(collider.offsetX || 0);
+    const y = Number(entity.y || 0) + Number(collider.offsetY || 0);
+    const overlay = document.createElement('div');
+    overlay.className = 'collision-overlay';
+    overlay.dataset.collisionOverlay = entity.id;
+    overlay.style.left = `${x}px`;
+    overlay.style.top = `${y}px`;
+    overlay.style.width = `${width}px`;
+    overlay.style.height = `${height}px`;
+    return overlay;
+  }
+
+  function createDepthOverlay(entity) {
+    const overlay = document.createElement('div');
+    overlay.className = 'depth-overlay';
+    overlay.dataset.depthOverlay = entity.id;
+    overlay.style.left = `${Number(entity.x || 0)}px`;
+    overlay.style.top = `${Number(entity.y || 0) - 18}px`;
+    overlay.textContent = `z:${Number(entity.zIndex ?? entity.depth ?? 0)}`;
+    return overlay;
+  }
+
+  function createUndoHistoryView() {
+    const list = document.createElement('div');
+    list.className = 'undo-history';
+    list.dataset.undoHistory = 'true';
+    const start = Math.max(0, historyLabels.length - 8);
+    historyLabels.slice(start).forEach((label, offset) => {
+      const row = document.createElement('div');
+      const absoluteIndex = start + offset;
+      row.dataset.undoHistoryEntry = String(absoluteIndex);
+      row.className = absoluteIndex === historyIndex ? 'selected' : '';
+      row.textContent = label;
+      list.appendChild(row);
+    });
+    return list;
+  }
+
+  function createSelectionOutline(entity) {
+    const outline = document.createElement('div');
+    outline.className = 'selection-outline';
+    outline.dataset.editorSelectionOutline = entity.id;
+    outline.style.left = `${Number(entity.x || 0) - 3}px`;
+    outline.style.top = `${Number(entity.y || 0) - 3}px`;
+    outline.style.width = `${Math.max(24, entity.width || 32) + 6}px`;
+    outline.style.height = `${Math.max(24, entity.height || 32) + 6}px`;
+    return outline;
+  }
+
+  function createOriginMarker(entity) {
+    const marker = document.createElement('span');
+    marker.className = 'origin-marker';
+    marker.dataset.editorOrigin = entity.id;
+    marker.style.left = `${Number(entity.x || 0)}px`;
+    marker.style.top = `${Number(entity.y || 0)}px`;
+    return marker;
   }
 
   function renderPrefabs() {
@@ -1279,9 +1765,56 @@ function snapPoint(point = {}, state = {}) {
   };
 }
 
+function snapEditorPoint(point = {}, state = {}) {
+  const size = Math.max(1, Number(state.gridSnap?.size || state.gridSize || 16));
+  const x = Number(point.x ?? point.clientX ?? 0);
+  const y = Number(point.y ?? point.clientY ?? 0);
+  if (state.gridSnap?.enabled) {
+    return {
+      x: Math.round(x / size) * size,
+      y: Math.round(y / size) * size
+    };
+  }
+  return { x, y };
+}
+
 function snapAxis(value, grid) {
   const snapped = Math.round(value / grid) * grid;
   return Math.abs(snapped - value) <= grid * 0.25 ? snapped : value;
+}
+
+function diffScenes(before = {}, after = {}) {
+  const previous = firstEntityById(before.entities || []);
+  const next = firstEntityById(after.entities || []);
+  const added = [];
+  const removed = [];
+  const changed = [];
+  for (const [id, entity] of next) {
+    if (!previous.has(id)) {
+      added.push(cloneState(entity));
+      continue;
+    }
+    const fields = changedEntityFields(previous.get(id), entity);
+    if (fields.length) changed.push({ id, fields, before: cloneState(previous.get(id)), after: cloneState(entity) });
+  }
+  for (const [id, entity] of previous) {
+    if (!next.has(id)) removed.push(cloneState(entity));
+  }
+  return { added, removed, changed };
+}
+
+function firstEntityById(entities = []) {
+  const map = new Map();
+  for (const entity of entities) {
+    const id = String(entity.id || entity.name || '');
+    if (id && !map.has(id)) map.set(id, entity);
+  }
+  return map;
+}
+
+function changedEntityFields(before = {}, after = {}) {
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  return [...keys].filter((key) => JSON.stringify(before[key] ?? null) !== JSON.stringify(after[key] ?? null));
 }
 
 function normalizeScene(scene = {}) {
@@ -1449,13 +1982,14 @@ function findActiveTileLayer(tilemap = {}) {
   return tilemap.layers.find((layer) => layer.id === tilemap.activeLayerId) || tilemap.layers[0];
 }
 
-function findTilesetTile(tilemap = {}, tileId) {
-  return tilePalette(tilemap).find((tile) => Number(tile.id) === Number(tileId)) || null;
+function findTilesetTile(tilemap, tileId) {
+  return tilePalette(tilemap || {}).find((tile) => Number(tile.id) === Number(tileId)) || null;
 }
 
-function isSolidTile(tilemap = {}, tileId) {
+function isSolidTile(tilemap, tileId) {
   const tile = findTilesetTile(tilemap, tileId);
-  return Boolean(tile?.solid || tile?.collision || tilemap.tilesets.some((tileset) => tileset.collisionTiles.includes(Number(tileId))));
+  const source = tilemap || {};
+  return Boolean(tile?.solid || tile?.collision || (source.tilesets || []).some((tileset) => tileset.collisionTiles.includes(Number(tileId))));
 }
 
 function addCollision(tilemap, index) {
@@ -1496,6 +2030,80 @@ function findSelectedEntity(state) {
   return state.scene.entities.find((entity) => entity.id === state.selectedEntityId) || null;
 }
 
+function selectedIds(state = {}) {
+  const ids = Array.isArray(state.selectedEntityIds) ? state.selectedEntityIds : [];
+  const valid = new Set((state.scene?.entities || []).map((entity) => entity.id));
+  const normalized = ids.filter((id) => valid.has(id));
+  if (!normalized.length && state.selectedEntityId && valid.has(state.selectedEntityId)) normalized.push(state.selectedEntityId);
+  return [...new Set(normalized)];
+}
+
+function resolveNextSelection(id, append, state = null) {
+  if (!id) return [];
+  const source = state || currentStateFallback();
+  if (!append) return [id];
+  const ids = selectedIds(source);
+  return ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
+}
+
+function currentStateFallback() {
+  return { scene: { entities: [] }, selectedEntityId: null, selectedEntityIds: [] };
+}
+
+function uniqueEntityId(base, existingIds) {
+  let id = String(base || 'entity-copy');
+  let suffix = 2;
+  while (existingIds.has(id)) {
+    id = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  return id;
+}
+
+function pointerFromEvent(event = {}) {
+  return {
+    x: Number(event.clientX || 0),
+    y: Number(event.clientY || 0)
+  };
+}
+
+function normalizeRect(start, end) {
+  const left = Math.min(start.x, end.x);
+  const top = Math.min(start.y, end.y);
+  const right = Math.max(start.x, end.x);
+  const bottom = Math.max(start.y, end.y);
+  return {
+    left,
+    top,
+    right,
+    bottom,
+    width: right - left,
+    height: bottom - top
+  };
+}
+
+function entityRect(entity = {}) {
+  const left = Number(entity.x || 0);
+  const top = Number(entity.y || 0);
+  const width = Math.max(1, Number(entity.width || 32));
+  const height = Math.max(1, Number(entity.height || 32));
+  return {
+    left,
+    top,
+    right: left + width,
+    bottom: top + height,
+    width,
+    height
+  };
+}
+
+function rectsIntersect(left, right) {
+  return left.left <= right.right
+    && left.right >= right.left
+    && left.top <= right.bottom
+    && left.bottom >= right.top;
+}
+
 function parseFieldValue(key, value, previous = null) {
   if (!NUMERIC_FIELDS.has(key) && typeof previous !== 'number') return value;
   const number = Number(value);
@@ -1533,18 +2141,6 @@ function resolveScriptBinding(entity = null, symbol = null, options = {}) {
   };
 }
 
-function transformPatch(mode, event) {
-  if (mode === 'translate') {
-    return { x: Number(event.clientX || 0), y: Number(event.clientY || 0) };
-  }
-  if (mode === 'rotate') return { rotation: Number(event.clientX || 0) / 100 };
-  if (mode === 'scale') {
-    const scale = Math.max(0.1, Number(event.clientX || 0) / 100);
-    return { scaleX: scale, scaleY: scale };
-  }
-  return null;
-}
-
 const EDITOR_CSS = `
   body { margin: 0; background: #111827; color: #e5e7eb; font: 12px system-ui, sans-serif; }
   .editor-frame { display: grid; grid-template-rows: 40px minmax(0, 1fr) 24px; height: 100vh; background: #111827; }
@@ -1573,6 +2169,17 @@ const EDITOR_CSS = `
   .scene-canvas { position: relative; min-height: 260px; height: 100%; overflow: hidden; background-image: linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px); background-size: 24px 24px; }
   .scene-node { position: absolute; display: grid; place-items: center; overflow: hidden; padding: 0 4px; border: 1px solid #38bdf8; background: #082f49; font-size: 11px; transform-origin: center; }
   .scene-node.selected { outline: 2px solid #facc15; }
+  .scene-node.issue-target { box-shadow: 0 0 0 3px rgba(248,113,113,.78), 0 0 18px rgba(248,113,113,.42); }
+  .selection-outline { position: absolute; box-sizing: border-box; pointer-events: none; border: 2px solid rgba(250,204,21,.86); background: rgba(250,204,21,.14); box-shadow: 0 0 0 1px rgba(15,23,42,.72), 0 0 18px rgba(250,204,21,.22); }
+  .origin-marker { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; pointer-events: none; border-radius: 999px; border: 2px solid #f8fafc; background: #ef4444; box-shadow: 0 0 0 2px rgba(15,23,42,.72); }
+  .selection-marquee { position: absolute; box-sizing: border-box; pointer-events: none; border: 1px dashed #67e8f9; background: rgba(34,211,238,.12); }
+  .collision-overlay { position: absolute; box-sizing: border-box; pointer-events: none; border: 1px dashed rgba(248,113,113,.95); background: rgba(127,29,29,.18); }
+  .depth-overlay { position: absolute; pointer-events: none; padding: 1px 4px; border: 1px solid #a3e635; background: rgba(20,83,45,.86); color: #dcfce7; font-size: 10px; }
+  .undo-history { display: grid; gap: 3px; max-height: 72px; overflow: auto; padding: 5px; border: 1px solid #334155; background: #020617; color: #cbd5e1; }
+  .undo-history div.selected { color: #facc15; }
+  .command-palette { position: absolute; top: 48px; left: 50%; z-index: 20; display: grid; grid-template-columns: minmax(180px, 1fr) auto auto; gap: 6px; width: min(640px, calc(100% - 32px)); transform: translateX(-50%); padding: 8px; border: 1px solid #38bdf8; background: #020617; box-shadow: 0 18px 44px rgba(2,6,23,.48); }
+  .scene-validation { position: absolute; right: 12px; bottom: 32px; z-index: 18; display: grid; gap: 4px; max-width: 320px; padding: 8px; border: 1px solid #f87171; background: #450a0a; }
+  .scene-validation button { text-align: left; }
   .tilemap-wrap { display: grid; gap: 8px; }
   .tilemap-grid { display: grid; gap: 2px; }
   .tilemap-grid button { width: 24px; height: 24px; padding: 0; font-size: 10px; }

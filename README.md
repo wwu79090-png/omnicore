@@ -1,8 +1,8 @@
 # OmniCore
 
-OmniCore 是一个 HTML5 2D 优先游戏引擎骨架：默认使用 PixiJS v8 做 2D 渲染，提供 Phaser 风格场景栈和 Tween、Construct/GDevelop 风格 JSON Event Sheet、Cocos 风格 `addComponent()`，并把 Three.js 作为独立的装饰背景层延迟加载。
+OmniCore 是一个 HTML5 2D/2.5D 优先游戏引擎骨架：默认使用 PixiJS v8 做 2D 渲染，提供 Phaser 风格场景栈和 Tween、Construct/GDevelop 风格 JSON Event Sheet、Cocos 风格 `addComponent()`，并把 Three.js 作为独立的装饰背景层延迟加载。
 
-OmniCore 专注于 2D 游戏开发。`Dimension3D` 只支持渲染一个静态 `.gltf` 或 `.glb` 模型，可做整体旋转的关卡背景；不提供 3D 碰撞、glTF 动画播放、3D 摄像机控制或 3D 玩法框架。
+OmniCore 专注于 2D 游戏开发和有限 2.5D 表现，明确不是全 3D 引擎。`Dimension3D` 只支持渲染一个静态 `.gltf` 或 `.glb` 模型，可做整体旋转的关卡背景；2.5D 层只提供 Z 轴到 2D Y 轴的遮挡排序与投影碰撞辅助，不提供全 3D 碰撞、glTF 动画播放、3D 摄像机控制或 3D 玩法框架。
 
 它有意不内置物理系统；物理只通过 `loadPhysics()` 延迟加载适配器。OmniCore 不暴露 Pixi ticker，不生成 UI 源码，不依赖大型编辑器。输入、Camera、Timer、Animation 是轻量基础模块，随 `Game` 和 `Scene` 生命周期更新。
 

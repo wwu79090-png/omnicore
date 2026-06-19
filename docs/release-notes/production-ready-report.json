@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-06-19T12:44:03.434Z",
+  "generatedAt": "2026-06-19T14:17:59.600Z",
   "version": "0.1.0",
   "ready": true,
-  "score": 99,
+  "score": 100,
   "marketReadiness": {
-    "score": 99,
+    "score": 100,
     "releaseGates": {
       "label": "发布门禁",
       "score": 100,
@@ -28,6 +28,11 @@
         {
           "name": "benchmark:ci",
           "command": "node scripts/benchmark-threshold.js",
+          "present": true
+        },
+        {
+          "name": "performance:budget",
+          "command": "node scripts/performance-budget.js",
           "present": true
         },
         {
@@ -86,8 +91,14 @@
     },
     "apiStability": {
       "label": "API 稳定性",
-      "score": 96,
-      "publicExportCount": 183,
+      "score": 100,
+      "publicExportCount": 185,
+      "exportSurface": {
+        "score": 100,
+        "broad": true,
+        "managed": true,
+        "contractComplete": true
+      },
       "policy": {
         "file": "docs/api/public-api-policy.md",
         "present": true
@@ -147,11 +158,89 @@
     "risks": []
   },
   "verification": {
-    "enabled": false,
+    "enabled": true,
     "ok": true,
     "failed": [],
-    "defaultScripts": [],
-    "results": []
+    "noWarningSummary": {
+      "ok": true,
+      "commands": 4,
+      "riskCount": 0,
+      "riskyCommands": []
+    },
+    "defaultScripts": [
+      "lint",
+      "test:contract",
+      "benchmark:ci",
+      "performance:budget"
+    ],
+    "results": [
+      {
+        "name": "lint",
+        "command": "npm run lint",
+        "ok": true,
+        "status": 0,
+        "signal": null,
+        "timedOut": false,
+        "durationMs": 20849,
+        "stdout": "\n> omnicore@0.1.0 lint\n> eslint -c .eslintrc.json --no-eslintrc src tests scripts --ext .js,.mjs\n\n",
+        "stderr": "",
+        "stdoutTruncated": false,
+        "stderrTruncated": false,
+        "outputRisks": [],
+        "error": null
+      },
+      {
+        "name": "test:contract",
+        "command": "npm run test:contract",
+        "ok": true,
+        "status": 0,
+        "signal": null,
+        "timedOut": false,
+        "durationMs": 5942,
+        "stdout": "\n> omnicore@0.1.0 test:contract\n> node scripts/contract-test.js\n\n\n RUN  v4.1.9 C:/Users/39120/Documents/引擎开发\n\n\n Test Files  2 passed (2)\n      Tests  4 passed (4)\n   Start at  22:18:21\n   Duration  4.58s (transform 2.16s, setup 51ms, import 5.12s, tests 34ms, environment 1.90s)\n\n",
+        "stderr": "",
+        "stdoutTruncated": false,
+        "stderrTruncated": false,
+        "outputRisks": [],
+        "error": null
+      },
+      {
+        "name": "benchmark:ci",
+        "command": "npm run benchmark:ci",
+        "ok": true,
+        "status": 0,
+        "signal": null,
+        "timedOut": false,
+        "durationMs": 19477,
+        "stdout": "\n> omnicore@0.1.0 benchmark:ci\n> node scripts/benchmark-threshold.js\n\n# 性能下降报告\n\n结果：通过\n阈值：超过 5% 的性能下降会阻断 CI。\n生成时间：2026-06-19T14:18:45.896Z\n\n| 指标 | 基线 | 当前 | 变化 | 判定 |\n| --- | ---: | ---: | ---: | --- |\n| `particles1000AvgFps` | 60.67 | 60 | 1.1% | 通过 |\n| `canvas1000SpriteFps` | 61 | 61 | 0% | 通过 |\n| `pixi1000SpriteFps` | 60 | 60 | 0% | 通过 |\n| `entitySync500AvgMs` | 1.23 | 0.45 | -63.41% | 通过 |\n| `backendSwitchAvgMs` | 0.2 | 0.24 | 20% | 通过 |\n| `particles1000DrawCalls` | 1001 | 1001 | 0% | 通过 |\n| `canvasDrawCalls` | 1000 | 1000 | 0% | 通过 |\n| `pixiDrawCalls` | 1 | 1 | 0% | 通过 |\n\n未发现超过阈值的性能下降。\n\n",
+        "stderr": "",
+        "stdoutTruncated": false,
+        "stderrTruncated": false,
+        "outputRisks": [],
+        "error": null
+      },
+      {
+        "name": "performance:budget",
+        "command": "npm run performance:budget",
+        "ok": true,
+        "status": 0,
+        "signal": null,
+        "timedOut": false,
+        "durationMs": 887,
+        "stdout": "\n> omnicore@0.1.0 performance:budget\n> node scripts/performance-budget.js\n\n{\n  \"generatedAt\": \"2026-06-19T14:18:46.768Z\",\n  \"ok\": true,\n  \"runtime\": {\n    \"ok\": true,\n    \"generatedAt\": \"2026-06-19T14:18:46.766Z\",\n    \"metrics\": {\n      \"entityCount\": 1000,\n      \"tileCount\": 2048,\n      \"frames\": 120,\n      \"solidTiles\": 187,\n      \"collisions\": 28,\n      \"entitySyncMs\": 18.769,\n      \"tileScanMs\": 0.264,\n      \"depthSortMs\": 0.98,\n      \"collisionProjectionMs\": 5.412\n    },\n    \"budgets\": {\n      \"maxEntitySyncMs\": 45,\n      \"maxTileScanMs\": 24,\n      \"maxDepthSortMs\": 24,\n      \"maxCollisionMs\": 18\n    },\n    \"failures\": [],\n    \"suggestions\": []\n  },\n  \"package\": {\n    \"ok\": true,\n    \"dir\": \"C:\\\\Users\\\\39120\\\\Documents\\\\引擎开发\\\\dist\\\\wechat\",\n    \"bytes\": 0,\n    \"limitBytes\": 4194304,\n    \"overBy\": 0,\n    \"fileCount\": 0,\n    \"largestFiles\": []\n  },\n  \"suggestions\": []\n}\n",
+        "stderr": "",
+        "stdoutTruncated": false,
+        "stderrTruncated": false,
+        "outputRisks": [],
+        "error": null
+      }
+    ]
+  },
+  "noWarningSummary": {
+    "ok": true,
+    "commands": 4,
+    "riskCount": 0,
+    "riskyCommands": []
   },
   "findings": []
 }

@@ -14,6 +14,27 @@ import { warnMessage } from './OmniError.js';
  */
 export const DEPRECATED_APIS = [
   {
+    api: 'OmniCore.Game',
+    since: '0.3.0',
+    removeIn: '2.0.0',
+    replacement: 'OmniCore.createGame',
+    pattern: 'new OmniCore.Game('
+  },
+  {
+    api: 'Store.set',
+    since: '0.3.0',
+    removeIn: '2.0.0',
+    replacement: 'Store.setValue',
+    pattern: 'Store.set('
+  },
+  {
+    api: 'Entity.create',
+    since: '0.3.0',
+    removeIn: '2.0.0',
+    replacement: 'Entity.createEntity',
+    pattern: 'Entity.create('
+  },
+  {
     api: 'OmniCore.Backend.use',
     since: '0.2.0',
     removeIn: '1.0.0',

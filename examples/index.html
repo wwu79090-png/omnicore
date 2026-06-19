@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/assets/icons/web/favicon.png" />
     <title>OmniCore Backend Switch</title>
     <style>
       html,
@@ -93,6 +94,7 @@
       const status = document.querySelector('#status');
       const feedback = document.querySelector('#feedback-link');
       const engineVersion = '0.2.0';
+      const initialBackend = new URLSearchParams(window.location.search).get('backend') || 'pixi';
       const changelogUrl = new URL('/CHANGELOG.md', window.location.origin).href;
       const issueUrl = new URL('https://github.com/omnicorejs/omnicore/issues/new');
       issueUrl.searchParams.set('title', `[OmniCore ${engineVersion}] 示例反馈`);
@@ -210,7 +212,7 @@
         button.addEventListener('click', () => switchEngine(button.dataset.backend));
       }
 
-      await switchEngine('pixi');
+      await switchEngine(initialBackend);
     </script>
   </body>
 </html>

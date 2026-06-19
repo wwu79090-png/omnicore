@@ -304,3 +304,107 @@ Major   Potentially breaking API changes
 Run npx npm-check-updates --format group -u to upgrade package.json
 ```
 </details>
+
+## 2026-06-19T13:32:15.827Z - automated security check
+
+- Engine version: 0.1.0
+- npm-check-updates: completed
+- npm audit before fix: no known vulnerabilities
+- npm audit fix: completed
+- npm audit after fix: no known vulnerabilities
+
+<details><summary>npm-check-updates output</summary>
+
+```text
+Checking C:\Users\39120\Documents\引擎开发\package.json
+
+Minor   Backwards-compatible features
+ playwright  ^1.57.0  →  ^1.61.0
+ prettier     ^3.6.2  →   ^3.8.4
+
+Major   Potentially breaking API changes
+ eslint             ^8.57.1  →  ^10.5.0
+ jsdom              ^26.1.0  →  ^29.1.1
+ npm-check-updates  ^18.3.1  →  ^22.2.3
+
+Run npx npm-check-updates --format group -u to upgrade package.json
+```
+</details>
+
+## 2026-06-19T13:42:19.495Z - automated security check
+
+- Engine version: 0.1.0
+- npm-check-updates: completed
+- npm audit before fix: no known vulnerabilities
+- npm audit fix: completed
+- npm audit after fix: no known vulnerabilities
+
+<details><summary>npm-check-updates output</summary>
+
+```text
+Checking C:\Users\39120\Documents\引擎开发\package.json
+
+Minor   Backwards-compatible features
+ playwright  ^1.57.0  →  ^1.61.0
+ prettier     ^3.6.2  →   ^3.8.4
+
+Major   Potentially breaking API changes
+ eslint             ^8.57.1  →  ^10.5.0
+ jsdom              ^26.1.0  →  ^29.1.1
+ npm-check-updates  ^18.3.1  →  ^22.2.3
+
+Run npx npm-check-updates --format group -u to upgrade package.json
+```
+</details>
+
+## 2026-06-19T13:50:12.024Z - automated security check
+
+- Engine version: 0.1.0
+- npm-check-updates: completed
+- npm audit before fix: no known vulnerabilities
+- npm audit fix: completed
+- npm audit after fix: no known vulnerabilities
+
+<details><summary>npm-check-updates output</summary>
+
+```text
+Checking C:\Users\39120\Documents\引擎开发\package.json
+
+Minor   Backwards-compatible features
+ playwright  ^1.57.0  →  ^1.61.0
+ prettier     ^3.6.2  →   ^3.8.4
+
+Major   Potentially breaking API changes
+ eslint             ^8.57.1  →  ^10.5.0
+ jsdom              ^26.1.0  →  ^29.1.1
+ npm-check-updates  ^18.3.1  →  ^22.2.3
+
+Run npx npm-check-updates --format group -u to upgrade package.json
+```
+</details>
+
+## 2026-06-19T14:03:56.624Z - automated security check
+
+- Engine version: 0.1.0
+- npm-check-updates: completed
+- npm audit before fix: no known vulnerabilities
+- npm audit fix: completed
+- npm audit after fix: no known vulnerabilities
+
+<details><summary>npm-check-updates output</summary>
+
+```text
+Checking C:\Users\39120\Documents\引擎开发\package.json
+
+Minor   Backwards-compatible features
+ playwright  ^1.57.0  →  ^1.61.0
+ prettier     ^3.6.2  →   ^3.8.4
+
+Major   Potentially breaking API changes
+ eslint             ^8.57.1  →  ^10.5.0
+ jsdom              ^26.1.0  →  ^29.1.1
+ npm-check-updates  ^18.3.1  →  ^22.2.3
+
+Run npx npm-check-updates --format group -u to upgrade package.json
+```
+</details>

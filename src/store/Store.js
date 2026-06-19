@@ -69,8 +69,21 @@ export class Store {
    * @param {string} key State key.
    * @param {*} value Next value.
    * @returns {*} Stored value after emergency patching.
+   *
+   * @deprecated since 0.3.0, removeIn 2.0.0. Use `store.setValue(key, value)`.
+   * @replacement Store#setValue
+   * @removeIn 2.0.0
    */
   set(key, value) {
+    return this.setValue(key, value);
+  }
+
+  /**
+   * @param {string} key State key.
+   * @param {*} value Next value.
+   * @returns {*} Stored value after emergency patching.
+   */
+  setValue(key, value) {
     const previous = this.get(key);
     if (Object.is(previous, value)) return previous;
     const next = this._applyMiddleware(key, value, previous);

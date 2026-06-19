@@ -217,6 +217,12 @@ function resolveRuntimeConfig(config = {}) {
  *
  * @example
  * const game = await new Game({ headless: true, autoStart: false }).init();
+ *
+ * @deprecated since 0.3.0, removeIn 2.0.0. Use `createGame(config)` for new projects.
+ * @api OmniCore.Game
+ * @pattern new OmniCore.Game(
+ * @replacement createGame
+ * @removeIn 2.0.0
  */
 class Game extends CoreGame {
   constructor(config = {}) {
@@ -461,6 +467,27 @@ class Game extends CoreGame {
   }
 }
 
+/**
+ * Creates a Game instance without using the deprecated constructor surface.
+ *
+ * @param {object} config Game configuration.
+ * @returns {Game} Uninitialized Game instance; call `.init()` when needed.
+ */
+function createGame(config = {}) {
+  return new Game(config);
+}
+
+/**
+ * Creates an entity through the new top-level factory.
+ *
+ * @param {string|Function|object} type Entity type, constructor, or object.
+ * @param {object} props Entity properties.
+ * @returns {object} Entity instance.
+ */
+function createEntity(type = 'Node', props = {}) {
+  return Entity.createEntity(type, props);
+}
+
 const System = {
   Auth: new AuthManager()
 };
@@ -533,6 +560,7 @@ function connectEditorSync(game, options = {}) {
 
 const OmniCore = {
   Game,
+  createGame,
   Genealogy,
   help,
   listHelp,
@@ -567,6 +595,7 @@ const OmniCore = {
   Scene,
   Sprite,
   Entity,
+  createEntity,
   Snapshot,
   Tween,
   Input: InputManager,
@@ -789,6 +818,7 @@ export {
   FrameProfiler,
   Genealogy,
   help,
+  createGame,
   Game,
   HotReload,
   HotfixManager,
@@ -819,6 +849,7 @@ export {
   ObjectPool,
   OBundle,
   Entity,
+  createEntity,
   Snapshot,
   Pool,
   PoolRegistry,

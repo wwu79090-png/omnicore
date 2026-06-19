@@ -3,6 +3,7 @@ export function createEditorState(initial = {}) {
     connected: false,
     scene: initial.scene || { name: 'untitled', entities: [] },
     selectedEntityId: initial.selectedEntityId || null,
+    selectedEntityIds: normalizeSelection(initial.selectedEntityIds, initial.selectedEntityId),
     selectedPrefabId: initial.selectedPrefabId || null,
     gizmoMode: initial.gizmoMode || 'translate',
     collisionMode: Boolean(initial.collisionMode),
@@ -18,6 +19,12 @@ export function createEditorState(initial = {}) {
     dockLayout: normalizeDockLayout(initial.dockLayout),
     simulation: initial.simulation || { active: false, physics: false, logic: false },
     animations: initial.animations || {},
+    gridSnap: normalizeGridSnap(initial.gridSnap),
+    sceneOverlays: normalizeSceneOverlays(initial.sceneOverlays),
+    commandPaletteOpen: Boolean(initial.commandPaletteOpen),
+    sceneValidation: normalizeSceneValidation(initial.sceneValidation),
+    sceneIssueTargetId: initial.sceneIssueTargetId || null,
+    prefabHistory: normalizePrefabHistory(initial.prefabHistory),
     pendingCommands: initial.pendingCommands || []
   };
 }
@@ -49,10 +56,48 @@ export function applyLiveSyncMessage(state = createEditorState(), message = {}) 
   if (message.type === 'runtime:prefabs') next.prefabs = Array.isArray(message.payload) ? message.payload : message.payload?.prefabs || [];
   if (message.type === 'runtime:animations') next.animations = { ...message.payload };
   if (message.type === 'editor:update-entity') next.pendingCommands.push(message.payload);
-  if (message.type === 'editor:select-entity') next.selectedEntityId = message.payload?.id || null;
+  if (message.type === 'editor:select-entity') {
+    next.selectedEntityId = message.payload?.id || null;
+    next.selectedEntityIds = normalizeSelection(message.payload?.ids, next.selectedEntityId);
+  }
   if (message.type === 'editor:gizmo-mode') next.gizmoMode = message.payload?.mode || 'translate';
   if (message.type === 'editor:dock-layout') next.dockLayout = normalizeDockLayout(message.payload);
+  if (message.type === 'editor:grid-snap') next.gridSnap = normalizeGridSnap(message.payload);
+  if (message.type === 'editor:scene-overlays') next.sceneOverlays = normalizeSceneOverlays(message.payload);
+  if (message.type === 'editor:scene-validation') next.sceneValidation = normalizeSceneValidation(message.payload);
   return next;
+}
+
+function normalizeGridSnap(value = {}) {
+  return {
+    enabled: Boolean(value.enabled),
+    size: Math.max(1, Number(value.size || 16))
+  };
+}
+
+function normalizeSceneOverlays(value = {}) {
+  return {
+    collision: Boolean(value.collision),
+    depth: Boolean(value.depth)
+  };
+}
+
+function normalizeSceneValidation(value = null) {
+  if (!value || typeof value !== 'object') return { ok: true, issues: [] };
+  const issues = Array.isArray(value.issues) ? value.issues : [];
+  return {
+    ...value,
+    ok: issues.length === 0,
+    issues
+  };
+}
+
+function normalizePrefabHistory(value = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).map(([key, entries]) => [
+    key,
+    Array.isArray(entries) ? entries : []
+  ]));
 }
 
 export function serializeSceneForSync(scene = {}) {
@@ -162,6 +207,13 @@ function uniqueNumbers(values = []) {
   return [...new Set((Array.isArray(values) ? values : [])
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value)))];
+}
+
+function normalizeSelection(ids = [], fallbackId = null) {
+  const values = Array.isArray(ids) ? ids : [];
+  const unique = [...new Set(values.filter(Boolean).map(String))];
+  if (!unique.length && fallbackId) unique.push(String(fallbackId));
+  return unique;
 }
 
 function normalizePlayState(playState = {}) {

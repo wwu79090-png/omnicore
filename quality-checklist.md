@@ -1,8 +1,15 @@
 # OmniCore 最终状态核对清单
 
-生成时间：2026-06-19T09:50:54.060Z
+生成时间：2026-06-19T13:32:53.238Z
 
 总体覆盖率：56/56 (100%)
+
+质量压榨补充：
+
+- [x] `quality-report.json`：capabilityScore 100，marketReadiness 100，overallScore 100。
+- [x] `docs/release-notes/production-ready-report.json`：ready true，score 100，errors 0，warnings 0。
+- [x] API 稳定性：185 个公开导出已由契约快照、API 文档和 `docs/api/public-api-policy.md` 管理，exportSurface.managed true。
+- [x] 非 3D 市场适配：non3DMarketScorecard overallScore 100，full-3d 明确排除在目标外。
 
 验证命令：`npm test -- tests/quality-report.test.js tests/editor-mvp-upgrade.test.js tests/editor-runtime-parity.test.js tests/desktop-editor-packaging.test.js tests/live-edit-play-mode.test.js tests/animation-timeline-state-machine.test.js tests/animation-authoring-closed-loop.test.js tests/commercial-engine-core.test.js tests/build-asset-pipeline.test.js tests/asset-pipeline-industrial.test.js tests/advanced-capabilities.test.js tests/benchmark/complex-scene.test.js tests/benchmark-threshold.test.js tests/hardware-baseline-official.test.js tests/build-game-demo-script.test.js tests/official-plugin-scale.test.js tests/plugin-marketplace-page.test.js tests/ecosystem.test.js tests/verify-build-output.test.js tests/release-automation.test.js`，结果：20 个测试文件、70 个测试通过。
 

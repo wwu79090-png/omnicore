@@ -18,7 +18,7 @@ export async function auditDeprecatedApis({
   extensions = DEFAULT_EXTENSIONS
 } = {}) {
   const includeRegistry = path.resolve(root) === path.resolve(process.cwd());
-  const definitions = [
+  const definitions = dedupeDefinitions([
     ...(includeRegistry ? DEPRECATED_APIS.map((entry) => ({
       api: entry.api,
       pattern: entry.pattern,
@@ -28,7 +28,7 @@ export async function auditDeprecatedApis({
       source: 'registry'
     })) : []),
     ...(await scanJsDocDeprecatedDefinitions({ root, srcDir, ignored, extensions }))
-  ];
+  ]);
   const files = [];
   for (const dir of scanDirs) files.push(...await walk(dir, { ignored, extensions }));
   const entries = definitions.map((definition) => ({
@@ -68,9 +68,10 @@ export function parseDeprecatedJsDoc(content, file = '') {
   while (match) {
     const [, jsdoc, name] = match;
     if (/@deprecated\b/.test(jsdoc)) {
+      const api = extractTag(jsdoc, 'api') || name;
       definitions.push({
-        api: name,
-        pattern: `${name}(`,
+        api,
+        pattern: extractTag(jsdoc, 'pattern') || defaultPattern(api, name),
         replacement: extractTag(jsdoc, 'replacement') || extractReplacementFromDeprecated(jsdoc) || '未指定',
         removeIn: extractTag(jsdoc, 'removeIn') || extractTag(jsdoc, 'remove-in') || '未指定',
         since: extractTag(jsdoc, 'since') || '未指定',
@@ -164,18 +165,81 @@ function findCallSites({ root, files, definition }) {
   const locations = [];
   for (const file of files) {
     const content = readFileSync(file, 'utf8');
-    const lines = content.split(/\r?\n/);
+    const relativeFile = path.relative(root, file).replace(/\\/g, '/');
+    if (definition.definedIn && definition.definedIn === relativeFile) continue;
+    const lines = stripCommentsAndStrings(content).split(/\r?\n/);
     lines.forEach((line, index) => {
       if (!line.includes(definition.pattern)) return;
       if (isDefinitionLine(line, definition.api)) return;
-      if (definition.source === 'registry' && file.endsWith(path.join('src', 'core', 'Deprecation.js'))) return;
+      if (file.endsWith(path.join('src', 'core', 'Deprecation.js'))) return;
       locations.push({
-        file: path.relative(root, file).replace(/\\/g, '/'),
+        file: relativeFile,
         line: index + 1
       });
     });
   }
   return locations;
+}
+
+function dedupeDefinitions(definitions) {
+  const byKey = new Map();
+  for (const definition of definitions) {
+    const key = `${definition.api}\0${definition.pattern}`;
+    if (!byKey.has(key)) byKey.set(key, definition);
+  }
+  return [...byKey.values()];
+}
+
+function stripCommentsAndStrings(source) {
+  let output = '';
+  let state = 'code';
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    const next = source[index + 1];
+    if (state === 'code') {
+      if (char === '/' && next === '/') {
+        output += '  ';
+        index += 1;
+        state = 'line-comment';
+      } else if (char === '/' && next === '*') {
+        output += '  ';
+        index += 1;
+        state = 'block-comment';
+      } else if (char === '"' || char === '\'' || char === '`') {
+        output += ' ';
+        state = char;
+      } else {
+        output += char;
+      }
+    } else if (state === 'line-comment') {
+      if (char === '\n') {
+        output += '\n';
+        state = 'code';
+      } else {
+        output += ' ';
+      }
+    } else if (state === 'block-comment') {
+      if (char === '*' && next === '/') {
+        output += '  ';
+        index += 1;
+        state = 'code';
+      } else {
+        output += char === '\n' ? '\n' : ' ';
+      }
+    } else if (char === '\\') {
+      output += ' ';
+      if (next) {
+        output += next === '\n' ? '\n' : ' ';
+        index += 1;
+      }
+    } else if (char === state) {
+      output += ' ';
+      state = 'code';
+    } else {
+      output += char === '\n' ? '\n' : ' ';
+    }
+  }
+  return output;
 }
 
 function isDefinitionLine(line, api) {
@@ -191,6 +255,11 @@ function extractTag(jsdoc, tag) {
 function extractReplacementFromDeprecated(jsdoc) {
   const match = jsdoc.match(/@deprecated\s+(?:Use|use|请改用)\s+`?([A-Za-z_$][\w$.:]*)`?/);
   return match?.[1] || '';
+}
+
+function defaultPattern(api, name) {
+  if (api === 'OmniCore.Game') return 'new OmniCore.Game(';
+  return `${name}(`;
 }
 
 function escapeRegExp(value) {

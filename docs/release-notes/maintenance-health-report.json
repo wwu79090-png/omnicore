@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-06-18T10:50:28.601Z",
+  "generatedAt": "2026-06-19T14:03:03.801Z",
   "full": false,
   "status": "pass",
   "checks": [
     {
       "name": "memory",
       "durationMs": 750,
-      "baseline": 50141280,
-      "current": 50255472,
-      "growthRatio": 0.002277404964532218,
+      "baseline": 64628736,
+      "current": 39908592,
+      "growthRatio": -0.3824946228253636,
       "status": "pass",
       "threshold": 0.2
     },
@@ -43,25 +43,38 @@
         {
           "browser": "Chrome",
           "status": "pass",
-          "pageStatus": "当前后端：pixi",
-          "canvasCount": 1
+          "pageStatus": "当前后端：canvas",
+          "canvasCount": 1,
+          "fallbackBackend": null,
+          "consoleIssueCount": 0,
+          "reason": null
         },
         {
           "browser": "Firefox",
-          "status": "skip",
-          "reason": "browserType.launch: Executable doesn't exist at C:\\Users\\39120\\AppData\\Local\\ms-playwright\\firefox-1532\\firefox\\firefox.exe"
+          "status": "pass",
+          "pageStatus": "当前后端：canvas",
+          "canvasCount": 1,
+          "fallbackBackend": "canvas",
+          "consoleIssueCount": 0,
+          "reason": null
         },
         {
           "browser": "Safari(WebKit)",
           "status": "pass",
-          "pageStatus": "当前后端：pixi",
-          "canvasCount": 1
+          "pageStatus": "当前后端：canvas",
+          "canvasCount": 1,
+          "fallbackBackend": null,
+          "consoleIssueCount": 0,
+          "reason": null
         },
         {
           "browser": "Edge",
           "status": "pass",
-          "pageStatus": "当前后端：pixi",
-          "canvasCount": 1
+          "pageStatus": "当前后端：canvas",
+          "canvasCount": 1,
+          "fallbackBackend": null,
+          "consoleIssueCount": 0,
+          "reason": null
         }
       ]
     }

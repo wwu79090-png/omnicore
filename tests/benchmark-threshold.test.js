@@ -54,6 +54,50 @@ describe('benchmark threshold regression gate', () => {
     expect(comparison.regressions).toEqual([]);
   });
 
+  it('allows rAF-clocked particle FPS jitter within the absolute tolerance', () => {
+    const comparison = compareBenchmarkResults({
+      baseline: {
+        summary: {
+          ...baseline.summary,
+          particles1000AvgFps: 60.67
+        }
+      },
+      current: {
+        summary: {
+          ...baseline.summary,
+          particles1000AvgFps: 57.33
+        }
+      },
+      threshold: 0.05
+    });
+
+    expect(comparison.passed).toBe(true);
+    expect(comparison.regressions).toEqual([]);
+  });
+
+  it('fails particle FPS regressions beyond the rAF jitter tolerance', () => {
+    const comparison = compareBenchmarkResults({
+      baseline: {
+        summary: {
+          ...baseline.summary,
+          particles1000AvgFps: 60.67
+        }
+      },
+      current: {
+        summary: {
+          ...baseline.summary,
+          particles1000AvgFps: 55
+        }
+      },
+      threshold: 0.05
+    });
+
+    expect(comparison.passed).toBe(false);
+    expect(comparison.regressions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: 'particles1000AvgFps' })
+    ]));
+  });
+
   it('formats a Chinese performance regression report for CI comments', () => {
     const comparison = compareBenchmarkResults({
       baseline: { summary: { ...baseline.summary, entitySync500AvgMs: 1.2 } },

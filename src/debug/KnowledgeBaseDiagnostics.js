@@ -1,4 +1,4 @@
-import patterns from '../../.knowledge-base/patterns.json';
+import patterns from './knowledgePatterns.js';
 
 const REFERENCE_PATTERN = /(?:[A-Za-z]:)?(?:[\w.-]+[\\/])*[\w.-]+\.(?:js|mjs|cjs|ts|tsx|jsx|json|c|h):\d+(?::\d+)?/;
 

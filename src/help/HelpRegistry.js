@@ -1,20 +1,20 @@
 const HELP = {
   Game: {
-    name: 'OmniCore.Game',
-    signature: 'new OmniCore.Game(config)',
+    name: 'OmniCore.createGame',
+    signature: 'OmniCore.createGame(config)',
     params: [{ name: 'config', type: 'object', description: '游戏配置，包含 parent、renderer、debug、platform 等字段。' }],
-    returns: 'Promise-like Game instance after init()',
-    example: 'const game = await new OmniCore.Game({ parent: "#app", renderer: "auto", debug: true }).init();'
+    returns: 'Uninitialized Game instance; call init() when needed',
+    example: 'const game = await OmniCore.createGame({ parent: "#app", renderer: "auto", debug: true }).init();'
   },
   'Store.set': {
-    name: 'OmniCore.Store.set',
-    signature: 'store.set(key, value)',
+    name: 'OmniCore.Store.setValue',
+    signature: 'store.setValue(key, value)',
     params: [
       { name: 'key', type: 'string', description: '状态键。' },
       { name: 'value', type: 'any', description: '新状态值。' }
     ],
     returns: 'Stored value after middleware and emergencyPatch',
-    example: 'game.store.set("currentScene", "Level1");'
+    example: 'game.store.setValue("currentScene", "Level1");'
   },
   'Renderer.drawRect': {
     name: 'Renderer.drawRect',
@@ -30,14 +30,14 @@ const HELP = {
     example: 'game.renderer.drawRect(16, 16, 64, 64, "#38bdf8");'
   },
   'Entity.create': {
-    name: 'Entity.create',
-    signature: 'Entity.create(type, props)',
+    name: 'Entity.createEntity',
+    signature: 'Entity.createEntity(type, props)',
     params: [
       { name: 'type', type: 'string', description: '实体类型。' },
       { name: 'props', type: 'object', description: '坐标、尺寸和自定义属性。' }
     ],
     returns: 'Entity-like object',
-    example: 'const hero = Entity.create("player", { x: 80, y: 120 });'
+    example: 'const hero = Entity.createEntity("player", { x: 80, y: 120 });'
   }
 };
 

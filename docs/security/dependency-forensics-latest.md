@@ -1,6 +1,6 @@
 # OmniCore Dependency Forensics Report
 
-- Generated: 2026-06-19T12:47:06.202Z
+- Generated: 2026-06-19T14:17:44.176Z
 - Root: C:\Users\39120\Documents\引擎开发
 - Packages scanned: 648
 - Packages with lifecycle scripts: 187

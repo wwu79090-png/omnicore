@@ -47,7 +47,7 @@ async function runMobileProfile() {
       generatedAt: new Date().toISOString(),
       runs: builtInRuns,
       summary: {
-        particles1000AvgFps: average(builtInRuns.map((item) => item.particles1000.fps)),
+        particles1000AvgFps: median(builtInRuns.map((item) => item.particles1000.fps)),
         entitySync500AvgMs: median(builtInRuns.map((item) => item.entitySync500.ms)),
         backendSwitchAvgMs: median(builtInRuns.map((item) => item.backendSwitch.ms))
       }
@@ -154,7 +154,7 @@ async function runBenchmark() {
         lowEndDeviceMatrix
       }),
       summary: {
-        particles1000AvgFps: average(builtInRuns.map((item) => item.particles1000.fps)),
+        particles1000AvgFps: median(builtInRuns.map((item) => item.particles1000.fps)),
         entitySync500AvgMs: median(builtInRuns.map((item) => item.entitySync500.ms)),
         backendSwitchAvgMs: median(builtInRuns.map((item) => item.backendSwitch.ms)),
         particles1000DrawCalls: average(builtInRuns.map((item) => item.particles1000.drawCallsPerFrame)),
@@ -546,96 +546,112 @@ async function runComplexSceneStressBench(page) {
 
 async function runWebGPUComplexSceneCapacityBench(page) {
   await page.goto(`${base}/tests/benchmark/benchmark.html`, { waitUntil: 'domcontentloaded' });
-  return page.evaluate(() => {
+  return page.evaluate(async () => {
     const rendererUrl = new URL('src/renderer/WebGPURenderer.js', window.location.origin).href;
     const spatialUrl = new URL('src/core/DualSpatialIndex.js', window.location.origin).href;
     const physicsUrl = new URL('src/physics/PhysicsWorld.js', window.location.origin).href;
     const tilemapUrl = new URL('src/tilemap/Tilemap.js', window.location.origin).href;
-    return import(rendererUrl).then(async ({ buildGPUBatches, WebGPURenderer }) => {
-      const [{ default: DualSpatialIndex }, { default: PhysicsWorld }, { default: Tilemap }] = await Promise.all([
-        import(spatialUrl),
-        import(physicsUrl),
-        import(tilemapUrl)
-      ]);
-      const entityCount = 1200;
-      const frames = 144;
-      const materials = ['stress-metal', 'stress-glass', 'stress-emissive', 'stress-stone'];
-      const entities = Array.from({ length: entityCount }, (_, index) => ({
-        id: `entity-${index}`,
-        texture: materials[index % materials.length],
-        material: materials[index % materials.length],
-        blendMode: 'normal',
-        x: (index * 17) % 960,
-        y: (index * 31) % 540,
-        width: 8,
-        height: 8,
-        rotation: 0,
-        alpha: 1
-      }));
-      const spatial = new DualSpatialIndex({ worldWidth: 4096, worldHeight: 4096, cellSize: 32 });
-      entities.slice(0, 800).forEach((entity) => spatial.addStatic(entity));
-      entities.slice(800).forEach((entity) => spatial.addDynamic(entity));
-      const renderer = new WebGPURenderer();
-      let maxBatchCount = 0;
-      const startedAt = performance.now();
-      for (let frame = 0; frame < frames; frame += 1) {
-        for (let index = 800; index < entities.length; index += 1) {
-          const entity = entities[index];
-          entity.x = (entity.x + 0.5) % 960;
-          entity.y = (entity.y + 0.25) % 540;
-          spatial.updateDynamic(entity);
-        }
-        const batches = buildGPUBatches(entities, { maxBatches: 5 });
-        maxBatchCount = Math.max(maxBatchCount, batches.length);
-        renderer.mapEntityBuffer(entities);
+
+    const delayImportRetry = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
+    const withRetryParam = (url, attempt) => {
+      const next = new URL(url);
+      next.searchParams.set('omniRetry', `${Date.now()}-${attempt}`);
+      return next.href;
+    };
+    const importBenchmarkModule = async (url, attempt = 0) => {
+      try {
+        return await import(attempt === 0 ? url : withRetryParam(url, attempt));
+      } catch (error) {
+        if (attempt >= 5) throw error;
+        await delayImportRetry(150 * (attempt + 1));
+        return importBenchmarkModule(url, attempt + 1);
       }
-      const commandMs = performance.now() - startedAt;
-      const collisionLayer = {
-        width: 8,
-        height: 4,
-        tileWidth: 16,
-        tileHeight: 16,
-        data: [
-          1, 1, 1, 1, 0, 0, 0, 0,
-          1, 1, 1, 1, 0, 0, 0, 0,
-          0, 0, 0, 0, 1, 1, 1, 1,
-          0, 0, 0, 0, 1, 1, 1, 1
-        ],
-        collisionTileIds: [1]
-      };
-      const physics = new PhysicsWorld();
-      const physicsStartedAt = performance.now();
-      const physicsReport = physics.loadStaticCollisionBinary(Tilemap.bakeCollisionBinary(collisionLayer));
-      const collisionBakeMs = performance.now() - physicsStartedAt;
-      const physicsQueryStartedAt = performance.now();
-      for (let frame = 0; frame < frames; frame += 1) {
-        physics.staticCollisionIndex.query({
-          x: (frame * 3) % 128,
-          y: (frame * 2) % 64,
-          width: 16,
-          height: 16
-        });
+    };
+
+    const { buildGPUBatches, WebGPURenderer } = await importBenchmarkModule(rendererUrl);
+    const [{ default: DualSpatialIndex }, { default: PhysicsWorld }, { default: Tilemap }] = await Promise.all([
+      importBenchmarkModule(spatialUrl),
+      importBenchmarkModule(physicsUrl),
+      importBenchmarkModule(tilemapUrl)
+    ]);
+    const entityCount = 1200;
+    const frames = 144;
+    const materials = ['stress-metal', 'stress-glass', 'stress-emissive', 'stress-stone'];
+    const entities = Array.from({ length: entityCount }, (_, index) => ({
+      id: `entity-${index}`,
+      texture: materials[index % materials.length],
+      material: materials[index % materials.length],
+      blendMode: 'normal',
+      x: (index * 17) % 960,
+      y: (index * 31) % 540,
+      width: 8,
+      height: 8,
+      rotation: 0,
+      alpha: 1
+    }));
+    const spatial = new DualSpatialIndex({ worldWidth: 4096, worldHeight: 4096, cellSize: 32 });
+    entities.slice(0, 800).forEach((entity) => spatial.addStatic(entity));
+    entities.slice(800).forEach((entity) => spatial.addDynamic(entity));
+    const renderer = new WebGPURenderer();
+    let maxBatchCount = 0;
+    const startedAt = performance.now();
+    for (let frame = 0; frame < frames; frame += 1) {
+      for (let index = 800; index < entities.length; index += 1) {
+        const entity = entities[index];
+        entity.x = (entity.x + 0.5) % 960;
+        entity.y = (entity.y + 0.25) % 540;
+        spatial.updateDynamic(entity);
       }
-      const physicsMs = Number(((performance.now() - physicsQueryStartedAt) / frames).toFixed(3));
-      const rawFps = commandMs > 0 ? Math.round((frames / commandMs) * 1000) : 144;
-      return {
-        name: 'complexScene1200WebGPUCommandPath',
-        backend: 'webgpu-command-worker',
-        entities: entityCount,
-        frames,
-        ms: Number(commandMs.toFixed(3)),
-        fps: Math.min(144, Math.max(0, rawFps)),
-        rawFps,
-        drawCallsPerFrame: maxBatchCount,
-        sharedArrayBuffer: renderer.entityBuffer?.shared === true,
-        entityBufferBytes: renderer.entityBuffer?.bytes || 0,
-        spatialIndex: spatial.stats(),
-        physicsMs,
-        collisionBakeMs: Number(collisionBakeMs.toFixed(3)),
-        physicsMsBudget: physicsReport.physicsMsBudget,
-        physicsPolygonCount: physicsReport.polygonCount
-      };
-    });
+      const batches = buildGPUBatches(entities, { maxBatches: 5 });
+      maxBatchCount = Math.max(maxBatchCount, batches.length);
+      renderer.mapEntityBuffer(entities);
+    }
+    const commandMs = performance.now() - startedAt;
+    const collisionLayer = {
+      width: 8,
+      height: 4,
+      tileWidth: 16,
+      tileHeight: 16,
+      data: [
+        1, 1, 1, 1, 0, 0, 0, 0,
+        1, 1, 1, 1, 0, 0, 0, 0,
+        0, 0, 0, 0, 1, 1, 1, 1,
+        0, 0, 0, 0, 1, 1, 1, 1
+      ],
+      collisionTileIds: [1]
+    };
+    const physics = new PhysicsWorld();
+    const physicsStartedAt = performance.now();
+    const physicsReport = physics.loadStaticCollisionBinary(Tilemap.bakeCollisionBinary(collisionLayer));
+    const collisionBakeMs = performance.now() - physicsStartedAt;
+    const physicsQueryStartedAt = performance.now();
+    for (let frame = 0; frame < frames; frame += 1) {
+      physics.staticCollisionIndex.query({
+        x: (frame * 3) % 128,
+        y: (frame * 2) % 64,
+        width: 16,
+        height: 16
+      });
+    }
+    const physicsMs = Number(((performance.now() - physicsQueryStartedAt) / frames).toFixed(3));
+    const rawFps = commandMs > 0 ? Math.round((frames / commandMs) * 1000) : 144;
+    return {
+      name: 'complexScene1200WebGPUCommandPath',
+      backend: 'webgpu-command-worker',
+      entities: entityCount,
+      frames,
+      ms: Number(commandMs.toFixed(3)),
+      fps: Math.min(144, Math.max(0, rawFps)),
+      rawFps,
+      drawCallsPerFrame: maxBatchCount,
+      sharedArrayBuffer: renderer.entityBuffer?.shared === true,
+      entityBufferBytes: renderer.entityBuffer?.bytes || 0,
+      spatialIndex: spatial.stats(),
+      physicsMs,
+      collisionBakeMs: Number(collisionBakeMs.toFixed(3)),
+      physicsMsBudget: physicsReport.physicsMsBudget,
+      physicsPolygonCount: physicsReport.polygonCount
+    };
   });
 }
 

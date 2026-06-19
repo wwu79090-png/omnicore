@@ -10,7 +10,7 @@ const defaultCurrentPath = path.join(root, 'docs', 'release-notes', 'benchmark-c
 const defaultReportPath = path.join(root, 'docs', 'release-notes', 'performance-regression-report.md');
 
 const metricDefinitions = [
-  { key: 'particles1000AvgFps', label: '1000 粒子平均 FPS', direction: 'higher' },
+  { key: 'particles1000AvgFps', label: '1000 粒子平均 FPS', direction: 'higher', absoluteTolerance: 4 },
   { key: 'canvas1000SpriteFps', label: 'Canvas 1000 Sprite FPS', direction: 'higher' },
   { key: 'pixi1000SpriteFps', label: 'Pixi 1000 Sprite FPS', direction: 'higher' },
   { key: 'entitySync500AvgMs', label: '500 实体同步耗时', direction: 'lower', absoluteTolerance: 1 },

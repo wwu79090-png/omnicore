@@ -52,13 +52,18 @@ describe('quality report generation', () => {
         checks: expect.arrayContaining([
           expect.objectContaining({ name: 'lint', present: true }),
           expect.objectContaining({ name: 'test', present: true }),
+          expect.objectContaining({ name: 'performance:budget', present: true }),
           expect.objectContaining({ name: 'build', present: true }),
           expect.objectContaining({ name: 'postbuild', present: true })
         ])
       }),
       apiStability: expect.objectContaining({
-        score: expect.any(Number),
+        score: 100,
         publicExportCount: expect.any(Number),
+        exportSurface: expect.objectContaining({
+          managed: true,
+          score: 100
+        }),
         warnings: expect.any(Array),
         policy: expect.objectContaining({
           file: 'docs/api/public-api-policy.md',
@@ -77,6 +82,22 @@ describe('quality report generation', () => {
         missing: []
       })
     });
+    expect(report.non3DMarketScorecard).toMatchObject({
+      target: 80,
+      allAboveTarget: true,
+      excluded: expect.arrayContaining(['full-3d'])
+    });
+    expect(report.non3DMarketScorecard.overallScore).toBeGreaterThanOrEqual(80);
+    expect(report.non3DMarketScorecard.dimensions.editorUx).toMatchObject({
+      score: expect.any(Number),
+      checks: expect.arrayContaining([
+        expect.objectContaining({ file: 'packages/omnicore-editor/src/editor-app.js', present: true }),
+        expect.objectContaining({ test: 'tests/omnicore-experience-gap.test.js', present: true })
+      ])
+    });
+    for (const dimension of Object.values(report.non3DMarketScorecard.dimensions)) {
+      expect(dimension.score).toBeGreaterThanOrEqual(80);
+    }
     expect(report.overallScore).toBeGreaterThanOrEqual(78);
   });
 
@@ -94,9 +115,11 @@ describe('quality report generation', () => {
     expect(report).toMatchObject({
       version: expect.any(String),
       ready: true,
-      score: expect.any(Number),
+      score: 100,
       marketReadiness: expect.objectContaining({
+        score: 100,
         releaseGates: expect.objectContaining({ score: 100 }),
+        apiStability: expect.objectContaining({ score: 100 }),
         platformCoverage: expect.objectContaining({ score: expect.any(Number) })
       })
     });

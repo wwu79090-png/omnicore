@@ -1,7 +1,7 @@
 import AICommandService from '../ai/AICommandService.js';
 
 const METHODS = [
-  'new OmniCore.Game(config)',
+  'OmniCore.createGame(config)',
   'new OmniCore.Scene(name)',
   'scene.add(sprite)',
   'new OmniCore.Sprite(texture, options)',
@@ -15,7 +15,9 @@ const METHODS = [
   'scene.timer.delay(ms, fn)',
   'OmniCore.DB.get("items", "potion")',
   'renderer.drawRect({ x, y, width, height })',
-  'Store.get("score")'
+  'Store.get("score")',
+  'Store.setValue("score", value)',
+  'Entity.createEntity(type, props)'
 ];
 
 export class ApiQuickPanel {
