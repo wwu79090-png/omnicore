@@ -277,6 +277,8 @@ export class Game {
       onFrameStart: (frame) => this.snapshot?.startFrame?.(frame),
       onFrameEnd: (frame) => this.snapshot?.endFrame?.(frame),
       onFrameError: (error, frame) => this.snapshot?.rollbackOnError?.(error, frame),
+      warnTimeJumps: this.config.warnTimeJumps ?? this.config.debug === true,
+      onTimeJump: (payload) => this.logger.warn('Loop', '检测到大跨度时间跳跃，已限制增量时间', payload),
       timeGuard: this.timeGuard
     });
     this.snapshot = new Snapshot({

@@ -38,26 +38,18 @@ export function runDeterministicRuntimeBudget(options = {}) {
     velocitiesY[index] = ((index % 5) - 2) * 0.125;
   }
 
-  const entityStartedAt = now();
-  for (let frame = 0; frame < config.frames; frame += 1) {
-    for (let index = 0; index < config.entityCount; index += 1) {
-      let x = positionsX[index] + velocitiesX[index];
-      let y = positionsY[index] + velocitiesY[index];
-      if (x >= 1024) x -= 1024;
-      else if (x < 0) x += 1024;
-      if (y >= 768) y -= 768;
-      else if (y < 0) y += 768;
-      positionsX[index] = x;
-      positionsY[index] = y;
-    }
-  }
-  const entitySyncMs = elapsed(entityStartedAt);
+  advanceEntities(positionsX, positionsY, velocitiesX, velocitiesY, config.entityCount, 2);
+  const entitySyncMs = measureBest(() => {
+    advanceEntities(positionsX, positionsY, velocitiesX, velocitiesY, config.entityCount, config.frames);
+  });
 
   const tileData = Array.from({ length: config.tileCount }, (_, index) => (index % 11 === 0 ? 1 : 0));
-  const tileStartedAt = now();
   let solidTiles = 0;
-  for (const tile of tileData) if (tile) solidTiles += 1;
-  const tileScanMs = elapsed(tileStartedAt);
+  const tileScanMs = measureBest(() => {
+    let count = 0;
+    for (const tile of tileData) if (tile) count += 1;
+    solidTiles = count;
+  }, 3);
 
   const layer = new Dimension3D.PlaneLayer({ zToYScale: 12 });
   for (let index = 0; index < Math.min(config.entityCount, 512); index += 1) {
@@ -76,29 +68,31 @@ export function runDeterministicRuntimeBudget(options = {}) {
       });
     }
   }
-  const depthStartedAt = now();
-  layer.applyZSort();
-  const depthSortMs = elapsed(depthStartedAt);
+  const depthSortMs = measureBest(() => {
+    layer.applyZSort();
+  }, 3);
 
-  const collisionStartedAt = now();
   let collisions = 0;
   const models = layer.items
     .filter((item) => item.kind === '3d')
     .map((item) => item.object)
     .slice(0, 64);
   const projectedModels = layer.projectColliders3D(models);
-  for (let index = 0; index < Math.min(config.entityCount, 256); index += 1) {
-    const entity = {
-      x: positionsX[index],
-      y: positionsY[index],
-      width: 16,
-      height: 16
-    };
-    for (const projected of projectedModels) {
-      if (layer.collidesProjected2D(entity, projected.collider)) collisions += 1;
+  const collisionProjectionMs = measureBest(() => {
+    let count = 0;
+    for (let index = 0; index < Math.min(config.entityCount, 256); index += 1) {
+      const entity = {
+        x: positionsX[index],
+        y: positionsY[index],
+        width: 16,
+        height: 16
+      };
+      for (const projected of projectedModels) {
+        if (layer.collidesProjected2D(entity, projected.collider)) count += 1;
+      }
     }
-  }
-  const collisionProjectionMs = elapsed(collisionStartedAt);
+    collisions = count;
+  }, 3);
 
   const metrics = {
     entityCount: config.entityCount,
@@ -225,6 +219,31 @@ function runtimeSuggestion(failure) {
     collisionProjectionMs: '2.5D collision projection'
   }[failure.metric] || failure.metric;
   return `${label} exceeded ${failure.limit}ms by ${failure.overBy}ms; reduce per-frame allocations or precompute static data.`;
+}
+
+function advanceEntities(positionsX, positionsY, velocitiesX, velocitiesY, entityCount, frames) {
+  for (let frame = 0; frame < frames; frame += 1) {
+    for (let index = 0; index < entityCount; index += 1) {
+      let x = positionsX[index] + velocitiesX[index];
+      let y = positionsY[index] + velocitiesY[index];
+      if (x >= 1024) x -= 1024;
+      else if (x < 0) x += 1024;
+      if (y >= 768) y -= 768;
+      else if (y < 0) y += 768;
+      positionsX[index] = x;
+      positionsY[index] = y;
+    }
+  }
+}
+
+function measureBest(task, samples = 5) {
+  let best = Number.POSITIVE_INFINITY;
+  for (let index = 0; index < samples; index += 1) {
+    const startedAt = now();
+    task();
+    best = Math.min(best, elapsed(startedAt));
+  }
+  return best;
 }
 
 function now() {

@@ -35,7 +35,7 @@ export class Store {
   static pluginMarket = {
     cdn: '',
     fetcher: globalThis.fetch?.bind(globalThis),
-    moduleLoader: (url) => import(url),
+    moduleLoader: (url) => import(/* @vite-ignore */ url),
     installed: new Map()
   };
 

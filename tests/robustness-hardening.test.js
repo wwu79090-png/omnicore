@@ -77,12 +77,29 @@ describe('runtime hardening and diagnostics', () => {
     expect(warn).toHaveBeenCalledWith('[OmniCore] 检测到大跨度时间跳跃，已限制增量时间');
     expect(callbacks).toHaveLength(0);
 
-    loop._tick(600016);
-    loop._tick(600032);
-    expect(callbacks).toHaveLength(2);
+    loop._tick(600200);
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    loop._tick(600216);
+    loop._tick(600232);
+    expect(callbacks).toHaveLength(3);
     expect(callbacks[0]).toBeCloseTo(loop.frameMs / 1000, 5);
     expect(callbacks[1]).toBeCloseTo(loop.frameMs / 1000, 5);
     loop.stop();
+    warn.mockRestore();
+  });
+
+  it('can suppress frame spike warnings for non-debug browser smoke tests', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const loop = new Loop({ fps: 60, timeGuard: null, autoPause: false, warnTimeJumps: false });
+
+    loop.running = true;
+    loop.lastTime = 0;
+    loop._tick(600000);
+
+    expect(warn).not.toHaveBeenCalled();
+    loop.stop();
+    warn.mockRestore();
   });
 
   it('throws a detailed assertion when debug entity sprite reference is missing', () => {

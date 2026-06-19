@@ -6,29 +6,54 @@
     <title>OmniCore Case Studies</title>
     <style>
       body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, sans-serif; }
-      main { max-width: 1040px; margin: 0 auto; padding: 40px 20px; }
-      img { width: 100%; border: 1px solid #cbd5e1; }
-      .status { display: inline-block; padding: 4px 8px; background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+      main { max-width: 1120px; margin: 0 auto; padding: 40px 20px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+      .case { border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; padding: 18px; }
+      .case img { width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; background: #f1f5f9; }
+      .status { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #dcfce7; color: #166534; }
+      .evidence { color: #334155; font-size: 14px; }
       li { margin: 8px 0; }
     </style>
   </head>
   <body>
     <main>
-      <h1>商业案例：代码觉醒者</h1>
-      <p><span class="status">开发中</span></p>
-      <img src="./assets/code-awakener-screenshot.svg" alt="代码觉醒者开发中截图" />
-      <h2>项目定位</h2>
-      <p>《代码觉醒者》是一款面向编程学习与剧情冒险结合的 2D 游戏。当前仍处于开发阶段，页面展示的是开发中画面与规划能力。</p>
-      <h2>使用的 OmniCore 能力</h2>
-      <ul>
-        <li>SceneManager：菜单、关卡、对话场景切换。</li>
-        <li>Store：玩家进度、碎片数量、关卡状态持久化。</li>
-        <li>Input：桌面键盘与移动端 pointer 统一输入。</li>
-        <li>Debug：Live Inspector、性能面板、F1 API 速查。</li>
-        <li>Dimension3D：单 glTF/GLB 赛博朋克城市装饰背景，只做整体旋转。</li>
-        <li>Packaging：离线包与发布流水线支持。</li>
-      </ul>
-      <p>3D 模型仅用于背景氛围，不参与 3D 碰撞、3D 动画或 3D 摄像机控制。</p>
+      <h1>OmniCore 市场案例与发布证明</h1>
+      <p>这些案例覆盖微信小游戏、Web 模板和桌面编辑器工作流，用来证明 OmniCore 不只停留在 API 演示，而是能支撑可运行模板、性能门禁和发布检查。</p>
+      <section class="grid">
+        <article class="case" data-case-study="code-awakener" data-publish-evidence="wechat">
+          <h2>代码觉醒者</h2>
+          <p><span class="status">微信小游戏发布链路验证</span></p>
+          <img src="./assets/code-awakener-screenshot.svg" alt="代码觉醒者开发中截图" />
+          <p>2D RPG/解谜混合项目，用于验证 SceneManager、Store、EventSheet、Tilemap Chunk、移动端输入和微信小游戏 4MB 包体门禁。</p>
+          <ul>
+            <li>发布证据：`npm run build:wechat`、`npm run test:wechat`、真机调试手册。</li>
+            <li>质量门禁：lint、全量测试、benchmark、production-ready。</li>
+            <li>3D 边界：单 glTF/GLB 只做装饰背景，不进入全 3D 物理。</li>
+          </ul>
+        </article>
+        <article class="case" data-case-study="starter-platformer" data-publish-evidence="web">
+          <h2>Starter Platformer</h2>
+          <p><span class="status">可运行模板</span></p>
+          <img src="./assets/code-awakener-progress.svg" alt="平台跳跃模板运行画面" />
+          <p>面向新手的 10 分钟 Web 模板，验证角色移动、jump、碰撞、资源加载和 Vite 发布产物。</p>
+          <ul>
+            <li>发布证据：`examples/template-platformer`、`npm run dev`、postbuild 浏览器白屏检查。</li>
+            <li>质量门禁：模板调试手册、资源 404 检查、全量 Vitest 回归。</li>
+            <li>商业价值：降低 Phaser/GDevelop 用户迁移到 OmniCore 的入门成本。</li>
+          </ul>
+        </article>
+        <article class="case" data-case-study="desktop-lowcode-suite" data-publish-evidence="desktop">
+          <h2>Desktop Low-Code Suite</h2>
+          <p><span class="status">编辑器生产流</span></p>
+          <img src="./assets/code-awakener-screenshot.svg" alt="桌面低代码编辑器界面" />
+          <p>Electron 桌面编辑器案例，覆盖工作区扫描、资产预览、Prefab 变体、可视化事件图、UI_Layout 和 config/data.json 数据表编辑。</p>
+          <ul>
+            <li>发布证据：Windows exe、macOS dmg、Linux AppImage 打包目标。</li>
+            <li>质量门禁：desktop-editor-workflow、lowcode-editor-suite、editor-industrial-authoring。</li>
+            <li>市场价值：补齐 Unity/Godot/Cocos 对比中最弱的编辑器深度。</li>
+          </ul>
+        </article>
+      </section>
     </main>
   </body>
 </html>

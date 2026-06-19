@@ -8,9 +8,37 @@ body:
   - type: input
     id: package
     attributes:
-      label: npm package
-      description: Published package name or repository URL.
+      label: npm package or Git URL
+      description: Published package name or repository URL used by omni install.
       placeholder: "@scope/omnicore-my-plugin"
+    validations:
+      required: true
+  - type: textarea
+    id: plugin-json
+    attributes:
+      label: plugin.json
+      description: Paste the plugin.json manifest. Required fields are name, displayName, version, main, author, and license. Paid plugins must include isPaid and priceCents.
+      render: json
+      placeholder: |
+        {
+          "name": "omni-particles",
+          "displayName": "Omni Particles",
+          "version": "1.0.0",
+          "main": "src/index.js",
+          "author": "Particle Studio",
+          "license": "MIT",
+          "isPaid": false
+        }
+    validations:
+      required: true
+  - type: dropdown
+    id: isPaid
+    attributes:
+      label: isPaid
+      description: Set to true when the plugin requires payment and encrypted delivery.
+      options:
+        - "false"
+        - "true"
     validations:
       required: true
   - type: textarea

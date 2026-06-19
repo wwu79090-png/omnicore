@@ -14,7 +14,13 @@ import { createNoWarningSummary, detectOutputRisks } from './lib/output-gate.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_VERIFY_TIMEOUT_MS = 120_000;
-const DEFAULT_VERIFY_SCRIPTS = ['lint', 'test:contract', 'benchmark:ci', 'performance:budget'];
+export const DEFAULT_VERIFY_SCRIPTS = [
+  'lint',
+  'test:contract',
+  'benchmark:ci',
+  'performance:budget',
+  'quality:engine'
+];
 const VERIFY_OUTPUT_LIMIT = 24_000;
 
 export function createProductionReadyReport({

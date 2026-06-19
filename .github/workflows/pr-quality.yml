@@ -19,9 +19,11 @@ jobs:
       - run: node scripts/visual-regression.js --golden tests/visual/golden/examples.json --out docs/release-notes/visual-regression-report.json
       - run: node scripts/compare-screenshots.js --baseline tests/e2e/__screenshots__/editor-baseline.png --current "tests/e2e/__screenshots__/editor-current-*.png" --threshold 0.05 --out docs/release-notes/screenshot-diff-report.md
       - run: npm run benchmark:ci
+      - run: npm run quality:engine -- --out docs/release-notes/engine-quality-report.json
       - uses: actions/upload-artifact@v4
         with:
-          name: visual-regression-report
+          name: quality-reports
           path: |
             tests/e2e/__screenshots__
             docs/release-notes/screenshot-diff-report.md
+            docs/release-notes/engine-quality-report.json

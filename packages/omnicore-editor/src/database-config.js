@@ -16,7 +16,7 @@ export function normalizeDatabaseConfig(tables = {}) {
 
 export function saveDatabaseConfig({
   root = process.cwd(),
-  file = path.join('config', 'db.json'),
+  file = path.join('config', 'data.json'),
   tables = {}
 } = {}) {
   const target = path.resolve(root, file);

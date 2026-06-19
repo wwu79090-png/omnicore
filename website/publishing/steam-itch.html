@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Steam/Itch.io 发布教程</title>
+</head>
+<body>
+  <main>
+    <h1>Steam/Itch.io 发布教程</h1>
+    <section>
+      <h2>Steam Windows</h2>
+      <ol>
+        <li>运行 <code>npm run build</code> 和桌面打包命令。</li>
+        <li>复制 Windows 包到 SteamPipe depot。</li>
+        <li>使用 SteamPipe 上传并绑定 Windows 分支。</li>
+      </ol>
+    </section>
+    <section>
+      <h2>Steam Linux</h2>
+      <ol>
+        <li>生成 Linux AppImage 或 unpacked 包。</li>
+        <li>设置执行权限并上传 Linux depot。</li>
+        <li>在 Linux 桌面或 Steam Deck 做启动测试。</li>
+      </ol>
+    </section>
+    <section>
+      <h2>Itch.io Windows</h2>
+      <ol>
+        <li>安装 Butler 并登录。</li>
+        <li>使用 <code>butler push dist/publish/itch/windows account/game:windows</code> 上传。</li>
+      </ol>
+    </section>
+    <section>
+      <h2>Itch.io Linux</h2>
+      <ol>
+        <li>复制 AppImage 到 Linux channel 目录。</li>
+        <li>使用 <code>butler push dist/publish/itch/linux account/game:linux</code> 上传。</li>
+      </ol>
+    </section>
+    <section>
+      <h2>移动 WebView 壳</h2>
+      <p>运行 <code>npm run build:mobile</code> 生成 iOS Swift 与 Android Kotlin 项目，再把 Web 构建产物放入原生资源目录。</p>
+    </section>
+  </main>
+</body>
+</html>

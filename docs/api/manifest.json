@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-19T09:33:38.437Z",
+  "generatedAt": "2026-06-19T16:14:51.376Z",
   "modules": [
     {
       "path": "addons/Ad.js",
@@ -308,7 +308,7 @@
     },
     {
       "path": "core/Entity.js",
-      "summary": "",
+      "summary": "@param {string|Function|object} type Entity type, constructor, or object. @param {object} props Entity properties. @returns {object} Entity instance. @deprecated since 0.3.0, removeIn 2.0.0. Use `Entity.createEntity(type, props)` or `OmniCore.createEntity(type, props)`. @replacement Entity.createEntity @removeIn 2.0.0",
       "exports": [
         "EntityClass"
       ]
@@ -556,6 +556,13 @@
       "summary": "Debug inspector registry. When `debug: true`, `OmniCore.lookup(name)` becomes available globally for inspecting the current game, renderer, store, loader, and scene. @example const inspector = new Inspector(game); inspector.attach(); globalThis.OmniCore.lookup('renderer');",
       "exports": [
         "Inspector"
+      ]
+    },
+    {
+      "path": "debug/KnowledgeBaseDiagnostics.js",
+      "summary": "",
+      "exports": [
+        "KnowledgeBaseDiagnostics"
       ]
     },
     {
@@ -1032,6 +1039,49 @@
       ]
     },
     {
+      "path": "package/PluginInstaller.js",
+      "summary": "",
+      "exports": [
+        "PluginInstaller"
+      ]
+    },
+    {
+      "path": "physics/backends/Box2DWasmBackend.js",
+      "summary": "",
+      "exports": [
+        "Box2DWasmBackend"
+      ]
+    },
+    {
+      "path": "physics/backends/index.js",
+      "summary": "",
+      "exports": [
+        "createPhysicsBackend"
+      ]
+    },
+    {
+      "path": "physics/backends/MatterBackend.js",
+      "summary": "",
+      "exports": [
+        "MatterBackend"
+      ]
+    },
+    {
+      "path": "physics/backends/PhysicsBackend.js",
+      "summary": "",
+      "exports": [
+        "PhysicsBackend",
+        "normalizeBodyState"
+      ]
+    },
+    {
+      "path": "physics/backends/RapierBackend.js",
+      "summary": "",
+      "exports": [
+        "RapierBackend"
+      ]
+    },
+    {
       "path": "physics/CollisionMask.js",
       "summary": "Collision category and mask helpers. @example CollisionMask.filter('bullet', 'enemy');",
       "exports": [
@@ -1088,6 +1138,18 @@
       "summary": "JSON prefab instantiator with Cocos-style component mounting. @example const enemy = PrefabManager.instantiate({ type: 'sprite', texture: 'enemy', components: [{ type: EnemyAI, options: { speed: 90 } }] }, 100, 200);",
       "exports": [
         "PrefabManager"
+      ]
+    },
+    {
+      "path": "quality/EngineQualityHarness.js",
+      "summary": "",
+      "exports": [
+        "stableStringify",
+        "stableHash",
+        "runDeterminismCheck",
+        "runInvariantCheck",
+        "runBudgetCheck",
+        "runEngineQualityGate"
       ]
     },
     {

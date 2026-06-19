@@ -7,7 +7,7 @@ export class PackageManager {
   constructor({
     registryUrl = 'https://registry.omnicore.dev',
     fetcher = globalThis.fetch?.bind(globalThis),
-    moduleLoader = (url) => import(url)
+    moduleLoader = (url) => import(/* @vite-ignore */ url)
   } = {}) {
     this.registryUrl = registryUrl.replace(/\/$/, '');
     this.fetcher = fetcher;

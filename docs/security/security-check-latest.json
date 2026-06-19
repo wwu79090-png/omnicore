@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-19T14:03:56.627Z",
+  "generatedAt": "2026-06-19T16:27:00.849Z",
   "outdated": {
     "ok": true,
     "stdout": "Checking C:\\Users\\39120\\Documents\\引擎开发\\package.json\n\nMinor   Backwards-compatible features\n playwright  ^1.57.0  →  ^1.61.0\n prettier     ^3.6.2  →   ^3.8.4\n\nMajor   Potentially breaking API changes\n eslint             ^8.57.1  →  ^10.5.0\n jsdom              ^26.1.0  →  ^29.1.1\n npm-check-updates  ^18.3.1  →  ^22.2.3\n\nRun npx npm-check-updates --format group -u to upgrade package.json\n",
@@ -12,7 +12,7 @@
   },
   "fix": {
     "ok": true,
-    "stdout": "\nup to date, audited 651 packages in 8s\n\n168 packages are looking for funding\n  run `npm fund` for details\n\nfound 0 vulnerabilities\n",
+    "stdout": "\nup to date, audited 651 packages in 3s\n\n168 packages are looking for funding\n  run `npm fund` for details\n\nfound 0 vulnerabilities\n",
     "stderr": ""
   },
   "auditAfter": {

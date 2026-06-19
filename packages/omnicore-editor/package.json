@@ -18,18 +18,20 @@
     "appId": "dev.omnicore.editor",
     "desktopTargets": [
       "omnicore-editor.exe",
-      "OmniCore Editor.app"
+      "OmniCore Editor.app",
+      "OmniCore Editor.dmg",
+      "OmniCore Editor.AppImage"
     ],
     "files": [
       "dist",
       "electron.main.cjs",
+      "workspace.cjs",
       "preload.cjs",
       "package.json"
     ]
   },
-  "dependencies": {},
   "devDependencies": {
-    "electron": "^38.0.0",
+    "electron": "^42.4.1",
     "vite": "^8.0.16"
   }
 }

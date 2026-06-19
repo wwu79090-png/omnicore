@@ -2,6 +2,7 @@ export function createEditorState(initial = {}) {
   return {
     connected: false,
     scene: initial.scene || { name: 'untitled', entities: [] },
+    workspace: normalizeWorkspace(initial.workspace),
     selectedEntityId: initial.selectedEntityId || null,
     selectedEntityIds: normalizeSelection(initial.selectedEntityIds, initial.selectedEntityId),
     selectedPrefabId: initial.selectedPrefabId || null,
@@ -10,11 +11,21 @@ export function createEditorState(initial = {}) {
     selectedTile: initial.selectedTile ?? 1,
     prefabs: initial.prefabs || [],
     assets: initial.assets || [],
+    assetPreview: initial.assetPreview || null,
+    prefabPreview: initial.prefabPreview || null,
     playState: normalizePlayState(initial.playState),
     profilerFrame: normalizeProfilerFrame(initial.profilerFrame),
     database: normalizeDatabaseState(initial.database),
+    projectFiles: normalizeProjectFiles(initial.projectFiles),
+    globalSearch: normalizeGlobalSearch(initial.globalSearch),
+    resourcePicker: normalizeResourcePicker(initial.resourcePicker),
+    physicsView: normalizePhysicsView(initial.physicsView),
+    prefabHotEdit: normalizePrefabHotEdit(initial.prefabHotEdit),
+    buildSettings: normalizeBuildSettings(initial.buildSettings),
     lastCommandError: initial.lastCommandError || null,
     flowGraph: normalizeFlowGraph(initial.flowGraph),
+    behaviorTree: initial.behaviorTree || null,
+    uiLayout: normalizeUILayout(initial.uiLayout),
     tilemap: normalizeTilemap(initial.tilemap),
     dockLayout: normalizeDockLayout(initial.dockLayout),
     simulation: initial.simulation || { active: false, physics: false, logic: false },
@@ -25,6 +36,15 @@ export function createEditorState(initial = {}) {
     sceneValidation: normalizeSceneValidation(initial.sceneValidation),
     sceneIssueTargetId: initial.sceneIssueTargetId || null,
     prefabHistory: normalizePrefabHistory(initial.prefabHistory),
+    selectedAnimationKeyframe: normalizeSelectedAnimationKeyframe(initial.selectedAnimationKeyframe),
+    particleEditor: normalizeParticleEditor(initial.particleEditor),
+    spriteEditor: normalizeSpriteEditor(initial.spriteEditor),
+    profilerOpen: Boolean(initial.profilerOpen),
+    profilerHistory: normalizeProfilerHistory(initial.profilerHistory),
+    sceneTabs: normalizeSceneTabs(initial.sceneTabs),
+    activeSceneTabPath: initial.activeSceneTabPath || null,
+    authoringHealth: normalizeAuthoringHealth(initial.authoringHealth),
+    autoSave: normalizeAutoSave(initial.autoSave),
     pendingCommands: initial.pendingCommands || []
   };
 }
@@ -51,9 +71,13 @@ export function applyLiveSyncMessage(state = createEditorState(), message = {}) 
   if (message.type === 'runtime:tilemap') next.tilemap = { ...next.tilemap, ...message.payload };
   if (message.type === 'runtime:play-state') next.playState = normalizePlayState(message.payload);
   if (message.type === 'runtime:profiler-frame') next.profilerFrame = normalizeProfilerFrame(message.payload);
+  if (message.type === 'runtime:profiler-frame') {
+    next.profilerHistory = normalizeProfilerHistory([...(next.profilerHistory || []), message.payload]);
+  }
   if (message.type === 'runtime:database') next.database = normalizeDatabaseState({ ...next.database, lastUpdate: message.payload });
   if (message.type === 'runtime:command-error') next.lastCommandError = { ...message.payload };
   if (message.type === 'runtime:prefabs') next.prefabs = Array.isArray(message.payload) ? message.payload : message.payload?.prefabs || [];
+  if (message.type === 'editor:workspace-opened') next.workspace = normalizeWorkspace(message.payload);
   if (message.type === 'runtime:animations') next.animations = { ...message.payload };
   if (message.type === 'editor:update-entity') next.pendingCommands.push(message.payload);
   if (message.type === 'editor:select-entity') {
@@ -100,6 +124,127 @@ function normalizePrefabHistory(value = {}) {
   ]));
 }
 
+function normalizeSelectedAnimationKeyframe(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return {
+    clipId: value.clipId || value.clip || null,
+    track: value.track || value.property || null,
+    frame: Number(value.frame || 0)
+  };
+}
+
+function normalizeParticleEditor(value = {}) {
+  if (!value || typeof value !== 'object') {
+    value = {};
+  }
+  const curves = value.curves && typeof value.curves === 'object' ? value.curves : {};
+  return {
+    open: Boolean(value.open),
+    config: {
+      emissionRate: Number(value.config?.emissionRate ?? value.emissionRate ?? 30),
+      lifetime: Number(value.config?.lifetime ?? value.lifetime ?? 1),
+      initialVelocity: Number(value.config?.initialVelocity ?? value.initialVelocity ?? 120),
+      gravity: Number(value.config?.gravity ?? value.gravity ?? 0),
+      curves: Object.fromEntries(Object.entries(value.config?.curves || curves).map(([key, points]) => [
+        key,
+        normalizeCurvePoints(points)
+      ])),
+      gradient: normalizeGradient(value.config?.gradient || value.gradient)
+    }
+  };
+}
+
+function normalizeSpriteEditor(value = {}) {
+  if (!value || typeof value !== 'object') return { open: false, source: null, nineSlice: {}, collider: null };
+  return {
+    open: Boolean(value.open),
+    source: value.source || value.path || null,
+    nineSlice: normalizeNineSlice(value.nineSlice),
+    collider: value.collider && typeof value.collider === 'object' ? { ...value.collider } : null
+  };
+}
+
+function normalizeProfilerHistory(value = []) {
+  return (Array.isArray(value) ? value : [])
+    .map(normalizeProfilerFrame)
+    .filter(Boolean)
+    .slice(-180);
+}
+
+function normalizeSceneTabs(value = []) {
+  return (Array.isArray(value) ? value : [])
+    .filter((tab) => tab && (tab.path || tab.id))
+    .map((tab) => ({
+      path: tab.path || tab.id,
+      scene: normalizeSceneDocument(tab.scene),
+      dirty: Boolean(tab.dirty)
+    }));
+}
+
+function normalizeAuthoringHealth(value = {}) {
+  return {
+    open: Boolean(value.open),
+    ok: value.ok !== false,
+    checkedAt: value.checkedAt || null,
+    issues: Array.isArray(value.issues) ? value.issues.map((issue) => ({ ...issue })) : [],
+    hotspots: Array.isArray(value.hotspots) ? value.hotspots.map((hotspot) => ({ ...hotspot })) : [],
+    counts: value.counts && typeof value.counts === 'object' ? { ...value.counts } : {}
+  };
+}
+
+function normalizeCurvePoints(points = []) {
+  return (Array.isArray(points) ? points : [])
+    .map((point) => ({ t: Number(point.t || 0), value: Number(point.value || 0) }));
+}
+
+function normalizeGradient(points = []) {
+  return (Array.isArray(points) ? points : [])
+    .map((point) => ({ t: Number(point.t || 0), color: point.color || '#ffffff' }));
+}
+
+function normalizeNineSlice(value = {}) {
+  if (!value || typeof value !== 'object') {
+    value = {};
+  }
+  return {
+    left: Number(value.left || 0),
+    right: Number(value.right || 0),
+    top: Number(value.top || 0),
+    bottom: Number(value.bottom || 0)
+  };
+}
+
+function normalizeSceneDocument(scene = {}) {
+  return {
+    name: scene.name || 'untitled',
+    entities: Array.isArray(scene.entities) ? scene.entities : []
+  };
+}
+
+function normalizeWorkspace(value = {}) {
+  if (!value || typeof value !== 'object') {
+    return { root: null, name: null, directories: [], assets: [], sourceFiles: [], scenes: [] };
+  }
+  return {
+    root: value.root || null,
+    name: value.name || null,
+    directories: Array.isArray(value.directories) ? value.directories : [],
+    assets: Array.isArray(value.assets) ? value.assets : [],
+    sourceFiles: Array.isArray(value.sourceFiles) ? value.sourceFiles : [],
+    scenes: Array.isArray(value.scenes) ? value.scenes : [],
+    scannedAt: value.scannedAt || null
+  };
+}
+
+function normalizeAutoSave(value = {}) {
+  return {
+    enabled: value.enabled !== false,
+    intervalMs: Math.max(1000, Number(value.intervalMs || 300000)),
+    lastSavedAt: value.lastSavedAt || null,
+    lastPath: value.lastPath || null
+  };
+}
+
 export function serializeSceneForSync(scene = {}) {
   return {
     name: scene.name || 'untitled',
@@ -126,8 +271,23 @@ function normalizeTilemap(tilemap = {}) {
     layers,
     activeLayerId,
     collisions: uniqueNumbers(tilemap.collisions),
-    tilesets: normalizeTilesets(tilemap.tilesets || (tilemap.tileset ? [tilemap.tileset] : []), tilemap)
+    tilesets: normalizeTilesets(tilemap.tilesets || (tilemap.tileset ? [tilemap.tileset] : []), tilemap),
+    ruleTiles: normalizeRuleTiles(tilemap.ruleTiles)
   };
+}
+
+function normalizeRuleTiles(ruleTiles = []) {
+  return (Array.isArray(ruleTiles) ? ruleTiles : [])
+    .filter((rule) => rule && rule.id != null)
+    .map((rule) => ({
+      ...clonePlain(rule),
+      id: Number(rule.id),
+      when: {
+        ...(rule.when || {}),
+        self: Number(rule.when?.self),
+        adjacentAny: uniqueNumbers(rule.when?.adjacentAny)
+      }
+    }));
 }
 
 function normalizeTilemapLayers(layers, fallbackData, size) {
@@ -240,7 +400,9 @@ function normalizeProfilerFrame(frame = null) {
         name: section.name || 'unknown',
         duration: Number(section.duration || 0)
       }))
-      : []
+      : [],
+    memoryMB: Number(frame.memoryMB || frame.memory || 0),
+    drawCalls: Number(frame.drawCalls || frame.drawcalls || 0)
   };
 }
 
@@ -249,6 +411,95 @@ function normalizeDatabaseState(database = {}) {
     tables: database.tables || {},
     lastUpdate: database.lastUpdate || null
   };
+}
+
+function normalizeProjectFiles(projectFiles = {}) {
+  if (!projectFiles || typeof projectFiles !== 'object' || Array.isArray(projectFiles)) return {};
+  return Object.fromEntries(Object.entries(projectFiles).map(([filePath, content]) => [filePath, String(content ?? '')]));
+}
+
+function normalizeGlobalSearch(value = {}) {
+  return {
+    open: Boolean(value.open),
+    query: value.query || '',
+    replacement: value.replacement || '',
+    results: Array.isArray(value.results) ? value.results : []
+  };
+}
+
+function normalizeResourcePicker(value = {}) {
+  return {
+    open: Boolean(value.open),
+    field: value.field || null,
+    query: value.query || ''
+  };
+}
+
+function normalizePhysicsView(value = {}) {
+  return {
+    open: Boolean(value.open)
+  };
+}
+
+function normalizePrefabHotEdit(value = {}) {
+  return {
+    prefabId: value.prefabId || null,
+    patch: value.patch || {},
+    dirty: Boolean(value.dirty),
+    promptOpen: Boolean(value.promptOpen)
+  };
+}
+
+function normalizeBuildSettings(value = {}) {
+  const targets = value.targets || {};
+  const defaults = defaultBuildTargets();
+  return {
+    targets: Object.fromEntries(Object.entries(defaults).map(([platform, config]) => [
+      platform,
+      {
+        ...config,
+        ...(targets[platform] || {}),
+        enabled: Boolean(targets[platform]?.enabled ?? config.enabled)
+      }
+    ]))
+  };
+}
+
+function defaultBuildTargets() {
+  return {
+    web: { enabled: true, compression: 'brotli', iconSize: 512, configStrategy: 'static' },
+    wechat: { enabled: false, compression: 'zip', iconSize: 144, configStrategy: 'minigame' },
+    electron: { enabled: false, compression: 'asar', iconSize: 256, configStrategy: 'desktop' },
+    steam: { enabled: false, compression: 'store', iconSize: 256, configStrategy: 'depot' },
+    itch: { enabled: false, compression: 'brotli', iconSize: 256, configStrategy: 'portable' }
+  };
+}
+
+function normalizeUILayout(uiLayout = {}) {
+  const canvas = uiLayout.canvas || {};
+  const elements = Array.isArray(uiLayout.elements) ? uiLayout.elements : [];
+  return {
+    format: 'OmniCore.UI_Layout',
+    version: Number(uiLayout.version || 1),
+    canvas: {
+      width: Math.max(1, Number(canvas.width || uiLayout.width || 320)),
+      height: Math.max(1, Number(canvas.height || uiLayout.height || 240))
+    },
+    elements: elements.map((element, index) => ({
+      type: element.type || 'Button',
+      id: String(element.id || `button-${index + 1}`),
+      text: String(element.text ?? element.label ?? element.id ?? 'Button'),
+      x: Number(element.x || 0),
+      y: Number(element.y || 0),
+      width: Math.max(1, Number(element.width || 160)),
+      height: Math.max(1, Number(element.height || 40)),
+      action: element.action || null
+    }))
+  };
+}
+
+function clonePlain(value) {
+  return JSON.parse(JSON.stringify(value ?? null));
 }
 
 function serializeEntity(entity = {}, index = 0) {

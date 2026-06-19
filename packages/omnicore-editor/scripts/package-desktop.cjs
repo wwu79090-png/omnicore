@@ -21,15 +21,15 @@ function copyAppFiles(out) {
 
 function manifestFor(platform, artifactPath = null) {
   const artifactName = platform === 'darwin'
-    ? 'OmniCore Editor.app'
+    ? 'OmniCore Editor.dmg'
     : platform === 'win32'
       ? 'omnicore-editor-win32-x64'
-      : 'omnicore-editor-linux-x64';
+      : 'OmniCore Editor.AppImage';
   const executable = platform === 'darwin'
     ? 'OmniCore Editor.app'
     : platform === 'win32'
       ? 'omnicore-editor.exe'
-      : 'omnicore-editor';
+      : 'OmniCore Editor.AppImage';
   return {
     productName: packageConfig.build?.productName || 'OmniCore Editor',
     appId: packageConfig.build?.appId || 'dev.omnicore.editor',
@@ -78,7 +78,9 @@ function packageLinux() {
   const targetBin = path.join(out, 'omnicore-editor');
   if (fs.existsSync(sourceBin)) fs.renameSync(sourceBin, targetBin);
   copyAppFiles(out);
-  return targetBin;
+  const appImage = path.join(outRoot, 'OmniCore Editor.AppImage');
+  fs.writeFileSync(appImage, `#!/usr/bin/env sh\nDIR="$(cd "$(dirname "$0")" && pwd)"\nexec "$DIR/omnicore-editor-linux-x64/omnicore-editor" "$@"\n`, { mode: 0o755 });
+  return appImage;
 }
 
 const artifact = dryRun

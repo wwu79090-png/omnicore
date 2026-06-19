@@ -6,7 +6,7 @@ import {
 } from '../scripts/lib/output-gate.js';
 import { createViteDevServerCommand } from '../scripts/lib/dev-server-command.js';
 import { evaluateBrowserProbe } from '../scripts/lib/health-probe.js';
-import { createProductionReadyReport } from '../scripts/production-ready.js';
+import { createProductionReadyReport, DEFAULT_VERIFY_SCRIPTS } from '../scripts/production-ready.js';
 
 describe('quality gates hardening', () => {
   it('classifies stdout and stderr warnings as blocking verification risks', () => {
@@ -119,5 +119,80 @@ describe('quality gates hardening', () => {
     expect(exampleHtml).toContain('URLSearchParams(window.location.search)');
     expect(exampleHtml).toContain("get('backend') || 'pixi'");
     expect(healthCheck).toContain('/examples/?backend=canvas');
+  });
+
+  it('keeps the online editor controls reachable on mobile smoke-test viewports', () => {
+    const editorHtml = readFileSync('website/editor/index.html', 'utf8');
+
+    expect(editorHtml).toContain('@media (max-width: 720px)');
+    expect(editorHtml).toContain('left: 8px');
+    expect(editorHtml).toContain('height: min(46vh, 320px)');
+    expect(editorHtml).toContain("get('debug') === '1'");
+  });
+
+  it('configures TypeDoc to treat release metadata tags and internal references explicitly', () => {
+    const typedocConfig = JSON.parse(readFileSync('typedoc.json', 'utf8'));
+
+    expect(typedocConfig.disableSources).toBe(true);
+    expect(typedocConfig.treatWarningsAsErrors).toBe(true);
+    expect(typedocConfig.blockTags).toEqual(expect.arrayContaining([
+      '@deprecated',
+      '@example',
+      '@param',
+      '@returns',
+      '@api',
+      '@pattern',
+      '@replacement',
+      '@removeIn'
+    ]));
+    expect(typedocConfig.excludeTags).toEqual(expect.arrayContaining([
+      '@api',
+      '@pattern',
+      '@replacement',
+      '@removeIn'
+    ]));
+    expect(typedocConfig.intentionallyNotExported).toEqual(expect.arrayContaining([
+      'AudioAddon',
+      'CoreContext',
+      'KeyboardState',
+      'LoadedOBundle',
+      '__module',
+      'globalThis'
+    ]));
+  });
+
+  it('marks runtime plugin module loading as Vite-ignored dynamic imports', () => {
+    const storeSource = readFileSync('src/store/Store.js', 'utf8');
+    const packageManagerSource = readFileSync('src/package/PackageManager.js', 'utf8');
+
+    expect(storeSource).toContain('import(/* @vite-ignore */ url)');
+    expect(packageManagerSource).toContain('import(/* @vite-ignore */ url)');
+  });
+
+  it('runs deterministic engine quality checks inside default production gates', () => {
+    expect(DEFAULT_VERIFY_SCRIPTS).toEqual(expect.arrayContaining([
+      'lint',
+      'test:contract',
+      'benchmark:ci',
+      'performance:budget',
+      'quality:engine'
+    ]));
+  });
+
+  it('runs engine quality in PR workflow before artifact upload', () => {
+    const prQualityWorkflow = readFileSync('.github/workflows/pr-quality.yml', 'utf8');
+
+    expect(prQualityWorkflow).toContain('npm run quality:engine -- --out docs/release-notes/engine-quality-report.json');
+    expect(prQualityWorkflow).toContain('docs/release-notes/engine-quality-report.json');
+  });
+
+  it('uses a fail-fast zip implementation for the full offline distribution package', () => {
+    const distFullSource = readFileSync('scripts/dist-full.js', 'utf8');
+
+    expect(distFullSource).toContain('System.IO.Compression.ZipFile');
+    expect(distFullSource).toContain('$ErrorActionPreference = "Stop"');
+    expect(distFullSource).toContain('$WarningPreference = "Stop"');
+    expect(distFullSource).toContain('result.stderr.trim()');
+    expect(distFullSource).not.toContain('Compress-Archive');
   });
 });

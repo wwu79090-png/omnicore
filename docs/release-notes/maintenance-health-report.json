@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-06-19T14:03:03.801Z",
+  "generatedAt": "2026-06-19T16:23:17.123Z",
   "full": false,
   "status": "pass",
   "checks": [
     {
       "name": "memory",
       "durationMs": 750,
-      "baseline": 64628736,
-      "current": 39908592,
-      "growthRatio": -0.3824946228253636,
+      "baseline": 65363840,
+      "current": 47020712,
+      "growthRatio": -0.28063112571109655,
       "status": "pass",
       "threshold": 0.2
     },
@@ -54,7 +54,7 @@
           "status": "pass",
           "pageStatus": "当前后端：canvas",
           "canvasCount": 1,
-          "fallbackBackend": "canvas",
+          "fallbackBackend": null,
           "consoleIssueCount": 0,
           "reason": null
         },

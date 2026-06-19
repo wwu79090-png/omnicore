@@ -75,6 +75,24 @@ describe('benchmark threshold regression gate', () => {
     expect(comparison.regressions).toEqual([]);
   });
 
+  it('labels tiny millisecond regressions as absolute-tolerance passes in the report', () => {
+    const comparison = compareBenchmarkResults({
+      baseline: { summary: { ...baseline.summary, backendSwitchAvgMs: 0.2 } },
+      current: { summary: { ...baseline.summary, backendSwitchAvgMs: 0.24 } },
+      threshold: 0.05
+    });
+    const metric = comparison.metrics.find((item) => item.key === 'backendSwitchAvgMs');
+    const report = formatRegressionReport(comparison);
+
+    expect(comparison.passed).toBe(true);
+    expect(metric).toMatchObject({
+      regressionAmount: 0.04,
+      withinAbsoluteTolerance: true
+    });
+    expect(report).toContain('绝对容忍值');
+    expect(report).toContain('通过（绝对容忍）');
+  });
+
   it('fails particle FPS regressions beyond the rAF jitter tolerance', () => {
     const comparison = compareBenchmarkResults({
       baseline: {

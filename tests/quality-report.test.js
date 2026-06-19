@@ -53,6 +53,7 @@ describe('quality report generation', () => {
           expect.objectContaining({ name: 'lint', present: true }),
           expect.objectContaining({ name: 'test', present: true }),
           expect.objectContaining({ name: 'performance:budget', present: true }),
+          expect.objectContaining({ name: 'quality:engine', present: true }),
           expect.objectContaining({ name: 'build', present: true }),
           expect.objectContaining({ name: 'postbuild', present: true })
         ])

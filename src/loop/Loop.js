@@ -25,7 +25,9 @@ export class Loop {
     onFrameStart = null,
     onFrameEnd = null,
     onFrameError = null,
-    timeGuard = null
+    timeGuard = null,
+    warnTimeJumps = true,
+    onTimeJump = null
   } = {}) {
     this.fps = resolveFrameRate(framerateCap, fps, displayHz);
     this.frameMs = 1000 / this.fps;
@@ -39,6 +41,9 @@ export class Loop {
     this.onFrameEnd = onFrameEnd;
     this.onFrameError = onFrameError;
     this.timeGuard = timeGuard;
+    this.warnTimeJumps = warnTimeJumps;
+    this.onTimeJump = onTimeJump;
+    this.timeJumpWarningIssued = false;
     this.slowFrameCount = 0;
     this.subscribers = new Set();
     this.frame = 0;
@@ -180,7 +185,12 @@ export class Loop {
     const rawDelta = Number(time) - Number(this.lastTime);
     if (!Number.isFinite(rawDelta) || rawDelta <= 0) return 0;
     if (rawDelta <= 100) return rawDelta;
-    console.warn('[OmniCore] 检测到大跨度时间跳跃，已限制增量时间');
+    if (this.warnTimeJumps && !this.timeJumpWarningIssued) {
+      this.timeJumpWarningIssued = true;
+      const payload = { deltaMs: rawDelta, thresholdMs: 100, clampedMs: 16 };
+      if (this.onTimeJump) this.onTimeJump(payload);
+      else console.warn('[OmniCore] 检测到大跨度时间跳跃，已限制增量时间');
+    }
     return 16;
   }
 

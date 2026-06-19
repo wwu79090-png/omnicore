@@ -9,6 +9,7 @@ const RELEASE_GATE_SCRIPTS = [
   'test:contract',
   'benchmark:ci',
   'performance:budget',
+  'quality:engine',
   'build',
   'postbuild',
   'security-check'
@@ -36,6 +37,7 @@ const MARKET_DOC_FILES = [
   'docs/getting-started-zero.zh-CN.md'
 ];
 const NON_3D_MARKET_TARGET = 80;
+const MARKET_COMPETITIVENESS_TARGET = 90;
 const NON_3D_MARKET_DIMENSIONS = [
   {
     key: 'editorUx',
@@ -130,7 +132,7 @@ const NON_3D_MARKET_DIMENSIONS = [
   {
     key: 'releaseQuality',
     label: '发布质量',
-    notes: ['lint', 'tests', 'contract', 'benchmark', 'build-verification', 'production-ready'],
+    notes: ['lint', 'tests', 'contract', 'benchmark', 'engine-quality', 'build-verification', 'production-ready'],
     checks: [
       { script: 'lint' },
       { script: 'test' },
@@ -138,9 +140,91 @@ const NON_3D_MARKET_DIMENSIONS = [
       { script: 'benchmark:ci' },
       { script: 'build' },
       { script: 'postbuild' },
+      { script: 'quality:engine' },
       { script: 'production-ready' },
       { file: 'scripts/production-ready.js' },
       { file: 'scripts/verify-build-output.js' }
+    ]
+  }
+];
+const MARKET_COMPETITIVENESS_DIMENSIONS = [
+  {
+    key: 'adoptionProof',
+    label: '真实案例与采用证明',
+    notes: ['case-studies', 'wechat-proof', 'web-template-proof', 'desktop-workflow-proof'],
+    checks: [
+      { file: 'website/case-studies.html' },
+      { file: 'website/case-studies.md' },
+      { file: 'website/assets/code-awakener-screenshot.svg' },
+      { file: 'website/assets/code-awakener-progress.svg' },
+      { file: 'docs/platforms/wechat-mini-game-publish.md' },
+      { test: 'tests/market-competitiveness-score.test.js' }
+    ]
+  },
+  {
+    key: 'editorMaturity',
+    label: '编辑器生产成熟度',
+    notes: ['desktop-shell', 'low-code-suite', 'industrial-authoring', 'autosave-recovery'],
+    checks: [
+      { file: 'packages/omnicore-editor/electron.main.cjs' },
+      { file: 'packages/omnicore-editor/preload.cjs' },
+      { file: 'packages/omnicore-editor/src/editor-app.js' },
+      { file: 'packages/omnicore-editor/workspace.cjs' },
+      { test: 'tests/desktop-editor-workflow.test.js' },
+      { test: 'tests/lowcode-editor-suite.test.js' },
+      { test: 'tests/editor-industrial-authoring.test.js' }
+    ]
+  },
+  {
+    key: 'ecosystemReach',
+    label: '插件市场与生态触达',
+    notes: ['plugin-installer', 'marketplace-site', 'review-workflow', 'tutorials'],
+    checks: [
+      { script: 'marketplace:generate' },
+      { script: 'marketplace:validate' },
+      { file: 'src/package/PluginInstaller.js' },
+      { file: 'website/marketplace/index.html' },
+      { file: 'website/marketplace/omni-particles/index.html' },
+      { file: 'website/tutorials/index.html' },
+      { file: '.github/workflows/marketplace-review.yml' },
+      { test: 'tests/plugin-installer-platform.test.js' },
+      { test: 'tests/marketplace-platform.test.js' }
+    ]
+  },
+  {
+    key: 'platformProof',
+    label: '平台发布证明',
+    notes: ['wechat', 'web', 'desktop', 'budget-gates'],
+    checks: [
+      { script: 'build:wechat' },
+      { script: 'test:wechat' },
+      { script: 'test:minigame' },
+      { script: 'performance:budget' },
+      { file: 'scripts/build-wechat.js' },
+      { file: 'scripts/performance-budget.js' },
+      { file: 'packages/omnicore-editor/scripts/package-desktop.cjs' },
+      { file: 'website/case-studies.html' }
+    ]
+  },
+  {
+    key: 'productionTrust',
+    label: '生产信任与质量门禁',
+    notes: ['lint', 'tests', 'contracts', 'benchmark', 'engine-quality', 'security', 'production-ready'],
+    checks: [
+      { script: 'lint' },
+      { script: 'test' },
+      { script: 'test:contract' },
+      { script: 'benchmark:ci' },
+      { script: 'quality:engine' },
+      { script: 'security-check' },
+      { script: 'production-ready' },
+      { script: 'quality:gate' },
+      { script: 'doctor' },
+      { file: 'scripts/production-ready.js' },
+      { file: 'scripts/engine-quality-gate.js' },
+      { file: 'scripts/engine-doctor.js' },
+      { file: 'src/quality/EngineQualityHarness.js' },
+      { file: 'docs/security/security.md' }
     ]
   }
 ];
@@ -228,6 +312,7 @@ export function generateQualityReport({ out = path.join(root, 'dist', 'quality-r
   const capabilityScore = averageScore(scores);
   const marketReadiness = buildMarketReadiness();
   const non3DMarketScorecard = buildNon3DMarketScorecard();
+  const marketCompetitiveness = buildMarketCompetitivenessScorecard();
   const overallScore = Math.round((capabilityScore * 0.55) + (marketReadiness.score * 0.45));
   const report = {
     generatedAt: new Date().toISOString(),
@@ -235,6 +320,7 @@ export function generateQualityReport({ out = path.join(root, 'dist', 'quality-r
     capabilityScore,
     marketReadiness,
     non3DMarketScorecard,
+    marketCompetitiveness,
     overallScore,
     sections
   };
@@ -281,6 +367,32 @@ export function buildNon3DMarketScorecard({
   const scripts = packageSummary?.scripts || {};
   const dimensions = Object.fromEntries(
     NON_3D_MARKET_DIMENSIONS.map((dimension) => [
+      dimension.key,
+      scoreCheckDimension(dimension, projectRoot, scripts)
+    ])
+  );
+  const dimensionScores = Object.values(dimensions).map((dimension) => dimension.score);
+  const overallScore = averageScore(dimensionScores);
+  return {
+    target,
+    excluded: ['full-3d'],
+    overallScore,
+    allAboveTarget: dimensionScores.every((score) => score >= target),
+    dimensions,
+    risks: Object.entries(dimensions)
+      .filter(([, dimension]) => dimension.score < target)
+      .map(([key, dimension]) => `${key} below target: ${dimension.score}`)
+  };
+}
+
+export function buildMarketCompetitivenessScorecard({
+  projectRoot = root,
+  packageSummary = readPackageSummary(projectRoot),
+  target = MARKET_COMPETITIVENESS_TARGET
+} = {}) {
+  const scripts = packageSummary?.scripts || {};
+  const dimensions = Object.fromEntries(
+    MARKET_COMPETITIVENESS_DIMENSIONS.map((dimension) => [
       dimension.key,
       scoreCheckDimension(dimension, projectRoot, scripts)
     ])

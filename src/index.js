@@ -158,6 +158,14 @@ import LeanOmniCore, {
   createLeanRuntime
 } from './lean/index.js';
 import DebugRenderer, { createDebugAPI, isDebugBuildEnabled } from './debug/DebugRenderer.js';
+import EngineQualityHarness, {
+  runBudgetCheck,
+  runDeterminismCheck,
+  runEngineQualityGate,
+  runInvariantCheck,
+  stableHash,
+  stableStringify
+} from './quality/EngineQualityHarness.js';
 
 let activeDebugAPI = createDebugAPI({ debug: false });
 const Debug = {
@@ -681,6 +689,8 @@ const OmniCore = {
   ViewportCulling,
   AdaptiveQualityManager,
   DeviceProfiler,
+  Quality: EngineQualityHarness,
+  EngineQualityHarness,
   Kernel,
   RendererAdapter,
   SplashScreen,
@@ -812,6 +822,7 @@ export {
   EventBus,
   EntitySpatialIndex,
   DualSpatialIndex,
+  EngineQualityHarness,
   ExportPaywall,
   FeedbackWidget,
   FixedMemoryPool,
@@ -874,6 +885,10 @@ export {
   ProfilerWaterfallPanel,
   Query,
   Rect,
+  runBudgetCheck,
+  runDeterminismCheck,
+  runEngineQualityGate,
+  runInvariantCheck,
   RenderLayerManager,
   RenderWorkerBridge,
   RemoteDevTools,
@@ -889,6 +904,8 @@ export {
   SleepWakeSystem,
   Sprite,
   SplashScreen,
+  stableHash,
+  stableStringify,
   StaticBatchCompiler,
   SkeletalAnimation,
   SkeletonAnimationEditor,

@@ -30,7 +30,7 @@ describe('OmniCore full stack phase 2 editor pipeline', () => {
     while (tempRoots.length) rmSync(tempRoots.pop(), { recursive: true, force: true });
   });
 
-  it('persists database table edits to config/db.json through the editor bridge', async () => {
+  it('persists database table edits to config/data.json through the editor bridge', async () => {
     const { createEditorApp } = await importFile('packages/omnicore-editor/src/editor-app.js');
     const { createEditorState } = await importFile('packages/omnicore-editor/src/live-sync-protocol.js');
     const saved = [];
@@ -38,7 +38,7 @@ describe('OmniCore full stack phase 2 editor pipeline', () => {
     window.omnicoreEditor = {
       saveDatabaseConfig: async (payload) => {
         saved.push(payload);
-        return { ok: true, path: 'config/db.json' };
+        return { ok: true, path: 'config/data.json' };
       }
     };
 
@@ -79,7 +79,7 @@ describe('OmniCore full stack phase 2 editor pipeline', () => {
       })
     ]));
     expect(saved.at(-1)).toMatchObject({
-      path: 'config/db.json',
+      path: 'config/data.json',
       tables: {
         monsters: {
           slime: { id: 'slime', name: 'Slime', hp: 30 }
@@ -102,7 +102,7 @@ describe('OmniCore full stack phase 2 editor pipeline', () => {
       }
     });
 
-    expect(result).toMatchObject({ ok: true, path: path.join(root, 'config', 'db.json') });
+    expect(result).toMatchObject({ ok: true, path: path.join(root, 'config', 'data.json') });
     expect(JSON.parse(readFileSync(result.path, 'utf8'))).toEqual({
       items: {
         potion: { id: 'potion', name: 'Potion', price: 50 }

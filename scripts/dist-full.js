@@ -76,16 +76,34 @@ function quoteCmdArg(value) {
 
 function compress(source, target) {
   if (process.platform === 'win32') {
+    const script = [
+      '$ErrorActionPreference = "Stop"',
+      '$WarningPreference = "Stop"',
+      'Add-Type -AssemblyName System.IO.Compression.FileSystem',
+      `$source = ${powershellLiteral(source)}`,
+      `$target = ${powershellLiteral(target)}`,
+      'if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Force }',
+      '[System.IO.Compression.ZipFile]::CreateFromDirectory($source, $target, [System.IO.Compression.CompressionLevel]::Fastest, $false)',
+      'if (-not (Test-Path -LiteralPath $target)) { throw "Zip target was not created: $target" }'
+    ].join('; ');
     const result = spawnSync('powershell.exe', [
       '-NoProfile',
+      '-ExecutionPolicy',
+      'Bypass',
       '-Command',
-      `Compress-Archive -Path '${source.replace(/'/g, "''")}\\*' -DestinationPath '${target.replace(/'/g, "''")}' -Force`
-    ], { stdio: 'inherit' });
-    if (result.status !== 0) process.exit(result.status || 1);
+      script
+    ], { encoding: 'utf8' });
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+    if (result.status !== 0 || result.stderr.trim()) process.exit(result.status || 1);
     return;
   }
   const result = spawnSync('zip', ['-r', target, '.'], { cwd: source, stdio: 'inherit' });
   if (result.status !== 0) process.exit(result.status || 1);
+}
+
+function powershellLiteral(value) {
+  return `'${String(value).replace(/'/g, "''")}'`;
 }
 
 function offlineIndex(currentVersion) {

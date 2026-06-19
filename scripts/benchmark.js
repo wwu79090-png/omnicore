@@ -37,7 +37,7 @@ async function runMobileProfile() {
     await applyLowEndThrottling(page, { cpuSlowdown: 4, gpu: 'limited' });
     const builtInRuns = [];
     for (let index = 0; index < 3; index += 1) {
-      await page.goto(`${base}/tests/benchmark/benchmark.html`, { waitUntil: 'domcontentloaded' });
+      await gotoBenchmarkPage(page);
       const handle = await page.waitForFunction(() => window.__OMNICORE_BENCHMARK_RESULT__, null, { timeout: 15000 });
       builtInRuns.push(await handle.jsonValue());
     }
@@ -119,13 +119,27 @@ async function waitForServer() {
   throw new Error(`Benchmark Vite server did not become ready.\n${serverOutput}`);
 }
 
+async function gotoBenchmarkPage(page, attempts = 8) {
+  let lastError;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      await page.goto(`${base}/tests/benchmark/benchmark.html`, { waitUntil: 'domcontentloaded' });
+      return;
+    } catch (error) {
+      lastError = error;
+      await delay(250 * (attempt + 1));
+    }
+  }
+  throw lastError;
+}
+
 async function runBenchmark() {
   const browser = await chromium.launch({ headless: true, args: lowEndGpuArgs() });
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
     const builtInRuns = [];
     for (let index = 0; index < 3; index += 1) {
-      await page.goto(`${base}/tests/benchmark/benchmark.html`, { waitUntil: 'domcontentloaded' });
+      await gotoBenchmarkPage(page);
       const handle = await page.waitForFunction(() => window.__OMNICORE_BENCHMARK_RESULT__, null, { timeout: 15000 });
       builtInRuns.push(await handle.jsonValue());
     }
@@ -213,7 +227,7 @@ async function runLowEndDeviceMatrix(browser) {
     try {
       await applyLowEndThrottling(page, profile);
       const startedAt = Date.now();
-      await page.goto(`${base}/tests/benchmark/benchmark.html`, { waitUntil: 'domcontentloaded' });
+      await gotoBenchmarkPage(page);
       const handle = await page.waitForFunction(() => window.__OMNICORE_BENCHMARK_RESULT__, null, { timeout: 15000 });
       const result = await handle.jsonValue();
       results.push({
@@ -286,10 +300,24 @@ function buildPerformanceExpectations({
 }
 
 async function runEngineBench(page, renderer) {
-  await page.goto(`${base}/tests/benchmark/benchmark.html`, { waitUntil: 'domcontentloaded' });
+  await gotoBenchmarkPage(page);
   return page.evaluate(async ({ renderer: requestedRenderer }) => {
-    // eslint-disable-next-line import/no-unresolved, import/no-absolute-path
-    const OmniCore = (await import('/src/index.js')).default;
+    const withRetryParam = (url, attempt) => {
+      const next = new URL(url, window.location.origin);
+      next.searchParams.set('omniRetry', `${Date.now()}-${attempt}`);
+      return next.href;
+    };
+    const importEngine = async (attempt = 0) => {
+      try {
+        // eslint-disable-next-line import/no-unresolved, import/no-absolute-path
+        return await import(attempt === 0 ? '/src/index.js' : withRetryParam('/src/index.js', attempt));
+      } catch (error) {
+        if (attempt >= 5) throw error;
+        await new Promise((resolve) => { setTimeout(resolve, 150 * (attempt + 1)); });
+        return importEngine(attempt + 1);
+      }
+    };
+    const OmniCore = (await importEngine()).default;
     document.body.innerHTML = '<div id="app" style="width:640px;height:360px"></div>';
     const game = await new OmniCore.Game({
       parent: '#app',
@@ -429,7 +457,7 @@ async function runPixiPoolLifecycleBench(page) {
 }
 
 async function runComplexSceneStressBench(page) {
-  await page.goto(`${base}/tests/benchmark/benchmark.html`, { waitUntil: 'domcontentloaded' });
+  await gotoBenchmarkPage(page);
   return page.evaluate(async () => {
     // eslint-disable-next-line import/no-unresolved, import/no-absolute-path
     const OmniCore = (await import('/src/index.js')).default;
@@ -545,7 +573,7 @@ async function runComplexSceneStressBench(page) {
 }
 
 async function runWebGPUComplexSceneCapacityBench(page) {
-  await page.goto(`${base}/tests/benchmark/benchmark.html`, { waitUntil: 'domcontentloaded' });
+  await gotoBenchmarkPage(page);
   return page.evaluate(async () => {
     const rendererUrl = new URL('src/renderer/WebGPURenderer.js', window.location.origin).href;
     const spatialUrl = new URL('src/core/DualSpatialIndex.js', window.location.origin).href;

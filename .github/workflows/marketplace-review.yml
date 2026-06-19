@@ -1,0 +1,27 @@
+name: Marketplace review
+
+on:
+  issues:
+    types: [opened, edited, labeled]
+  workflow_dispatch:
+
+jobs:
+  review:
+    if: contains(join(github.event.issue.labels.*.name, ','), 'plugin') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Validate marketplace index
+        run: npm run marketplace:validate
+      - name: Check malicious plugin patterns
+        run: node scripts/generate-marketplace-site.js --review-issue "${{ github.event.issue.number || 0 }}" --malicious-scan
+      - name: Generate marketplace detail pages
+        run: node scripts/generate-marketplace-site.js --emit-details

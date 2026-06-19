@@ -84,7 +84,7 @@ export function formatRegressionReport(comparison) {
     '# 性能下降报告',
     '',
     `结果：${status}`,
-    `阈值：超过 ${thresholdPercent} 的性能下降会阻断 CI。`,
+    `阈值：超过 ${thresholdPercent} 且超过指标绝对容忍值的性能下降会阻断 CI。`,
     `生成时间：${comparison.generatedAt}`,
     '',
     '| 指标 | 基线 | 当前 | 变化 | 判定 |',
@@ -92,7 +92,12 @@ export function formatRegressionReport(comparison) {
   ];
 
   for (const metric of comparison.metrics) {
-    lines.push(`| \`${metric.key}\` | ${formatNumber(metric.baseline)} | ${formatNumber(metric.current)} | ${formatPercent(metric.regressionRatio)} | ${metric.regressed ? '失败' : '通过'} |`);
+    const verdict = metric.regressed
+      ? '失败'
+      : metric.withinAbsoluteTolerance && metric.regressionRatio > comparison.threshold
+        ? '通过（绝对容忍）'
+        : '通过';
+    lines.push(`| \`${metric.key}\` | ${formatNumber(metric.baseline)} | ${formatNumber(metric.current)} | ${formatPercent(metric.regressionRatio)} | ${verdict} |`);
   }
 
   if (comparison.regressions.length) {
@@ -135,7 +140,9 @@ function compareMetric(definition, baseline, current, threshold) {
     baseline: baselineValue,
     current: currentValue,
     delta: currentValue - baselineValue,
+    regressionAmount: Number(regressionAmount.toFixed(6)),
     regressionRatio: Number(regressionRatio.toFixed(6)),
+    withinAbsoluteTolerance,
     regressed: !withinAbsoluteTolerance && regressionRatio > threshold + Number.EPSILON
   };
 }

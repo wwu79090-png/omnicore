@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-19T14:16:18.742Z",
+  "generatedAt": "2026-06-19T16:28:03.686Z",
   "package": {
     "name": "omnicore",
     "version": "0.1.0",
@@ -12,6 +12,7 @@
       "postbuild": "node scripts/verify-build-output.js",
       "build:prod": "vite build --mode production",
       "build:wechat": "node scripts/build-wechat.js",
+      "build:mobile": "node scripts/generate-mobile-shells.js",
       "build:addon": "node scripts/build-addon.js",
       "pipeline": "node scripts/pipeline.js --assets assets --out dist/assets",
       "bundle:assets": "node scripts/build-obundle.js --assets assets --out dist/assets.omnicore.obundle",
@@ -41,6 +42,8 @@
       "audit:asset-conventions": "node scripts/audit-asset-conventions.js",
       "production-ready": "node scripts/production-ready.js",
       "quality:gate": "node scripts/production-ready.js --verify",
+      "quality:engine": "node scripts/engine-quality-gate.js",
+      "doctor": "node scripts/engine-doctor.js",
       "benchmark": "node scripts/benchmark.js",
       "benchmark:mobile": "node scripts/benchmark.js complex-scene-benchmark",
       "benchmark:heavy": "node scripts/benchmark-heavy.js",
@@ -66,6 +69,7 @@
       "health": "node scripts/health-check.js",
       "audit:deprecated": "node scripts/audit-deprecated.js",
       "governance:triage": "node scripts/governance-triage.js",
+      "marketplace:generate": "node scripts/generate-marketplace-site.js",
       "marketplace:validate": "node scripts/validate-marketplace-index.js",
       "security-check": "node scripts/security-check.js",
       "dependency:forensics": "node scripts/dependency-forensics.js",
@@ -104,6 +108,11 @@
         {
           "name": "performance:budget",
           "command": "node scripts/performance-budget.js",
+          "present": true
+        },
+        {
+          "name": "quality:engine",
+          "command": "node scripts/engine-quality-gate.js",
           "present": true
         },
         {
@@ -163,7 +172,7 @@
     "apiStability": {
       "label": "API 稳定性",
       "score": 100,
-      "publicExportCount": 185,
+      "publicExportCount": 192,
       "exportSurface": {
         "score": 100,
         "broad": true,
@@ -537,6 +546,11 @@
             "present": true
           },
           {
+            "script": "quality:engine",
+            "command": "node scripts/engine-quality-gate.js",
+            "present": true
+          },
+          {
             "script": "production-ready",
             "command": "node scripts/production-ready.js",
             "present": true
@@ -555,7 +569,278 @@
           "tests",
           "contract",
           "benchmark",
+          "engine-quality",
           "build-verification",
+          "production-ready"
+        ]
+      }
+    },
+    "risks": []
+  },
+  "marketCompetitiveness": {
+    "target": 90,
+    "excluded": [
+      "full-3d"
+    ],
+    "overallScore": 100,
+    "allAboveTarget": true,
+    "dimensions": {
+      "adoptionProof": {
+        "label": "真实案例与采用证明",
+        "score": 100,
+        "missing": [],
+        "checks": [
+          {
+            "file": "website/case-studies.html",
+            "present": true
+          },
+          {
+            "file": "website/case-studies.md",
+            "present": true
+          },
+          {
+            "file": "website/assets/code-awakener-screenshot.svg",
+            "present": true
+          },
+          {
+            "file": "website/assets/code-awakener-progress.svg",
+            "present": true
+          },
+          {
+            "file": "docs/platforms/wechat-mini-game-publish.md",
+            "present": true
+          },
+          {
+            "test": "tests/market-competitiveness-score.test.js",
+            "present": true
+          }
+        ],
+        "notes": [
+          "case-studies",
+          "wechat-proof",
+          "web-template-proof",
+          "desktop-workflow-proof"
+        ]
+      },
+      "editorMaturity": {
+        "label": "编辑器生产成熟度",
+        "score": 100,
+        "missing": [],
+        "checks": [
+          {
+            "file": "packages/omnicore-editor/electron.main.cjs",
+            "present": true
+          },
+          {
+            "file": "packages/omnicore-editor/preload.cjs",
+            "present": true
+          },
+          {
+            "file": "packages/omnicore-editor/src/editor-app.js",
+            "present": true
+          },
+          {
+            "file": "packages/omnicore-editor/workspace.cjs",
+            "present": true
+          },
+          {
+            "test": "tests/desktop-editor-workflow.test.js",
+            "present": true
+          },
+          {
+            "test": "tests/lowcode-editor-suite.test.js",
+            "present": true
+          },
+          {
+            "test": "tests/editor-industrial-authoring.test.js",
+            "present": true
+          }
+        ],
+        "notes": [
+          "desktop-shell",
+          "low-code-suite",
+          "industrial-authoring",
+          "autosave-recovery"
+        ]
+      },
+      "ecosystemReach": {
+        "label": "插件市场与生态触达",
+        "score": 100,
+        "missing": [],
+        "checks": [
+          {
+            "script": "marketplace:generate",
+            "command": "node scripts/generate-marketplace-site.js",
+            "present": true
+          },
+          {
+            "script": "marketplace:validate",
+            "command": "node scripts/validate-marketplace-index.js",
+            "present": true
+          },
+          {
+            "file": "src/package/PluginInstaller.js",
+            "present": true
+          },
+          {
+            "file": "website/marketplace/index.html",
+            "present": true
+          },
+          {
+            "file": "website/marketplace/omni-particles/index.html",
+            "present": true
+          },
+          {
+            "file": "website/tutorials/index.html",
+            "present": true
+          },
+          {
+            "file": ".github/workflows/marketplace-review.yml",
+            "present": true
+          },
+          {
+            "test": "tests/plugin-installer-platform.test.js",
+            "present": true
+          },
+          {
+            "test": "tests/marketplace-platform.test.js",
+            "present": true
+          }
+        ],
+        "notes": [
+          "plugin-installer",
+          "marketplace-site",
+          "review-workflow",
+          "tutorials"
+        ]
+      },
+      "platformProof": {
+        "label": "平台发布证明",
+        "score": 100,
+        "missing": [],
+        "checks": [
+          {
+            "script": "build:wechat",
+            "command": "node scripts/build-wechat.js",
+            "present": true
+          },
+          {
+            "script": "test:wechat",
+            "command": "node scripts/test-wechat.js",
+            "present": true
+          },
+          {
+            "script": "test:minigame",
+            "command": "node scripts/test-minigame.js",
+            "present": true
+          },
+          {
+            "script": "performance:budget",
+            "command": "node scripts/performance-budget.js",
+            "present": true
+          },
+          {
+            "file": "scripts/build-wechat.js",
+            "present": true
+          },
+          {
+            "file": "scripts/performance-budget.js",
+            "present": true
+          },
+          {
+            "file": "packages/omnicore-editor/scripts/package-desktop.cjs",
+            "present": true
+          },
+          {
+            "file": "website/case-studies.html",
+            "present": true
+          }
+        ],
+        "notes": [
+          "wechat",
+          "web",
+          "desktop",
+          "budget-gates"
+        ]
+      },
+      "productionTrust": {
+        "label": "生产信任与质量门禁",
+        "score": 100,
+        "missing": [],
+        "checks": [
+          {
+            "script": "lint",
+            "command": "eslint -c .eslintrc.json --no-eslintrc src tests scripts --ext .js,.mjs",
+            "present": true
+          },
+          {
+            "script": "test",
+            "command": "vitest run",
+            "present": true
+          },
+          {
+            "script": "test:contract",
+            "command": "node scripts/contract-test.js",
+            "present": true
+          },
+          {
+            "script": "benchmark:ci",
+            "command": "node scripts/benchmark-threshold.js",
+            "present": true
+          },
+          {
+            "script": "quality:engine",
+            "command": "node scripts/engine-quality-gate.js",
+            "present": true
+          },
+          {
+            "script": "security-check",
+            "command": "node scripts/security-check.js",
+            "present": true
+          },
+          {
+            "script": "production-ready",
+            "command": "node scripts/production-ready.js",
+            "present": true
+          },
+          {
+            "script": "quality:gate",
+            "command": "node scripts/production-ready.js --verify",
+            "present": true
+          },
+          {
+            "script": "doctor",
+            "command": "node scripts/engine-doctor.js",
+            "present": true
+          },
+          {
+            "file": "scripts/production-ready.js",
+            "present": true
+          },
+          {
+            "file": "scripts/engine-quality-gate.js",
+            "present": true
+          },
+          {
+            "file": "scripts/engine-doctor.js",
+            "present": true
+          },
+          {
+            "file": "src/quality/EngineQualityHarness.js",
+            "present": true
+          },
+          {
+            "file": "docs/security/security.md",
+            "present": true
+          }
+        ],
+        "notes": [
+          "lint",
+          "tests",
+          "contracts",
+          "benchmark",
+          "engine-quality",
+          "security",
           "production-ready"
         ]
       }

@@ -1,6 +1,13 @@
 {
-  "generatedAt": "2026-06-18T14:56:39.028Z",
+  "generatedAt": "2026-06-19T16:14:58.213Z",
   "modules": [
+    {
+      "path": "addons/Ad.js",
+      "summary": "",
+      "exports": [
+        "createAdService"
+      ]
+    },
     {
       "path": "addons/Audio.js",
       "summary": "Optional Web Audio addon for microkernel mode.",
@@ -16,10 +23,32 @@
       ]
     },
     {
+      "path": "addons/Payment.js",
+      "summary": "",
+      "exports": [
+        "createPaymentService"
+      ]
+    },
+    {
       "path": "addons/PixiRenderer.js",
       "summary": "Pixi renderer addon used by optional microkernel RendererAdapter. It intentionally depends on a host-provided global `PIXI` to avoid adding weight to projects that do not enable microkernel rendering.",
       "exports": [
         "PixiRendererAddon"
+      ]
+    },
+    {
+      "path": "addons/WechatMiniGameMonetization.js",
+      "summary": "",
+      "exports": [
+        "createWechatPaymentProvider",
+        "createWechatAdProvider"
+      ]
+    },
+    {
+      "path": "addons/_createOfficialAddon.js",
+      "summary": "",
+      "exports": [
+        "createOfficialAddon"
       ]
     },
     {
@@ -31,7 +60,7 @@
     },
     {
       "path": "analytics/Analytics.js",
-      "summary": "",
+      "summary": "@param {string} name Event name. @param {object} payload Event payload. @param {object} options Output options. @returns {string} JSON line payload.",
       "exports": [
         "Analytics"
       ]
@@ -49,7 +78,22 @@
       "exports": [
         "SkeletalAnimation",
         "SpineAdapter",
+        "SpinePixiRuntimeAdapter",
         "DragonBonesAdapter"
+      ]
+    },
+    {
+      "path": "animations/AnimationStateMachine.js",
+      "summary": "",
+      "exports": [
+        "AnimationStateMachine"
+      ]
+    },
+    {
+      "path": "assets/AssetPatchManager.js",
+      "summary": "Runtime resource patch applier for OTA asset overlays. @example const patches = new AssetPatchManager(); await patches.apply('/patches/v2.patch'); patches.resolve('hero.png');",
+      "exports": [
+        "AssetPatchManager"
       ]
     },
     {
@@ -57,6 +101,20 @@
       "summary": "",
       "exports": [
         "LoadedOBundle"
+      ]
+    },
+    {
+      "path": "assets/PlatformVariantResolver.js",
+      "summary": "",
+      "exports": [
+        "PlatformVariantResolver"
+      ]
+    },
+    {
+      "path": "assets/ResourceHMRClient.js",
+      "summary": "WebSocket-style resource hot-module replacement receiver. @example const hmr = new ResourceHMRClient({ patchManager }); hmr.connect(new WebSocket('/assets-hmr'));",
+      "exports": [
+        "ResourceHMRClient"
       ]
     },
     {
@@ -213,6 +271,13 @@
       ]
     },
     {
+      "path": "core/DualSpatialIndex.js",
+      "summary": "",
+      "exports": [
+        "DualSpatialIndex"
+      ]
+    },
+    {
       "path": "core/ECS/ComponentStorage.js",
       "summary": "",
       "exports": [
@@ -239,6 +304,13 @@
       "summary": "",
       "exports": [
         "World"
+      ]
+    },
+    {
+      "path": "core/Entity.js",
+      "summary": "@param {string|Function|object} type Entity type, constructor, or object. @param {object} props Entity properties. @returns {object} Entity instance. @deprecated since 0.3.0, removeIn 2.0.0. Use `Entity.createEntity(type, props)` or `OmniCore.createEntity(type, props)`. @replacement Entity.createEntity @removeIn 2.0.0",
+      "exports": [
+        "EntityClass"
       ]
     },
     {
@@ -312,10 +384,32 @@
       ]
     },
     {
+      "path": "core/Sandbox.js",
+      "summary": "",
+      "exports": [
+        "SandboxBus",
+        "OmniSandbox"
+      ]
+    },
+    {
+      "path": "core/Snapshot.js",
+      "summary": "",
+      "exports": [
+        "Snapshot"
+      ]
+    },
+    {
       "path": "core/TaskManager.js",
       "summary": "Generator-based coroutine task runner using an independent timer loop. @example OmniCore.Task.start(function* showThenHide() { yield OmniCore.Task.wait(2000); button.visible = true; yield OmniCore.Task.wait(1000); button.visible = false; });",
       "exports": [
         "TaskManager"
+      ]
+    },
+    {
+      "path": "core/TaskScheduler.js",
+      "summary": "Lightweight async task pool with deterministic long-task isolation metadata. It keeps the existing coroutine `TaskManager` intact while offering a modern promise-based API for build, streaming, and worker-adjacent jobs. @example const scheduler = new TaskScheduler({ timeoutMs: 50 }); scheduler.submit(() => loadChunk('0:0'), { name: 'chunk-load' }); const results = await scheduler.waitAll();",
+      "exports": [
+        "TaskScheduler"
       ]
     },
     {
@@ -373,6 +467,13 @@
       "summary": "Minimal i18n dictionary. @example const i18n = new I18n({ en: { start: 'Start {name}' } }, 'en'); i18n.t('start', { name: 'Game' });",
       "exports": [
         "I18n"
+      ]
+    },
+    {
+      "path": "data/Localization.js",
+      "summary": "JSON-backed localization suite loaded from /assets/locale. @example const localization = await Localization.load('zh-CN'); localization.t('ui.start');",
+      "exports": [
+        "Localization"
       ]
     },
     {
@@ -444,10 +545,24 @@
       ]
     },
     {
+      "path": "debug/FrameProfiler.js",
+      "summary": "",
+      "exports": [
+        "FrameProfiler"
+      ]
+    },
+    {
       "path": "debug/Inspector.js",
       "summary": "Debug inspector registry. When `debug: true`, `OmniCore.lookup(name)` becomes available globally for inspecting the current game, renderer, store, loader, and scene. @example const inspector = new Inspector(game); inspector.attach(); globalThis.OmniCore.lookup('renderer');",
       "exports": [
         "Inspector"
+      ]
+    },
+    {
+      "path": "debug/KnowledgeBaseDiagnostics.js",
+      "summary": "",
+      "exports": [
+        "KnowledgeBaseDiagnostics"
       ]
     },
     {
@@ -476,6 +591,13 @@
       "summary": "Debug-only runtime performance monitor. Shows FPS, render time, active GameObject count, and memory usage in the top-right corner when `debug: true`. It also warns when FPS remains below a threshold for several consecutive frames. @example const monitor = new PerformanceMonitor({ debug: true }); monitor.attach(); monitor.update({ fps: 58, renderMs: 2.4, gameObjects: 12 });",
       "exports": [
         "PerformanceMonitor"
+      ]
+    },
+    {
+      "path": "debug/ProfilerWaterfallPanel.js",
+      "summary": "",
+      "exports": [
+        "ProfilerWaterfallPanel"
       ]
     },
     {
@@ -517,7 +639,10 @@
       "path": "dimension3d/Dimension3D.js",
       "summary": "Independent decorative 3D background layer for Three.js. This layer owns a separate canvas and lifecycle, but intentionally exposes only a single static glTF/GLB model as a non-interactive visual background. No 3D collisions, glTF animation playback, or camera controls are provided. @example const dimension = new Dimension3D({ canvas, decorativeModel: { url: '/models/cyberpunk-city.glb', rotationSpeed: { y: 0.2 } } }); await dimension.init(); dimension.render(1 / 60);",
       "exports": [
-        "Dimension3D"
+        "Dimension3D",
+        "Dimension3DScene",
+        "Character3D",
+        "PlaneLayer"
       ]
     },
     {
@@ -525,6 +650,27 @@
       "summary": "Generate a small structured API documentation site from source exports.",
       "exports": [
         "generateApiDocs"
+      ]
+    },
+    {
+      "path": "editor/AnimationEditor.js",
+      "summary": "",
+      "exports": [
+        "AnimationEditor"
+      ]
+    },
+    {
+      "path": "editor/AssetBrowser.js",
+      "summary": "",
+      "exports": [
+        "AssetBrowser"
+      ]
+    },
+    {
+      "path": "editor/EditorOverlay.js",
+      "summary": "Runtime-safe scene editor overlay used by debug builds and Live Sync smoke tests.",
+      "exports": [
+        "EditorOverlay"
       ]
     },
     {
@@ -542,6 +688,13 @@
       ]
     },
     {
+      "path": "editor/EditorPluginCascade.js",
+      "summary": "Ordered editor plugin cascade for official editor integrations. Each layer can be installed independently, while full editor hosts can run the complete manifest -> schema -> panel -> debug -> export chain.",
+      "exports": [
+        "EditorPluginCascade"
+      ]
+    },
+    {
       "path": "editor/ParticleEditorPanel.js",
       "summary": "Debug-only particle parameter editor.",
       "exports": [
@@ -549,8 +702,15 @@
       ]
     },
     {
+      "path": "editor/PlaySession.js",
+      "summary": "",
+      "exports": [
+        "PlaySession"
+      ]
+    },
+    {
       "path": "editor/PluginRecommendationEngine.js",
-      "summary": "Built-in rule engine for editor plugin recommendations.",
+      "summary": "Built-in rule engine for editor plugin recommendations. 支持： - 规则级联推荐：主推荐会自动展开子推荐； - 局部去重：同插件只保留最高优先级实例； - 统一推荐结构：支持 reason/confidence/source/depth 透传。",
       "exports": [
         "PluginRecommendationEngine"
       ]
@@ -562,6 +722,13 @@
         "SkeletonAnimationEditor",
         "DataTableEditor",
         "AudioEditor"
+      ]
+    },
+    {
+      "path": "editor/RuntimeLiveSyncBridge.js",
+      "summary": "",
+      "exports": [
+        "RuntimeLiveSyncBridge"
       ]
     },
     {
@@ -794,6 +961,13 @@
       ]
     },
     {
+      "path": "navigation/NavigationAgent2D.js",
+      "summary": "",
+      "exports": [
+        "NavigationAgent2D"
+      ]
+    },
+    {
       "path": "net/NetManager.js",
       "summary": "Network and persistence wrappers. @example const net = new NetManager(); const profile = await net.get('/api/profile'); StorageManager.set('save', { level: 3 });",
       "exports": [
@@ -865,6 +1039,49 @@
       ]
     },
     {
+      "path": "package/PluginInstaller.js",
+      "summary": "",
+      "exports": [
+        "PluginInstaller"
+      ]
+    },
+    {
+      "path": "physics/backends/Box2DWasmBackend.js",
+      "summary": "",
+      "exports": [
+        "Box2DWasmBackend"
+      ]
+    },
+    {
+      "path": "physics/backends/index.js",
+      "summary": "",
+      "exports": [
+        "createPhysicsBackend"
+      ]
+    },
+    {
+      "path": "physics/backends/MatterBackend.js",
+      "summary": "",
+      "exports": [
+        "MatterBackend"
+      ]
+    },
+    {
+      "path": "physics/backends/PhysicsBackend.js",
+      "summary": "",
+      "exports": [
+        "PhysicsBackend",
+        "normalizeBodyState"
+      ]
+    },
+    {
+      "path": "physics/backends/RapierBackend.js",
+      "summary": "",
+      "exports": [
+        "RapierBackend"
+      ]
+    },
+    {
       "path": "physics/CollisionMask.js",
       "summary": "Collision category and mask helpers. @example CollisionMask.filter('bullet', 'enemy');",
       "exports": [
@@ -921,6 +1138,18 @@
       "summary": "JSON prefab instantiator with Cocos-style component mounting. @example const enemy = PrefabManager.instantiate({ type: 'sprite', texture: 'enemy', components: [{ type: EnemyAI, options: { speed: 90 } }] }, 100, 200);",
       "exports": [
         "PrefabManager"
+      ]
+    },
+    {
+      "path": "quality/EngineQualityHarness.js",
+      "summary": "",
+      "exports": [
+        "stableStringify",
+        "stableHash",
+        "runDeterminismCheck",
+        "runInvariantCheck",
+        "runBudgetCheck",
+        "runEngineQualityGate"
       ]
     },
     {
@@ -986,7 +1215,7 @@
     },
     {
       "path": "renderer/RendererManager.js",
-      "summary": "Multi-backend renderer manager with automatic fallback. @example const manager = new RendererManager({ createRenderer }); const renderer = await manager.create('auto'); // pixi -> canvas",
+      "summary": "Multi-backend renderer manager with automatic fallback. @example const manager = new RendererManager({ createRenderer }); const renderer = await manager.create('auto'); // webgpu -> webgl -> canvas",
       "exports": [
         "RendererManager"
       ]
@@ -1006,6 +1235,13 @@
       ]
     },
     {
+      "path": "renderer/StaticBatchCompiler.js",
+      "summary": "Build-time static sprite batch compiler. Converts immutable repeated sprites into deterministic vertex batches that can be loaded by renderers without spending frame time discovering merges.",
+      "exports": [
+        "StaticBatchCompiler"
+      ]
+    },
+    {
       "path": "renderer/WebGLContextManager.js",
       "summary": "WebGL context loss/restoration manager. The manager listens to browser `webglcontextlost` and `webglcontextrestored` events, prevents the default hard failure path, and calls a canvas fallback hook when the context cannot be restored quickly. @example const manager = new WebGLContextManager({ canvas, onFallback: () => OmniCore.Backend.switch('canvas') });",
       "exports": [
@@ -1017,7 +1253,8 @@
       "summary": "MVP WebGPU renderer abstraction. It detects WebGPU, configures the canvas context, and converts scene children into serializable draw instructions. A worker bridge can consume those instructions through OffscreenCanvas when the host provides a worker.",
       "exports": [
         "WebGPURenderer",
-        "collectDrawInstructions"
+        "collectDrawInstructions",
+        "buildGPUBatches"
       ]
     },
     {
@@ -1065,7 +1302,7 @@
     },
     {
       "path": "tilemap/Tilemap.js",
-      "summary": "Minimal Tiled JSON parser for tile and object layers. @example const map = Tilemap.parse(tiledJson); const ground = map.getTileLayer('Ground'); ground.tileAt(4, 2);",
+      "summary": "Parser for Tiled-style JSON maps. Supports: - finite tile/object layers - grouped layers (flattened with `group/name` paths) - infinite tile layers with `chunks` - object collision shapes: rectangle / ellipse / polygon / polyline @example const map = Tilemap.parse(tiledJson); const ground = map.getTileLayer('Ground'); ground.tileAt(4, 2);",
       "exports": [
         "Tilemap"
       ]
@@ -1075,6 +1312,13 @@
       "summary": "Tiled JSON loader for OmniCore tilemaps. @example const loader = new TilemapLoader(); const map = await loader.load('/maps/world.json');",
       "exports": [
         "TilemapLoader"
+      ]
+    },
+    {
+      "path": "tilemap/TilemapStreamer.js",
+      "summary": "",
+      "exports": [
+        "TilemapStreamer"
       ]
     },
     {

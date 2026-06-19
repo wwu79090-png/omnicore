@@ -13,6 +13,11 @@ const PANEL_TITLES = {
   'ai-assistant': 'AI Assistant',
   'animation-timeline': 'Animation Timeline',
   'flow-graph': 'Flow Graph',
+  'graph-editor': 'Graph Editor',
+  'ui-editor': 'UI Editor',
+  'global-search': 'Global Search',
+  'physics-view': 'Physics View',
+  'build-settings': 'Build Settings',
   profiler: 'Profiler'
 };
 
@@ -21,15 +26,18 @@ const DOCK_REGIONS = ['left', 'center', 'right', 'bottom'];
 const DEFAULT_DOCK_LAYOUT = {
   left: ['hierarchy', 'prefabs', 'assets'],
   center: ['scene-view'],
-  right: ['inspector'],
-  bottom: ['animation-timeline', 'tilemap', 'flow-graph', 'profiler']
+  right: ['inspector', 'build-settings'],
+  bottom: ['animation-timeline', 'tilemap', 'flow-graph', 'graph-editor', 'ui-editor', 'global-search', 'profiler']
 };
 const TOOLBAR_ACTIONS = [
+  { id: 'open-project', label: 'Open Project', shortcut: 'Ctrl+O' },
   { id: 'save', label: 'Save', shortcut: 'Ctrl+S' },
   { id: 'undo', label: 'Undo', shortcut: 'Ctrl+Z' },
   { id: 'redo', label: 'Redo', shortcut: 'Ctrl+Shift+Z' },
   { id: 'play', label: 'Play' },
   { id: 'pause', label: 'Pause' },
+  { id: 'step', label: 'Step' },
+  { id: 'profiler', label: 'Profiler' },
   { id: 'dock-reset', label: 'Reset Dock' }
 ];
 
@@ -37,12 +45,16 @@ export function createEditorApp(root = document.querySelector('#app'), {
   state = createEditorState(),
   syncUrl = null,
   transport = null,
-  localization = null
+  localization = null,
+  autoSaveIntervalMs = null,
+  autoCheckRecovery = true
 } = {}) {
   let current = createEditorState(state);
   let dragSession = null;
   let marqueeSession = null;
   let tilePaintSession = false;
+  let autoSaveTimer = null;
+  let recoveryChecked = false;
   let clipboard = [];
   let copySerial = 1;
   let history = [cloneState(current)];
@@ -51,6 +63,14 @@ export function createEditorApp(root = document.querySelector('#app'), {
   const sceneBaselines = new Map();
   const t = createTextResolver(localization);
   const ownerWindow = root.ownerDocument?.defaultView || globalThis.window;
+  const bridge = ownerWindow?.omnicoreEditor || null;
+  current = {
+    ...current,
+    autoSave: {
+      ...(current.autoSave || {}),
+      intervalMs: Math.max(1000, Number(autoSaveIntervalMs || current.autoSave?.intervalMs || 300000))
+    }
+  };
   root.className = 'omnicore-desktop-editor';
   root.innerHTML = `
     <style>${EDITOR_CSS}</style>
@@ -71,6 +91,11 @@ export function createEditorApp(root = document.querySelector('#app'), {
     getDockLayout: () => cloneState(current.dockLayout),
     setDockLayout,
     movePanelToRegion,
+    openProjectWorkspace,
+    checkRecovery,
+    runAutoSave,
+    setAutoSaveInterval,
+    getAutoSaveIntervalMs: () => current.autoSave.intervalMs,
     EditorAPI: createEditorAPI(),
     undo,
     redo,
@@ -83,6 +108,29 @@ export function createEditorApp(root = document.querySelector('#app'), {
     runCommand,
     validateScene,
     locateSceneIssue,
+    selectAnimationKeyframe,
+    setAnimationCurve,
+    addAnimationEvent,
+    previewAnimationFrame,
+    exportAnimationClip,
+    selectPrefab,
+    writePrefabOverrideToBase,
+    resetPrefabOverride,
+    openParticleEditor,
+    setParticleParameter,
+    setParticleCurve,
+    setParticleGradient,
+    exportParticleConfig,
+    openSpriteEditor,
+    setNineSliceGuides,
+    autoGenerateSpriteCollider,
+    setSpriteMaterial,
+    exportSpriteMeta,
+    openProfiler,
+    recordProfilerFrame,
+    openSceneTab,
+    switchSceneTab,
+    instantiateSubScene,
     captureSceneBaseline,
     getSceneDiff,
     createPrefabSnapshot,
@@ -91,6 +139,12 @@ export function createEditorApp(root = document.querySelector('#app'), {
     saveSnapshot,
     exportTiledJson,
     exportFlowGraphEventSheet,
+    exportBehaviorTreeJson,
+    exportUILayoutJson,
+    exportDataJson,
+    validateAuthoringAssets,
+    exportAuthoringBundle,
+    getProfilerHotspots,
     destroy,
     sync: client
   };
@@ -102,6 +156,10 @@ export function createEditorApp(root = document.querySelector('#app'), {
   ownerWindow?.addEventListener?.('mousemove', onPointerMove);
   ownerWindow?.addEventListener?.('mouseup', onPointerUp);
   ownerWindow?.addEventListener?.('keydown', onKeyDown);
+  const unsubscribeWorkspace = bridge?.onWorkspaceOpened?.((workspace) => applyWorkspace(workspace));
+  const unsubscribeMenu = bridge?.onMenuCommand?.((payload) => runMenuCommand(payload?.command));
+  scheduleAutoSave();
+  if (shouldAutoCheckRecovery()) queueMicrotask(() => checkRecovery());
   update(current);
   return api;
 
@@ -110,13 +168,24 @@ export function createEditorApp(root = document.querySelector('#app'), {
       ...current,
       ...next,
       scene: normalizeScene(next.scene || current.scene),
+      workspace: normalizeWorkspaceState(next.workspace || current.workspace),
       tilemap: next.tilemap || current.tilemap,
       flowGraph: normalizeFlowGraph(next.flowGraph || current.flowGraph),
       prefabs: next.prefabs || current.prefabs,
       assets: next.assets || current.assets,
+      assetPreview: next.assetPreview ?? current.assetPreview,
+      prefabPreview: next.prefabPreview ?? current.prefabPreview,
       playState: next.playState || current.playState,
       profilerFrame: next.profilerFrame || current.profilerFrame,
       database: next.database || current.database,
+      projectFiles: normalizeProjectFilesState(next.projectFiles || current.projectFiles),
+      globalSearch: normalizeGlobalSearchState(next.globalSearch || current.globalSearch),
+      resourcePicker: normalizeResourcePickerState(next.resourcePicker || current.resourcePicker),
+      physicsView: normalizePhysicsViewState(next.physicsView || current.physicsView),
+      prefabHotEdit: normalizePrefabHotEditState(next.prefabHotEdit || current.prefabHotEdit),
+      buildSettings: normalizeBuildSettingsState(next.buildSettings || current.buildSettings),
+      uiLayout: normalizeUILayoutState(next.uiLayout || current.uiLayout),
+      behaviorTree: next.behaviorTree || current.behaviorTree || null,
       lastCommandError: next.lastCommandError || current.lastCommandError,
       dockLayout: normalizeDockLayout(next.dockLayout || current.dockLayout),
       gridSnap: next.gridSnap || current.gridSnap,
@@ -124,7 +193,16 @@ export function createEditorApp(root = document.querySelector('#app'), {
       commandPaletteOpen: next.commandPaletteOpen ?? current.commandPaletteOpen,
       sceneValidation: next.sceneValidation || current.sceneValidation,
       sceneIssueTargetId: next.sceneIssueTargetId ?? current.sceneIssueTargetId,
-      prefabHistory: next.prefabHistory || current.prefabHistory
+      prefabHistory: next.prefabHistory || current.prefabHistory,
+      selectedAnimationKeyframe: next.selectedAnimationKeyframe ?? current.selectedAnimationKeyframe,
+      particleEditor: next.particleEditor || current.particleEditor,
+      spriteEditor: next.spriteEditor || current.spriteEditor,
+      profilerOpen: next.profilerOpen ?? current.profilerOpen,
+      profilerHistory: next.profilerHistory || current.profilerHistory,
+      sceneTabs: next.sceneTabs || current.sceneTabs,
+      activeSceneTabPath: next.activeSceneTabPath ?? current.activeSceneTabPath,
+      authoringHealth: next.authoringHealth || current.authoringHealth,
+      autoSave: normalizeAutoSaveState(next.autoSave || current.autoSave)
     });
     renderToolbar();
     shell.textContent = '';
@@ -139,6 +217,11 @@ export function createEditorApp(root = document.querySelector('#app'), {
       tilemap: renderPanel('tilemap', renderTilemap()),
       'animation-timeline': renderPanel('animation-timeline', renderTimeline()),
       'flow-graph': renderPanel('flow-graph', renderFlowGraph()),
+      'graph-editor': renderPanel('graph-editor', renderGraphEditor()),
+      'ui-editor': renderPanel('ui-editor', renderUIEditor()),
+      'global-search': renderPanel('global-search', renderGlobalSearch()),
+      'physics-view': renderPanel('physics-view', renderPhysicsView()),
+      'build-settings': renderPanel('build-settings', renderBuildSettings()),
       profiler: renderPanel('profiler', renderProfiler())
     };
     for (const region of DOCK_REGIONS) {
@@ -164,6 +247,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
   function setDockLayout(layout = DEFAULT_DOCK_LAYOUT) {
     current = { ...current, dockLayout: normalizeDockLayout(layout) };
     emit('editor:dock-layout', current.dockLayout);
+    persistDockLayout();
     update(current);
     return current.dockLayout;
   }
@@ -179,6 +263,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     target.splice(insertAt, 0, panelName);
     current = { ...current, dockLayout: nextLayout };
     emit('editor:dock-panel-move', { panel: panelName, region, index: insertAt });
+    persistDockLayout();
     update(current);
     return current.dockLayout;
   }
@@ -219,21 +304,143 @@ export function createEditorApp(root = document.querySelector('#app'), {
       version: 1,
       savedAt: new Date().toISOString(),
       scene: cloneState(current.scene),
+      workspace: cloneState(current.workspace),
       tilemap: cloneState(current.tilemap),
       prefabs: cloneState(current.prefabs),
-      assets: cloneState(current.assets)
+      assets: cloneState(current.assets),
+      flowGraph: cloneState(current.flowGraph),
+      behaviorTree: cloneState(current.behaviorTree),
+      uiLayout: cloneState(current.uiLayout),
+      database: cloneState(current.database),
+      playState: cloneState(current.playState),
+      animations: cloneState(current.animations),
+      selectedAnimationKeyframe: cloneState(current.selectedAnimationKeyframe),
+      particleEditor: cloneState(current.particleEditor),
+      spriteEditor: cloneState(current.spriteEditor),
+      profilerFrame: cloneState(current.profilerFrame),
+      profilerHistory: cloneState(current.profilerHistory || []),
+      sceneTabs: cloneState(current.sceneTabs || []),
+      activeSceneTabPath: current.activeSceneTabPath || null
     };
     emit('editor:save-snapshot', snapshot);
     return snapshot;
   }
 
+  async function openProjectWorkspace() {
+    const workspace = await bridge?.openProjectFolder?.();
+    if (!workspace || workspace.canceled) return null;
+    return applyWorkspace(workspace);
+  }
+
+  function applyWorkspace(workspace = {}) {
+    const normalized = normalizeWorkspaceState(workspace);
+    current = {
+      ...current,
+      workspace: normalized,
+      assets: normalized.assets,
+      assetPreview: null,
+      prefabPreview: null
+    };
+    emit('editor:workspace-opened', normalized);
+    update(current);
+    return normalized;
+  }
+
+  async function checkRecovery() {
+    if (recoveryChecked) return null;
+    recoveryChecked = true;
+    if (typeof bridge?.readPendingRecovery !== 'function') return null;
+    const recovery = await bridge.readPendingRecovery({ root: current.workspace?.root || null });
+    if (!recovery?.exists || !recovery.snapshot) return recovery || null;
+    const shouldRecover = typeof ownerWindow?.confirm === 'function'
+      ? ownerWindow.confirm('发现上次异常退出留下的 OmniCore Editor 自动备份，是否恢复？')
+      : true;
+    if (!shouldRecover) {
+      await bridge.clearAutoSave?.({ root: current.workspace?.root || null });
+      return recovery;
+    }
+    const snapshot = recovery.snapshot.state || recovery.snapshot;
+    current = createEditorState({
+      ...current,
+      ...snapshot
+    });
+    await bridge.clearAutoSave?.({ root: current.workspace?.root || null });
+    update(current);
+    return recovery;
+  }
+
+  async function runAutoSave(reason = 'timer') {
+    const snapshot = {
+      reason,
+      intervalMs: current.autoSave.intervalMs,
+      savedAt: new Date().toISOString(),
+      root: current.workspace?.root || null,
+      state: cloneState(current)
+    };
+    const result = typeof bridge?.writeAutoSave === 'function'
+      ? await bridge.writeAutoSave(snapshot)
+      : emit('editor:autosave', snapshot);
+    current = {
+      ...current,
+      autoSave: {
+        ...current.autoSave,
+        lastSavedAt: snapshot.savedAt,
+        lastPath: result?.path || current.autoSave.lastPath || null
+      }
+    };
+    update(current);
+    return snapshot;
+  }
+
+  function setAutoSaveInterval(intervalMs) {
+    current = {
+      ...current,
+      autoSave: {
+        ...current.autoSave,
+        intervalMs: Math.max(1000, Number(intervalMs || 300000))
+      }
+    };
+    scheduleAutoSave();
+    update(current);
+    return current.autoSave;
+  }
+
+  function scheduleAutoSave() {
+    if (autoSaveTimer != null) ownerWindow?.clearInterval?.(autoSaveTimer);
+    if (current.autoSave?.enabled === false || typeof ownerWindow?.setInterval !== 'function') return;
+    autoSaveTimer = ownerWindow.setInterval(() => {
+      runAutoSave('timer');
+    }, current.autoSave.intervalMs);
+  }
+
+  function persistDockLayout() {
+    const payload = {
+      root: current.workspace?.root || null,
+      layout: cloneState(current.dockLayout)
+    };
+    if (typeof bridge?.saveDockLayout === 'function') bridge.saveDockLayout(payload);
+    else emit('editor:save-dock-layout', payload);
+    return payload;
+  }
+
   function destroy() {
+    if (autoSaveTimer != null) ownerWindow?.clearInterval?.(autoSaveTimer);
     ownerWindow?.removeEventListener?.('mousemove', onPointerMove);
     ownerWindow?.removeEventListener?.('mouseup', onPointerUp);
     ownerWindow?.removeEventListener?.('keydown', onKeyDown);
+    unsubscribeWorkspace?.();
+    unsubscribeMenu?.();
     client?.close?.();
     if (ownerWindow?.OmniCore?.EditorAPI === api.EditorAPI) delete ownerWindow.OmniCore.EditorAPI;
     root.textContent = '';
+  }
+
+  function shouldAutoCheckRecovery() {
+    return Boolean(
+      autoCheckRecovery
+      && typeof bridge?.readPendingRecovery === 'function'
+      && (current.workspace?.root || bridge.autoCheckRecovery === true)
+    );
   }
 
   function createEditorAPI() {
@@ -251,11 +458,18 @@ export function createEditorApp(root = document.querySelector('#app'), {
       createPrefabVariant(prefabId, overrides = {}, options = {}) {
         const prefab = current.prefabs.find((item) => item.id === prefabId || item.name === prefabId);
         if (!prefab) return null;
+        const overrideFields = Object.fromEntries(
+          Object.entries(cloneState(overrides)).filter(([key]) => key !== 'id' && key !== 'extends')
+        );
         const variant = {
           ...cloneState(prefab),
           ...cloneState(overrides),
           id: options.id || overrides.id || `${prefab.id || prefab.name}-variant`,
-          extends: prefab.id || prefab.name
+          extends: prefab.id || prefab.name,
+          overrides: {
+            ...(overrides.overrides || {}),
+            ...overrideFields
+          }
         };
         current = { ...current, prefabs: [...current.prefabs, variant] };
         emit('editor:create-prefab-variant', variant);
@@ -263,10 +477,1050 @@ export function createEditorApp(root = document.querySelector('#app'), {
         update(current);
         return variant;
       },
+      markBasePrefab(prefabId) {
+        return markBasePrefab(prefabId);
+      },
+      updatePrefabProperties(prefabId, patch = {}) {
+        return updatePrefabProperties(prefabId, patch);
+      },
+      createNPCProximityRecipe(options = {}) {
+        return createNPCProximityRecipe(options);
+      },
+      addUIButton(button = {}) {
+        return addUIButton(button);
+      },
+      applyRuleTiles() {
+        return applyRuleTiles();
+      },
+      updateDatabaseCell(table, id, field, value) {
+        return updateDatabaseRecord(table, id, field, value);
+      },
+      openGlobalSearch(query = '') {
+        return openGlobalSearch(query);
+      },
+      searchProject(query) {
+        return searchProject(query);
+      },
+      replaceProject(query, replacement, options = {}) {
+        return replaceProject(query, replacement, options);
+      },
+      openResourcePicker(field, options = {}) {
+        return openResourcePicker(field, options);
+      },
+      selectResourceForField(field, assetPath) {
+        return selectResourceForField(field, assetPath);
+      },
+      openPhysicsView() {
+        return openPhysicsView();
+      },
+      editPrefabVariantRuntime(prefabId, patch = {}) {
+        return editPrefabVariantRuntime(prefabId, patch);
+      },
+      exitPrefabHotEdit() {
+        return exitPrefabHotEdit();
+      },
+      savePrefabHotEdit() {
+        return savePrefabHotEdit();
+      },
+      setBuildTarget(platform, enabled = true) {
+        return setBuildTarget(platform, enabled);
+      },
+      exportBuildSettings() {
+        return exportBuildSettings();
+      },
       generateWithAI(prompt, options = {}) {
         return generateWithAI(prompt, options);
       }
     };
+  }
+
+  function createNPCProximityRecipe({
+    npcId = 'npc',
+    playerId = 'player',
+    animation = 'talk',
+    dialog = '',
+    distance = 48
+  } = {}) {
+    const graph = {
+      nodes: [
+        {
+          id: 'npc-proximity-event',
+          type: 'event',
+          label: 'NPC Proximity',
+          x: 24,
+          y: 32,
+          data: { when: { onUpdate: true } }
+        },
+        {
+          id: 'npc-near-condition',
+          type: 'condition',
+          label: 'NPC Nearby',
+          x: 220,
+          y: 32,
+          data: {
+            op: 'distanceLessThan',
+            left: playerId,
+            right: npcId,
+            value: Number(distance || 48)
+          }
+        },
+        {
+          id: 'npc-play-animation',
+          type: 'action',
+          label: 'Play Animation',
+          x: 440,
+          y: 8,
+          data: {
+            op: 'playAnimation',
+            target: npcId,
+            animation
+          }
+        },
+        {
+          id: 'npc-show-dialog',
+          type: 'action',
+          label: 'Show Dialog',
+          x: 440,
+          y: 96,
+          data: {
+            op: 'showDialog',
+            target: npcId,
+            text: dialog
+          }
+        }
+      ],
+      edges: [
+        { from: 'npc-proximity-event', to: 'npc-near-condition' },
+        { from: 'npc-near-condition', to: 'npc-play-animation' },
+        { from: 'npc-near-condition', to: 'npc-show-dialog' }
+      ]
+    };
+    current = {
+      ...current,
+      flowGraph: normalizeFlowGraph(graph),
+      behaviorTree: flowGraphToBehaviorTree(graph)
+    };
+    emit('editor:graph-recipe', { recipe: 'npc-proximity', npcId, playerId });
+    pushHistory(current, 'Create NPC proximity graph');
+    update(current);
+    return current.flowGraph;
+  }
+
+  function addUIButton(button = {}) {
+    const uiLayout = normalizeUILayoutState(current.uiLayout);
+    const element = normalizeUIElement({
+      type: 'Button',
+      width: 160,
+      height: 40,
+      ...button
+    }, uiLayout.elements.length);
+    const existingIndex = uiLayout.elements.findIndex((item) => item.id === element.id);
+    const elements = [...uiLayout.elements];
+    if (existingIndex >= 0) elements[existingIndex] = element;
+    else elements.push(element);
+    current = {
+      ...current,
+      uiLayout: {
+        ...uiLayout,
+        elements
+      }
+    };
+    emit('editor:update-ui-layout', current.uiLayout);
+    pushHistory(current, `Add UI button ${element.id}`);
+    update(current);
+    return element;
+  }
+
+  function openGlobalSearch(query = '') {
+    current = {
+      ...current,
+      globalSearch: {
+        ...normalizeGlobalSearchState(current.globalSearch),
+        open: true,
+        query: String(query || current.globalSearch?.query || '')
+      },
+      dockLayout: ensurePanelInDock(current.dockLayout, 'global-search', 'bottom')
+    };
+    emit('editor:open-global-search', { query: current.globalSearch.query });
+    update(current);
+    return current.globalSearch;
+  }
+
+  function searchProject(query = current.globalSearch?.query || '') {
+    const normalizedQuery = String(query || '');
+    const results = [];
+    if (normalizedQuery) {
+      for (const [filePath, content] of Object.entries(normalizeProjectFilesState(current.projectFiles))) {
+        if (!isSearchableProjectFile(filePath)) continue;
+        const lines = String(content).split(/\r?\n/u);
+        lines.forEach((line, index) => {
+          const column = line.toLowerCase().indexOf(normalizedQuery.toLowerCase());
+          if (column >= 0) {
+            results.push({
+              path: filePath,
+              line: index + 1,
+              column: column + 1,
+              preview: line.trim()
+            });
+          }
+        });
+      }
+    }
+    current = {
+      ...current,
+      globalSearch: {
+        ...normalizeGlobalSearchState(current.globalSearch),
+        open: true,
+        query: normalizedQuery,
+        results
+      },
+      dockLayout: ensurePanelInDock(current.dockLayout, 'global-search', 'bottom')
+    };
+    emit('editor:global-search', { query: normalizedQuery, count: results.length });
+    update(current);
+    return results;
+  }
+
+  function replaceProject(query, replacement, options = {}) {
+    const normalizedQuery = String(query || '');
+    if (!normalizedQuery) return { changedFiles: [], projectFiles: cloneState(current.projectFiles || {}) };
+    const allowedPaths = options.paths ? new Set(options.paths) : null;
+    const files = normalizeProjectFilesState(current.projectFiles);
+    const changedFiles = [];
+    const pattern = new RegExp(escapeRegExp(normalizedQuery), 'gu');
+    for (const [filePath, content] of Object.entries(files)) {
+      if (!isSearchableProjectFile(filePath) || (allowedPaths && !allowedPaths.has(filePath))) continue;
+      const nextContent = String(content).replace(pattern, String(replacement ?? ''));
+      if (nextContent !== content) {
+        files[filePath] = nextContent;
+        changedFiles.push(filePath);
+      }
+    }
+    current = {
+      ...current,
+      projectFiles: files,
+      globalSearch: {
+        ...normalizeGlobalSearchState(current.globalSearch),
+        replacement: String(replacement ?? ''),
+        results: []
+      }
+    };
+    emit('editor:replace-project', { query: normalizedQuery, replacement, changedFiles });
+    pushHistory(current, `Replace ${normalizedQuery} in project`);
+    update(current);
+    return { changedFiles, projectFiles: cloneState(files) };
+  }
+
+  function openResourcePicker(field, { query = '' } = {}) {
+    current = {
+      ...current,
+      resourcePicker: {
+        open: true,
+        field,
+        query
+      }
+    };
+    emit('editor:open-resource-picker', { field, query });
+    update(current);
+    return current.resourcePicker;
+  }
+
+  function selectResourceForField(field, assetPath) {
+    const selected = findSelectedEntity(current);
+    if (!selected || !field || !assetPath) return null;
+    const entity = patchEntity(selected.id, { [field]: assetPath });
+    current = {
+      ...current,
+      resourcePicker: {
+        ...normalizeResourcePickerState(current.resourcePicker),
+        open: false
+      }
+    };
+    emit('editor:select-resource', { field, assetPath, entityId: selected.id });
+    update(current);
+    return entity;
+  }
+
+  function openPhysicsView() {
+    current = {
+      ...current,
+      physicsView: { open: true },
+      dockLayout: ensurePanelInDock(current.dockLayout, 'physics-view', 'center')
+    };
+    emit('editor:open-physics-view', { bodies: physicsBodies(current).length });
+    update(current);
+    return current.physicsView;
+  }
+
+  function editPrefabVariantRuntime(prefabId, patch = {}) {
+    const existing = current.prefabs.find((prefab) => (prefab.id || prefab.name) === prefabId);
+    if (!existing) return null;
+    current = {
+      ...current,
+      prefabHotEdit: {
+        prefabId,
+        patch: cloneState(patch),
+        dirty: current.playState?.mode === 'paused',
+        promptOpen: false
+      }
+    };
+    emit('editor:prefab-hot-edit', { prefabId, patch });
+    update(current);
+    return current.prefabHotEdit;
+  }
+
+  function exitPrefabHotEdit() {
+    const hotEdit = normalizePrefabHotEditState(current.prefabHotEdit);
+    if (!hotEdit.dirty) return hotEdit;
+    current = {
+      ...current,
+      prefabHotEdit: {
+        ...hotEdit,
+        promptOpen: true
+      }
+    };
+    emit('editor:prefab-hot-edit-save-prompt', { prefabId: hotEdit.prefabId });
+    update(current);
+    return current.prefabHotEdit;
+  }
+
+  function savePrefabHotEdit() {
+    const hotEdit = normalizePrefabHotEditState(current.prefabHotEdit);
+    if (!hotEdit.prefabId || !hotEdit.dirty) return null;
+    const prefabs = current.prefabs.map((prefab) => {
+      const id = prefab.id || prefab.name;
+      if (id !== hotEdit.prefabId) return prefab;
+      return {
+        ...prefab,
+        ...cloneState(hotEdit.patch),
+        overrides: {
+          ...(prefab.overrides || {}),
+          ...cloneState(hotEdit.patch)
+        }
+      };
+    });
+    current = {
+      ...current,
+      prefabs,
+      prefabHotEdit: { prefabId: null, patch: {}, dirty: false, promptOpen: false }
+    };
+    emit('editor:save-prefab-hot-edit', { prefabId: hotEdit.prefabId, patch: hotEdit.patch });
+    pushHistory(current, `Save prefab hot edit ${hotEdit.prefabId}`);
+    update(current);
+    return current.prefabs.find((prefab) => (prefab.id || prefab.name) === hotEdit.prefabId) || null;
+  }
+
+  function setBuildTarget(platform, enabled = true) {
+    const buildSettings = normalizeBuildSettingsState(current.buildSettings);
+    if (!buildSettings.targets[platform]) return buildSettings;
+    current = {
+      ...current,
+      buildSettings: {
+        ...buildSettings,
+        targets: {
+          ...buildSettings.targets,
+          [platform]: {
+            ...buildSettings.targets[platform],
+            enabled: Boolean(enabled)
+          }
+        }
+      },
+      dockLayout: ensurePanelInDock(current.dockLayout, 'build-settings', 'right')
+    };
+    emit('editor:set-build-target', { platform, enabled: Boolean(enabled) });
+    update(current);
+    return current.buildSettings;
+  }
+
+  function exportBuildSettings() {
+    return cloneState(normalizeBuildSettingsState(current.buildSettings));
+  }
+
+  function markBasePrefab(prefabId) {
+    let updated = null;
+    const prefabs = current.prefabs.map((prefab) => {
+      if ((prefab.id || prefab.name) !== prefabId) return prefab;
+      updated = { ...prefab, isBasePrefab: true };
+      return updated;
+    });
+    current = { ...current, prefabs };
+    emit('editor:mark-base-prefab', { prefabId });
+    pushHistory(current, `Mark base prefab ${prefabId}`);
+    update(current);
+    return updated;
+  }
+
+  function updatePrefabProperties(prefabId, patch = {}) {
+    const safePatch = cloneState(patch);
+    const descendants = collectPrefabDescendants(prefabId, current.prefabs);
+    const affected = new Set([prefabId, ...descendants]);
+    const prefabs = current.prefabs.map((prefab) => {
+      const id = prefab.id || prefab.name;
+      if (!affected.has(id)) return prefab;
+      if (id === prefabId) return { ...prefab, ...safePatch };
+      const overrides = prefab.overrides || {};
+      const inheritedPatch = Object.fromEntries(
+        Object.entries(safePatch).filter(([key]) => !Object.prototype.hasOwnProperty.call(overrides, key))
+      );
+      return { ...prefab, ...inheritedPatch };
+    });
+    current = { ...current, prefabs };
+    emit('editor:update-prefab-properties', { prefabId, patch: safePatch, affected: [...affected] });
+    pushHistory(current, `Update prefab ${prefabId}`);
+    update(current);
+    return current.prefabs.find((prefab) => (prefab.id || prefab.name) === prefabId) || null;
+  }
+
+  function collectPrefabDescendants(prefabId, prefabs) {
+    const childrenByParent = new Map();
+    for (const prefab of prefabs) {
+      if (!prefab.extends) continue;
+      const parent = String(prefab.extends);
+      if (!childrenByParent.has(parent)) childrenByParent.set(parent, []);
+      childrenByParent.get(parent).push(prefab.id || prefab.name);
+    }
+    const output = [];
+    const queue = [...(childrenByParent.get(prefabId) || [])];
+    while (queue.length) {
+      const id = queue.shift();
+      if (output.includes(id)) continue;
+      output.push(id);
+      queue.push(...(childrenByParent.get(id) || []));
+    }
+    return output;
+  }
+
+  function selectAnimationKeyframe(clipId, track, frame) {
+    current = {
+      ...current,
+      selectedAnimationKeyframe: {
+        clipId: String(clipId),
+        track: String(track),
+        frame: Number(frame || 0)
+      }
+    };
+    emit('editor:select-animation-keyframe', current.selectedAnimationKeyframe);
+    update(current);
+    return current.selectedAnimationKeyframe;
+  }
+
+  function setAnimationCurve(clipId, track, frame, curve = {}) {
+    const animations = cloneState(current.animations || {});
+    const clip = ensureAnimationClip(animations, clipId);
+    const trackData = ensureAnimationTrack(clip, track);
+    const keyframe = ensureAnimationKeyframe(trackData, frame);
+    keyframe.easing = curve.preset || curve.easing || keyframe.easing || 'Linear';
+    keyframe.handles = cloneState(curve.handles || keyframe.handles || {});
+    current = {
+      ...current,
+      animations,
+      selectedAnimationKeyframe: {
+        clipId: String(clipId),
+        track: String(track),
+        frame: Number(frame || 0)
+      }
+    };
+    emit('editor:set-animation-curve', {
+      clipId,
+      track,
+      frame: Number(frame || 0),
+      easing: keyframe.easing,
+      handles: keyframe.handles
+    });
+    pushHistory(current, `Set animation curve ${clipId}.${track}.${frame}`);
+    update(current);
+    return cloneState(keyframe);
+  }
+
+  function addAnimationEvent(clipId, frame, name, payload = {}) {
+    const animations = cloneState(current.animations || {});
+    const clip = ensureAnimationClip(animations, clipId);
+    const eventFrame = Number(frame || 0);
+    const events = Array.isArray(clip.events) ? clip.events : [];
+    const event = { frame: eventFrame, name: String(name), payload: cloneState(payload || {}) };
+    clip.events = [...events.filter((item) => !(item.frame === eventFrame && item.name === event.name)), event]
+      .sort((left, right) => Number(left.frame || 0) - Number(right.frame || 0));
+    current = { ...current, animations };
+    emit('editor:add-animation-event', { clipId, event });
+    pushHistory(current, `Add animation event ${event.name}`);
+    update(current);
+    return cloneState(event);
+  }
+
+  function previewAnimationFrame(clipId, frame, options = {}) {
+    const clip = current.animations?.[clipId];
+    if (!clip) return [];
+    const eventFrame = Number(frame || 0);
+    const events = (Array.isArray(clip.events) ? clip.events : [])
+      .filter((event) => Number(event.frame || 0) === eventFrame);
+    for (const event of events) {
+      const payload = {
+        ...(event.payload || {}),
+        clipId,
+        frame: eventFrame,
+        event: cloneState(event)
+      };
+      options.eventBus?.emit?.(event.name, payload);
+      ownerWindow?.EventBus?.emit?.(event.name, payload);
+    }
+    emit('editor:preview-animation-frame', { clipId, frame: eventFrame, events });
+    return cloneState(events);
+  }
+
+  function exportAnimationClip(clipId) {
+    return cloneState(current.animations?.[clipId] || null);
+  }
+
+  function selectPrefab(prefabId) {
+    current = { ...current, selectedPrefabId: prefabId || null };
+    emit('editor:select-prefab', { prefabId: current.selectedPrefabId });
+    update(current);
+    return findPrefab(prefabId);
+  }
+
+  function writePrefabOverrideToBase(variantId, field) {
+    const variant = findPrefab(variantId);
+    if (!variant?.extends || !field) return null;
+    const baseId = variant.extends;
+    const value = cloneState(variant[field]);
+    const prefabs = current.prefabs.map((prefab) => {
+      const id = prefab.id || prefab.name;
+      if (id === baseId) return { ...prefab, [field]: value };
+      if (id !== variantId) return prefab;
+      const overrides = { ...(prefab.overrides || {}) };
+      delete overrides[field];
+      return { ...prefab, overrides };
+    });
+    current = { ...current, prefabs };
+    emit('editor:write-prefab-override', { variantId, baseId, field, value });
+    pushHistory(current, `Write prefab override ${variantId}.${field}`);
+    update(current);
+    return findPrefab(baseId);
+  }
+
+  function resetPrefabOverride(variantId, field) {
+    const variant = findPrefab(variantId);
+    const base = variant?.extends ? findPrefab(variant.extends) : null;
+    if (!variant || !base || !field) return null;
+    const value = cloneState(base[field]);
+    const prefabs = current.prefabs.map((prefab) => {
+      const id = prefab.id || prefab.name;
+      if (id !== variantId) return prefab;
+      const overrides = { ...(prefab.overrides || {}) };
+      delete overrides[field];
+      return { ...prefab, [field]: value, overrides };
+    });
+    current = { ...current, prefabs };
+    emit('editor:reset-prefab-override', { variantId, field, value });
+    pushHistory(current, `Reset prefab override ${variantId}.${field}`);
+    update(current);
+    return findPrefab(variantId);
+  }
+
+  function openParticleEditor(config = {}) {
+    current = {
+      ...current,
+      particleEditor: {
+        open: true,
+        config: normalizeParticleConfig({
+          ...(current.particleEditor?.config || {}),
+          ...config
+        })
+      }
+    };
+    emit('editor:open-particle-editor', current.particleEditor.config);
+    update(current);
+    return current.particleEditor;
+  }
+
+  function setParticleParameter(field, value) {
+    const editor = ensureParticleEditor();
+    const config = normalizeParticleConfig(editor.config);
+    config[field] = Number.isFinite(Number(value)) ? Number(value) : value;
+    current = { ...current, particleEditor: { ...editor, open: true, config } };
+    emit('editor:set-particle-parameter', { field, value: config[field] });
+    pushHistory(current, `Set particle ${field}`);
+    update(current);
+    return config[field];
+  }
+
+  function setParticleCurve(name, points = []) {
+    const editor = ensureParticleEditor();
+    const config = normalizeParticleConfig(editor.config);
+    config.curves = {
+      ...(config.curves || {}),
+      [name]: normalizeCurvePoints(points)
+    };
+    current = { ...current, particleEditor: { ...editor, open: true, config } };
+    emit('editor:set-particle-curve', { name, points: config.curves[name] });
+    pushHistory(current, `Set particle curve ${name}`);
+    update(current);
+    return config.curves[name];
+  }
+
+  function setParticleGradient(points = []) {
+    const editor = ensureParticleEditor();
+    const config = normalizeParticleConfig(editor.config);
+    config.gradient = normalizeGradientPoints(points);
+    current = { ...current, particleEditor: { ...editor, open: true, config } };
+    emit('editor:set-particle-gradient', config.gradient);
+    pushHistory(current, 'Set particle gradient');
+    update(current);
+    return config.gradient;
+  }
+
+  function exportParticleConfig(fileName = 'particle_config.json') {
+    return {
+      fileName,
+      config: cloneState(normalizeParticleConfig(current.particleEditor?.config || {}))
+    };
+  }
+
+  function openSpriteEditor(assetPath) {
+    const source = slash(assetPath || current.assetPreview?.path || '');
+    if (!source) return null;
+    current = {
+      ...current,
+      spriteEditor: {
+        open: true,
+        source,
+        nineSlice: normalizeNineSlice(current.spriteEditor?.nineSlice || {}),
+        collider: current.spriteEditor?.collider || null
+      }
+    };
+    emit('editor:open-sprite-editor', { source });
+    update(current);
+    return current.spriteEditor;
+  }
+
+  function setNineSliceGuides(guides = {}) {
+    const editor = ensureSpriteEditor();
+    if (!editor) return null;
+    current = {
+      ...current,
+      spriteEditor: {
+        ...editor,
+        nineSlice: normalizeNineSlice({ ...(editor.nineSlice || {}), ...guides })
+      }
+    };
+    emit('editor:set-nine-slice', current.spriteEditor.nineSlice);
+    pushHistory(current, 'Set sprite nine-slice');
+    update(current);
+    return current.spriteEditor.nineSlice;
+  }
+
+  function autoGenerateSpriteCollider() {
+    const editor = ensureSpriteEditor();
+    if (!editor) return null;
+    const right = Number(editor.nineSlice?.right || 64);
+    const bottom = Number(editor.nineSlice?.bottom || 64);
+    const collider = {
+      type: 'polygon',
+      points: [
+        { x: 0, y: 0 },
+        { x: right, y: 0 },
+        { x: right, y: bottom },
+        { x: 0, y: bottom }
+      ]
+    };
+    current = { ...current, spriteEditor: { ...editor, collider } };
+    emit('editor:auto-generate-sprite-collider', collider);
+    pushHistory(current, 'Generate sprite collider');
+    update(current);
+    return collider;
+  }
+
+  function setSpriteMaterial(entityId, material = {}) {
+    const entities = current.scene.entities.map((entity) => (
+      entity.id === entityId
+        ? { ...entity, material: normalizeSpriteMaterial({ ...(entity.material || {}), ...material }) }
+        : entity
+    ));
+    const scene = { ...current.scene, entities };
+    current = { ...current, scene, sceneTabs: updateActiveSceneTab(scene) };
+    emit('editor:set-sprite-material', { entityId, material: findEntity(entityId)?.material || material });
+    pushHistory(current, `Set sprite material ${entityId}`);
+    update(current);
+    return findEntity(entityId)?.material || null;
+  }
+
+  function exportSpriteMeta() {
+    const editor = current.spriteEditor || {};
+    const source = editor.source || '';
+    const name = source.split('/').pop()?.replace(/\.(png|jpg|jpeg|webp)$/iu, '') || 'sprite';
+    return {
+      fileName: `${name}.sprite.json`,
+      meta: {
+        source,
+        nineSlice: cloneState(normalizeNineSlice(editor.nineSlice || {})),
+        collider: cloneState(editor.collider || null)
+      }
+    };
+  }
+
+  function openProfiler() {
+    current = { ...current, profilerOpen: true };
+    emit('editor:open-profiler', { open: true });
+    update(current);
+    return current.profilerFrame;
+  }
+
+  function recordProfilerFrame(frame = {}) {
+    const sample = normalizeProfilerSample(frame);
+    current = {
+      ...current,
+      profilerOpen: true,
+      profilerFrame: sample,
+      profilerHistory: [...(current.profilerHistory || []), sample].slice(-180)
+    };
+    emit('editor:record-profiler-frame', sample);
+    update(current);
+    return sample;
+  }
+
+  function openSceneTab(tab = {}) {
+    const path = slash(tab.path || tab.id || '');
+    if (!path) return null;
+    const scene = normalizeScene(tab.scene || { name: path.split('/').pop(), entities: [] });
+    const sceneTabs = upsertSceneTab(current.sceneTabs, { path, scene, dirty: Boolean(tab.dirty) });
+    current = {
+      ...current,
+      sceneTabs,
+      activeSceneTabPath: path,
+      scene
+    };
+    emit('editor:open-scene-tab', { path });
+    update(current);
+    return sceneTabs.find((item) => item.path === path) || null;
+  }
+
+  function switchSceneTab(path) {
+    const normalized = slash(path || '');
+    const tab = current.sceneTabs.find((item) => item.path === normalized);
+    if (!tab) return null;
+    current = {
+      ...current,
+      activeSceneTabPath: tab.path,
+      scene: normalizeScene(tab.scene)
+    };
+    emit('editor:switch-scene-tab', { path: tab.path });
+    update(current);
+    return tab;
+  }
+
+  function instantiateSubScene(path, point = {}) {
+    const normalized = slash(path || '');
+    const source = findSceneSource(normalized);
+    if (!source) return null;
+    const snapped = snapPoint(point, current);
+    const idRoot = normalized.split('/').pop()?.replace(/\.json$/iu, '') || 'scene';
+    const entity = {
+      id: `subscene-${idRoot}-${Date.now().toString(36)}`,
+      name: source.scene.name || idRoot,
+      type: 'subscene',
+      scenePath: normalized,
+      scene: cloneState(source.scene),
+      x: snapped.x,
+      y: snapped.y,
+      width: Number(source.scene.width || 0),
+      height: Number(source.scene.height || 0),
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1
+    };
+    const scene = {
+      ...current.scene,
+      entities: [...current.scene.entities, entity]
+    };
+    current = {
+      ...current,
+      scene,
+      sceneTabs: updateActiveSceneTab(scene),
+      selectedEntityId: entity.id,
+      selectedEntityIds: [entity.id]
+    };
+    emit('editor:instantiate-subscene', { path: normalized, entity });
+    pushHistory(current, `Instantiate subscene ${normalized}`);
+    update(current);
+    return entity;
+  }
+
+  function ensureAnimationClip(animations, clipId) {
+    const key = String(clipId);
+    animations[key] = animations[key] || { id: key, duration: 0, tracks: {}, events: [] };
+    animations[key].id = animations[key].id || key;
+    animations[key].tracks = animations[key].tracks || {};
+    animations[key].events = Array.isArray(animations[key].events) ? animations[key].events : [];
+    return animations[key];
+  }
+
+  function ensureAnimationTrack(clip, track) {
+    const key = String(track);
+    clip.tracks[key] = clip.tracks[key] || { keyframes: [] };
+    clip.tracks[key].keyframes = Array.isArray(clip.tracks[key].keyframes) ? clip.tracks[key].keyframes : [];
+    return clip.tracks[key];
+  }
+
+  function ensureAnimationKeyframe(trackData, frame) {
+    const frameNumber = Number(frame || 0);
+    let keyframe = trackData.keyframes.find((item) => Number(item.frame || 0) === frameNumber);
+    if (!keyframe) {
+      keyframe = { frame: frameNumber, value: 0, easing: 'Linear' };
+      trackData.keyframes.push(keyframe);
+      trackData.keyframes.sort((left, right) => Number(left.frame || 0) - Number(right.frame || 0));
+    }
+    return keyframe;
+  }
+
+  function findPrefab(prefabId) {
+    return current.prefabs.find((prefab) => (prefab.id || prefab.name) === prefabId) || null;
+  }
+
+  function findEntity(entityId) {
+    return current.scene.entities.find((entity) => entity.id === entityId) || null;
+  }
+
+  function ensureParticleEditor() {
+    return current.particleEditor?.open
+      ? current.particleEditor
+      : openParticleEditor();
+  }
+
+  function normalizeParticleConfig(config = {}) {
+    return {
+      emissionRate: Number(config.emissionRate ?? 30),
+      lifetime: Number(config.lifetime ?? 1),
+      initialVelocity: Number(config.initialVelocity ?? 120),
+      gravity: Number(config.gravity ?? 0),
+      curves: Object.fromEntries(Object.entries(config.curves || {}).map(([key, points]) => [
+        key,
+        normalizeCurvePoints(points)
+      ])),
+      gradient: normalizeGradientPoints(config.gradient || [])
+    };
+  }
+
+  function normalizeCurvePoints(points = []) {
+    return (Array.isArray(points) ? points : []).map((point) => ({
+      t: Number(point.t || 0),
+      value: Number(point.value || 0)
+    }));
+  }
+
+  function normalizeGradientPoints(points = []) {
+    return (Array.isArray(points) ? points : []).map((point) => ({
+      t: Number(point.t || 0),
+      color: point.color || '#ffffff'
+    }));
+  }
+
+  function ensureSpriteEditor() {
+    if (current.spriteEditor?.open && current.spriteEditor.source) return current.spriteEditor;
+    const imageAsset = current.assets.find((asset) => assetType(asset) === 'image');
+    const source = typeof imageAsset === 'string' ? imageAsset : imageAsset?.path;
+    return source ? openSpriteEditor(source) : null;
+  }
+
+  function normalizeNineSlice(value = {}) {
+    return {
+      left: Number(value.left || 0),
+      right: Number(value.right || 0),
+      top: Number(value.top || 0),
+      bottom: Number(value.bottom || 0)
+    };
+  }
+
+  function normalizeSpriteMaterial(material = {}) {
+    return {
+      alphaClip: Number(material.alphaClip ?? 0),
+      colorTint: material.colorTint || '#ffffff',
+      normalMap: material.normalMap || null
+    };
+  }
+
+  function normalizeProfilerSample(frame = {}) {
+    return {
+      frame: Number(frame.frame || 0),
+      time: Number(frame.time || 0),
+      totalMs: Number(frame.totalMs || 0),
+      sections: (Array.isArray(frame.sections) ? frame.sections : []).map((section) => ({
+        name: section.name || 'unknown',
+        duration: Number(section.duration || 0)
+      })),
+      memoryMB: Number(frame.memoryMB || frame.memory || 0),
+      drawCalls: Number(frame.drawCalls || frame.drawcalls || 0)
+    };
+  }
+
+  function upsertSceneTab(tabs = [], tab) {
+    const next = (Array.isArray(tabs) ? tabs : []).filter((item) => item.path !== tab.path);
+    next.push({
+      path: tab.path,
+      scene: normalizeScene(tab.scene),
+      dirty: Boolean(tab.dirty)
+    });
+    return next;
+  }
+
+  function updateActiveSceneTab(scene) {
+    if (!current.activeSceneTabPath) return current.sceneTabs || [];
+    return (current.sceneTabs || []).map((tab) => (
+      tab.path === current.activeSceneTabPath
+        ? { ...tab, scene: normalizeScene(scene), dirty: true }
+        : tab
+    ));
+  }
+
+  function findSceneSource(path) {
+    const tab = (current.sceneTabs || []).find((item) => item.path === path);
+    if (tab) return { path, scene: normalizeScene(tab.scene) };
+    const asset = (current.assets || [])
+      .map((item) => (typeof item === 'string' ? { path: item } : item))
+      .find((item) => slash(item.path || item.url || item.name || '') === path);
+    const scene = asset?.data || asset?.scene || null;
+    return scene ? { path, scene: normalizeScene(scene) } : null;
+  }
+
+  function validateAuthoringAssets(options = {}) {
+    const report = buildAuthoringHealthReport({ ...options, open: options.open !== false });
+    current = { ...current, authoringHealth: report };
+    emit('editor:authoring-health', report);
+    update(current);
+    return cloneState(report);
+  }
+
+  function exportAuthoringBundle(options = {}) {
+    const generatedAt = options.generatedAt || new Date().toISOString();
+    const files = [];
+    for (const [clipId, clip] of Object.entries(current.animations || {}).sort(([left], [right]) => left.localeCompare(right))) {
+      files.push({ path: `animations/${clipId}.animation.json`, data: cloneState(clip) });
+    }
+    if (current.particleEditor?.open || current.particleEditor?.config) {
+      files.push({ path: 'particles/particle_config.json', data: cloneState(normalizeParticleConfig(current.particleEditor?.config || {})) });
+    }
+    for (const tab of [...(current.sceneTabs || [])].sort((left, right) => left.path.localeCompare(right.path))) {
+      const name = tab.path.split('/').pop()?.replace(/\.json$/iu, '') || 'scene';
+      files.push({ path: `scenes/${name}.scene.json`, data: cloneState(normalizeScene(tab.scene)) });
+    }
+    if (current.spriteEditor?.source) {
+      const spriteMeta = exportSpriteMeta();
+      files.push({ path: `sprites/${spriteMeta.fileName}`, data: spriteMeta.meta });
+    }
+    files.sort((left, right) => left.path.localeCompare(right.path));
+    const manifest = {
+      animations: files.filter((file) => file.path.startsWith('animations/')).length,
+      particles: files.filter((file) => file.path.startsWith('particles/')).length,
+      scenes: files.filter((file) => file.path.startsWith('scenes/')).length,
+      sprites: files.filter((file) => file.path.startsWith('sprites/')).length
+    };
+    return {
+      fileName: 'omnicore_authoring_bundle.json',
+      version: 1,
+      generatedAt,
+      manifest,
+      health: buildAuthoringHealthReport({ ...options, checkedAt: generatedAt, open: false }),
+      files
+    };
+  }
+
+  function getProfilerHotspots(options = {}) {
+    const warningMs = Number(options.warningMs ?? 10);
+    const criticalMs = Number(options.criticalMs ?? 16);
+    return (current.profilerFrame?.sections || [])
+      .map((section) => ({ name: section.name || 'unknown', duration: Number(section.duration || 0) }))
+      .filter((section) => section.duration >= warningMs)
+      .sort((left, right) => right.duration - left.duration)
+      .map((section) => ({
+        ...section,
+        severity: section.duration >= criticalMs ? 'critical' : 'warning',
+        suggestion: profilerSuggestion(section.name, section.duration)
+      }));
+  }
+
+  function buildAuthoringHealthReport(options = {}) {
+    const issues = [];
+    const assets = new Set((current.assets || []).map((asset) => slash(typeof asset === 'string' ? asset : asset.path || asset.url || asset.name || '')));
+    const addIssue = (code, message, detail = {}) => {
+      issues.push({ code, message, severity: detail.severity || 'error', ...detail });
+    };
+
+    const particleConfig = current.particleEditor?.config ? normalizeParticleConfig(current.particleEditor.config) : null;
+    if (particleConfig) {
+      if (!(particleConfig.lifetime > 0)) addIssue('particle-lifetime-invalid', 'Particle lifetime must be greater than 0.', { field: 'lifetime' });
+      if (particleConfig.emissionRate < 0 || particleConfig.emissionRate > 1000) addIssue('particle-emission-rate-invalid', 'Particle emission rate must stay between 0 and 1000.', { field: 'emissionRate' });
+      for (const [curveName, points] of Object.entries(particleConfig.curves || {})) {
+        for (let index = 1; index < points.length; index += 1) {
+          if (points[index].t < points[index - 1].t) {
+            addIssue('particle-curve-order-invalid', `Particle curve ${curveName} must be sorted by t.`, { field: `curves.${curveName}` });
+            break;
+          }
+        }
+      }
+      for (const point of particleConfig.gradient || []) {
+        if (!isHexColor(point.color)) addIssue('particle-gradient-color-invalid', `Particle gradient color is invalid: ${point.color}`, { field: 'gradient' });
+      }
+    }
+
+    const spriteEditor = current.spriteEditor || {};
+    if (spriteEditor.source) {
+      if (!assets.has(slash(spriteEditor.source))) addIssue('sprite-source-missing', `Sprite source is missing: ${spriteEditor.source}`, { path: spriteEditor.source });
+      const nineSlice = normalizeNineSlice(spriteEditor.nineSlice || {});
+      if (nineSlice.left < 0 || nineSlice.top < 0 || nineSlice.right < 0 || nineSlice.bottom < 0 || (nineSlice.right > 0 && nineSlice.left > nineSlice.right) || (nineSlice.bottom > 0 && nineSlice.top > nineSlice.bottom)) {
+        addIssue('sprite-nine-slice-invalid', 'Sprite nine-slice guides are inverted or negative.', { field: 'nineSlice' });
+      }
+    }
+
+    for (const entity of current.scene.entities || []) {
+      if (!entity.material) continue;
+      const alphaClip = Number(entity.material.alphaClip ?? 0);
+      if (alphaClip < 0 || alphaClip > 1) addIssue('sprite-alpha-clip-invalid', 'Sprite alpha clip must be between 0 and 1.', { entityId: entity.id, field: 'material.alphaClip' });
+      if (entity.material.colorTint && !isHexColor(entity.material.colorTint)) addIssue('sprite-color-tint-invalid', `Sprite color tint is invalid: ${entity.material.colorTint}`, { entityId: entity.id, field: 'material.colorTint' });
+      if (entity.material.normalMap && !assets.has(slash(entity.material.normalMap))) addIssue('sprite-normal-map-missing', `Sprite normal map is missing: ${entity.material.normalMap}`, { entityId: entity.id, path: entity.material.normalMap });
+    }
+
+    for (const [clipId, clip] of Object.entries(current.animations || {})) {
+      const duration = Number(clip.duration || 0);
+      for (const event of clip.events || []) {
+        const frame = Number(event.frame || 0);
+        if (!event.name) addIssue('animation-event-name-missing', `Animation event name is missing in ${clipId}.`, { clipId, frame });
+        if (frame < 0 || frame > duration) addIssue('animation-event-out-of-range', `Animation event ${event.name || '(unnamed)'} is outside ${clipId} duration.`, { clipId, frame, duration });
+      }
+    }
+
+    const prefabIds = new Set((current.prefabs || []).map((prefab) => prefab.id || prefab.name));
+    for (const prefab of current.prefabs || []) {
+      if (prefab.extends && !prefabIds.has(prefab.extends)) addIssue('prefab-base-missing', `Prefab base is missing: ${prefab.extends}`, { prefabId: prefab.id || prefab.name });
+    }
+
+    const hotspots = getProfilerHotspots({ warningMs: options.profilerWarningMs ?? options.warningMs, criticalMs: options.profilerCriticalMs ?? options.criticalMs });
+    for (const hotspot of hotspots) addIssue(`profiler-hotspot-${hotspot.severity}`, hotspot.suggestion, { severity: hotspot.severity, subsystem: hotspot.name, duration: hotspot.duration });
+
+    return {
+      open: Boolean(options.open),
+      ok: issues.length === 0,
+      checkedAt: options.checkedAt || new Date().toISOString(),
+      counts: {
+        animations: Object.keys(current.animations || {}).length,
+        particles: particleConfig ? 1 : 0,
+        sprites: spriteEditor.source ? 1 : 0,
+        scenes: (current.sceneTabs || []).length,
+        prefabs: (current.prefabs || []).length
+      },
+      issues,
+      hotspots
+    };
+  }
+
+  function isHexColor(value) {
+    return /^#[0-9a-f]{6}$/iu.test(String(value || ''));
+  }
+
+  function profilerSuggestion(name, duration) {
+    const label = String(name || 'unknown');
+    if (/collision/iu.test(label)) return `Collision is taking ${duration}ms; inspect collider density, broadphase filters, and 2.5D projection overlap.`;
+    if (/render|renderer|draw/iu.test(label)) return `${label} is taking ${duration}ms; inspect batching, material state changes, and draw-call count.`;
+    if (/update|script|logic/iu.test(label)) return `${label} is taking ${duration}ms; inspect per-frame scripts and avoid allocations in update loops.`;
+    return `${label} is taking ${duration}ms; inspect this subsystem in the profiler flame graph.`;
   }
 
   function openEntityScript(entityOrId, symbol = null, options = {}) {
@@ -558,6 +1812,24 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return layerId;
   }
 
+  function applyRuleTiles() {
+    const tilemap = cloneTilemap(current.tilemap);
+    const activeLayer = findActiveTileLayer(tilemap);
+    if (!activeLayer || !tilemap.ruleTiles.length) return tilemap;
+    const original = [...activeLayer.data];
+    const output = activeLayer.data.map((tileId, index) => {
+      const rule = tilemap.ruleTiles.find((candidate) => ruleTileMatches(candidate, tileId, index, original, tilemap));
+      return rule ? Number(rule.id) : tileId;
+    });
+    activeLayer.data = output;
+    if (activeLayer.id === tilemap.layers[0]?.id) tilemap.data = [...output];
+    current = { ...current, tilemap };
+    emit('editor:apply-rule-tiles', { activeLayerId: activeLayer.id, rules: tilemap.ruleTiles.length });
+    pushHistory(current, 'Apply rule tiles');
+    update(current);
+    return tilemap;
+  }
+
   function updateDatabaseRecord(table, id, field, value) {
     const database = cloneDatabase(current.database);
     database.tables[table] = database.tables[table] || {};
@@ -569,14 +1841,14 @@ export function createEditorApp(root = document.querySelector('#app'), {
     current = { ...current, database };
     emit('editor:update-database-record', { table, id, patch, commandId: createCommandId('db') });
     persistDatabaseConfig(database.tables);
-    pushHistory(current, 'Generate scene with AI');
+    pushHistory(current, `Update database ${table}.${id}.${field}`);
     update(current);
     return record;
   }
 
   function persistDatabaseConfig(tables) {
     const payload = {
-      path: 'config/db.json',
+      path: 'config/data.json',
       tables: cloneState(tables)
     };
     const bridge = ownerWindow?.omnicoreEditor;
@@ -758,6 +2030,18 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return createVisualGraph(current.flowGraph).toEventSheet();
   }
 
+  function exportBehaviorTreeJson() {
+    return cloneState(current.behaviorTree || flowGraphToBehaviorTree(current.flowGraph));
+  }
+
+  function exportUILayoutJson() {
+    return cloneState(normalizeUILayoutState(current.uiLayout));
+  }
+
+  function exportDataJson() {
+    return cloneState(current.database?.tables || {});
+  }
+
   function addFlowNode(type) {
     const nextGraph = normalizeFlowGraph(current.flowGraph);
     const id = `${type}-${nextGraph.nodes.length + 1}`;
@@ -781,6 +2065,21 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return current.flowGraph;
   }
 
+  function addFlowEdge(from, to) {
+    if (!from || !to || from === to) return current.flowGraph;
+    const nextGraph = normalizeFlowGraph(current.flowGraph);
+    const nodeIds = new Set(nextGraph.nodes.map((node) => node.id));
+    if (!nodeIds.has(from) || !nodeIds.has(to)) return current.flowGraph;
+    if (!nextGraph.edges.some((edge) => edge.from === from && edge.to === to)) {
+      nextGraph.edges.push({ from, to });
+    }
+    current = { ...current, flowGraph: nextGraph };
+    emit('editor:flow-graph-update', current.flowGraph);
+    pushHistory(current, 'Connect flow graph nodes');
+    update(current);
+    return current.flowGraph;
+  }
+
   function exportFlowGraph() {
     const eventSheet = exportFlowGraphEventSheet();
     emit('editor:flow-graph-export', { eventSheet, graph: normalizeFlowGraph(current.flowGraph) });
@@ -794,7 +2093,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return message;
   }
 
-  function beginDrag(entity, event) {
+  function beginDrag(entity, event, options = {}) {
     const ids = selectedIds(current).includes(entity.id) ? selectedIds(current) : [entity.id];
     const startEntities = new Map(current.scene.entities
       .filter((item) => ids.includes(item.id))
@@ -802,6 +2101,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
     dragSession = {
       ids,
       anchorId: entity.id,
+      axis: options.axis || null,
+      source: options.source || 'node',
       pointer: pointerFromEvent(event),
       startEntities,
       changed: false
@@ -826,6 +2127,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const entities = current.scene.entities.map((entity) => {
       const start = dragSession.startEntities.get(entity.id);
       if (!start) return entity;
+      if (dragSession.axis) return applyGizmoAxisDrag(entity, start, snappedPointer, dx, dy);
       if (current.gizmoMode === 'translate' && dragSession.ids.length === 1) return { ...entity, x: snappedPointer.x, y: snappedPointer.y };
       if (current.gizmoMode === 'translate') {
         const next = {
@@ -846,6 +2148,26 @@ export function createEditorApp(root = document.querySelector('#app'), {
     dragSession.changed = true;
     emit('editor:simulate-step', { ids: dragSession.ids, patch: { x: snappedPointer.x, y: snappedPointer.y }, physics: true, logic: true });
     update(current);
+  }
+
+  function applyGizmoAxisDrag(entity, start, snappedPointer, dx, dy) {
+    if (current.gizmoMode === 'translate') {
+      if (dragSession.axis === 'x') return { ...entity, x: snappedPointer.x };
+      if (dragSession.axis === 'y') return { ...entity, y: snappedPointer.y };
+      return { ...entity, z: Number(start.z || 0) + Math.round((dx - dy) / 8) };
+    }
+    if (current.gizmoMode === 'rotate') {
+      const delta = dragSession.axis === 'y' ? dy : dx;
+      return { ...entity, rotation: Number(start.rotation || 0) + delta / 100 };
+    }
+    if (current.gizmoMode === 'scale') {
+      const delta = dragSession.axis === 'y' ? dy : dx;
+      const scale = Math.max(0.1, Number(start.scale || start.scaleX || 1) + delta / 100);
+      if (dragSession.axis === 'x') return { ...entity, scaleX: scale, scale };
+      if (dragSession.axis === 'y') return { ...entity, scaleY: scale, scale };
+      return { ...entity, scaleX: scale, scaleY: scale, scale };
+    }
+    return entity;
   }
 
   function beginMarqueeSelection(event) {
@@ -904,10 +2226,26 @@ export function createEditorApp(root = document.querySelector('#app'), {
     if (dragSession) {
       emit('editor:simulate-stop', { ids: dragSession.ids });
       current = { ...current, simulation: { active: false, physics: false, logic: false } };
-      if (dragSession.changed) pushHistory(current, `Drag ${dragSession.ids.length} entity${dragSession.ids.length === 1 ? '' : 's'}`);
+      if (dragSession.changed) {
+        emitDragEntityUpdates();
+        pushHistory(current, `Drag ${dragSession.ids.length} entity${dragSession.ids.length === 1 ? '' : 's'}`);
+      }
       update(current);
     }
     dragSession = null;
+  }
+
+  function emitDragEntityUpdates() {
+    const fields = ['x', 'y', 'z', 'rotation', 'scale', 'scaleX', 'scaleY'];
+    for (const id of dragSession.ids) {
+      const before = dragSession.startEntities.get(id) || {};
+      const after = current.scene.entities.find((entity) => entity.id === id) || {};
+      const patch = {};
+      for (const field of fields) {
+        if (JSON.stringify(before[field] ?? null) !== JSON.stringify(after[field] ?? null)) patch[field] = after[field];
+      }
+      if (Object.keys(patch).length) emit('editor:update-entity', { id, patch, commandId: createCommandId('gizmo') });
+    }
   }
 
   function onKeyDown(event) {
@@ -930,6 +2268,16 @@ export function createEditorApp(root = document.querySelector('#app'), {
     }
     const command = event.ctrlKey || event.metaKey;
     if (!command) return;
+    if (key === 'f' && event.shiftKey) {
+      event.preventDefault?.();
+      openGlobalSearch();
+      return;
+    }
+    if (key === 'o') {
+      event.preventDefault?.();
+      openProjectWorkspace();
+      return;
+    }
     if (key === 's') {
       event.preventDefault?.();
       saveSnapshot('keyboard');
@@ -955,6 +2303,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
   }
 
   function runToolbarAction(action) {
+    if (action === 'open-project') return openProjectWorkspace();
     if (action === 'save') return saveSnapshot('toolbar');
     if (action === 'undo') return undo();
     if (action === 'redo') return redo();
@@ -978,10 +2327,32 @@ export function createEditorApp(root = document.querySelector('#app'), {
       emit('editor:pause', current.simulation);
       return update(current);
     }
+    if (action === 'step') {
+      current = {
+        ...current,
+        simulation: { active: false, physics: true, logic: true },
+        playState: {
+          ...current.playState,
+          mode: 'paused',
+          frame: Number(current.playState?.frame || 0) + 1
+        }
+      };
+      emit('editor:set-play-mode', { mode: 'paused' });
+      emit('editor:step-frame', { frame: current.playState.frame, physics: true, logic: true });
+      return update(current);
+    }
+    if (action === 'profiler') return openProfiler();
     if (action === 'dock-reset') {
       emit('editor:dock-reset', DEFAULT_DOCK_LAYOUT);
       return setDockLayout(DEFAULT_DOCK_LAYOUT);
     }
+    return null;
+  }
+
+  function runMenuCommand(command) {
+    if (command === 'open-project-folder') return openProjectWorkspace();
+    if (command === 'save-scene') return saveSnapshot('menu');
+    if (command === 'reset-dock-layout') return setDockLayout(DEFAULT_DOCK_LAYOUT);
     return null;
   }
 
@@ -1007,14 +2378,28 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const entityCount = current.scene.entities.length;
     const mode = current.playState?.mode || (current.simulation.active ? 'running' : 'editing');
     statusbar.textContent = `${current.scene.name || 'untitled'} | ${entityCount} entities | ${current.gizmoMode} | ${mode}`;
+    const workspace = document.createElement('span');
+    workspace.dataset.workspaceRoot = 'true';
+    workspace.textContent = current.workspace?.root ? ` | ${current.workspace.root}` : '';
+    statusbar.appendChild(workspace);
   }
 
   function renderTransientSurfaces() {
     root.querySelector('[data-command-palette]')?.remove();
     root.querySelector('[data-scene-validation]')?.remove();
+    root.querySelector('[data-particle-editor]')?.remove();
+    root.querySelector('[data-sprite-editor]')?.remove();
+    root.querySelector('[data-resource-picker]')?.remove();
+    root.querySelector('[data-prefab-save-prompt]')?.remove();
+    root.querySelector('[data-authoring-health]')?.remove();
     const frame = root.querySelector('.editor-frame') || root;
     if (current.commandPaletteOpen) frame.appendChild(createCommandPalette());
     if (current.sceneValidation?.issues?.length) frame.appendChild(createSceneValidationPanel());
+    if (current.particleEditor?.open) frame.appendChild(createParticleEditorPanel());
+    if (current.spriteEditor?.open) frame.appendChild(createSpriteEditorPanel());
+    if (current.resourcePicker?.open) frame.appendChild(createResourcePickerPanel());
+    if (current.prefabHotEdit?.promptOpen) frame.appendChild(createPrefabHotEditPrompt());
+    if (current.authoringHealth?.open) frame.appendChild(createAuthoringHealthPanel());
   }
 
   function createCommandPalette() {
@@ -1056,6 +2441,181 @@ export function createEditorApp(root = document.querySelector('#app'), {
       button.addEventListener('click', () => locateSceneIssue(issue));
       wrap.appendChild(button);
     }
+    return wrap;
+  }
+
+  function createResourcePickerPanel() {
+    const picker = normalizeResourcePickerState(current.resourcePicker);
+    const wrap = document.createElement('div');
+    wrap.className = 'resource-picker floating-editor-panel';
+    wrap.dataset.resourcePicker = picker.field || '';
+    const title = document.createElement('h3');
+    title.textContent = `Select ${picker.field || 'resource'}`;
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.dataset.resourcePickerSearch = 'true';
+    search.value = picker.query;
+    search.addEventListener('input', () => openResourcePicker(picker.field, { query: search.value }));
+    const list = document.createElement('div');
+    list.className = 'resource-picker-list';
+    const assets = filterResourceAssets(current.assets, picker.query);
+    for (const asset of assets) {
+      const entry = normalizeAssetEntry(asset);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.resourcePickerAsset = entry.path;
+      button.textContent = entry.path;
+      const thumb = document.createElement('img');
+      thumb.alt = entry.name;
+      thumb.src = entry.thumbnail || entry.url || entry.path;
+      button.prepend(thumb);
+      button.addEventListener('click', () => selectResourceForField(picker.field, entry.path));
+      list.appendChild(button);
+    }
+    wrap.append(title, search, list);
+    return wrap;
+  }
+
+  function createPrefabHotEditPrompt() {
+    const hotEdit = normalizePrefabHotEditState(current.prefabHotEdit);
+    const wrap = document.createElement('div');
+    wrap.className = 'prefab-hot-edit-prompt floating-editor-panel';
+    wrap.dataset.prefabSavePrompt = hotEdit.prefabId || '';
+    const title = document.createElement('h3');
+    title.textContent = `Save prefab variant ${hotEdit.prefabId}`;
+    const body = document.createElement('p');
+    body.textContent = 'Paused runtime changes are pending. Save overrides back to the prefab variant before leaving play edit mode.';
+    const save = document.createElement('button');
+    save.type = 'button';
+    save.textContent = 'Save';
+    save.addEventListener('click', () => savePrefabHotEdit());
+    const ignore = document.createElement('button');
+    ignore.type = 'button';
+    ignore.textContent = 'Ignore';
+    ignore.addEventListener('click', () => {
+      current = { ...current, prefabHotEdit: { prefabId: null, patch: {}, dirty: false, promptOpen: false } };
+      emit('editor:ignore-prefab-hot-edit', { prefabId: hotEdit.prefabId });
+      update(current);
+    });
+    wrap.append(title, body, save, ignore);
+    return wrap;
+  }
+
+  function createAuthoringHealthPanel() {
+    const report = current.authoringHealth || { ok: true, issues: [], hotspots: [], counts: {} };
+    const wrap = document.createElement('div');
+    wrap.className = 'authoring-health-panel floating-editor-panel';
+    wrap.dataset.authoringHealth = report.ok ? 'ok' : 'issues';
+    const title = document.createElement('h3');
+    title.textContent = report.ok ? 'Authoring Health: Ready' : 'Authoring Health: Issues';
+    const counts = document.createElement('div');
+    counts.className = 'authoring-health-counts';
+    counts.textContent = `animations ${report.counts?.animations || 0} | particles ${report.counts?.particles || 0} | sprites ${report.counts?.sprites || 0} | scenes ${report.counts?.scenes || 0}`;
+    const list = document.createElement('div');
+    list.className = 'authoring-health-issues';
+    for (const issue of report.issues || []) {
+      const row = document.createElement('div');
+      row.dataset.authoringHealthIssue = issue.code;
+      row.className = `authoring-health-${issue.severity || 'error'}`;
+      row.textContent = `${issue.code}: ${issue.message}`;
+      list.appendChild(row);
+    }
+    const hotspots = document.createElement('div');
+    hotspots.className = 'authoring-health-hotspots';
+    for (const hotspot of report.hotspots || []) {
+      const row = document.createElement('div');
+      row.dataset.authoringHealthHotspot = hotspot.name;
+      row.className = `authoring-health-${hotspot.severity}`;
+      row.textContent = `${hotspot.name} ${hotspot.duration}ms ${hotspot.severity}: ${hotspot.suggestion}`;
+      hotspots.appendChild(row);
+    }
+    wrap.append(title, counts, list, hotspots);
+    return wrap;
+  }
+
+  function createParticleEditorPanel() {
+    const config = normalizeParticleConfig(current.particleEditor?.config || {});
+    const wrap = document.createElement('div');
+    wrap.className = 'particle-editor floating-editor-panel';
+    wrap.dataset.particleEditor = 'true';
+
+    const title = document.createElement('h3');
+    title.textContent = 'Particle Editor';
+    wrap.appendChild(title);
+
+    for (const field of ['emissionRate', 'lifetime', 'initialVelocity', 'gravity']) {
+      const label = document.createElement('label');
+      label.textContent = field;
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.dataset.particleSlider = field;
+      input.min = field === 'lifetime' ? '0' : '-800';
+      input.max = field === 'lifetime' ? '5' : '800';
+      input.step = field === 'lifetime' ? '0.1' : '1';
+      input.value = String(config[field]);
+      input.addEventListener('input', () => setParticleParameter(field, input.value));
+      label.appendChild(input);
+      wrap.appendChild(label);
+    }
+
+    const preview = document.createElement('div');
+    preview.className = 'particle-preview';
+    preview.dataset.particlePreview = 'true';
+    const count = Math.max(6, Math.min(30, Math.round(config.emissionRate / 8)));
+    for (let index = 0; index < count; index += 1) {
+      const spark = document.createElement('i');
+      const progress = count === 1 ? 0 : index / (count - 1);
+      spark.style.left = `${10 + progress * 78}%`;
+      spark.style.top = `${72 - progress * 48}%`;
+      spark.style.opacity = `${Math.max(0.18, 1 - progress)}`;
+      preview.appendChild(spark);
+    }
+    wrap.appendChild(preview);
+
+    const exportPreview = document.createElement('pre');
+    exportPreview.dataset.particleExportPreview = 'true';
+    exportPreview.textContent = JSON.stringify(exportParticleConfig().config, null, 2);
+    wrap.appendChild(exportPreview);
+    return wrap;
+  }
+
+  function createSpriteEditorPanel() {
+    const editor = current.spriteEditor || {};
+    const nineSlice = normalizeNineSlice(editor.nineSlice || {});
+    const wrap = document.createElement('div');
+    wrap.className = 'sprite-editor floating-editor-panel';
+    wrap.dataset.spriteEditor = editor.source || '';
+
+    const title = document.createElement('h3');
+    title.textContent = editor.source || 'Sprite Editor';
+    wrap.appendChild(title);
+
+    const canvas = document.createElement('div');
+    canvas.className = 'sprite-edit-canvas';
+    canvas.dataset.spriteCanvas = 'true';
+    for (const guide of ['left', 'right', 'top', 'bottom']) {
+      const line = document.createElement('button');
+      line.type = 'button';
+      line.className = `nine-slice-guide guide-${guide}`;
+      line.dataset.nineSliceGuide = guide;
+      if (guide === 'left' || guide === 'right') line.style.left = `${nineSlice[guide]}px`;
+      else line.style.top = `${nineSlice[guide]}px`;
+      canvas.appendChild(line);
+    }
+    if (editor.collider) {
+      const collider = document.createElement('div');
+      collider.className = 'collider-outline';
+      collider.dataset.colliderOutline = 'true';
+      canvas.appendChild(collider);
+    }
+    wrap.appendChild(canvas);
+
+    const material = findSelectedEntity(current)?.material || {};
+    wrap.appendChild(createMaterialPanel(material));
+    const metaPreview = document.createElement('pre');
+    metaPreview.dataset.spriteMetaPreview = 'true';
+    metaPreview.textContent = JSON.stringify(exportSpriteMeta().meta, null, 2);
+    wrap.appendChild(metaPreview);
     return wrap;
   }
 
@@ -1104,6 +2664,11 @@ export function createEditorApp(root = document.querySelector('#app'), {
       input.value = selected?.[key] ?? '';
       input.dataset.inspectorField = key;
       input.disabled = !selected || key === 'id';
+      if (['sprite', 'texture'].includes(key)) {
+        input.addEventListener('click', () => {
+          if (selected) openResourcePicker(key);
+        });
+      }
       input.addEventListener('input', () => {
         if (!selected || key === 'id') return;
         patchEntity(selected.id, { [key]: parseFieldValue(key, input.value, selected?.[key]) });
@@ -1115,6 +2680,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
     components.dataset.inspectorComponents = 'true';
     components.textContent = formatComponents(selected?.components || []);
     form.appendChild(components);
+    if (selected?.type === 'sprite' || selected?.sprite || selected?.texture) {
+      form.appendChild(createMaterialPanel(selected.material || {}, selected.id));
+    }
     const scriptBinding = resolveScriptBinding(selected);
     if (scriptBinding) {
       const button = document.createElement('button');
@@ -1127,9 +2695,43 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return form;
   }
 
+  function createMaterialPanel(material = {}, entityId = current.selectedEntityId) {
+    const normalized = normalizeSpriteMaterial(material);
+    const panel = document.createElement('fieldset');
+    panel.className = 'material-panel';
+    panel.dataset.materialPanel = 'true';
+    const legend = document.createElement('legend');
+    legend.textContent = 'Material';
+    panel.appendChild(legend);
+    for (const field of ['alphaClip', 'colorTint', 'normalMap']) {
+      const label = document.createElement('label');
+      label.textContent = field;
+      const input = document.createElement('input');
+      input.dataset.materialField = field;
+      if (field === 'colorTint') input.type = 'color';
+      else if (field === 'alphaClip') {
+        input.type = 'number';
+        input.min = '0';
+        input.max = '1';
+        input.step = '0.01';
+      } else {
+        input.type = 'text';
+      }
+      input.value = normalized[field] ?? '';
+      input.addEventListener('input', () => {
+        if (!entityId) return;
+        setSpriteMaterial(entityId, { [field]: field === 'alphaClip' ? Number(input.value || 0) : input.value });
+      });
+      label.appendChild(input);
+      panel.appendChild(label);
+    }
+    return panel;
+  }
+
   function renderSceneView() {
     const wrap = document.createElement('div');
     wrap.className = 'scene-wrap';
+    const sceneTabs = renderSceneTabs();
     const gizmoToolbar = document.createElement('div');
     gizmoToolbar.className = 'gizmo-toolbar';
     for (const mode of ['select', 'translate', 'rotate', 'scale']) {
@@ -1156,7 +2758,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
       const assetPath = event.dataTransfer?.getData('application/x-omnicore-asset');
       const prefabId = event.dataTransfer?.getData('application/x-omnicore-prefab')
         || (!assetPath ? event.dataTransfer?.getData('text/plain') : '');
-      if (assetPath) instantiateAsset(assetPath, event);
+      if (assetPath && isSceneAsset(assetPath)) instantiateSubScene(assetPath, event);
+      else if (assetPath) instantiateAsset(assetPath, event);
       else instantiatePrefab(prefabId, event);
     });
 
@@ -1170,9 +2773,26 @@ export function createEditorApp(root = document.querySelector('#app'), {
     for (const entity of current.scene.entities.filter((item) => selectedIds(current).includes(item.id))) {
       view.appendChild(createSelectionOutline(entity));
       view.appendChild(createOriginMarker(entity));
+      view.appendChild(createTransformGizmo(entity));
     }
-    wrap.append(gizmoToolbar, view, createUndoHistoryView());
+    if (current.prefabPreview) view.appendChild(createPrefabPreviewModel(current.prefabPreview));
+    wrap.append(sceneTabs, gizmoToolbar, view, createUndoHistoryView());
     return wrap;
+  }
+
+  function renderSceneTabs() {
+    const tabs = document.createElement('div');
+    tabs.className = 'scene-tabs';
+    for (const tab of current.sceneTabs || []) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.sceneTab = tab.path;
+      button.className = current.activeSceneTabPath === tab.path ? 'selected' : '';
+      button.textContent = tab.path.split('/').pop() || tab.path;
+      button.addEventListener('click', () => switchSceneTab(tab.path));
+      tabs.appendChild(button);
+    }
+    return tabs;
   }
 
   function createSceneNodeButton(entity) {
@@ -1198,6 +2818,42 @@ export function createEditorApp(root = document.querySelector('#app'), {
       beginDrag(entity, event);
     });
     return node;
+  }
+
+  function createTransformGizmo(entity) {
+    const gizmo = document.createElement('div');
+    gizmo.className = `transform-gizmo transform-${current.gizmoMode}`;
+    gizmo.dataset.transformGizmo = entity.id;
+    gizmo.style.left = `${Number(entity.x || 0) + Math.max(24, Number(entity.width || 32)) + 8}px`;
+    gizmo.style.top = `${Number(entity.y || 0)}px`;
+    for (const axis of ['x', 'y', 'z']) {
+      const handle = document.createElement('button');
+      handle.type = 'button';
+      handle.className = `gizmo-axis gizmo-${axis}`;
+      handle.dataset.gizmoAxis = axis;
+      handle.title = `${current.gizmoMode} ${axis.toUpperCase()}`;
+      handle.textContent = axis.toUpperCase();
+      handle.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        selectEntity(entity.id);
+        beginDrag(entity, event, { axis, source: 'gizmo' });
+      });
+      gizmo.appendChild(handle);
+    }
+    return gizmo;
+  }
+
+  function createPrefabPreviewModel(entity) {
+    const preview = document.createElement('div');
+    preview.className = 'prefab-preview-model';
+    preview.dataset.prefabPreviewModel = entity.id || entity.name || 'preview';
+    preview.textContent = entity.name || entity.id || 'Prefab Preview';
+    preview.style.left = `${Number(entity.x || 40)}px`;
+    preview.style.top = `${Number(entity.y || 40)}px`;
+    preview.style.width = `${Math.max(24, Number(entity.width || 32))}px`;
+    preview.style.height = `${Math.max(24, Number(entity.height || 32))}px`;
+    return preview;
   }
 
   function createCollisionOverlay(entity) {
@@ -1268,6 +2924,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
     for (const prefab of current.prefabs) {
       list.appendChild(createPrefabButton(prefab));
     }
+    const overrides = createPrefabOverridePanel();
+    if (overrides) list.appendChild(overrides);
     return list;
   }
 
@@ -1276,10 +2934,16 @@ export function createEditorApp(root = document.querySelector('#app'), {
     button.type = 'button';
     button.draggable = true;
     button.dataset.prefabId = prefab.id || prefab.name;
-    button.textContent = prefab.name || prefab.id;
+    button.textContent = `${prefab.isBasePrefab ? 'Base ' : ''}${prefab.name || prefab.id}${prefab.extends ? ` <- ${prefab.extends}` : ''}`;
     button.addEventListener('click', () => {
       current = { ...current, selectedPrefabId: prefab.id || prefab.name };
       update(current);
+    });
+    button.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+      api.EditorAPI.createPrefabVariant(prefab.id || prefab.name, { name: `${prefab.name || prefab.id} Variant` }, {
+        id: `${prefab.id || prefab.name}-variant-${Date.now().toString(36)}`
+      });
     });
     button.addEventListener('dragstart', (event) => {
       const id = prefab.id || prefab.name;
@@ -1300,14 +2964,108 @@ export function createEditorApp(root = document.querySelector('#app'), {
       button.type = 'button';
       button.draggable = true;
       button.dataset.editorAssetPath = assetPath;
-      button.textContent = assetPath.split('/').pop() || assetPath;
+      button.dataset.assetType = assetType(asset);
+      button.style.paddingLeft = `${8 + Math.max(0, assetPath.split('/').length - 1) * 10}px`;
+      button.textContent = `${assetIcon(asset)} ${assetPath}`;
+      button.addEventListener('click', () => previewAsset(asset));
+      button.addEventListener('dblclick', () => {
+        if (isPrefabAsset(asset)) previewPrefabAsset(asset);
+        else if (assetType(asset) === 'image' && /\.webp$/iu.test(assetPath)) openSpriteEditor(assetPath);
+      });
       button.addEventListener('dragstart', (event) => {
         event.dataTransfer?.setData('application/x-omnicore-asset', assetPath);
         event.dataTransfer?.setData('text/plain', assetPath);
       });
       list.appendChild(button);
     }
+    const preview = renderAssetPreview();
+    if (preview) list.appendChild(preview);
     return list;
+  }
+
+  function createPrefabOverridePanel() {
+    const prefab = findPrefab(current.selectedPrefabId);
+    if (!prefab?.extends) return null;
+    const wrap = document.createElement('div');
+    wrap.className = 'prefab-override-panel';
+    wrap.dataset.prefabOverridePanel = prefab.id || prefab.name;
+    const title = document.createElement('h3');
+    title.textContent = `${prefab.name || prefab.id} overrides`;
+    wrap.appendChild(title);
+    const overrides = prefab.overrides || {};
+    for (const [field, value] of Object.entries(overrides)) {
+      const row = document.createElement('div');
+      row.className = 'prefab-override-row override';
+      row.dataset.prefabOverride = field;
+      const label = document.createElement('span');
+      label.textContent = `${field}: ${value}`;
+      const write = document.createElement('button');
+      write.type = 'button';
+      write.dataset.prefabOverrideAction = `${field}:write`;
+      write.textContent = 'Write';
+      write.addEventListener('click', () => writePrefabOverrideToBase(prefab.id || prefab.name, field));
+      const reset = document.createElement('button');
+      reset.type = 'button';
+      reset.dataset.prefabOverrideAction = `${field}:reset`;
+      reset.textContent = 'Reset';
+      reset.addEventListener('click', () => resetPrefabOverride(prefab.id || prefab.name, field));
+      row.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+        resetPrefabOverride(prefab.id || prefab.name, field);
+      });
+      row.append(label, write, reset);
+      wrap.appendChild(row);
+    }
+    return wrap;
+  }
+
+  function previewAsset(asset) {
+    current = { ...current, assetPreview: normalizeAssetEntry(asset) };
+    emit('editor:preview-asset', current.assetPreview);
+    update(current);
+    return current.assetPreview;
+  }
+
+  function previewPrefabAsset(asset) {
+    const entry = normalizeAssetEntry(asset);
+    const prefab = entry.data || entry.prefab || { id: entry.name, name: entry.name };
+    const entity = {
+      id: `preview-${prefab.id || prefab.name || 'prefab'}`,
+      name: prefab.name || prefab.id || entry.name || 'Prefab Preview',
+      type: prefab.type || 'sprite',
+      texture: prefab.texture || prefab.sprite || null,
+      x: Number(prefab.x ?? 40),
+      y: Number(prefab.y ?? 40),
+      width: Number(prefab.width || 32),
+      height: Number(prefab.height || 32),
+      rotation: Number(prefab.rotation || 0),
+      scaleX: Number(prefab.scaleX ?? prefab.scale ?? 1),
+      scaleY: Number(prefab.scaleY ?? prefab.scale ?? 1)
+    };
+    current = { ...current, assetPreview: entry, prefabPreview: entity };
+    emit('editor:preview-prefab', { asset: entry.path, entity });
+    update(current);
+    return entity;
+  }
+
+  function renderAssetPreview() {
+    const entry = current.assetPreview;
+    if (!entry) return null;
+    const wrap = document.createElement('div');
+    wrap.className = 'asset-preview';
+    if (assetType(entry) === 'image') {
+      const image = document.createElement('img');
+      image.dataset.assetPreview = 'image';
+      image.alt = entry.name || entry.path;
+      image.src = entry.url || entry.path;
+      wrap.appendChild(image);
+    } else {
+      const code = document.createElement('pre');
+      code.dataset.assetPreview = assetType(entry);
+      code.textContent = JSON.stringify(entry.data || { path: entry.path, type: assetType(entry) }, null, 2);
+      wrap.appendChild(code);
+    }
+    return wrap;
   }
 
   function renderDatabase() {
@@ -1442,7 +3200,69 @@ export function createEditorApp(root = document.querySelector('#app'), {
   function renderTimeline() {
     const timeline = document.createElement('div');
     timeline.className = 'timeline';
-    timeline.textContent = Object.keys(current.animations || {}).join(', ') || t('timeline.noClips', 'No clips');
+    const clipIds = Object.keys(current.animations || {});
+    if (!clipIds.length) {
+      timeline.textContent = t('timeline.noClips', 'No clips');
+      return timeline;
+    }
+    const selected = current.selectedAnimationKeyframe;
+    const clipList = document.createElement('div');
+    clipList.className = 'timeline-clips';
+    for (const clipId of clipIds) {
+      const clip = current.animations[clipId];
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.dataset.animationClip = clipId;
+      chip.textContent = `${clipId} ${Number(clip.duration || 0)}f`;
+      clipList.appendChild(chip);
+    }
+    timeline.appendChild(clipList);
+
+    if (selected) {
+      const clip = current.animations?.[selected.clipId];
+      const track = clip?.tracks?.[selected.track];
+      const keyframe = track?.keyframes?.find((item) => Number(item.frame || 0) === Number(selected.frame || 0));
+      const graph = document.createElement('div');
+      graph.className = 'animation-curve-graph';
+      graph.dataset.animationCurveGraph = `${selected.clipId}:${selected.track}:${Number(selected.frame || 0)}`;
+      graph.textContent = `${selected.track} frame ${selected.frame} value ${keyframe?.value ?? 0}`;
+      const handleIn = document.createElement('span');
+      handleIn.className = 'bezier-handle handle-in';
+      handleIn.style.left = `${Number(keyframe?.handles?.in?.x || 0)}px`;
+      handleIn.style.top = `${Number(keyframe?.handles?.in?.y || 0)}px`;
+      const handleOut = document.createElement('span');
+      handleOut.className = 'bezier-handle handle-out';
+      handleOut.style.left = `${Number(keyframe?.handles?.out?.x || 0)}px`;
+      handleOut.style.top = `${Number(keyframe?.handles?.out?.y || 0)}px`;
+      graph.append(handleIn, handleOut);
+      timeline.appendChild(graph);
+
+      const presets = document.createElement('div');
+      presets.className = 'easing-presets';
+      for (const preset of ['Linear', 'EaseInQuad', 'EaseOutBack', 'Elastic']) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.easingPreset = preset;
+        button.className = keyframe?.easing === preset ? 'selected' : '';
+        button.textContent = preset;
+        button.addEventListener('click', () => setAnimationCurve(selected.clipId, selected.track, selected.frame, { preset }));
+        presets.appendChild(button);
+      }
+      timeline.appendChild(presets);
+    }
+
+    const events = document.createElement('div');
+    events.className = 'animation-event-track';
+    for (const clipId of clipIds) {
+      for (const event of current.animations[clipId].events || []) {
+        const row = document.createElement('div');
+        row.className = 'animation-event-marker';
+        row.dataset.animationEventFrame = String(event.frame);
+        row.textContent = `${clipId}:${event.frame} ${event.name}`;
+        events.appendChild(row);
+      }
+    }
+    timeline.appendChild(events);
     return timeline;
   }
 
@@ -1473,11 +3293,23 @@ export function createEditorApp(root = document.querySelector('#app'), {
     for (const node of graph.nodes) {
       const button = document.createElement('button');
       button.type = 'button';
+      button.draggable = true;
       button.className = `flow-node flow-${node.type}`;
       button.dataset.flowNodeId = node.id;
       button.style.left = `${Number(node.x || 0)}px`;
       button.style.top = `${Number(node.y || 0)}px`;
       button.textContent = node.label || node.id;
+      button.addEventListener('dragstart', (event) => {
+        event.dataTransfer?.setData('application/x-omnicore-flow-node', node.id);
+        event.dataTransfer?.setData('text/plain', node.id);
+      });
+      button.addEventListener('dragover', (event) => event.preventDefault());
+      button.addEventListener('drop', (event) => {
+        event.preventDefault();
+        const sourceId = event.dataTransfer?.getData('application/x-omnicore-flow-node')
+          || event.dataTransfer?.getData('text/plain');
+        addFlowEdge(sourceId, node.id);
+      });
       canvas.appendChild(button);
     }
 
@@ -1501,6 +3333,144 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return wrap;
   }
 
+  function renderGraphEditor() {
+    const wrap = document.createElement('div');
+    wrap.className = 'graph-editor-wrap';
+    const nodePalette = document.createElement('div');
+    nodePalette.className = 'graph-node-palette';
+    for (const type of ['input', 'condition', 'output']) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.graphAdd = type;
+      button.textContent = type;
+      button.addEventListener('click', () => addFlowNode(type === 'input' ? 'event' : type === 'output' ? 'action' : 'condition'));
+      nodePalette.appendChild(button);
+    }
+    const flow = renderFlowGraph();
+    const behaviorPreview = document.createElement('pre');
+    behaviorPreview.dataset.behaviorTreePreview = 'true';
+    behaviorPreview.textContent = JSON.stringify(exportBehaviorTreeJson(), null, 2);
+    wrap.append(nodePalette, flow, behaviorPreview);
+    return wrap;
+  }
+
+  function renderUIEditor() {
+    const layout = normalizeUILayoutState(current.uiLayout);
+    const wrap = document.createElement('div');
+    wrap.className = 'ui-editor-wrap';
+    const palette = document.createElement('div');
+    palette.className = 'ui-palette';
+    const buttonTool = document.createElement('button');
+    buttonTool.type = 'button';
+    buttonTool.dataset.uiAdd = 'Button';
+    buttonTool.textContent = 'Button';
+    buttonTool.addEventListener('click', () => addUIButton({ text: 'Button', x: 32, y: 32 }));
+    palette.appendChild(buttonTool);
+
+    const canvas = document.createElement('div');
+    canvas.className = 'ui-canvas';
+    canvas.style.width = `${layout.canvas.width}px`;
+    canvas.style.height = `${layout.canvas.height}px`;
+    for (const element of layout.elements) {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'ui-element';
+      item.dataset.uiElementId = element.id;
+      item.style.left = `${element.x}px`;
+      item.style.top = `${element.y}px`;
+      item.style.width = `${element.width}px`;
+      item.style.height = `${element.height}px`;
+      item.textContent = element.text || element.id;
+      canvas.appendChild(item);
+    }
+
+    const preview = document.createElement('pre');
+    preview.dataset.uiLayoutPreview = 'true';
+    preview.textContent = JSON.stringify(exportUILayoutJson(), null, 2);
+    wrap.append(palette, canvas, preview);
+    return wrap;
+  }
+
+  function renderGlobalSearch() {
+    const state = normalizeGlobalSearchState(current.globalSearch);
+    const wrap = document.createElement('div');
+    wrap.className = 'global-search-wrap';
+    const query = document.createElement('input');
+    query.type = 'search';
+    query.dataset.globalSearchQuery = 'true';
+    query.placeholder = 'Search scripts, JSON, scenes';
+    query.value = state.query;
+    query.addEventListener('input', () => searchProject(query.value));
+    const replacement = document.createElement('input');
+    replacement.dataset.globalReplaceValue = 'true';
+    replacement.placeholder = 'Replace with';
+    replacement.value = state.replacement;
+    const replace = document.createElement('button');
+    replace.type = 'button';
+    replace.dataset.globalReplaceRun = 'true';
+    replace.textContent = 'Replace';
+    replace.addEventListener('click', () => replaceProject(query.value, replacement.value));
+    const list = document.createElement('div');
+    list.className = 'global-search-results';
+    for (const result of state.results) {
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.dataset.globalSearchResult = result.path;
+      row.textContent = `${result.path}:${result.line}:${result.column} ${result.preview}`;
+      list.appendChild(row);
+    }
+    wrap.append(query, replacement, replace, list);
+    return wrap;
+  }
+
+  function renderPhysicsView() {
+    const wrap = document.createElement('div');
+    wrap.className = 'physics-view-wrap';
+    const title = document.createElement('p');
+    title.textContent = 'Matter Physics View - semi-transparent collider wireframes';
+    wrap.appendChild(title);
+    const canvas = document.createElement('div');
+    canvas.className = 'physics-debug-canvas';
+    for (const body of physicsBodies(current)) {
+      const shape = document.createElement('div');
+      shape.className = 'physics-wireframe';
+      shape.dataset.physicsWireframe = body.id;
+      shape.textContent = `${body.id} ${body.shape}`;
+      shape.style.left = `${body.x}px`;
+      shape.style.top = `${body.y}px`;
+      shape.style.width = `${Math.max(16, body.width)}px`;
+      shape.style.height = `${Math.max(16, body.height)}px`;
+      if (body.vertices.length) shape.dataset.vertices = body.vertices.map((point) => `${point.x},${point.y}`).join(' ');
+      canvas.appendChild(shape);
+    }
+    wrap.appendChild(canvas);
+    return wrap;
+  }
+
+  function renderBuildSettings() {
+    const settings = normalizeBuildSettingsState(current.buildSettings);
+    const wrap = document.createElement('div');
+    wrap.className = 'build-settings-wrap';
+    for (const [platform, config] of Object.entries(settings.targets)) {
+      const label = document.createElement('label');
+      label.className = 'build-target-row';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.dataset.buildTarget = platform;
+      checkbox.checked = Boolean(config.enabled);
+      checkbox.addEventListener('change', () => setBuildTarget(platform, checkbox.checked));
+      const text = document.createElement('span');
+      text.textContent = `${platform} / ${config.compression} / ${config.iconSize}px / ${config.configStrategy}`;
+      label.append(checkbox, text);
+      wrap.appendChild(label);
+    }
+    const preview = document.createElement('pre');
+    preview.dataset.buildSettingsPreview = 'true';
+    preview.textContent = JSON.stringify(settings, null, 2);
+    wrap.appendChild(preview);
+    return wrap;
+  }
+
   function renderProfiler() {
     const frame = current.profilerFrame;
     const wrap = document.createElement('div');
@@ -1513,6 +3483,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
     wrap.appendChild(title);
     const sections = Array.isArray(frame?.sections) ? frame.sections : [];
     const max = Math.max(1, ...sections.map((section) => section.duration || 0));
+    const flamegraph = document.createElement('div');
+    flamegraph.className = 'profiler-flamegraph';
+    flamegraph.dataset.profilerFlamegraph = 'true';
     for (const section of sections) {
       const row = document.createElement('div');
       row.className = 'profiler-row';
@@ -1524,8 +3497,29 @@ export function createEditorApp(root = document.querySelector('#app'), {
       const value = document.createElement('span');
       value.textContent = `${Number(section.duration || 0).toFixed(2)}ms`;
       row.append(name, bar, value);
-      wrap.appendChild(row);
+      flamegraph.appendChild(row);
     }
+    wrap.appendChild(flamegraph);
+    const streams = document.createElement('div');
+    streams.className = 'profiler-streams';
+    const memory = document.createElement('span');
+    memory.dataset.profilerMemory = 'true';
+    memory.textContent = `Memory Usage ${Number(frame?.memoryMB || 0)}MB`;
+    const drawCalls = document.createElement('span');
+    drawCalls.dataset.profilerDrawCalls = 'true';
+    drawCalls.textContent = `Draw Calls ${Number(frame?.drawCalls || 0)}`;
+    streams.append(memory, drawCalls);
+    wrap.appendChild(streams);
+    const history = document.createElement('div');
+    history.className = 'profiler-history';
+    history.dataset.profilerHistory = 'true';
+    for (const sample of (current.profilerHistory || []).slice(-24)) {
+      const row = document.createElement('span');
+      row.dataset.profilerHistoryFrame = String(sample.frame);
+      row.textContent = `F${sample.frame} ${Number(sample.memoryMB || 0)}MB ${Number(sample.drawCalls || 0)} calls`;
+      history.appendChild(row);
+    }
+    wrap.appendChild(history);
     return wrap;
   }
 }
@@ -1551,6 +3545,96 @@ function cloneDatabase(database = {}) {
   return {
     tables: cloneState(database.tables || {}),
     lastUpdate: database.lastUpdate || null
+  };
+}
+
+function normalizeProjectFilesState(projectFiles = {}) {
+  if (!projectFiles || typeof projectFiles !== 'object' || Array.isArray(projectFiles)) return {};
+  return Object.fromEntries(Object.entries(projectFiles).map(([filePath, content]) => [slash(filePath), String(content ?? '')]));
+}
+
+function normalizeGlobalSearchState(value = {}) {
+  return {
+    open: Boolean(value.open),
+    query: value.query || '',
+    replacement: value.replacement || '',
+    results: Array.isArray(value.results) ? value.results.map((result) => ({ ...result })) : []
+  };
+}
+
+function normalizeResourcePickerState(value = {}) {
+  return {
+    open: Boolean(value.open),
+    field: value.field || null,
+    query: value.query || ''
+  };
+}
+
+function normalizePhysicsViewState(value = {}) {
+  return {
+    open: Boolean(value.open)
+  };
+}
+
+function normalizePrefabHotEditState(value = {}) {
+  return {
+    prefabId: value.prefabId || null,
+    patch: cloneState(value.patch || {}),
+    dirty: Boolean(value.dirty),
+    promptOpen: Boolean(value.promptOpen)
+  };
+}
+
+function normalizeBuildSettingsState(value = {}) {
+  const defaults = defaultBuildTargets();
+  const targets = value.targets || {};
+  return {
+    targets: Object.fromEntries(Object.entries(defaults).map(([platform, config]) => [
+      platform,
+      {
+        ...config,
+        ...(targets[platform] || {}),
+        enabled: Boolean(targets[platform]?.enabled ?? config.enabled)
+      }
+    ]))
+  };
+}
+
+function defaultBuildTargets() {
+  return {
+    web: { enabled: true, compression: 'brotli', iconSize: 512, configStrategy: 'static' },
+    wechat: { enabled: false, compression: 'zip', iconSize: 144, configStrategy: 'minigame' },
+    electron: { enabled: false, compression: 'asar', iconSize: 256, configStrategy: 'desktop' },
+    steam: { enabled: false, compression: 'store', iconSize: 256, configStrategy: 'depot' },
+    itch: { enabled: false, compression: 'brotli', iconSize: 256, configStrategy: 'portable' }
+  };
+}
+
+function normalizeUILayoutState(uiLayout = {}) {
+  const canvas = uiLayout.canvas || {};
+  const elements = Array.isArray(uiLayout.elements) ? uiLayout.elements : [];
+  return {
+    format: 'OmniCore.UI_Layout',
+    version: Number(uiLayout.version || 1),
+    canvas: {
+      width: Math.max(1, Number(canvas.width || uiLayout.width || 320)),
+      height: Math.max(1, Number(canvas.height || uiLayout.height || 240))
+    },
+    elements: elements.map(normalizeUIElement)
+  };
+}
+
+function normalizeUIElement(element = {}, index = 0) {
+  const type = element.type || 'Button';
+  return {
+    type,
+    id: String(element.id || `${type.toLowerCase()}-${index + 1}`),
+    text: String(element.text ?? element.label ?? element.id ?? type),
+    x: Number(element.x || 0),
+    y: Number(element.y || 0),
+    width: Math.max(1, Number(element.width || 160)),
+    height: Math.max(1, Number(element.height || 40)),
+    action: element.action || null
   };
 }
 
@@ -1658,6 +3742,21 @@ function flowGraphToEventSheet(flowGraph = {}) {
     }];
 
   return { events };
+}
+
+function flowGraphToBehaviorTree(flowGraph = {}) {
+  const eventSheet = flowGraphToEventSheet(flowGraph);
+  return {
+    type: 'selector',
+    children: eventSheet.events.map((event) => ({
+      type: 'sequence',
+      name: event.name,
+      children: [
+        ...event.conditions.map((condition) => ({ type: 'condition', condition: cloneState(condition) })),
+        ...event.actions.map((action) => ({ type: 'action', action: cloneState(action) }))
+      ]
+    }))
+  };
 }
 
 function buildFlowEventTree(root, childrenBySource) {
@@ -1897,8 +3996,23 @@ function cloneTilemap(tilemap = {}) {
     layers,
     activeLayerId,
     collisions: uniqueNumbers(tilemap.collisions),
-    tilesets: normalizeTilesets(tilemap.tilesets || (tilemap.tileset ? [tilemap.tileset] : []), tilemap)
+    tilesets: normalizeTilesets(tilemap.tilesets || (tilemap.tileset ? [tilemap.tileset] : []), tilemap),
+    ruleTiles: normalizeRuleTiles(tilemap.ruleTiles)
   };
+}
+
+function normalizeRuleTiles(ruleTiles = []) {
+  return (Array.isArray(ruleTiles) ? ruleTiles : [])
+    .filter((rule) => rule && rule.id != null)
+    .map((rule) => ({
+      ...cloneState(rule),
+      id: Number(rule.id),
+      when: {
+        ...(rule.when || {}),
+        self: Number(rule.when?.self),
+        adjacentAny: uniqueNumbers(rule.when?.adjacentAny)
+      }
+    }));
 }
 
 function normalizeTilemapLayers(layers, fallbackData, size) {
@@ -1982,6 +4096,31 @@ function findActiveTileLayer(tilemap = {}) {
   return tilemap.layers.find((layer) => layer.id === tilemap.activeLayerId) || tilemap.layers[0];
 }
 
+function ruleTileMatches(rule, tileId, index, data, tilemap) {
+  const self = Number(rule?.when?.self);
+  if (Number.isFinite(self) && Number(tileId) !== self) return false;
+  const adjacentAny = uniqueNumbers(rule?.when?.adjacentAny);
+  if (!adjacentAny.length) return true;
+  return neighborTileIds(index, data, tilemap).some((neighbor) => adjacentAny.includes(Number(neighbor)));
+}
+
+function neighborTileIds(index, data, tilemap) {
+  const width = Math.max(1, Number(tilemap.width || 1));
+  const height = Math.max(1, Number(tilemap.height || 1));
+  const x = index % width;
+  const y = Math.floor(index / width);
+  const offsets = [
+    { x: -1, y: 0 },
+    { x: 1, y: 0 },
+    { x: 0, y: -1 },
+    { x: 0, y: 1 }
+  ];
+  return offsets
+    .map((offset) => ({ x: x + offset.x, y: y + offset.y }))
+    .filter((point) => point.x >= 0 && point.y >= 0 && point.x < width && point.y < height)
+    .map((point) => data[point.y * width + point.x]);
+}
+
 function findTilesetTile(tilemap, tileId) {
   return tilePalette(tilemap || {}).find((tile) => Number(tile.id) === Number(tileId)) || null;
 }
@@ -2014,16 +4153,53 @@ function normalizeDockLayout(layout = {}) {
       normalized[region].push(panel);
     }
   }
-  for (const [panel, region] of Object.entries(defaultPanelRegions())) {
-    if (!seen.has(panel)) normalized[region].push(panel);
-  }
   return normalized;
 }
 
-function defaultPanelRegions() {
-  return Object.fromEntries(
-    Object.entries(DEFAULT_DOCK_LAYOUT).flatMap(([region, panels]) => panels.map((panel) => [panel, region]))
-  );
+function ensurePanelInDock(layout = {}, panelName, preferredRegion = 'bottom') {
+  const normalized = normalizeDockLayout(layout);
+  if (Object.values(normalized).some((panels) => panels.includes(panelName))) return normalized;
+  const region = DOCK_REGIONS.includes(preferredRegion) ? preferredRegion : 'bottom';
+  normalized[region] = [...(normalized[region] || []), panelName];
+  return normalized;
+}
+
+function isSearchableProjectFile(filePath = '') {
+  return /\.(js|mjs|cjs|ts|tsx|jsx|json|scene|prefab|md|css|html)$/iu.test(filePath)
+    || /(^|\/)(src|assets|scenes|config)\//iu.test(filePath);
+}
+
+function escapeRegExp(value = '') {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+}
+
+function filterResourceAssets(assets = [], query = '') {
+  const needle = String(query || '').toLowerCase();
+  return (Array.isArray(assets) ? assets : [])
+    .map(normalizeAssetEntry)
+    .filter((asset) => ['image', 'prefab', 'json'].includes(asset.type))
+    .filter((asset) => !needle || `${asset.path} ${asset.name}`.toLowerCase().includes(needle));
+}
+
+function physicsBodies(state = {}) {
+  return (state.scene?.entities || [])
+    .filter((entity) => entity.physics || entity.body || entity.collider)
+    .map((entity) => {
+      const body = entity.physics || entity.body || entity.collider || {};
+      const vertices = Array.isArray(body.vertices) ? body.vertices.map((point) => ({
+        x: Number(point.x || 0),
+        y: Number(point.y || 0)
+      })) : [];
+      return {
+        id: entity.id,
+        shape: body.shape || body.type || 'rect',
+        x: Number(entity.x || body.x || 0),
+        y: Number(entity.y || body.y || 0),
+        width: Number(entity.width || body.width || 32),
+        height: Number(entity.height || body.height || 32),
+        vertices
+      };
+    });
 }
 
 function findSelectedEntity(state) {
@@ -2141,6 +4317,75 @@ function resolveScriptBinding(entity = null, symbol = null, options = {}) {
   };
 }
 
+function normalizeWorkspaceState(value = {}) {
+  if (!value || typeof value !== 'object') {
+    return { root: null, name: null, directories: [], assets: [], sourceFiles: [], scenes: [] };
+  }
+  return {
+    root: value.root || null,
+    name: value.name || null,
+    directories: Array.isArray(value.directories) ? value.directories : [],
+    assets: Array.isArray(value.assets) ? value.assets.map(normalizeAssetEntry) : [],
+    sourceFiles: Array.isArray(value.sourceFiles) ? value.sourceFiles.map(normalizeAssetEntry) : [],
+    scenes: Array.isArray(value.scenes) ? value.scenes.map(normalizeAssetEntry) : [],
+    scannedAt: value.scannedAt || null
+  };
+}
+
+function normalizeAutoSaveState(value = {}) {
+  return {
+    enabled: value.enabled !== false,
+    intervalMs: Math.max(1000, Number(value.intervalMs || 300000)),
+    lastSavedAt: value.lastSavedAt || null,
+    lastPath: value.lastPath || null
+  };
+}
+
+function normalizeAssetEntry(asset = {}) {
+  const source = typeof asset === 'string' ? { path: asset } : { ...asset };
+  const assetPath = slash(source.path || source.url || source.name || '');
+  return {
+    ...source,
+    path: assetPath,
+    name: source.name || assetPath.split('/').pop() || assetPath,
+    type: assetType(source)
+  };
+}
+
+function isPrefabAsset(asset) {
+  const entry = normalizeAssetEntry(asset);
+  return entry.type === 'prefab' || /(^|\/)prefabs\/.+\.json$/iu.test(entry.path);
+}
+
+function assetType(asset = {}) {
+  const entryPath = slash(typeof asset === 'string' ? asset : asset.path || asset.url || asset.name || '');
+  const explicit = typeof asset === 'object' ? asset.type : null;
+  if (explicit) return explicit;
+  if (/(^|\/)prefabs\/.+\.json$/iu.test(entryPath)) return 'prefab';
+  if (/(^|\/)scenes\/.+\.json$/iu.test(entryPath) || /\.scene\.json$/iu.test(entryPath)) return 'scene';
+  if (/\.(png|jpg|jpeg|webp|gif|svg)$/iu.test(entryPath)) return 'image';
+  if (/\.json$/iu.test(entryPath)) return 'json';
+  return 'file';
+}
+
+function isSceneAsset(asset = {}) {
+  const entryPath = slash(typeof asset === 'string' ? asset : asset.path || asset.url || asset.name || '');
+  return assetType(asset) === 'scene' || /(^|\/)scenes\/.+\.json$/iu.test(entryPath) || /\.scene\.json$/iu.test(entryPath);
+}
+
+function assetIcon(asset = {}) {
+  const type = assetType(asset);
+  if (type === 'prefab') return 'Prefab';
+  if (type === 'image') return 'Image';
+  if (type === 'scene') return 'Scene';
+  if (type === 'script') return 'Script';
+  return 'File';
+}
+
+function slash(value) {
+  return String(value).replace(/\\/g, '/');
+}
+
 const EDITOR_CSS = `
   body { margin: 0; background: #111827; color: #e5e7eb; font: 12px system-ui, sans-serif; }
   .editor-frame { display: grid; grid-template-rows: 40px minmax(0, 1fr) 24px; height: 100vh; background: #111827; }
@@ -2163,7 +4408,9 @@ const EDITOR_CSS = `
   input { background: #020617; color: #e5e7eb; border: 1px solid #334155; padding: 5px; min-width: 0; }
   .hierarchy-list { margin: 0; padding-left: 18px; }
   .hierarchy-list button, .prefab-list button, .asset-list button { width: 100%; margin-bottom: 5px; padding: 6px; text-align: left; }
-  .scene-wrap { display: grid; grid-template-rows: auto 1fr; height: 100%; gap: 8px; }
+  .scene-wrap { display: grid; grid-template-rows: auto auto 1fr auto; height: 100%; gap: 8px; }
+  .scene-tabs { display: flex; gap: 4px; min-height: 24px; overflow-x: auto; }
+  .scene-tabs button { flex: 0 0 auto; max-width: 150px; padding: 4px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .gizmo-toolbar, .tilemap-toolbar { display: flex; gap: 6px; align-items: center; }
   .gizmo-toolbar button, .tilemap-toolbar button { padding: 5px 8px; }
   .scene-canvas { position: relative; min-height: 260px; height: 100%; overflow: hidden; background-image: linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px); background-size: 24px 24px; }
@@ -2172,11 +4419,40 @@ const EDITOR_CSS = `
   .scene-node.issue-target { box-shadow: 0 0 0 3px rgba(248,113,113,.78), 0 0 18px rgba(248,113,113,.42); }
   .selection-outline { position: absolute; box-sizing: border-box; pointer-events: none; border: 2px solid rgba(250,204,21,.86); background: rgba(250,204,21,.14); box-shadow: 0 0 0 1px rgba(15,23,42,.72), 0 0 18px rgba(250,204,21,.22); }
   .origin-marker { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; pointer-events: none; border-radius: 999px; border: 2px solid #f8fafc; background: #ef4444; box-shadow: 0 0 0 2px rgba(15,23,42,.72); }
+  .transform-gizmo { position: absolute; z-index: 8; display: grid; grid-template-columns: repeat(3, 24px); gap: 4px; pointer-events: auto; }
+  .gizmo-axis { width: 24px; height: 24px; padding: 0; border-radius: 999px; font-size: 10px; font-weight: 700; }
+  .gizmo-x { color: #fecaca; border-color: #ef4444; background: #450a0a; }
+  .gizmo-y { color: #bbf7d0; border-color: #22c55e; background: #052e16; }
+  .gizmo-z { color: #bfdbfe; border-color: #3b82f6; background: #172554; }
+  .prefab-preview-model { position: absolute; display: grid; place-items: center; box-sizing: border-box; border: 1px dashed #facc15; background: rgba(250,204,21,.24); color: #fef3c7; font-size: 11px; pointer-events: none; }
   .selection-marquee { position: absolute; box-sizing: border-box; pointer-events: none; border: 1px dashed #67e8f9; background: rgba(34,211,238,.12); }
   .collision-overlay { position: absolute; box-sizing: border-box; pointer-events: none; border: 1px dashed rgba(248,113,113,.95); background: rgba(127,29,29,.18); }
   .depth-overlay { position: absolute; pointer-events: none; padding: 1px 4px; border: 1px solid #a3e635; background: rgba(20,83,45,.86); color: #dcfce7; font-size: 10px; }
   .undo-history { display: grid; gap: 3px; max-height: 72px; overflow: auto; padding: 5px; border: 1px solid #334155; background: #020617; color: #cbd5e1; }
   .undo-history div.selected { color: #facc15; }
+  .floating-editor-panel { position: absolute; right: 12px; z-index: 22; display: grid; gap: 8px; width: min(360px, calc(100% - 24px)); max-height: calc(100vh - 88px); overflow: auto; padding: 10px; border: 1px solid #38bdf8; background: #020617; box-shadow: 0 18px 44px rgba(2,6,23,.48); }
+  .floating-editor-panel h3 { margin: 0; font-size: 12px; color: #bfdbfe; }
+  .authoring-health-panel { top: 54px; left: 12px; right: auto; }
+  .authoring-health-counts { color: #bfdbfe; }
+  .authoring-health-issues, .authoring-health-hotspots { display: grid; gap: 4px; }
+  .authoring-health-error, .authoring-health-critical { padding: 5px; border-left: 3px solid #f87171; background: rgba(127,29,29,.28); color: #fecaca; }
+  .authoring-health-warning { padding: 5px; border-left: 3px solid #facc15; background: rgba(113,63,18,.28); color: #fef3c7; }
+  .particle-editor { top: 54px; }
+  .sprite-editor { top: 54px; right: 388px; }
+  .particle-preview { position: relative; height: 112px; overflow: hidden; border: 1px solid #334155; background: radial-gradient(circle at 50% 72%, rgba(248,113,113,.28), transparent 42%), #111827; }
+  .particle-preview i { position: absolute; width: 8px; height: 8px; margin: -4px; border-radius: 999px; background: #facc15; box-shadow: 0 0 14px rgba(250,204,21,.78); }
+  .sprite-edit-canvas { position: relative; height: 160px; border: 1px solid #334155; background: #111827; background-image: linear-gradient(45deg, rgba(148,163,184,.16) 25%, transparent 25%), linear-gradient(-45deg, rgba(148,163,184,.16) 25%, transparent 25%); background-size: 18px 18px; }
+  .nine-slice-guide { position: absolute; padding: 0; border: 0; background: #22d3ee; }
+  .guide-left, .guide-right { top: 0; width: 2px; height: 100%; }
+  .guide-top, .guide-bottom { left: 0; width: 100%; height: 2px; }
+  .collider-outline { position: absolute; inset: 12px; border: 2px dashed #a3e635; background: rgba(163,230,53,.08); }
+  .material-panel { display: grid; gap: 6px; margin: 8px 0; padding: 8px; border: 1px solid #334155; }
+  .material-panel legend { color: #bfdbfe; }
+  .prefab-override-panel { display: grid; gap: 4px; margin-top: 8px; padding: 8px; border: 1px solid #334155; background: #020617; }
+  .prefab-override-panel h3 { margin: 0 0 4px; font-size: 12px; color: #facc15; }
+  .prefab-override-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 5px; align-items: center; padding: 5px; border-left: 3px solid #facc15; background: rgba(250,204,21,.12); font-weight: 700; }
+  .prefab-override-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prefab-override-row button { padding: 3px 6px; font-weight: 400; }
   .command-palette { position: absolute; top: 48px; left: 50%; z-index: 20; display: grid; grid-template-columns: minmax(180px, 1fr) auto auto; gap: 6px; width: min(640px, calc(100% - 32px)); transform: translateX(-50%); padding: 8px; border: 1px solid #38bdf8; background: #020617; box-shadow: 0 18px 44px rgba(2,6,23,.48); }
   .scene-validation { position: absolute; right: 12px; bottom: 32px; z-index: 18; display: grid; gap: 4px; max-width: 320px; padding: 8px; border: 1px solid #f87171; background: #450a0a; }
   .scene-validation button { text-align: left; }
@@ -2194,6 +4470,42 @@ const EDITOR_CSS = `
   .flow-action { background: #365314; border-color: #a3e635; }
   .flow-edge-list { display: grid; align-content: start; gap: 4px; min-height: 0; overflow: auto; padding: 6px; border: 1px solid #334155; background: #020617; color: #cbd5e1; }
   .flow-preview { grid-column: 1 / -1; min-height: 72px; max-height: 140px; overflow: auto; margin: 0; padding: 8px; border: 1px solid #334155; background: #020617; color: #bfdbfe; }
+  .graph-editor-wrap { display: grid; grid-template-columns: 96px minmax(260px, 1fr); gap: 8px; min-height: 0; }
+  .graph-node-palette { display: grid; align-content: start; gap: 6px; }
+  .graph-node-palette button { padding: 5px 8px; text-align: left; }
+  .graph-editor-wrap .flow-graph-wrap { grid-template-columns: minmax(240px, 1fr) 180px; }
+  .graph-editor-wrap pre { grid-column: 1 / -1; max-height: 120px; overflow: auto; margin: 0; padding: 8px; border: 1px solid #334155; background: #020617; color: #bfdbfe; }
+  .ui-editor-wrap { display: grid; grid-template-columns: 96px minmax(220px, 1fr); gap: 8px; min-height: 0; }
+  .ui-palette { display: grid; align-content: start; gap: 6px; }
+  .ui-palette button { padding: 5px 8px; text-align: left; }
+  .ui-canvas { position: relative; max-width: 100%; overflow: hidden; border: 1px solid #334155; background: #111827; background-image: linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px); background-size: 16px 16px; }
+  .ui-element { position: absolute; display: grid; place-items: center; padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-color: #22d3ee; background: #164e63; }
+  .ui-editor-wrap pre { grid-column: 1 / -1; max-height: 120px; overflow: auto; margin: 0; padding: 8px; border: 1px solid #334155; background: #020617; color: #bfdbfe; }
+  .global-search-wrap { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) auto; gap: 6px; min-height: 0; }
+  .global-search-results { grid-column: 1 / -1; display: grid; align-content: start; gap: 4px; min-height: 0; overflow: auto; }
+  .global-search-results button { padding: 5px 8px; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+  .resource-picker { top: 54px; left: 50%; right: auto; transform: translateX(-50%); }
+  .resource-picker-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; max-height: 320px; overflow: auto; }
+  .resource-picker-list button { display: grid; gap: 4px; min-height: 88px; padding: 6px; overflow: hidden; text-align: left; }
+  .resource-picker-list img { width: 100%; height: 52px; object-fit: contain; background: #111827; }
+  .prefab-hot-edit-prompt { top: 54px; }
+  .physics-view-wrap { display: grid; gap: 8px; min-height: 0; }
+  .physics-debug-canvas { position: relative; min-height: 260px; overflow: hidden; border: 1px solid #334155; background: #020617; background-image: linear-gradient(rgba(148,163,184,.12) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.12) 1px, transparent 1px); background-size: 24px 24px; }
+  .physics-wireframe { position: absolute; box-sizing: border-box; display: grid; place-items: center; border: 2px solid rgba(34,211,238,.88); background: rgba(34,211,238,.14); color: #cffafe; font-size: 10px; }
+  .build-settings-wrap { display: grid; gap: 7px; }
+  .build-target-row { grid-template-columns: 20px 1fr; align-items: center; margin: 0; }
+  .build-settings-wrap pre { max-height: 160px; overflow: auto; margin: 0; padding: 8px; border: 1px solid #334155; background: #020617; color: #bfdbfe; }
+  .timeline { display: grid; gap: 8px; }
+  .timeline-clips, .easing-presets { display: flex; flex-wrap: wrap; gap: 5px; }
+  .timeline-clips button, .easing-presets button { padding: 4px 7px; }
+  .animation-curve-graph { position: relative; min-height: 96px; padding: 8px; border: 1px solid #334155; background: linear-gradient(90deg, rgba(148,163,184,.16) 1px, transparent 1px), linear-gradient(rgba(148,163,184,.16) 1px, transparent 1px), #020617; background-size: 24px 24px; }
+  .bezier-handle { position: absolute; width: 9px; height: 9px; margin: -4px; border-radius: 999px; background: #facc15; box-shadow: 0 0 0 2px rgba(250,204,21,.22); }
+  .handle-out { background: #22d3ee; }
+  .animation-event-track { display: grid; gap: 4px; }
+  .animation-event-marker { padding: 4px 6px; border-left: 3px solid #a3e635; background: rgba(22,101,52,.38); color: #dcfce7; }
+  .asset-preview { margin-top: 8px; padding: 8px; border: 1px solid #334155; background: #020617; }
+  .asset-preview img { display: block; max-width: 100%; max-height: 180px; object-fit: contain; background: #111827; }
+  .asset-preview pre { max-height: 180px; overflow: auto; margin: 0; color: #bfdbfe; }
   .database-wrap { display: grid; gap: 8px; }
   .database-wrap table { width: 100%; border-collapse: collapse; }
   .database-wrap caption { text-align: left; color: #bfdbfe; margin-bottom: 4px; }
@@ -2202,8 +4514,12 @@ const EDITOR_CSS = `
   .ai-assistant-wrap { display: grid; gap: 8px; }
   .ai-assistant-wrap button { width: max-content; padding: 5px 8px; }
   .profiler-wrap { display: grid; gap: 5px; }
+  .profiler-flamegraph { display: grid; gap: 4px; padding: 6px; border: 1px solid #334155; background: #020617; }
   .profiler-row { display: grid; grid-template-columns: 132px 1fr 56px; gap: 6px; align-items: center; }
   .profiler-row b { display: inline-block; height: 8px; background: #38bdf8; }
+  .profiler-streams { display: flex; gap: 12px; color: #cbd5e1; }
+  .profiler-history { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; color: #94a3b8; }
+  .profiler-history span { flex: 0 0 auto; padding: 2px 5px; border: 1px solid #334155; background: #020617; }
 `;
 
 if (typeof document !== 'undefined') {

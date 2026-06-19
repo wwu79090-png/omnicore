@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OmniCore Marketplace</title>
+</head>
+<body>
+  <main>
+    <h1>OmniCore 开发者变现平台</h1>
+    <p>插件市场对接 plugin.json、Git/NPM 安装、自动化恶意代码审核和付费解密交付。</p>
+    <label>
+      搜索插件
+      <input data-marketplace-search type="search" placeholder="搜索粒子、AI、UI、平台适配插件">
+    </label>
+    <section>
+      <article class="plugin-card" data-plugin="omni-particles">
+        <h2>Omni Particles</h2>
+        <p>GPU-friendly particles, scene presets, and visual emitters for OmniCore.</p>
+        <code>omni install omni-particles</code>
+        <dl>
+          <dt>发布者</dt><dd>Particle Studio</dd>
+          <dt>版本号</dt><dd>1.0.0</dd>
+          <dt>支持引擎版本</dt><dd>&gt;=0.1.0</dd>
+          <dt>付费字段</dt><dd>isPaid: true</dd>
+          <dt>审核 SLA</dt><dd>提交 Issue 后 5 分钟内生成详情页</dd>
+          <dt>下载统计</dt><dd>4280</dd>
+          <dt>自动更新</dt><dd>Marketplace backend compares installed versions and emits omni install update commands.</dd>
+        </dl>
+        <figure>
+          <img alt="截图预览" src="./omni-particles/screen.png">
+          <figcaption>截图预览</figcaption>
+        </figure>
+        <figure>
+          <video controls src="./omni-particles/demo.mp4"></video>
+          <figcaption>视频预览</figcaption>
+        </figure>
+        <a href="./omni-particles/">查看详情</a>
+      </article></section>
+  </main>
+</body>
+</html>
