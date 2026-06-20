@@ -1,0 +1,11 @@
+{
+  "name": "omnicore-industrial-25d-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0"
+  },
+  "dependencies": {
+    "vite": "^8.0.16"
+  }
+}

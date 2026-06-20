@@ -1013,6 +1013,13 @@
       ]
     },
     {
+      "path": "navigation/HeightfieldNavMesh25D.js",
+      "summary": "",
+      "exports": [
+        "HeightfieldNavMesh25D"
+      ]
+    },
+    {
       "path": "navigation/NavigationAgent2D.js",
       "summary": "",
       "exports": [
@@ -1095,6 +1102,13 @@
       "summary": "",
       "exports": [
         "PluginInstaller"
+      ]
+    },
+    {
+      "path": "particles/ParticleTerrainCollider25D.js",
+      "summary": "",
+      "exports": [
+        "ParticleTerrainCollider25D"
       ]
     },
     {
@@ -1251,7 +1265,10 @@
         "createAdjustmentFilter",
         "createGlitchFilter",
         "createColorMatrixFilter",
-        "createNoiseFilter"
+        "createNoiseFilter",
+        "createHD2DFilter",
+        "createNormalLightShader",
+        "createSpineFFDVertexShader"
       ]
     },
     {

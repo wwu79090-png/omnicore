@@ -231,6 +231,32 @@ export class Scene extends ComponentHost {
     }
   }
 
+  apply25DSort({ shadowCorrection = false, baseZIndex = 0 } = {}) {
+    this.children.forEach((child, index) => {
+      const footY = Number(child.y || 0) + Number(child.height || child.bounds?.height || 0);
+      const depthBand = child.omnicoreDepthBand?.zIndex || child.depthBand?.zIndex || 0;
+      child.zIndex = Number(baseZIndex) + depthBand + footY;
+      child.omnicore25DSortKey = child.zIndex;
+      child.omnicore25DOrder = index;
+      if (shadowCorrection && child.shadow) {
+        child.omnicoreFakeShadow = {
+          type: child.shadow.type || 'ellipse',
+          x: Number(child.x || 0),
+          y: Number(child.y || 0),
+          radiusX: Number(child.shadow.radiusX || child.width || child.bounds?.width || 24),
+          radiusY: Number(child.shadow.radiusY || 12),
+          opacity: Math.max(0, Math.min(1, Number(child.shadow.opacity ?? 0.28)))
+        };
+      }
+    });
+    this.children.sort((left, right) => {
+      const depthDelta = Number(left.zIndex || 0) - Number(right.zIndex || 0);
+      if (depthDelta !== 0) return depthDelta;
+      return Number(left.omnicore25DOrder || 0) - Number(right.omnicore25DOrder || 0);
+    });
+    return this.children;
+  }
+
   _assertEntityLifeCycle(entity) {
     if (!this.debug) return;
     Assert.isDefined(entity, 'entity');

@@ -1,0 +1,6 @@
+{
+  "name": "25d-particle-terrain-demo",
+  "system": "ParticleTerrainCollider25D",
+  "terrain": { "width": 2, "height": 2, "cellSize": 32, "heights": [0, 0, 1, 1] },
+  "particles": [{ "x": 16, "y": 16, "z": 4, "vx": 20, "vy": 0, "vz": -12 }]
+}

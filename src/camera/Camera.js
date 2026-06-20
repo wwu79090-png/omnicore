@@ -78,6 +78,22 @@ export class Camera {
     return this;
   }
 
+  configureParallax25D(layers = {}) {
+    this.parallaxLayers = [];
+    for (const [id, config] of Object.entries(layers || {})) {
+      const options = typeof config === 'number'
+        ? { factorX: config, factorY: config }
+        : {
+          factorX: config.factorX ?? config.factor ?? 1,
+          factorY: config.factorY ?? config.factor ?? config.factorX ?? 1,
+          offsetX: config.offsetX || 0,
+          offsetY: config.offsetY || 0
+        };
+      this.addParallaxLayer({ id }, options);
+    }
+    return this;
+  }
+
   shake(duration = 120, intensity = 4) {
     const options = typeof duration === 'object'
       ? duration
@@ -121,6 +137,10 @@ export class Camera {
       factorX: entry.factorX,
       factorY: entry.factorY
     }));
+  }
+
+  getLayerTransform(id) {
+    return this.getParallaxTransforms().find((entry) => entry.id === id) || null;
   }
 
   getViewTransform() {

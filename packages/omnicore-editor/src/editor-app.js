@@ -211,6 +211,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
     exportDataJson,
     createRuntimeSyncPayload,
     applyRuntimeSyncPayload,
+    create25DPreview,
+    drag25DNode,
+    generateFakeShadows,
     buildAssetDependencyGraph,
     replaceAssetReferences,
     runIncrementalCompile,
@@ -2377,6 +2380,89 @@ export function createEditorApp(root = document.querySelector('#app'), {
     };
   }
 
+  function create25DPreview({ zToYScale = 16, showReferenceLines = true } = {}) {
+    const entities = current.scene?.entities || [];
+    const mixedNodes = entities
+      .filter((entity) => isSpine25DNode(entity) || isDimension25DNode(entity))
+      .map((entity) => ({
+        id: entity.id,
+        kind: isSpine25DNode(entity) ? 'spine' : 'dimension3d',
+        x: Number(entity.x || 0),
+        y: Number(entity.y || 0),
+        z: Number(entity.z || entity.position?.z || 0),
+        baselineY: Number(entity.y || 0) + Number(entity.height || entity.bounds?.height || 0)
+      }));
+    const yToZReferenceLines = showReferenceLines
+      ? mixedNodes.map((node) => ({
+        id: node.id,
+        axis: 'z',
+        from: { x: node.x, y: node.baselineY },
+        to: { x: node.x, y: node.baselineY - node.z * Number(zToYScale) },
+        z: node.z
+      }))
+      : [];
+    const preview = {
+      protocol: 'omnicore-editor-25d-preview/v1',
+      scene: current.scene?.name || 'untitled',
+      zToYScale: Number(zToYScale),
+      mixedNodes,
+      guides: {
+        yToZReferenceLines
+      }
+    };
+    current = createEditorState({ ...current, preview25D: preview });
+    return preview;
+  }
+
+  function drag25DNode(entityId, position = {}) {
+    const entity = findEntity(entityId);
+    if (!entity) return null;
+    const patch = {
+      x: Number(position.x ?? entity.x ?? 0),
+      y: Number(position.y ?? entity.y ?? 0),
+      z: Number(position.z ?? entity.z ?? entity.position?.z ?? 0)
+    };
+    current = createEditorState({
+      ...current,
+      scene: {
+        ...current.scene,
+        entities: current.scene.entities.map((item) => (
+          item.id === entityId
+            ? { ...item, ...patch, position: { ...(item.position || {}), ...patch } }
+            : item
+        ))
+      }
+    });
+    update(current);
+    emit('editor:25d-node-drag', { id: entityId, position: patch });
+    return { id: entityId, position: patch };
+  }
+
+  function generateFakeShadows({ opacity = 0.28, radiusScale = 0.55 } = {}) {
+    const shadows = (current.scene?.entities || []).map((entity) => ({
+      entityId: entity.id,
+      type: 'ellipse',
+      x: Number(entity.x || 0) + Number(entity.width || entity.bounds?.width || 32) / 2,
+      y: Number(entity.y || 0) + Number(entity.height || entity.bounds?.height || 32),
+      radiusX: Number(entity.width || entity.bounds?.width || 32) * Number(radiusScale),
+      radiusY: Math.max(6, Number(entity.height || entity.bounds?.depth || 32) * 0.18),
+      opacity: Math.max(0, Math.min(1, Number(opacity)))
+    }));
+    current = createEditorState({
+      ...current,
+      scene: {
+        ...current.scene,
+        entities: current.scene.entities.map((entity) => ({
+          ...entity,
+          fakeShadow: shadows.find((shadow) => shadow.entityId === entity.id) || null
+        }))
+      }
+    });
+    update(current);
+    emit('editor:25d-fake-shadows', { shadows });
+    return shadows;
+  }
+
   function recordDebugEvent(event = {}) {
     debugTimeline = {
       ...debugTimeline,
@@ -4358,6 +4444,16 @@ function firstEntityById(entities = []) {
 function changedEntityFields(before = {}, after = {}) {
   const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
   return [...keys].filter((key) => JSON.stringify(before[key] ?? null) !== JSON.stringify(after[key] ?? null));
+}
+
+function isSpine25DNode(entity = {}) {
+  const type = String(entity.type || entity.kind || '').toLowerCase();
+  return type.includes('spine') || Boolean(entity.skeleton || entity.atlas?.endsWith?.('.atlas'));
+}
+
+function isDimension25DNode(entity = {}) {
+  const type = String(entity.type || entity.kind || '').toLowerCase();
+  return type.includes('dimension3d') || type.includes('3d') || Boolean(entity.model || entity.glb || entity.bounds?.depth);
 }
 
 function normalizeScene(scene = {}) {

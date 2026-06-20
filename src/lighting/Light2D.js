@@ -95,6 +95,34 @@ export class Light2D {
     };
   }
 
+  static createVolumetricFogLayer({ lights = [], occluders = [], fog = {} } = {}) {
+    const density = Number(fog.density ?? 0.25);
+    const scatter = Number(fog.scatter ?? 0.5);
+    const rimStrength = Number(fog.rimStrength ?? 0.35);
+    const normalizedLights = lights.map((light, index) => (
+      typeof light.toDrawCommand === 'function' ? light.toDrawCommand() : { id: `light-${index}`, ...light }
+    ));
+    const casters = occluders.map((occluder, index) => ({
+      id: occluder.id || `occluder-${index}`,
+      x: Number(occluder.x || 0),
+      y: Number(occluder.y || 0),
+      width: Number(occluder.width || 0),
+      height: Number(occluder.height || 0),
+      depth: Number(occluder.depth || occluder.z || 0)
+    }));
+    return {
+      pipeline: 'omnicore-25d-volumetric-fog/v1',
+      fog: { density, scatter, rimStrength },
+      lights: normalizedLights,
+      occluders: casters,
+      commands: [
+        { op: 'fog:volume-pass', density, occluderCount: casters.length },
+        { op: 'fog:scatter-light', scatter, lightCount: normalizedLights.length },
+        { op: 'fog:rim-light', rimStrength, casterCount: casters.length }
+      ]
+    };
+  }
+
   toDrawCommand() {
     this.resolvedColor = this.resolveColor();
     return {

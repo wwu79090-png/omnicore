@@ -1,0 +1,7 @@
+{
+  "name": "25d-spatial-audio-demo",
+  "system": "AudioManager.createSpatial25DProfile",
+  "listener": { "x": 0, "y": 0, "z": 0 },
+  "source": { "x": 96, "y": 0, "z": 32 },
+  "occluders": [{ "id": "stone-wall", "absorption": 0.7 }]
+}

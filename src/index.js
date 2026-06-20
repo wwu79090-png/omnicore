@@ -33,6 +33,11 @@ import RenderWorkerBridge from './renderer/RenderWorkerBridge.js';
 import RendererManager from './renderer/RendererManager.js';
 import WebGLContextManager from './renderer/WebGLContextManager.js';
 import * as Filters from './renderer/Filters.js';
+import {
+  createHD2DFilter,
+  createNormalLightShader,
+  createSpineFFDVertexShader
+} from './renderer/Filters.js';
 import StaticBatchCompiler from './renderer/StaticBatchCompiler.js';
 import Loop from './loop/Loop.js';
 import Button from './ui/Button.js';
@@ -69,6 +74,7 @@ import NetRoom from './net/Room.js';
 import RealtimeConnection from './net/RealtimeConnection.js';
 import WebTransportConnection from './net/WebTransportConnection.js';
 import NavigationAgent2D from './navigation/NavigationAgent2D.js';
+import HeightfieldNavMesh25D from './navigation/HeightfieldNavMesh25D.js';
 import Inspector from './debug/Inspector.js';
 import ApiQuickPanel from './debug/ApiQuickPanel.js';
 import LiveInspector from './debug/LiveInspector.js';
@@ -120,6 +126,7 @@ import SkeletalAnimation, { DragonBonesAdapter, SpineAdapter, SpinePixiRuntimeAd
 import AnimationStateMachine from './animations/AnimationStateMachine.js';
 import Light2D from './lighting/Light2D.js';
 import ParticleEditorPanel from './editor/ParticleEditorPanel.js';
+import ParticleTerrainCollider25D from './particles/ParticleTerrainCollider25D.js';
 import AnimationEditor from './editor/AnimationEditor.js';
 import SkeletonAnimationEditor from './editor/SkeletonAnimationEditor.js';
 import InputSequence from './input/InputSequence.js';
@@ -700,6 +707,9 @@ const OmniCore = {
   Loader,
   AssetLoader,
   Renderer: { PixiRenderer, WebGPURenderer, RendererBackend, OffscreenCanvasRenderer, RenderWorkerBridge, Filters, WebGLContextManager, RendererManager, RenderLayerManager, PixiBatchAdapter, CommandBuffer, StaticBatchCompiler },
+  createHD2DFilter,
+  createNormalLightShader,
+  createSpineFFDVertexShader,
   RendererBackend,
   RendererContract,
   assertRendererBackend,
@@ -728,6 +738,7 @@ const OmniCore = {
   TilemapLoader,
   ChunkCache,
   ChunkManager,
+  HeightfieldNavMesh25D,
   Timeline,
   VisualEventGraph,
   HotReload,
@@ -757,6 +768,7 @@ const OmniCore = {
   AnimationStateMachine,
   Light2D,
   ParticleEditorPanel,
+  ParticleTerrainCollider25D,
   AnimationEditor,
   SkeletonAnimationEditor,
   PhysicsWorld,
@@ -940,6 +952,7 @@ export {
   NetManager,
   NetRoom,
   NavigationAgent2D,
+  HeightfieldNavMesh25D,
   RealtimeConnection,
   Node,
   ObjectPool,
@@ -953,6 +966,7 @@ export {
   PerformanceMonitor,
   PerformanceMetrics,
   ParticleEditorPanel,
+  ParticleTerrainCollider25D,
   PhysicsWorld,
   PhysicsQuery,
   PixiRenderer,
@@ -986,6 +1000,9 @@ export {
   RendererAdapter,
   RendererManager,
   RenderSystem,
+  createHD2DFilter,
+  createNormalLightShader,
+  createSpineFFDVertexShader,
   RuntimeLiveSyncBridge,
   Sandbox,
   SandboxBus,

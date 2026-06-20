@@ -128,6 +128,104 @@ export class StaticBatchCompiler {
       data
     };
   }
+
+  static compileStaticModelInstances(models = []) {
+    const staticModels = (Array.isArray(models) ? models : [])
+      .filter((model) => model?.static === true || model?.isStatic === true || model?.batchStatic === true);
+    const groups = new Map();
+    for (const model of staticModels) {
+      const key = [
+        model.url || model.mesh || model.model || model.source,
+        model.material || 'default',
+        model.castShadow ? 'shadow' : 'no-shadow'
+      ].join('|');
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          mesh: model.url || model.mesh || model.model || model.source,
+          material: model.material || 'default',
+          instanceCount: 0,
+          modelIds: [],
+          transforms: []
+        });
+      }
+      const group = groups.get(key);
+      group.instanceCount += 1;
+      group.modelIds.push(model.id || model.name || `model-${group.instanceCount}`);
+      group.transforms.push(model.transform || model.position || { x: 0, y: 0, z: 0 });
+    }
+    const batches = [...groups.values()];
+    return {
+      type: 'omnicore-static-model-instances',
+      drawCallsBefore: staticModels.length,
+      drawCallsAfter: batches.length,
+      savedDrawCalls: Math.max(0, staticModels.length - batches.length),
+      batches
+    };
+  }
+
+  static compileSpineDrawCallGroups(skeletons = []) {
+    const groups = new Map();
+    for (const skeleton of Array.isArray(skeletons) ? skeletons : []) {
+      const key = [
+        skeleton.atlas || skeleton.texture || 'atlas',
+        skeleton.material || skeleton.shader || 'default',
+        skeleton.state || skeleton.animation || 'default'
+      ].join('|');
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          atlas: skeleton.atlas || skeleton.texture || 'atlas',
+          material: skeleton.material || skeleton.shader || 'default',
+          state: skeleton.state || skeleton.animation || 'default',
+          skeletonCount: 0,
+          skeletonIds: []
+        });
+      }
+      const group = groups.get(key);
+      group.skeletonCount += 1;
+      group.skeletonIds.push(skeleton.id || skeleton.name || `spine-${group.skeletonCount}`);
+    }
+    const output = [...groups.values()].map((group) => ({
+      ...group,
+      drawCallsBefore: group.skeletonCount,
+      drawCallsAfter: 1
+    }));
+    return {
+      type: 'omnicore-spine-draw-call-groups',
+      drawCallsBefore: (Array.isArray(skeletons) ? skeletons : []).length,
+      drawCallsAfter: output.length,
+      groups: output
+    };
+  }
+
+  static plan25DLOD(items = [], {
+    ffdDisableDistance = 80,
+    lowTextureDistance = 120,
+    hiddenDistance = Infinity
+  } = {}) {
+    const normalized = (Array.isArray(items) ? items : []).map((item) => {
+      const distance = Number(item.distance || 0);
+      const visible = distance < Number(hiddenDistance);
+      const ffdEnabled = Boolean(item.ffd) && distance < Number(ffdDisableDistance);
+      const texturePrecision = distance >= Number(lowTextureDistance) ? 'half' : 'full';
+      return {
+        id: item.id || item.name || 'item',
+        distance,
+        visible,
+        ffdEnabled,
+        texturePrecision,
+        textureScale: texturePrecision === 'half' ? Math.min(Number(item.textureScale || 1), 0.5) : Number(item.textureScale || 1)
+      };
+    });
+    return {
+      type: 'omnicore-25d-lod-plan',
+      ffdDisableDistance: Number(ffdDisableDistance),
+      lowTextureDistance: Number(lowTextureDistance),
+      hiddenDistance: Number(hiddenDistance),
+      items: normalized
+    };
+  }
 }
 
 function normalizeEntities(scene = {}) {

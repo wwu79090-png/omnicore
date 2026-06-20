@@ -9,7 +9,10 @@ export class SkeletalAnimation {
     url,
     atlas = null,
     skins = ['default'],
-    runtime = null
+    runtime = null,
+    customVertexShader = null,
+    ffd = null,
+    lod = null
   } = {}) {
     this.type = 'skeletal-animation';
     this.format = format;
@@ -22,6 +25,9 @@ export class SkeletalAnimation {
     this.loop = false;
     this.timeScale = 1;
     this.elapsed = 0;
+    this.customVertexShader = customVertexShader;
+    this.ffd = normalizeFfdConfig(ffd);
+    this.lod = lod;
   }
 
   play(name, { loop = false, timeScale = this.timeScale } = {}) {
@@ -54,7 +60,10 @@ export class SkeletalAnimation {
       atlas: this.atlas,
       skin: this.skin,
       animation: this.currentAnimation,
-      loop: this.loop
+      loop: this.loop,
+      customVertexShader: this.customVertexShader,
+      ffd: this.ffd,
+      lod: this.lod
     };
   }
 }
@@ -137,6 +146,16 @@ export class DragonBonesAdapter {
   create(config = {}) {
     return new SkeletalAnimation({ ...config, format: 'dragonbones' });
   }
+}
+
+function normalizeFfdConfig(ffd = null) {
+  if (!ffd || typeof ffd !== 'object') return null;
+  return {
+    enabled: ffd.enabled !== false,
+    mesh: ffd.mesh || ffd.slot || null,
+    strength: Number(ffd.strength ?? 0),
+    phase: Number(ffd.phase ?? 0)
+  };
 }
 
 export default SkeletalAnimation;

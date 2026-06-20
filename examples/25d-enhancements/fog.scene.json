@@ -1,0 +1,6 @@
+{
+  "name": "25d-volumetric-fog-demo",
+  "system": "Light2D.createVolumetricFogLayer",
+  "light": { "type": "directional", "angle": 0.7, "intensity": 1.2 },
+  "fog": { "density": 0.35, "scatter": 0.8, "rimStrength": 0.45 }
+}

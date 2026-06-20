@@ -37,6 +37,69 @@ export class AIImporter {
     return result;
   }
 
+  generate25DLevel({ name = 'ai-25d-level', boundaries = [] } = {}) {
+    const assets = [];
+    const entities = [];
+    const shadows = [];
+    const depthOcclusion = [];
+    boundaries.forEach((boundary, index) => {
+      const center = centroid(boundary.points || []);
+      const sortY = center.y + (boundary.type === 'forest' ? 24 : 8);
+      if (boundary.type === 'river') {
+        const asset = {
+          id: `river-${index}`,
+          kind: 'water-plane',
+          model: 'models/water-plane.glb',
+          x: center.x,
+          y: center.y,
+          z: -0.1,
+          sortY
+        };
+        assets.push(asset);
+        entities.push({ ...asset, type: 'Dimension3DModel' });
+      } else if (boundary.type === 'forest') {
+        for (let tree = 0; tree < Math.max(1, Math.min(4, (boundary.points || []).length)); tree += 1) {
+          const asset = {
+            id: `tree-${index}-${tree}`,
+            kind: 'tree-model',
+            model: 'models/tree-lowpoly.glb',
+            x: center.x + tree * 18,
+            y: center.y + tree * 10,
+            z: 1 + tree * 0.1,
+            sortY: sortY + tree * 10
+          };
+          assets.push(asset);
+          entities.push({ ...asset, type: 'Dimension3DModel' });
+          shadows.push({
+            id: `${asset.id}-shadow`,
+            source: asset.id,
+            x: asset.x + 8,
+            y: asset.y + 14,
+            alpha: 0.28
+          });
+        }
+      }
+    });
+    for (const entity of entities) {
+      depthOcclusion.push({
+        id: entity.id,
+        sortY: Number(entity.sortY || entity.y || 0),
+        z: Number(entity.z || 0),
+        shadow: shadows.find((shadow) => shadow.source === entity.id)?.id || null
+      });
+    }
+    entities.sort((left, right) => Number(left.sortY || 0) - Number(right.sortY || 0));
+    return {
+      format: 'OmniCore.25DProceduralLevel',
+      version: 1,
+      name,
+      assets,
+      entities,
+      shadows,
+      depthOcclusion
+    };
+  }
+
   async _requestScene(prompt, options = {}) {
     if (!this.fetcher) throw createOmniError('AIImporter', 'AI 场景导入需要可用的 fetcher 或本地回退。');
     const response = await this.fetcher(options.endpoint || this.endpoint, {
@@ -69,6 +132,18 @@ export class AIImporter {
       children
     };
   }
+}
+
+function centroid(points = []) {
+  if (!points.length) return { x: 0, y: 0 };
+  const sum = points.reduce((acc, point) => ({
+    x: acc.x + Number(point.x || 0),
+    y: acc.y + Number(point.y || 0)
+  }), { x: 0, y: 0 });
+  return {
+    x: sum.x / points.length,
+    y: sum.y / points.length
+  };
 }
 
 function readCount(prompt, labels) {

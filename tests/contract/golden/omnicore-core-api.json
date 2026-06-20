@@ -1547,6 +1547,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "HeightfieldNavMesh25D"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "HotReload"
       },
       {
@@ -1668,6 +1673,11 @@
         "arity": 0,
         "async": false,
         "name": "ParticleEditorPanel"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ParticleTerrainCollider25D"
       },
       {
         "arity": 0,
@@ -1996,13 +2006,28 @@
       },
       {
         "arity": 0,
+        "async": false,
+        "name": "createHD2DFilter"
+      },
+      {
+        "arity": 0,
         "async": true,
         "name": "createLeanRuntime"
       },
       {
         "arity": 0,
         "async": false,
+        "name": "createNormalLightShader"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createRendererPerformanceSandbox"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createSpineFFDVertexShader"
       },
       {
         "arity": 0,
@@ -2132,6 +2157,7 @@
       "FrameProfiler",
       "Game",
       "Genealogy",
+      "HeightfieldNavMesh25D",
       "HotReload",
       "HotfixManager",
       "I18n",
@@ -2163,6 +2189,7 @@
       "OffscreenCanvasRenderer",
       "PackageManager",
       "ParticleEditorPanel",
+      "ParticleTerrainCollider25D",
       "Payment",
       "PerformanceMetrics",
       "PerformanceMonitor",
@@ -2241,8 +2268,11 @@
       "connectEditorSync",
       "createEntity",
       "createGame",
+      "createHD2DFilter",
       "createLeanRuntime",
+      "createNormalLightShader",
       "createRendererPerformanceSandbox",
+      "createSpineFFDVertexShader",
       "createWebGPUComputeParticleDescriptor",
       "detectEnvironment",
       "disableAddon",

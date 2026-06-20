@@ -348,6 +348,33 @@ export class Dimension3D {
     return guideLayer.createDebugGuides({ sprites, models });
   }
 
+  syncViewport2D({ camera = null, viewport = {}, layers = [] } = {}) {
+    const viewTransform = camera?.getViewTransform?.() || camera || {};
+    const sync = {
+      protocol: 'omnicore-25d-viewport-sync/v1',
+      viewport: {
+        width: Math.max(0, Number(viewport.width || 0)),
+        height: Math.max(0, Number(viewport.height || 0))
+      },
+      camera: {
+        x: Number(viewTransform.x || camera?.x || 0),
+        y: Number(viewTransform.y || camera?.y || 0),
+        zoom: Number(viewTransform.zoom || camera?.zoomLevel || 1)
+      },
+      layers: (Array.isArray(layers) ? layers : []).map((layer, index) => ({
+        id: layer.id || layer.name || `layer-${index}`,
+        x: Number(layer.x || 0),
+        y: Number(layer.y || 0),
+        factorX: Number(layer.factorX ?? 1),
+        factorY: Number(layer.factorY ?? layer.factorX ?? 1),
+        offsetX: Number(layer.offsetX || 0),
+        offsetY: Number(layer.offsetY || 0)
+      }))
+    };
+    this.viewport2DSync = sync;
+    return sync;
+  }
+
   setCoordinateBias(x = 0, y = 0) {
     this.coordinateBias = normalizeCoordinateBias({ x, y });
     return this;
@@ -862,6 +889,42 @@ export class Dimension3DScene {
       model.rotation.y += speed.y * deltaSeconds;
       model.rotation.z += speed.z * deltaSeconds;
     }
+  }
+
+  syncViewport2D({ camera = null, viewport = {}, layers = [] } = {}) {
+    const cameraTransform = camera?.getViewTransform?.() || camera || {};
+    const payload = {
+      protocol: 'omnicore-25d-viewport-sync/v1',
+      backend: this.backend,
+      viewport: {
+        width: Number(viewport.width ?? this.width),
+        height: Number(viewport.height ?? this.height)
+      },
+      camera: {
+        x: Number(cameraTransform.x || 0),
+        y: Number(cameraTransform.y || 0),
+        offsetX: Number(cameraTransform.offsetX || 0),
+        offsetY: Number(cameraTransform.offsetY || 0),
+        zoom: Number(cameraTransform.zoom || cameraTransform.zoomLevel || 1),
+        rotation: Number(cameraTransform.rotation || 0)
+      },
+      layers: Array.isArray(layers)
+        ? layers.map((layer) => ({
+          id: layer.id,
+          x: Number(layer.x || 0),
+          y: Number(layer.y || 0),
+          factorX: Number(layer.factorX ?? 1),
+          factorY: Number(layer.factorY ?? layer.factorX ?? 1)
+        }))
+        : []
+    };
+    this.lastViewportSync = payload;
+    if (this.camera && typeof this.camera.updateProjectionMatrix === 'function') {
+      this.camera.aspect = payload.viewport.width / Math.max(1, payload.viewport.height);
+      this.camera.updateProjectionMatrix();
+    }
+    this.renderer?.setSize?.(payload.viewport.width, payload.viewport.height, false);
+    return payload;
   }
 
   _coordScale() {

@@ -1,0 +1,12 @@
+{
+  "name": "25d-navigation-demo",
+  "system": "HeightfieldNavMesh25D",
+  "heightmap": {
+    "width": 3,
+    "height": 2,
+    "cellSize": 32,
+    "heights": [0, 1, 2, 0, 0, 0]
+  },
+  "agent": { "x": 0, "y": 0, "z": 0, "jumpHeight": 1.25 },
+  "goal": { "x": 64, "y": 0, "z": 2 }
+}

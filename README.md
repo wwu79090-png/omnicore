@@ -15,7 +15,7 @@ OmniCore: 33KB WebGPU 轻量引擎，跑 1000 个 Sprite 还能稳 144 FPS。
 
 ![Tests](https://img.shields.io/badge/tests-590%2F590%20passed-16a34a)
 ![Build](https://img.shields.io/badge/build-passing-0f766e)
-![ESM](https://img.shields.io/badge/esm-701.60%20kB-2563eb)
+![ESM](https://img.shields.io/badge/esm-730.71%20kB-2563eb)
 ![Lean Core](https://img.shields.io/badge/lean%20core-33.36%20kB-7c3aed)
 ![Security](https://img.shields.io/badge/high--risk%20deps-0-16a34a)
 ![Release](https://img.shields.io/github/v/release/wwu79090-png/omnicore?label=release)

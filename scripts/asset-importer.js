@@ -16,6 +16,7 @@ const manifest = {
   images: [],
   audio: [],
   spritesheets: [],
+  spine: [],
   models: [],
   metadata: [],
   atlases: []
@@ -53,6 +54,29 @@ for (const file of listFiles(sourceDir)) {
       atlas: 'atlases/smart.atlas.json'
     });
     conversions.push({ from: relative, to: target, type: 'spritesheet' });
+  } else if (ext === '.spine') {
+    const name = path.basename(relative, ext);
+    const skeletonTarget = `spine/${base}.skel`;
+    const atlasTarget = `spine/${base}.atlas`;
+    writePlaceholder(path.join(outDir, skeletonTarget), `skel:${relative}`);
+    writePlaceholder(path.join(outDir, atlasTarget), `atlas:${relative}`);
+    manifest.spine.push({
+      type: 'spine',
+      name,
+      source: relative,
+      skeleton: skeletonTarget,
+      atlas: atlasTarget,
+      converter: 'spine-cli',
+      converterMode: 'optional-external'
+    });
+    conversions.push({
+      from: relative,
+      to: skeletonTarget,
+      atlas: atlasTarget,
+      type: 'spine',
+      converter: 'spine-cli',
+      converterMode: 'optional-external'
+    });
   } else if (['.png', '.jpg', '.jpeg', '.webp'].includes(ext)) {
     const name = path.basename(relative, ext);
     const target = `textures/${base}.webp`;
@@ -70,9 +94,19 @@ for (const file of listFiles(sourceDir)) {
       path: target,
       url: target,
       format: 'webp',
-      atlas: 'atlases/smart.atlas.json'
+      atlas: 'atlases/smart.atlas.json',
+      edgePadding: ext === '.png' ? 2 : 0,
+      atlasPacked: true
     });
-    conversions.push({ from: relative, to: target, type: 'image', codec: 'webp', compression: 0.82 });
+    conversions.push({
+      from: relative,
+      to: target,
+      type: 'image',
+      codec: 'webp',
+      compression: 0.82,
+      edgePadding: ext === '.png' ? 2 : 0,
+      atlasPacked: true
+    });
   } else if (['.wav', '.aiff', '.mp3', '.ogg'].includes(ext)) {
     const name = path.basename(relative, ext);
     const target = `audio/${base}.ogg`;
@@ -86,7 +120,7 @@ for (const file of listFiles(sourceDir)) {
       codec: 'ogg'
     });
     conversions.push({ from: relative, to: target, type: 'audio', codec: 'ogg', compression: 0.72 });
-  } else if (['.fbx', '.gltf', '.glb'].includes(ext)) {
+  } else if (['.fbx', '.gltf', '.glb', '.blend'].includes(ext)) {
     const name = path.basename(relative, ext);
     const target = `models/${base}.glb`;
     writePlaceholder(path.join(outDir, target), `glb:${relative}`);
@@ -96,9 +130,18 @@ for (const file of listFiles(sourceDir)) {
       source: relative,
       path: target,
       url: target,
-      format: 'glb'
+      format: 'glb',
+      sourceFormat: ext.slice(1),
+      converter: ext === '.blend' ? 'blender' : ext === '.fbx' ? 'fbx2gltf' : 'gltf-pack',
+      converterMode: ext === '.blend' ? 'optional-external' : 'built-in-placeholder'
     });
-    conversions.push({ from: relative, to: target, type: 'model', converter: ext === '.fbx' ? 'fbx2gltf' : 'gltf-pack' });
+    conversions.push({
+      from: relative,
+      to: target,
+      type: ext === '.blend' ? 'blend-model' : 'model',
+      converter: ext === '.blend' ? 'blender' : ext === '.fbx' ? 'fbx2gltf' : 'gltf-pack',
+      converterMode: ext === '.blend' ? 'optional-external' : 'built-in-placeholder'
+    });
   } else if (ext === '.json') {
     const target = `metadata/${relative}`;
     fs.mkdirSync(path.dirname(path.join(outDir, target)), { recursive: true });
@@ -231,7 +274,7 @@ function writePlatformPackage(target, baseManifest) {
 
 function collectManifestFiles(payload) {
   const files = new Set();
-  for (const group of ['images', 'audio', 'spritesheets', 'models', 'metadata', 'atlases']) {
+  for (const group of ['images', 'audio', 'spritesheets', 'spine', 'models', 'metadata', 'atlases']) {
     for (const item of payload[group] || []) {
       if (item.url) files.add(item.url);
       if (item.path) files.add(item.path);

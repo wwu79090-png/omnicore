@@ -166,6 +166,36 @@ export class AudioManager {
     this.active.clear();
   }
 
+  createSpatial25DProfile({
+    listener = {},
+    source = {},
+    occluders = [],
+    maxDistance = 512,
+    minLowpassHz = 900,
+    maxLowpassHz = 12000
+  } = {}) {
+    const dx = Number(source.x || 0) - Number(listener.x || 0);
+    const dy = Number(source.y || 0) - Number(listener.y || 0);
+    const dz = Number(source.z || 0) - Number(listener.z || 0);
+    const distance = Math.hypot(dx, dy, dz);
+    const attenuation = 1 / (1 + (distance / Math.max(1, Number(maxDistance || 512))) ** 2);
+    const absorption = (Array.isArray(occluders) ? occluders : [])
+      .reduce((sum, item) => sum + Math.max(0, Math.min(1, Number(item.absorption || 0))), 0);
+    const occlusion = Math.max(0, Math.min(1, absorption));
+    const pan = Math.max(-1, Math.min(1, dx / Math.max(1, Math.abs(dx) + Math.abs(dy) + Math.abs(dz) * 0.5)));
+    const lowpassHz = Math.round(maxLowpassHz - (maxLowpassHz - minLowpassHz) * occlusion);
+    const reverbBias = Math.max(0, Math.min(1, Math.abs(dz) / Math.max(1, maxDistance / 2)));
+    return {
+      distance,
+      gain: Number((attenuation * (1 - occlusion * 0.35)).toFixed(6)),
+      pan: Number(pan.toFixed(6)),
+      lowpassHz,
+      reverbBias: Number(reverbBias.toFixed(6)),
+      occluded: occlusion > 0,
+      verticalDelta: dz
+    };
+  }
+
   _resolveOutput(busName) {
     if (!busName) return this._ensureOutputNode();
     const bus = this.buses.get(busName) || this.createBus(busName);
