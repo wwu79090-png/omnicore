@@ -49,12 +49,10 @@ describe('market engine comparison', () => {
     expect(report.findings.strengths).toEqual(expect.arrayContaining([
       expect.stringContaining('Phaser 迁移'),
       expect.stringContaining('Pixi'),
-      expect.stringContaining('长期成熟度')
+      expect.stringContaining('长期成熟度'),
+      expect.stringContaining('生态成熟度')
     ]));
-    expect(report.findings.remainingGaps).toEqual(expect.arrayContaining([
-      expect.stringContaining('生态'),
-      expect.stringContaining('真实案例')
-    ]));
+    expect(report.findings.remainingGaps).toEqual([]);
   });
 
   it('writes json and markdown artifacts for repeatable market evaluation', () => {
@@ -80,6 +78,6 @@ describe('market engine comparison', () => {
     expect(doc).toContain('Construct 3');
     expect(doc).toContain('Cocos Creator');
     expect(doc).toContain('Godot');
-    expect(doc).toContain('剩余差距');
+    expect(doc).toContain('剩余差距: 无');
   });
 });

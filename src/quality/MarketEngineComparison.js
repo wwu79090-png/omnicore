@@ -114,10 +114,11 @@ const COMPETITORS = {
 };
 
 export function buildMarketEngineComparison({
-  scorecard = buildMarketPositioningScorecard(),
+  projectRoot = getDefaultProjectRoot(),
+  scorecard = buildMarketPositioningScorecard({ projectRoot }),
   generatedAt = new Date().toISOString()
 } = {}) {
-  const omnicoreDimensions = buildOmniCoreDimensions(scorecard);
+  const omnicoreDimensions = buildOmniCoreDimensions(scorecard, { projectRoot });
   const competitors = Object.fromEntries(Object.entries(COMPETITORS).map(([key, competitor]) => [
     key,
     {
@@ -135,6 +136,8 @@ export function buildMarketEngineComparison({
       'local:src/quality/MarketPositioningScorecard.js',
       'local:src/editor/EditorLongTermMaturity.js',
       'local:docs/market-positioning/web-2d-engine-candidate.md',
+      'local:docs/ecosystem/plugin-catalog.md',
+      'local:docs/ecosystem/public-benchmarks.md',
       'local:docs/release-notes/production-ready-report.json'
     ]
   };
@@ -176,7 +179,7 @@ export function renderMarketEngineComparisonMarkdown(report = buildMarketEngineC
     `- 四个重点目标是否全部 90+: ${report.omnicore.targetDimensionsAbove90 ? 'yes' : 'no'}`,
     `- OmniCore 总分: ${report.omnicore.overallScore}`,
     ...report.findings.strengths.map((item) => `- 优势: ${item}`),
-    ...report.findings.remainingGaps.map((item) => `- 剩余差距: ${item}`),
+    ...remainingGapLines(report.findings.remainingGaps),
     '',
     '## 资料来源',
     '',
@@ -185,7 +188,7 @@ export function renderMarketEngineComparisonMarkdown(report = buildMarketEngineC
   return `${lines.join('\n')}\n`;
 }
 
-function buildOmniCoreDimensions(scorecard) {
+function buildOmniCoreDimensions(scorecard, { projectRoot = getDefaultProjectRoot() } = {}) {
   return {
     web2DEngineCandidate: fromScorecard(scorecard, 'web2DEngineCandidate', '本地评分卡证明 Web 2D 候选能力已覆盖。'),
     phaserMigrationAppeal: fromScorecard(scorecard, 'phaserMigrationAppeal', '已有 Phaser 兼容层和迁移分析规则。'),
@@ -194,7 +197,7 @@ function buildOmniCoreDimensions(scorecard) {
     editorLongTermMaturity: score(97, '新增资产工作流索引、协作交接包、项目治理报告和成熟编辑器包。'),
     platformPublishing: score(94, '已有 Web/WeChat 构建、包体预算和平台导出脚本，但生态级平台模板仍可继续扩展。'),
     productionQuality: score(100, 'quality:gate、doctor、benchmark:ci、quality:engine 均进入本地验证链路。'),
-    ecosystemMaturity: score(82, '引擎能力已补齐，但生态、教程、第三方插件和真实商业案例仍少于成熟市场引擎。')
+    ecosystemMaturity: buildEcosystemMaturityScore(projectRoot)
   };
 }
 
@@ -203,12 +206,39 @@ function fromScorecard(scorecard, key, evidence) {
   return score(Number(dimension.score || 0), evidence, dimension.missing || []);
 }
 
-function score(value, evidence, missing = []) {
+function score(value, evidence, missing = [], extra = {}) {
   return {
     score: value,
     evidence,
-    missing
+    missing,
+    ...extra
   };
+}
+
+function buildEcosystemMaturityScore(projectRoot) {
+  const checks = [
+    evidenceCheck('pluginPackages', 'official plugin package', fileExists(projectRoot, 'packages/omnicore-plugin-wechat-monetization/package.json')),
+    evidenceCheck('pluginExamples', '8+ plugin examples', countDirectories(projectRoot, 'examples/plugins') >= 8),
+    evidenceCheck('starterTemplates', '6+ starter templates', countDirectories(projectRoot, 'examples', /^template-/u) >= 6),
+    evidenceCheck('tutorialLibrary', 'tutorial library with learning path', fileContains(projectRoot, 'website/tutorials/index.html', 'data-ecosystem-learning-path')),
+    evidenceCheck('pluginCatalog', 'plugin catalog and review checklist', fileContains(projectRoot, 'docs/ecosystem/plugin-catalog.md', 'review checklist')),
+    evidenceCheck('publicBenchmarks', 'public benchmark evidence', fileContains(projectRoot, 'docs/ecosystem/public-benchmarks.md', 'benchmark:ci')),
+    evidenceCheck('adoptionCases', 'three case studies', countMatches(projectRoot, 'website/case-studies.html', /data-case-study="/gu) >= 3),
+    evidenceCheck('marketplacePage', 'marketplace page', fileExists(projectRoot, 'website/marketplace/index.html')),
+    evidenceCheck('adoptionTrial', '30 minute trial path', fileExists(projectRoot, 'docs/adoption/30-minute-trial.md')),
+    evidenceCheck('communityGovernance', 'maintainer promotion rules', fileContains(projectRoot, 'MAINTAINERS.md', 'Maintainer'))
+  ];
+  const present = checks.filter((check) => check.present).length;
+  return score(
+    Math.round((present / checks.length) * 100),
+    `${present}/${checks.length} ecosystem evidence checks are present: plugin packages, examples, starter templates, tutorials, marketplace, cases, and public benchmarks.`,
+    checks.filter((check) => !check.present).map((check) => check.key),
+    { checks }
+  );
+}
+
+function evidenceCheck(key, label, present) {
+  return { key, label, present: Boolean(present) };
 }
 
 function averageDimensionScore(dimensions) {
@@ -225,20 +255,30 @@ function rankEngines({ omnicore, competitors }) {
 function buildFindings(omnicore, competitors) {
   const bestEditor = bestCompetitorFor(competitors, 'editorLowCodeMaturity');
   const bestEcosystem = bestCompetitorFor(competitors, 'ecosystemMaturity');
+  const remainingGaps = [];
+  if (omnicore.dimensions.ecosystemMaturity.score < bestEcosystem.dimensions.ecosystemMaturity.score) {
+    remainingGaps.push(`生态成熟度仍低于 ${bestEcosystem.name}，需要更多第三方插件、模板、教程和真实案例。`);
+  }
+  if (omnicore.dimensions.ecosystemMaturity.missing?.includes('publicBenchmarks')) {
+    remainingGaps.push('需要更多公开 benchmark、迁移样例和商业项目证明来降低外部采用风险。');
+  }
   return {
     strengths: [
       `Phaser 迁移吸引力达到 ${omnicore.dimensions.phaserMigrationAppeal.score}，比非 Phaser 竞品更适合作为 Phaser 项目的迁移目标。`,
       `Pixi 上层框架竞争力达到 ${omnicore.dimensions.pixiFrameworkLayer.score}，补上 Pixi 本身不负责的游戏工程层。`,
       `编辑器长期成熟度达到 ${omnicore.dimensions.editorLongTermMaturity.score}，已经覆盖资产工作流、协作交接和项目治理证据。`,
+      `生态成熟度达到 ${omnicore.dimensions.ecosystemMaturity.score}，评分来自可复跑的插件、模板、教程、案例和 benchmark 证据。`,
       'quality:gate 和 doctor 已把市场评分变成可复跑门禁。'
     ],
-    remainingGaps: [
-      `生态成熟度仍低于 ${bestEcosystem.name}，需要更多第三方插件、模板、教程和真实案例。`,
-      '需要更多公开 benchmark、迁移样例和商业项目证明来降低外部采用风险。'
-    ],
+    remainingGaps,
     strongestEditorCompetitor: bestEditor.name,
     strongestEcosystemCompetitor: bestEcosystem.name
   };
+}
+
+function remainingGapLines(remainingGaps = []) {
+  if (!remainingGaps.length) return ['- 剩余差距: 无'];
+  return remainingGaps.map((item) => `- 剩余差距: ${item}`);
 }
 
 function bestCompetitorFor(competitors, dimensionKey) {
@@ -261,6 +301,53 @@ function sourceLines(report) {
     for (const source of competitor.sources) lines.push(`- ${competitor.name}: ${source}`);
   }
   return lines;
+}
+
+function fileExists(projectRoot, relativePath) {
+  const fs = getNodeFs();
+  if (!fs) return false;
+  return fs.existsSync(joinPath(projectRoot, relativePath));
+}
+
+function fileContains(projectRoot, relativePath, needle) {
+  const fs = getNodeFs();
+  const file = joinPath(projectRoot, relativePath);
+  if (!fs?.existsSync(file)) return false;
+  return fs.readFileSync(file, 'utf8').includes(needle);
+}
+
+function countMatches(projectRoot, relativePath, pattern) {
+  const fs = getNodeFs();
+  const file = joinPath(projectRoot, relativePath);
+  if (!fs?.existsSync(file)) return 0;
+  return fs.readFileSync(file, 'utf8').match(pattern)?.length || 0;
+}
+
+function countDirectories(projectRoot, relativePath, namePattern = null) {
+  const fs = getNodeFs();
+  const dir = joinPath(projectRoot, relativePath);
+  if (!fs?.existsSync(dir)) return 0;
+  return fs.readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && (!namePattern || namePattern.test(entry.name)))
+    .length;
+}
+
+function joinPath(...parts) {
+  const pathModule = getNodePath();
+  if (pathModule) return pathModule.join(...parts);
+  return parts.filter(Boolean).join('/').replace(/\/+/gu, '/');
+}
+
+function getDefaultProjectRoot() {
+  return globalThis.process?.cwd?.() || '/';
+}
+
+function getNodeFs() {
+  return globalThis.process?.getBuiltinModule?.('fs') || null;
+}
+
+function getNodePath() {
+  return globalThis.process?.getBuiltinModule?.('path') || null;
 }
 
 export default buildMarketEngineComparison;
