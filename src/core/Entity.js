@@ -231,6 +231,10 @@ export class EntityClass {
 
 function attachEntityErgonomics(entity, props = {}) {
   const signals = new Map();
+  const cleanupCallbacks = new Set();
+  const trackedTweens = new Set();
+  if (typeof entity.visible !== 'boolean') entity.visible = entity.visible !== false;
+  if (typeof entity.active !== 'boolean') entity.active = entity.active !== false;
   if (typeof entity.on !== 'function') {
     entity.on = (name, listener) => {
       const listeners = signals.get(name) || new Set();
@@ -276,6 +280,51 @@ function attachEntityErgonomics(entity, props = {}) {
   if (typeof entity.getWorldPosition !== 'function') {
     entity.getWorldPosition = () => entity.localToWorld({ x: 0, y: 0 });
   }
+  if (typeof entity.bindTween !== 'function') {
+    entity.bindTween = (tween) => {
+      if (tween) trackedTweens.add(tween);
+      return tween;
+    };
+  }
+  if (typeof entity.unbindTween !== 'function') {
+    entity.unbindTween = (tween) => trackedTweens.delete(tween);
+  }
+  if (typeof entity.listenTo !== 'function') {
+    entity.listenTo = (eventBus, event, handler, options) => {
+      if (!eventBus || typeof eventBus.on !== 'function') {
+        throw createOmniError('Entity', 'listenTo 需要 EventBus 或兼容的 on(event, handler) 对象。');
+      }
+      const off = eventBus.on(event, handler, options);
+      const cleanup = typeof off === 'function'
+        ? off
+        : () => eventBus.off?.(event, handler);
+      cleanupCallbacks.add(cleanup);
+      return () => {
+        cleanupCallbacks.delete(cleanup);
+        cleanup();
+      };
+    };
+  }
+
+  const originalDestroy = typeof entity.destroy === 'function' ? entity.destroy.bind(entity) : null;
+  entity.destroy = (...args) => {
+    if (entity.destroyed) return entity;
+    entity.destroyed = true;
+    entity.active = false;
+    entity.visible = false;
+    for (const tween of trackedTweens) {
+      tween.stop?.();
+      tween.destroy?.();
+    }
+    trackedTweens.clear();
+    for (const cleanup of cleanupCallbacks) cleanup();
+    cleanupCallbacks.clear();
+    destroyPhysicsBody(entity.body);
+    signals.clear();
+    originalDestroy?.(...args);
+    entity.clearListeners?.();
+    return entity;
+  };
 
   const { store } = props;
   const storeKey = entity.storeKey || props.storeKey;
@@ -308,6 +357,14 @@ function attachEntityErgonomics(entity, props = {}) {
     value: position
   });
   syncStore();
+}
+
+function destroyPhysicsBody(body) {
+  if (!body || typeof body !== 'object') return;
+  body.world?.removeBody?.(body);
+  body.world?.remove?.(body);
+  body.remove?.();
+  body.destroy?.();
 }
 
 function createEntitySignalHandler(target, targetEventOrHandler) {

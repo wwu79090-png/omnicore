@@ -53,11 +53,24 @@ export class Loop {
     this.timeJumpWarningIssued = false;
     this.slowFrameCount = 0;
     this.subscribers = new Set();
+    this.renderSubscribers = new Set();
     this.frame = 0;
     this.running = false;
     this.paused = false;
     this.lastTime = 0;
     this.accumulator = 0;
+    this.time = {
+      delta: 0,
+      deltaMs: 0,
+      fixedDelta: this.frameMs / 1000,
+      fixedDeltaMs: this.frameMs,
+      renderDelta: 0,
+      renderDeltaMs: 0,
+      elapsed: 0,
+      elapsedMs: 0,
+      frame: 0,
+      alpha: 0
+    };
     this.frameHandle = null;
     this.boundTick = (time) => this._tick(time);
     this.visibilityHandler = () => {
@@ -69,6 +82,11 @@ export class Loop {
   subscribe(handler) {
     this.subscribers.add(handler);
     return () => this.subscribers.delete(handler);
+  }
+
+  subscribeRender(handler) {
+    this.renderSubscribers.add(handler);
+    return () => this.renderSubscribers.delete(handler);
   }
 
   start() {
@@ -108,14 +126,18 @@ export class Loop {
     if (!this.paused) {
       const delta = this._normalizeDelta(time);
       this.accumulator += delta;
+      this.time.renderDeltaMs = delta;
+      this.time.renderDelta = delta / 1000;
       while (this.accumulator >= this.frameMs) {
         this.frame += 1;
         const frameIndex = this.frame;
+        const alpha = clamp01(this.accumulator / this.frameMs);
         const frameContext = {
           frame: frameIndex,
           time,
           frameMs: this.frameMs,
-          delta: this.frameMs / 1000
+          delta: this.frameMs / 1000,
+          alpha
         };
 
         const tickStartedAt = this._now();
@@ -128,9 +150,10 @@ export class Loop {
 
         if (!frameError) {
           const seconds = this.timeGuard?.clampSeconds?.(this.frameMs / 1000) ?? this.frameMs / 1000;
+          this._updateFixedTime(seconds, frameIndex, alpha);
           for (const handler of this.subscribers) {
             try {
-              handler(seconds, time, this.accumulator / this.frameMs);
+              handler(seconds, time, alpha, frameContext);
             } catch (error) {
               frameError = { error, phase: 'frameUpdate' };
               break;
@@ -172,10 +195,43 @@ export class Loop {
 
         this.accumulator -= this.frameMs;
       }
+      const renderAlpha = clamp01(this.accumulator / this.frameMs);
+      this.time.alpha = renderAlpha;
+      this._emitRender(renderAlpha, time);
       this.lastTime = time;
     }
 
     this._schedule();
+  }
+
+  _updateFixedTime(seconds, frameIndex, alpha) {
+    this.time.delta = seconds;
+    this.time.deltaMs = seconds * 1000;
+    this.time.fixedDelta = seconds;
+    this.time.fixedDeltaMs = seconds * 1000;
+    this.time.elapsed += seconds;
+    this.time.elapsedMs += seconds * 1000;
+    this.time.frame = frameIndex;
+    this.time.alpha = alpha;
+  }
+
+  _emitRender(alpha, time) {
+    if (!this.renderSubscribers.size) return;
+    const frameContext = {
+      frame: this.frame,
+      time,
+      alpha,
+      delta: this.time.delta,
+      renderDelta: this.time.renderDelta
+    };
+    for (const handler of this.renderSubscribers) {
+      try {
+        handler(alpha, time, frameContext);
+      } catch (error) {
+        this._safeCall(this.onFrameError, 'frameRender', error, { ...frameContext, phase: 'frameRender' });
+        break;
+      }
+    }
   }
 
   _safeCall(callback, scope, ...payloads) {
@@ -265,6 +321,11 @@ function normalizeFps(value, fallback) {
   const fps = Number(value);
   if (!Number.isFinite(fps) || fps <= 0) return fallback;
   return Math.min(240, Math.max(15, Math.round(fps)));
+}
+
+function clamp01(value) {
+  if (!Number.isFinite(Number(value))) return 0;
+  return Math.max(0, Math.min(0.999999, Number(value)));
 }
 
 export default Loop;

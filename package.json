@@ -5,13 +5,18 @@
   "author": "杀戮 (Shalu) (QQ 3424636983, WeChat lookkiitylou)",
   "type": "module",
   "main": "src/index.js",
+  "types": "dist/omnicore.d.ts",
   "workspaces": [
     "packages/*",
     "examples/*",
     "tools/*"
   ],
   "exports": {
-    ".": "./src/index.js",
+    ".": {
+      "types": "./dist/omnicore.d.ts",
+      "import": "./src/index.js",
+      "default": "./src/index.js"
+    },
     "./livingworld": "./src/livingworld/index.js",
     "./livingworld.js": "./livingworld.js",
     "./src/livingworld/index.js": "./src/livingworld/index.js",
@@ -21,8 +26,10 @@
   "bin": {
     "omni": "./scripts/omni.js",
     "omni-migrate": "./scripts/omni-migrate.js",
+    "omni-doctor": "./scripts/engine-doctor.js",
     "create-omnicore-app": "./scripts/create-omnicore-app.mjs",
     "create-omnicore-plugin-sdk": "./create-omnicore-plugin-sdk/index.mjs",
+    "omni-debug-server": "./scripts/log-server.js",
     "omnicore-editor": "packages/omnicore-editor/bin/omnicore-editor.cjs"
   },
   "files": [
@@ -50,6 +57,7 @@
     "build": "node scripts/build.js",
     "postbuild": "node scripts/verify-build-output.js",
     "build:prod": "vite build --mode production",
+    "build:release": "node scripts/build-release.js",
     "build:workspace": "node tools/build/index.js",
     "demo:platformer": "node examples/platformer/src/main.js",
     "build:wechat": "node scripts/build-wechat.js",
@@ -72,14 +80,16 @@
     "export:platform": "node scripts/export-platform.js",
     "dist:full": "node scripts/dist-full.js",
     "log-server": "node scripts/log-server.js",
+    "omni-debug-server": "node scripts/log-server.js",
     "snapshot": "node scripts/snapshot.js",
     "launch:dev": "node scripts/launch-dev.js",
     "docs": "node scripts/docs.js",
     "docs:generate": "node scripts/generate-api-docs.js --out docs/api",
-    "docs:build": "npm run docs:generate && npm run docs:api",
+    "docs:build": "node scripts/build-docs-site.js --out docs/api",
     "docs:api": "node scripts/generate-api-docs.js",
     "docs:typedoc": "typedoc --options typedoc.json",
     "audit:api": "node scripts/audit-api-style.js",
+    "audit:api-surface": "node scripts/audit-api-surface.js",
     "audit:asset-conventions": "node scripts/audit-asset-conventions.js",
     "production-ready": "node scripts/production-ready.js",
     "certify:25d": "node scripts/certify-25d-production.js",
@@ -99,7 +109,7 @@
     "benchmark:ci": "node scripts/benchmark-threshold.js",
     "performance:budget": "node scripts/performance-budget.js",
     "screenshots:compare": "node scripts/compare-screenshots.js --baseline tests/e2e/__screenshots__/editor-baseline.png --current \"tests/e2e/__screenshots__/editor-current-*.png\" --threshold 0.05",
-    "test": "vitest run",
+    "test": "vitest run --reporter=default",
     "test:contract": "node scripts/contract-test.js",
     "browsers:install": "playwright install chromium firefox webkit",
     "pretest:e2e": "playwright install chromium firefox webkit",
@@ -114,6 +124,7 @@
     "changelog": "node scripts/update-changelog.js",
     "prepare": "npm run docs:generate && husky",
     "health": "node scripts/health-check.js",
+    "migrate": "node scripts/omni-migrate.js --write",
     "audit:deprecated": "node scripts/audit-deprecated.js",
     "governance:triage": "node scripts/governance-triage.js",
     "marketplace:generate": "node scripts/generate-marketplace-site.js",

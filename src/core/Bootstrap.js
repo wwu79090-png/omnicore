@@ -36,11 +36,59 @@ export const STANDARD_DIRECTORIES = [
  */
 export function normalizeConfig(config = {}) {
   const background = config.background ?? config.backgroundColor ?? DEFAULT_GAME_CONFIG.background;
+  const scaleMode = normalizeScaleMode(config.scaleMode ?? DEFAULT_GAME_CONFIG.scaleMode);
   return {
     ...DEFAULT_GAME_CONFIG,
     ...config,
+    scaleMode,
+    pausedOnHidden: config.pausedOnHidden ?? DEFAULT_GAME_CONFIG.pausedOnHidden ?? true,
     background,
     backgroundColor: background
+  };
+}
+
+/**
+ * Merges platform-specific runtime defaults before Game modules are created.
+ *
+ * @param {object} config User supplied Game config.
+ * @param {object|null} environment Optional pre-detected environment descriptor.
+ * @returns {object} Normalized config with platform defaults applied.
+ */
+export function detectPlatformAndMergeDefaults(config = {}, environment = null) {
+  const env = environment || detectEnvironment(globalThis);
+  const platform = config.platform || env.platform || 'web';
+  const base = normalizeConfig({
+    ...config,
+    platform
+  });
+
+  if (platform === 'wechat' || env.isWechat || env.isMiniGame) {
+    return {
+      ...base,
+      platform: 'wechat',
+      renderer: 'canvas',
+      backend: 'canvas',
+      framerateCap: Math.min(Number(base.framerateCap || 30), 30),
+      vsync: false,
+      pausedOnHidden: base.pausedOnHidden ?? true
+    };
+  }
+
+  if (platform === 'electron' || env.isElectron) {
+    const renderer = config.renderer || config.backend || 'pixi';
+    return {
+      ...base,
+      platform: 'electron',
+      renderer,
+      backend: config.backend || renderer,
+      framerateCap: Number(config.framerateCap || base.framerateCap || 60),
+      pausedOnHidden: base.pausedOnHidden ?? true
+    };
+  }
+
+  return {
+    ...base,
+    pausedOnHidden: base.pausedOnHidden ?? true
   };
 }
 
@@ -75,7 +123,18 @@ export function createCanvas(width, height, providedCanvas) {
   canvas.style = canvas.style || {};
   canvas.style.display = 'block';
   canvas.style.touchAction = 'none';
+  canvas.style.userSelect = 'none';
+  canvas.style.webkitUserSelect = 'none';
   return canvas;
+}
+
+/**
+ * @param {string} scaleMode Requested canvas scale mode.
+ * @returns {string} Normalized scale mode: NONE, FIT, CENTER, or HEIGHT.
+ */
+export function normalizeScaleMode(scaleMode = 'NONE') {
+  const mode = String(scaleMode || 'NONE').toUpperCase();
+  return ['NONE', 'FIT', 'CENTER', 'HEIGHT'].includes(mode) ? mode : 'NONE';
 }
 
 /**

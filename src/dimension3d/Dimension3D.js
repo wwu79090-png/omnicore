@@ -103,6 +103,8 @@ export class Dimension3D {
     shadowGenerator = true,
     coordinateBias = null,
     targetFps = DECORATIVE_RENDER_FPS,
+    heightMap = null,
+    terrain = null,
     ...options
   } = {}) {
     if (backend !== 'three') throw createOmniError('Dimension3D', '3D 背景层仅支持 Three.js。');
@@ -119,6 +121,7 @@ export class Dimension3D {
     this.debug = Boolean(debug);
     this.shadowGenerator = shadowGenerator;
     this.coordinateBias = normalizeCoordinateBias(coordinateBias);
+    this.heightMap = normalizeHeightMap(heightMap || terrain?.heightMap || terrain || null);
     this.engine = null;
     this.renderer = null;
     this.scene = null;
@@ -129,6 +132,8 @@ export class Dimension3D {
     this.pendingModelLoads = [];
     this.modelRoots = new WeakMap();
     this.instanceGroups = new Map();
+    this.gameTime = null;
+    this.particleSystems = [];
     this.raycaster = null;
     this.gltfLoader = null;
     this.THREE = null;
@@ -380,6 +385,16 @@ export class Dimension3D {
     return this;
   }
 
+  bindGameTime(time = null) {
+    this.gameTime = time;
+    return this;
+  }
+
+  registerParticleSystem(system) {
+    if (system && !this.particleSystems.includes(system)) this.particleSystems.push(system);
+    return system;
+  }
+
   startRenderLoop({
     fps = this.renderTargetFps,
     requestAnimationFrame: requestFrame = globalThis.requestAnimationFrame,
@@ -428,8 +443,10 @@ export class Dimension3D {
     return this;
   }
 
-  render(deltaSeconds = 0) {
-    this._updateModels(deltaSeconds);
+  render(deltaSeconds = undefined) {
+    const delta = this._resolveDelta(deltaSeconds);
+    this._updateModels(delta);
+    this._updateParticles(delta);
     this.renderer?.render?.(this.scene, this.camera);
   }
 
@@ -501,6 +518,33 @@ export class Dimension3D {
       root.rotation.z += rotationSpeed.z * deltaSeconds;
       model.mixer?.update?.(deltaSeconds);
     }
+  }
+
+  _updateParticles(deltaSeconds) {
+    if (typeof deltaSeconds !== 'number' || !Number.isFinite(deltaSeconds)) return;
+    const systems = [
+      ...this.particleSystems,
+      ...this.models.map((model) => model.particles || model.particleSystem).filter(Boolean)
+    ];
+    for (const system of systems) system.update?.(deltaSeconds);
+  }
+
+  _resolveDelta(deltaSeconds) {
+    if (Number.isFinite(Number(deltaSeconds))) return Number(deltaSeconds);
+    const value = this.gameTime?.delta ?? this.gameTime?.deltaSeconds ?? 0;
+    return Number.isFinite(Number(value)) ? Number(value) : 0;
+  }
+
+  setHeightMap(heightMap = null) {
+    this.heightMap = normalizeHeightMap(heightMap);
+    return this;
+  }
+
+  getHeightAt(x = 0, y = 0) {
+    const sampled = sampleHeightMap(this.heightMap, x, y);
+    if (Number.isFinite(sampled)) return roundProjectionNumber(sampled);
+    const modelHeight = sampleModelHeightAt(this.models, x, y);
+    return roundProjectionNumber(modelHeight ?? 0);
   }
 
   destroy() {
@@ -1108,6 +1152,8 @@ export class PlaneLayer {
       id: model.id || model.name || 'model',
       kind: '3d',
       depth,
+      transparent: isTransparentModel(model),
+      opacity: readModelOpacity(model),
       position: {
         x: roundProjectionNumber(basePlane.x),
         y: roundProjectionNumber(basePlane.y)
@@ -1150,6 +1196,7 @@ export class PlaneLayer {
       foot,
       band,
       visible,
+      billboard: Boolean(sprite.billboard || sprite.omnicoreBillboard),
       sortDepth: roundProjectionNumber((band.zIndex || 0) + foot.y)
     };
     if (!visible) projection.cullReason = 'outside-viewport';
@@ -1181,6 +1228,8 @@ export class PlaneLayer {
     }));
     const visibleModels = modelProjections.filter((item) => item.visible);
     const visibleSprites = spriteProjections.filter((item) => item.visible);
+    const visibleTransparentModels = visibleModels.filter((item) => item.transparent);
+    const visibleOpaqueModels = visibleModels.filter((item) => !item.transparent);
     const occlusionPairs = [];
     visibleSprites.forEach((spriteProjection) => {
       visibleModels.forEach((modelProjection) => {
@@ -1194,8 +1243,8 @@ export class PlaneLayer {
         });
       });
     });
-    const renderQueue = [
-      ...visibleModels.map((projection) => ({
+    const opaqueRenderQueue = [
+      ...visibleOpaqueModels.map((projection) => ({
         id: projection.id,
         kind: '3d',
         visible: projection.visible,
@@ -1203,6 +1252,8 @@ export class PlaneLayer {
         projection,
         band: projection.band,
         lod: projection.lod,
+        renderPass: 'opaque',
+        depthWrite: true,
         sortDepth: projection.sortDepth,
         sourceIndex: projection.sourceIndex
       })),
@@ -1213,21 +1264,41 @@ export class PlaneLayer {
         sprite: projection.sprite,
         projection,
         band: projection.band,
+        billboard: Boolean(projection.billboard),
         sortDepth: projection.sortDepth,
         sourceIndex: projection.sourceIndex
       }))
     ].sort(compareRenderQueueItem);
+    const transparentRenderQueue = visibleTransparentModels.map((projection) => ({
+      id: projection.id,
+      kind: '3d',
+      visible: projection.visible,
+      model: projection.model,
+      projection,
+      band: projection.band,
+      lod: projection.lod,
+      opacity: projection.opacity,
+      renderPass: 'transparent',
+      depthWrite: false,
+      sortDepth: projection.sortDepth,
+      sourceIndex: projection.sourceIndex
+    })).sort(compareTransparentRenderQueueItem);
+    const renderQueue = [...opaqueRenderQueue, ...transparentRenderQueue];
 
     return {
       modelProjections,
       spriteProjections,
       occlusionPairs,
+      opaqueRenderQueue,
+      transparentRenderQueue,
       renderQueue,
       diagnostics: {
         modelCount: modelSource.length,
         spriteCount: spriteSource.length,
         visibleModels: visibleModels.length,
         culledModels: modelSource.length - visibleModels.length,
+        transparentModels: visibleTransparentModels.length,
+        opaqueModels: visibleOpaqueModels.length,
         visibleSprites: visibleSprites.length,
         culledSprites: spriteSource.length - visibleSprites.length,
         occlusionPairs: occlusionPairs.length,
@@ -1772,6 +1843,100 @@ function compareRenderQueueItem(left, right) {
   const kindDelta = (kindOrder[left.kind] ?? 9) - (kindOrder[right.kind] ?? 9);
   if (kindDelta !== 0) return kindDelta;
   return (left.sourceIndex ?? 0) - (right.sourceIndex ?? 0);
+}
+
+function compareTransparentRenderQueueItem(left, right) {
+  const depthDelta = left.sortDepth - right.sortDepth;
+  if (depthDelta !== 0) return depthDelta;
+  return (left.sourceIndex ?? 0) - (right.sourceIndex ?? 0);
+}
+
+function normalizeHeightMap(heightMap = null) {
+  if (!heightMap) return null;
+  if (typeof heightMap === 'function') return { type: 'function', sample: heightMap };
+  if (Array.isArray(heightMap)) {
+    return normalizeHeightMap({ data: heightMap });
+  }
+  if (typeof heightMap !== 'object') return null;
+  const data = Array.isArray(heightMap.data)
+    ? heightMap.data.map((row) => (Array.isArray(row) ? row.map(Number) : [Number(row)]))
+    : null;
+  if (!data?.length) return null;
+  const origin = heightMap.origin || {};
+  const cellSize = Number(heightMap.cellSize || 1);
+  return {
+    type: 'grid',
+    origin: {
+      x: Number(origin.x || heightMap.x || 0),
+      y: Number(origin.y || heightMap.y || 0)
+    },
+    cellWidth: Math.max(0.000001, Number(heightMap.cellWidth || cellSize || 1)),
+    cellHeight: Math.max(0.000001, Number(heightMap.cellHeight || cellSize || 1)),
+    data
+  };
+}
+
+function sampleHeightMap(heightMap, x = 0, y = 0) {
+  if (!heightMap) return null;
+  if (heightMap.type === 'function') return Number(heightMap.sample(Number(x || 0), Number(y || 0)));
+  if (heightMap.type !== 'grid') return null;
+  const fx = (Number(x || 0) - heightMap.origin.x) / heightMap.cellWidth;
+  const fy = (Number(y || 0) - heightMap.origin.y) / heightMap.cellHeight;
+  const maxY = heightMap.data.length - 1;
+  const maxX = Math.max(0, (heightMap.data[0]?.length || 1) - 1);
+  const x0 = clampNumber(Math.floor(fx), 0, maxX);
+  const y0 = clampNumber(Math.floor(fy), 0, maxY);
+  const x1 = clampNumber(x0 + 1, 0, maxX);
+  const y1 = clampNumber(y0 + 1, 0, maxY);
+  const tx = clampNumber(fx - Math.floor(fx), 0, 1);
+  const ty = clampNumber(fy - Math.floor(fy), 0, 1);
+  const h00 = Number(heightMap.data[y0]?.[x0] || 0);
+  const h10 = Number(heightMap.data[y0]?.[x1] ?? h00);
+  const h01 = Number(heightMap.data[y1]?.[x0] ?? h00);
+  const h11 = Number(heightMap.data[y1]?.[x1] ?? h10);
+  const top = h00 + (h10 - h00) * tx;
+  const bottom = h01 + (h11 - h01) * tx;
+  return top + (bottom - top) * ty;
+}
+
+function sampleModelHeightAt(models = [], x = 0, y = 0) {
+  for (const model of models || []) {
+    const depthMap = normalizeDepthMap(model?.depthMap);
+    if (!Number.isFinite(Number(depthMap?.height))) continue;
+    const collider = normalizeDepthMapCollider(depthMap.collider || model.omnicoreProjectedAabb || model);
+    if (
+      Number(x) >= collider.minX
+      && Number(x) <= collider.maxX
+      && Number(y) >= collider.minY
+      && Number(y) <= collider.maxY
+    ) {
+      return Number(depthMap.height);
+    }
+  }
+  return null;
+}
+
+function isTransparentModel(model = {}) {
+  if (model.transparent === true || model.alphaBlend === true) return true;
+  const material = model.material || model.materials;
+  if (Array.isArray(material)) return material.some(isTransparentModelMaterial);
+  return isTransparentModelMaterial(material);
+}
+
+function isTransparentModelMaterial(material = {}) {
+  if (!material || typeof material !== 'object') return false;
+  return material.transparent === true
+    || material.alphaBlend === true
+    || Number(material.opacity ?? 1) < 1
+    || Number(material.alpha ?? 1) < 1;
+}
+
+function readModelOpacity(model = {}) {
+  if (Number.isFinite(Number(model.opacity))) return clampNumber(Number(model.opacity), 0, 1);
+  const material = Array.isArray(model.material) ? model.material.find(isTransparentModelMaterial) : model.material;
+  if (Number.isFinite(Number(material?.opacity))) return clampNumber(Number(material.opacity), 0, 1);
+  if (Number.isFinite(Number(material?.alpha))) return clampNumber(Number(material.alpha), 0, 1);
+  return isTransparentModel(model) ? 0.5 : 1;
 }
 
 function clampNumber(value, min = -Infinity, max = Infinity) {

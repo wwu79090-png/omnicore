@@ -240,8 +240,8 @@ function zeroBaselineRegression(direction, baseline, current) {
 }
 
 function drawCallsPerFrame(result = {}) {
-  if (Number.isFinite(result.drawCallsPerFrame)) return result.drawCallsPerFrame;
   if (Number.isFinite(result.logicalDrawCallsPerFrame)) return result.logicalDrawCallsPerFrame;
+  if (Number.isFinite(result.drawCallsPerFrame)) return result.drawCallsPerFrame;
   if (Number.isFinite(result.drawCalls)) return result.drawCalls;
   if (Number.isFinite(result.totalDrawCalls) && Number.isFinite(result.frames) && result.frames > 0) {
     return Number((result.totalDrawCalls / result.frames).toFixed(2));

@@ -27,6 +27,7 @@ export function createEngineDoctorReport({
 } = {}) {
   const normalizedRoot = path.resolve(projectRoot);
   const packageSummary = readPackageSummary(normalizedRoot);
+  const health = createHealthReport(normalizedRoot, packageSummary);
   const marketReadiness = buildMarketReadiness({ projectRoot: normalizedRoot, packageSummary });
   const non3DMarketScorecard = buildNon3DMarketScorecard({ projectRoot: normalizedRoot, packageSummary });
   const marketCompetitiveness = buildMarketCompetitivenessScorecard({ projectRoot: normalizedRoot, packageSummary });
@@ -52,6 +53,7 @@ export function createEngineDoctorReport({
     generatedAt,
     ready: nextActions.length === 0,
     score,
+    health,
     categories,
     improvementBacklog: {
       summary: engineImprovementPlan.summary,
@@ -77,6 +79,12 @@ export function writeEngineDoctorMarkdown(report, outFile) {
   ];
   for (const [name, category] of Object.entries(report.categories)) {
     lines.push(`| ${name} | ${category.ok ? 'ok' : category.severity || 'error'} | ${category.score ?? 0} | ${category.message || ''} |`);
+  }
+  if (report.health) {
+    lines.push('', '## Health Report', '', '| Area | Status | Detail |', '| --- | --- | --- |');
+    for (const [name, item] of Object.entries(report.health)) {
+      lines.push(`| ${name} | ${item.ok ? 'ok' : item.severity || 'warning'} | ${item.message || ''} |`);
+    }
   }
   if (report.nextActions.length) {
     lines.push('', '## Next Actions');
@@ -106,11 +114,79 @@ function readPackageSummary(projectRoot) {
     return {
       name: json.name || null,
       version: json.version || null,
-      scripts: json.scripts || {}
+      scripts: json.scripts || {},
+      dependencies: json.dependencies || {},
+      devDependencies: json.devDependencies || {},
+      packageManager: json.packageManager || null
     };
   } catch {
     return { scripts: {} };
   }
+}
+
+function createHealthReport(projectRoot, packageSummary) {
+  return {
+    dependencies: evaluateDependencyHealth(packageSummary),
+    environment: evaluateEnvironmentHealth(),
+    resources: evaluateResourceHealth(projectRoot)
+  };
+}
+
+function evaluateDependencyHealth(packageSummary = {}) {
+  const dependencies = packageSummary.dependencies || {};
+  const devDependencies = packageSummary.devDependencies || {};
+  const dependencyCount = Object.keys(dependencies).length;
+  const devDependencyCount = Object.keys(devDependencies).length;
+  const ok = dependencyCount + devDependencyCount > 0;
+  return {
+    ok,
+    severity: ok ? 'info' : 'warning',
+    dependencyCount,
+    devDependencyCount,
+    packageManager: packageSummary.packageManager || 'npm',
+    message: ok
+      ? `${dependencyCount} runtime dependencies and ${devDependencyCount} dev dependencies declared`
+      : 'package.json has no dependencies or devDependencies'
+  };
+}
+
+function evaluateEnvironmentHealth() {
+  const { node } = process.versions;
+  const major = Number(node.split('.')[0]);
+  const ok = Number.isFinite(major) && major >= 18;
+  return {
+    ok,
+    severity: ok ? 'info' : 'warning',
+    node,
+    platform: process.platform,
+    arch: process.arch,
+    message: ok
+      ? `Node ${node} on ${process.platform}/${process.arch}`
+      : `Node ${node} is below the recommended 18.x runtime`
+  };
+}
+
+function evaluateResourceHealth(projectRoot) {
+  const assetRoot = path.join(projectRoot, 'assets');
+  const manifestCandidates = [
+    path.join(projectRoot, 'asset-manifest.json'),
+    path.join(projectRoot, 'assets', 'sprites', 'default', 'default-atlas.json')
+  ];
+  const assetFiles = existsSync(assetRoot) ? listFiles(assetRoot).length : 0;
+  const hasManifest = manifestCandidates.some((file) => existsSync(file));
+  const missing = [];
+  if (assetFiles === 0) missing.push('assets');
+  if (!hasManifest) missing.push('asset-manifest');
+  return {
+    ok: missing.length === 0 || assetFiles > 0,
+    severity: missing.length === 0 ? 'info' : 'warning',
+    assetFiles,
+    hasManifest,
+    missing: assetFiles > 0 ? missing.filter((item) => item !== 'assets') : missing,
+    message: assetFiles > 0
+      ? `${assetFiles} asset files found${hasManifest ? ' with manifest evidence' : ''}`
+      : 'no asset files found'
+  };
 }
 
 function evaluateReleaseGates(marketReadiness) {

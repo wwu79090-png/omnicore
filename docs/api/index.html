@@ -14,6 +14,7 @@
   <body>
     <main>
       <h1>OmniCore API</h1>
+      <p>JSDoc powered HTML documentation site for OmniCore public modules.</p>
       <p>Generated at 2026-06-20T00:00:00.000Z</p>
           <article>
       <h2>addons/Ad.js</h2>
@@ -91,6 +92,11 @@
       <code>AnimationStateMachine</code>
     </article>
     <article>
+      <h2>assets/AssetManifestGraph.js</h2>
+      <p></p>
+      <code>AssetManifestGraph</code>
+    </article>
+    <article>
       <h2>assets/AssetPatchManager.js</h2>
       <p>Runtime resource patch applier for OTA asset overlays. @example const patches = new AssetPatchManager(); await patches.apply('/patches/v2.patch'); patches.resolve('hero.png');</p>
       <code>AssetPatchManager</code>
@@ -114,6 +120,11 @@
       <h2>assets/ResourceHMRClient.js</h2>
       <p>WebSocket-style resource hot-module replacement receiver. @example const hmr = new ResourceHMRClient({ patchManager }); hmr.connect(new WebSocket('/assets-hmr'));</p>
       <code>ResourceHMRClient</code>
+    </article>
+    <article>
+      <h2>assets/ResourceOwnershipGraph.js</h2>
+      <p></p>
+      <code>ResourceOwnershipGraph</code>
     </article>
     <article>
       <h2>audio/AudioEditor.js</h2>
@@ -161,6 +172,11 @@
       <code>Camera</code>
     </article>
     <article>
+      <h2>character/CharacterRig.js</h2>
+      <p></p>
+      <code>CharacterRig</code>
+    </article>
+    <article>
       <h2>color/Color.js</h2>
       <p></p>
       <code>from</code>
@@ -203,17 +219,37 @@
     <article>
       <h2>config/defaults.js</h2>
       <p></p>
-      <code>DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, DEFAULT_RENDERER_BACKEND, DEFAULT_PLATFORM, DEFAULT_BACKGROUND_COLOR, DEFAULT_ASSET_MANIFEST, DEFAULT_AUTO_RESIZE, DEFAULT_AUTO_START, DEFAULT_AUTO_ATTACH, DEFAULT_DEBUG, DEFAULT_ENGINE_VERSION, DEFAULT_DIMENSION3D_BACKEND, DEFAULT_LOADER_TIMEOUT_MS, DEFAULT_LOADER_RETRIES, DEFAULT_LOOP_FPS, DEFAULT_MICROKERNEL_RENDERER, DEFAULT_ASSET_DIRECTORIES, DEFAULT_GAME_CONFIG, DEFAULT_RENDERER_CONFIG</code>
+      <code>DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, DEFAULT_RENDERER_BACKEND, DEFAULT_PLATFORM, DEFAULT_BACKGROUND_COLOR, DEFAULT_ASSET_MANIFEST, DEFAULT_AUTO_RESIZE, DEFAULT_AUTO_START, DEFAULT_AUTO_ATTACH, DEFAULT_SCALE_MODE, DEFAULT_DEBUG, DEFAULT_ENGINE_VERSION, DEFAULT_DIMENSION3D_BACKEND, DEFAULT_LOADER_TIMEOUT_MS, DEFAULT_LOADER_RETRIES, DEFAULT_LOOP_FPS, DEFAULT_MICROKERNEL_RENDERER, DEFAULT_ASSET_DIRECTORIES, DEFAULT_GAME_CONFIG, DEFAULT_RENDERER_CONFIG</code>
+    </article>
+    <article>
+      <h2>core/ApiSurface.js</h2>
+      <p></p>
+      <code>API_TIERS, DEFAULT_API_SURFACE, ApiSurface, buildApiSurface, diffApiSurface, assertNoBreakingApiChanges</code>
+    </article>
+    <article>
+      <h2>core/AssetCache.js</h2>
+      <p></p>
+      <code>AssetCache</code>
     </article>
     <article>
       <h2>core/Bootstrap.js</h2>
       <p>Bootstrapping helpers for standard OmniCore configuration and DOM attachment. @example const config = normalizeConfig({ width: 960, height: 540, platform: 'web' }); const container = resolveContainer(config.container);</p>
-      <code>STANDARD_DIRECTORIES, normalizeConfig, hasDocument, resolveContainer, createCanvas, removeContainerCanvases, createNoopCanvasContext, detectEnvironment, safeInitialize</code>
+      <code>STANDARD_DIRECTORIES, normalizeConfig, detectPlatformAndMergeDefaults, hasDocument, resolveContainer, createCanvas, normalizeScaleMode, removeContainerCanvases, createNoopCanvasContext, detectEnvironment, safeInitialize</code>
+    </article>
+    <article>
+      <h2>core/CrashHandler.js</h2>
+      <p></p>
+      <code>CrashHandler</code>
     </article>
     <article>
       <h2>core/Deprecation.js</h2>
       <p>Deprecated API registry and forwarding helpers. @example await Deprecation.forward({ api: 'OmniCore.Backend.use', since: '0.2.0', removeIn: '1.0.0', replacement: 'OmniCore.Backend.switch', target: () =&gt; OmniCore.Backend.switch('canvas') });</p>
       <code>DEPRECATED_APIS, Deprecation</code>
+    </article>
+    <article>
+      <h2>core/DeterministicReplay.js</h2>
+      <p></p>
+      <code>SeededRandom, DeterministicReplay</code>
     </article>
     <article>
       <h2>core/DualSpatialIndex.js</h2>
@@ -261,6 +297,11 @@
       <code>EventListenerRegistry, DEFAULT_EVENT_LISTENER_REGISTRY, attachEntityEventTracking, getEntityListenerCount, cleanupEntityListeners</code>
     </article>
     <article>
+      <h2>core/Hook.js</h2>
+      <p></p>
+      <code>Hook, GlobalHook</code>
+    </article>
+    <article>
       <h2>core/Logger.js</h2>
       <p>Namespaced logger with debug gating. @example const logger = new Logger({ debug: true }); logger.info('renderer', 'Pixi renderer initialized');</p>
       <code>Logger</code>
@@ -278,12 +319,27 @@
     <article>
       <h2>core/OmniError.js</h2>
       <p></p>
-      <code>formatOmniMessage, OmniError, createOmniError, toOmniError, normalizeNativeError, warnMessage, errorMessage</code>
+      <code>formatOmniMessage, OmniError, createOmniError, toOmniError, normalizeNativeError, explainNativeError, captureOmniError, warnMessage, errorMessage</code>
+    </article>
+    <article>
+      <h2>core/Plugin.js</h2>
+      <p></p>
+      <code>PluginRegistry, Plugin</code>
+    </article>
+    <article>
+      <h2>core/PluginPermissionSandbox.js</h2>
+      <p></p>
+      <code>PLUGIN_PERMISSION_SCOPES, PluginPermissionSandbox</code>
     </article>
     <article>
       <h2>core/PrefabRegistry.js</h2>
       <p></p>
       <code>PrefabRegistry</code>
+    </article>
+    <article>
+      <h2>core/RuntimeErrorBoundary.js</h2>
+      <p></p>
+      <code>OmniCoreErrorBoundary</code>
     </article>
     <article>
       <h2>core/Sandbox.js</h2>
@@ -536,6 +592,11 @@
       <code>EditorPluginCascade</code>
     </article>
     <article>
+      <h2>editor/EditorProtocol.js</h2>
+      <p></p>
+      <code>EDITOR_PROTOCOL_VERSION, EditorProtocol</code>
+    </article>
+    <article>
       <h2>editor/ParticleEditorPanel.js</h2>
       <p>Debug-only particle parameter editor.</p>
       <code>ParticleEditorPanel</code>
@@ -748,7 +809,7 @@
     <article>
       <h2>math/MathUtils.js</h2>
       <p></p>
-      <code>distance, isInRadius</code>
+      <code>distance, isInRadius, randomBetween, lerp, angle, random</code>
     </article>
     <article>
       <h2>math/Rect.js</h2>
@@ -784,6 +845,11 @@
       <h2>navigation/NavigationAgent2D.js</h2>
       <p></p>
       <code>NavigationAgent2D</code>
+    </article>
+    <article>
+      <h2>net/MultiplayerSession.js</h2>
+      <p></p>
+      <code>MultiplayerSession</code>
     </article>
     <article>
       <h2>net/NetManager.js</h2>
@@ -856,6 +922,11 @@
       <code>FrameBudgetScheduler</code>
     </article>
     <article>
+      <h2>physics/ArcadeAdapter.js</h2>
+      <p>Phaser Arcade Physics style contact adapter with AABB checks.</p>
+      <code>ArcadeAdapter</code>
+    </article>
+    <article>
       <h2>physics/backends/Box2DWasmBackend.js</h2>
       <p></p>
       <code>Box2DWasmBackend</code>
@@ -884,6 +955,11 @@
       <h2>physics/CollisionMask.js</h2>
       <p>Collision category and mask helpers. @example CollisionMask.filter('bullet', 'enemy');</p>
       <code>CATEGORY_BITS, CollisionMask</code>
+    </article>
+    <article>
+      <h2>physics/Physics.js</h2>
+      <p>@namespace Physics</p>
+      <code>Physics</code>
     </article>
     <article>
       <h2>physics/PhysicsCollisionSync.js</h2>
@@ -1016,9 +1092,19 @@
       <code>WebGPURenderer, createWebGPUComputeParticleDescriptor, collectDrawInstructions, buildGPUBatches</code>
     </article>
     <article>
+      <h2>scene/Container.js</h2>
+      <p>Display container with child hierarchy and world-space position helpers.</p>
+      <code>Container</code>
+    </article>
+    <article>
       <h2>scene/Scene.js</h2>
       <p>Scene and Sprite primitives. Scene mirrors Phaser's small lifecycle surface while keeping plugins explicit. Sprite supports Cocos-style `addComponent()` without bringing an editor runtime. @example const scene = new Scene('play'); const hero = scene.add(new Sprite('hero.png')); hero.addComponent(class Health { constructor(owner) { this.owner = owner; } });</p>
       <code>Sprite, Scene</code>
+    </article>
+    <article>
+      <h2>scene/SceneLifecycle.js</h2>
+      <p></p>
+      <code>SCENE_LIFECYCLE_ORDER, SceneLifecycle</code>
     </article>
     <article>
       <h2>scene/SceneManager.js</h2>
@@ -1034,6 +1120,11 @@
       <h2>store/Store.js</h2>
       <p>Nano Stores based global state registry. Renderer backends inject their current identity here so cross-backend state is retained during experimental renderer switching. @example const store = new Store({ score: 0 }); store.subscribe('score', (score) =&gt; uiScore.text = String(score)); store.injectBackend('pixi');</p>
       <code>Store</code>
+    </article>
+    <article>
+      <h2>text/BitmapText.js</h2>
+      <p>AngelCode BMFont bitmap text renderer for Phaser migration.</p>
+      <code>BitmapText</code>
     </article>
     <article>
       <h2>text/Text.js</h2>
@@ -1109,6 +1200,11 @@
       <h2>ui/UIElement.js</h2>
       <p>Native Canvas UI primitive. UI elements are declared as objects and rendered by Canvas; OmniCore never generates UI source code. @example const panel = new UIElement({ x: 20, y: 20, width: 200, height: 64, zIndex: 2 }); panel.on('click', () =&gt; console.log('clicked'));</p>
       <code>UIElement, sortByZIndex</code>
+    </article>
+    <article>
+      <h2>ui/UIFocusManager.js</h2>
+      <p></p>
+      <code>UIFocusManager</code>
     </article>
     <article>
       <h2>ui/UIRenderManager.js</h2>

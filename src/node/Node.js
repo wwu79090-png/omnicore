@@ -14,6 +14,7 @@ export class Node {
     type = 'node',
     x = 0,
     y = 0,
+    rotation = 0,
     zIndex = 0,
     visible = true,
     props = {},
@@ -23,6 +24,7 @@ export class Node {
     this.name = name;
     this.x = x;
     this.y = y;
+    this.rotation = rotation;
     this.zIndex = zIndex;
     this.visible = visible;
     this.props = { ...props };
@@ -116,6 +118,16 @@ export class Node {
     return this.localToWorld({ x: 0, y: 0 });
   }
 
+  getWorldRotation() {
+    let rotation = 0;
+    let current = this;
+    while (current) {
+      rotation += Number(current.rotation || 0);
+      current = current.parent;
+    }
+    return rotation;
+  }
+
   clearListeners() {
     for (const handlers of this.__listeners.values()) {
       handlers.clear();
@@ -167,6 +179,7 @@ export class Node {
       name: this.name,
       x: this.x,
       y: this.y,
+      rotation: this.rotation,
       zIndex: this.zIndex,
       visible: this.visible,
       props: { ...this.props },

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { create3DAssetReport, MODEL_COMPLEXITY_WARNING } from './check-3d-assets.js';
@@ -49,7 +50,173 @@ export function runBuild(argv = process.argv.slice(2)) {
   });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exitCode = result.status || 1;
+  if (result.status === 0) generateTypeDeclarations(options.root);
   return { ok: result.status === 0, status: result.status };
+}
+
+export function generateTypeDeclarations(root = process.cwd()) {
+  const distDir = path.resolve(root, 'dist');
+  mkdirSync(distDir, { recursive: true });
+  writeFileSync(path.join(distDir, 'omnicore.d.ts'), createTypeDeclarationSource(), 'utf8');
+  writeFileSync(path.join(distDir, 'omnicore-core.d.ts'), createTypeDeclarationSource(), 'utf8');
+}
+
+export function createTypeDeclarationSource() {
+  return `export type HookHandler<T = unknown> = (payload: T, context?: Record<string, unknown>) => unknown;
+
+export class Hook {
+  on<T = unknown>(name: string, handler: HookHandler<T>): () => boolean;
+  once<T = unknown>(name: string, handler: HookHandler<T>): () => boolean;
+  off<T = unknown>(name: string, handler: HookHandler<T>): boolean;
+  emit<T = unknown>(name: string, payload?: T, context?: Record<string, unknown>): unknown[];
+  emitAsync<T = unknown>(name: string, payload?: T, context?: Record<string, unknown>): Promise<unknown[]>;
+  clear(name?: string | null): void;
+}
+
+export interface OmniPlugin {
+  name: string;
+  version?: string;
+  install(api: typeof OmniCore, options?: Record<string, unknown>): unknown | Promise<unknown>;
+  uninstall?(api: typeof OmniCore, options?: Record<string, unknown>): unknown | Promise<unknown>;
+}
+
+export interface PluginRegistry {
+  create(plugin: OmniPlugin): Readonly<OmniPlugin>;
+  register(plugin: OmniPlugin): OmniPlugin;
+  use(pluginOrName: OmniPlugin | string, api: typeof OmniCore, options?: Record<string, unknown>): Promise<OmniPlugin>;
+  unuse(name: string, api: typeof OmniCore, options?: Record<string, unknown>): Promise<OmniPlugin | null>;
+  has(name: string): boolean;
+  get(name: string): OmniPlugin | null;
+  list(): OmniPlugin[];
+}
+
+export const Plugin: PluginRegistry & {
+  isPlugin(plugin: unknown): plugin is OmniPlugin;
+};
+
+export interface CrashReport {
+  id: string;
+  timestamp: string;
+  error: { name: string; message: string; stack: string };
+  context: Record<string, unknown>;
+  runtime: Record<string, unknown>;
+  game: Record<string, unknown>;
+  scene: Record<string, unknown>;
+  store: Record<string, unknown>;
+  metrics: Record<string, unknown>;
+}
+
+export class CrashHandler {
+  constructor(options?: {
+    game?: unknown;
+    store?: unknown;
+    scene?: unknown;
+    metrics?: unknown;
+    onReport?: (report: CrashReport) => void;
+    autoInstall?: boolean;
+    target?: EventTarget;
+  });
+  install(target?: EventTarget): this;
+  uninstall(): this;
+  capture(error: unknown, context?: Record<string, unknown>): CrashReport;
+  latest(): CrashReport | null;
+}
+
+export class Game {
+  constructor(config?: Record<string, unknown>);
+  init(): Promise<this>;
+  pool: { get(type: string): unknown; release(item: unknown): void };
+}
+
+export class Scene {
+  constructor(name?: string);
+}
+
+export class Sprite {
+  constructor(texture?: string, options?: Record<string, unknown>);
+  slice(top: number, bottom: number, left: number, right: number): this;
+  setTint(color: string | number): this;
+  clearTint(): this;
+  setMask(mask: unknown): this;
+  setCrop(x: number, y: number, width: number, height: number): this;
+}
+
+export class Container {
+  constructor(options?: Record<string, unknown>);
+  addChild(child: unknown): unknown;
+  add(child: unknown): unknown;
+  removeChild(childOrName: unknown): unknown;
+  getWorldPosition(): { x: number; y: number };
+  getWorldRotation(): number;
+}
+
+export class TileSprite extends Sprite {
+  constructor(texture?: string, options?: Record<string, unknown>);
+}
+
+export class Graphics {
+  constructor(options?: Record<string, unknown>);
+  line(x1: number, y1: number, x2: number, y2: number): this;
+  triangle(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number): this;
+  ring(x: number, y: number, outerRadius: number, innerRadius?: number, startAngle?: number, endAngle?: number, anticlockwise?: boolean): this;
+  arc(x: number, y: number, radius: number, startAngle?: number, endAngle?: number, anticlockwise?: boolean): this;
+  ellipse(x: number, y: number, radiusX: number, radiusY: number, rotation?: number, startAngle?: number, endAngle?: number, anticlockwise?: boolean): this;
+  polygon(points?: Array<{ x: number; y: number }>): this;
+  bezierCurveTo(cp1x: number, cp1y: number, cp2x: number, cp2y: number, x: number, y: number): this;
+  quadraticCurveTo(cpx: number, cpy: number, x: number, y: number): this;
+  gradient(type: 'linear' | 'radial' | 'conic' | string, bounds: Record<string, number>, colorStops: unknown[]): this;
+  beginMask(): this;
+  endMask(): this;
+  clip(rect: { x: number; y: number; width: number; height: number }): this;
+  bounds(): { x: number; y: number; width: number; height: number };
+  containsPoint(x: number, y: number): boolean;
+  intersects(target: unknown): boolean;
+}
+
+export class Tween {
+  static to(target: unknown, config?: Record<string, unknown>): Tween;
+  static fromTo(target: unknown, from?: Record<string, number>, to?: Record<string, number>, config?: Record<string, unknown>): Tween;
+  constructor(target: unknown, config?: Record<string, unknown>);
+  play(): this;
+  start(): this;
+  pause(): this;
+  resume(): this;
+  restart(): this;
+  stop(): this;
+  onUpdate(handler: (tween: this) => void): this;
+  onComplete(handler: (tween: this) => void): this;
+  update(deltaMs: number): this;
+}
+
+export class Store {
+  static set(key: string, value: unknown): unknown;
+}
+
+export class Entity {
+  static create(options?: Record<string, unknown>): Entity;
+}
+
+export interface OmniCoreNamespace {
+  Game: typeof Game;
+  Scene: typeof Scene;
+  Sprite: typeof Sprite;
+  Container: typeof Container;
+  TileSprite: typeof TileSprite;
+  Graphics: typeof Graphics;
+  Tween: typeof Tween;
+  Store: typeof Store;
+  Entity: typeof Entity;
+  Hook: Hook;
+  HookClass: typeof Hook;
+  Plugin: typeof Plugin;
+  CrashHandler: typeof CrashHandler;
+  [key: string]: unknown;
+}
+
+declare const OmniCore: OmniCoreNamespace;
+export default OmniCore;
+export { OmniCore };
+`;
 }
 
 function isCli() {

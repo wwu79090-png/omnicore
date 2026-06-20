@@ -58,7 +58,7 @@ describe('release automation workflows', () => {
     const workflow = readFileSync('.github/workflows/docs-sync.yml', 'utf8');
 
     expect(packageJson.scripts['docs:generate']).toBe('node scripts/generate-api-docs.js --out docs/api');
-    expect(packageJson.scripts['docs:build']).toBe('npm run docs:generate && npm run docs:api');
+    expect(packageJson.scripts['docs:build']).toBe('node scripts/build-docs-site.js --out docs/api');
     expect(packageJson.scripts.prepare).toContain('npm run docs:generate');
     expect(packageJson.scripts.prebuild).toContain('npm run audit:deprecated');
     expect(workflow).toContain('docs/api');

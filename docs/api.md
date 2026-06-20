@@ -15,6 +15,15 @@ Generated: 2026-06-20T00:00:00.000Z
 @returns {typeof DEFAULT_GAME_CONFIG & Record<string, *>} Normalized runtime config.
 /
 
+### detectPlatformAndMergeDefaults
+
+Merges platform-specific runtime defaults before Game modules are created.
+
+@param {object} config User supplied Game config.
+@param {object|null} environment Optional pre-detected environment descriptor.
+@returns {object} Normalized config with platform defaults applied.
+/
+
 ### hasDocument
 
 @returns {boolean} Whether a browser-like document is available.
@@ -32,6 +41,12 @@ Generated: 2026-06-20T00:00:00.000Z
 @param {number} height Canvas height in pixels.
 @param {HTMLCanvasElement|null} providedCanvas Existing canvas to reuse.
 @returns {HTMLCanvasElement|{style: object}} Prepared canvas-like object.
+/
+
+### normalizeScaleMode
+
+@param {string} scaleMode Requested canvas scale mode.
+@returns {string} Normalized scale mode: NONE, FIT, CENTER, or HEIGHT.
 /
 
 ### removeContainerCanvases
@@ -159,6 +174,26 @@ Generated: 2026-06-20T00:00:00.000Z
    * @param {string} key State key.
    * @param {*} value Next value.
    * @returns {*} Stored value after emergency patching.
+
+### beginFrame
+
+/**
+   * @returns {Store} Store instance for chaining staged writes.
+
+### hasPendingCommits
+
+/**
+   * @returns {boolean} Whether staged writes are waiting for commit.
+
+### commit
+
+/**
+   * @returns {Record<string, *>} Snapshot after staged writes are committed.
+
+### rollback
+
+/**
+   * @returns {Record<string, *>} Snapshot after staged writes are discarded.
 
 ### derive
 

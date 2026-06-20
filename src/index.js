@@ -1,6 +1,26 @@
 import { Backend, BackendManager, Game as CoreGame, StorageManager, loadPhysics } from './core/OmniCore.js';
+import AssetCache from './core/AssetCache.js';
 import Deprecation from './core/Deprecation.js';
-import { createOmniError } from './core/OmniError.js';
+import {
+  Error as OmniCoreErrorTools,
+  OmniError,
+  createOmniError,
+  formatOmniMessage,
+  toOmniError
+} from './core/OmniError.js';
+import ApiSurface, {
+  API_TIERS,
+  DEFAULT_API_SURFACE,
+  assertNoBreakingApiChanges,
+  buildApiSurface,
+  diffApiSurface
+} from './core/ApiSurface.js';
+import OmniCoreErrorBoundary from './core/RuntimeErrorBoundary.js';
+import PluginPermissionSandbox, { PLUGIN_PERMISSION_SCOPES } from './core/PluginPermissionSandbox.js';
+import Hook, { GlobalHook } from './core/Hook.js';
+import Plugin, { PluginRegistry } from './core/Plugin.js';
+import CrashHandler from './core/CrashHandler.js';
+import DeterministicReplay, { SeededRandom } from './core/DeterministicReplay.js';
 import EventBus from './core/EventBus.js';
 import Sandbox, { Bus, SandboxBus } from './core/Sandbox.js';
 import Task, { TaskManager } from './core/TaskManager.js';
@@ -13,10 +33,14 @@ import { FixedMemoryPool, Pool, PoolRegistry } from './core/MemoryPool.js';
 import Animation from './animation/Animation.js';
 import AnimationManager from './animation/AnimationManager.js';
 import Camera from './camera/Camera.js';
+import CharacterRig from './character/CharacterRig.js';
 import Node from './node/Node.js';
+import Container from './scene/Container.js';
 import { Scene, Sprite } from './scene/Scene.js';
+import SceneLifecycle, { SCENE_LIFECYCLE_ORDER } from './scene/SceneLifecycle.js';
 import TileSprite from './scene/TileSprite.js';
 import Text from './text/Text.js';
+import BitmapText from './text/BitmapText.js';
 import SceneManager from './scene/SceneManager.js';
 import InputManager from './input/InputManager.js';
 import Tween, { TweenSequence } from './tween/Tween.js';
@@ -24,7 +48,14 @@ import Timer from './timer/Timer.js';
 import Vec2 from './math/Vec2.js';
 import Rect from './math/Rect.js';
 import Easing from './math/Easing.js';
-import { distance, isInRadius } from './math/MathUtils.js';
+import {
+  angle,
+  distance,
+  isInRadius,
+  lerp,
+  random,
+  randomBetween
+} from './math/MathUtils.js';
 import Store from './store/Store.js';
 import Loader from './loader/Loader.js';
 import AssetLoader from './loader/AssetLoader.js';
@@ -67,6 +98,7 @@ import UIButton from './ui/UIButton.js';
 import UITextInput from './ui/UITextInput.js';
 import UIScrollView from './ui/UIScrollView.js';
 import HtmlOverlay from './ui/HtmlOverlay.js';
+import UIFocusManager from './ui/UIFocusManager.js';
 import UIStateMachine from './ui/UIStateMachine.js';
 import { layoutRichText } from './ui/RichText.js';
 import PrefabManager from './prefab/PrefabManager.js';
@@ -98,6 +130,7 @@ import AudioEditor from './audio/AudioEditor.js';
 import NetManager from './net/NetManager.js';
 import { fetchWithTimeout } from './net/fetchWithTimeout.js';
 import NetRoom from './net/Room.js';
+import MultiplayerSession from './net/MultiplayerSession.js';
 import RealtimeConnection from './net/RealtimeConnection.js';
 import WebTransportConnection from './net/WebTransportConnection.js';
 import NavigationAgent2D from './navigation/NavigationAgent2D.js';
@@ -142,12 +175,13 @@ import EditorPluginCascade from './editor/EditorPluginCascade.js';
 import PluginRecommendationEngine from './editor/PluginRecommendationEngine.js';
 import PlaySession from './editor/PlaySession.js';
 import RuntimeLiveSyncBridge from './editor/RuntimeLiveSyncBridge.js';
+import EditorProtocol, { EDITOR_PROTOCOL_VERSION } from './editor/EditorProtocol.js';
 import AuthManager from './compliance/AuthManager.js';
 import License from './compliance/License.js';
 import PlatformAdapter from './platform/PlatformAdapter.js';
 import ElectronNativeBridge from './platform/ElectronNativeBridge.js';
 import Dimension3D from './dimension3d/Dimension3D.js';
-import { detectEnvironment, safeInitialize } from './core/Bootstrap.js';
+import { detectEnvironment, detectPlatformAndMergeDefaults, safeInitialize } from './core/Bootstrap.js';
 import TimeGuard from './core/TimeGuard.js';
 import Templates from './core/Templates.js';
 import Timeline from './timeline/Timeline.js';
@@ -179,6 +213,8 @@ import Font from './assets/Font.js';
 import OBundle from './assets/OBundle.js';
 import AssetPatchManager from './assets/AssetPatchManager.js';
 import PlatformVariantResolver from './assets/PlatformVariantResolver.js';
+import ResourceOwnershipGraph from './assets/ResourceOwnershipGraph.js';
+import AssetManifestGraph from './assets/AssetManifestGraph.js';
 import BehaviorTree from './behavior/BehaviorTree.js';
 import StateBehaviorTree from './behaviortree/BehaviorTree.js';
 import ExportPaywall from './commercial/ExportPaywall.js';
@@ -190,6 +226,7 @@ import FrameBudgetScheduler from './performance/FrameBudgetScheduler.js';
 import CollisionMask from './physics/CollisionMask.js';
 import PhysicsQuery from './physics/PhysicsQuery.js';
 import PhysicsWorld from './physics/PhysicsWorld.js';
+import Physics, { ArcadeAdapter } from './physics/Physics.js';
 import ComputeRuntime from './compute/ComputeRuntime.js';
 import calculateDamage from './compute/DamageFormula.js';
 import findPath from './compute/Pathfinding.js';
@@ -230,7 +267,8 @@ import { buildMarketEngineComparison, renderMarketEngineComparisonMarkdown } fro
 import { buildMarketPositioningScorecard } from './quality/MarketPositioningScorecard.js';
 
 const Data = { safeParse };
-const MathTools = { Vec2, Rect, Easing, distance, isInRadius };
+const MathTools = { Vec2, Rect, Easing, distance, isInRadius, randomBetween, lerp, angle, random };
+const OmniMath = MathTools;
 const Net = Object.assign(NetManager, { fetchWithTimeout });
 
 let activeDebugAPI = createDebugAPI({ debug: false });
@@ -253,6 +291,12 @@ const Debug = {
   },
   drawAABB(...args) {
     return activeDebugAPI.drawAABB(...args);
+  },
+  drawTextAt(...args) {
+    return activeDebugAPI.drawTextAt(...args);
+  },
+  drawColliderRects(...args) {
+    return activeDebugAPI.drawColliderRects(...args);
   },
   drawPhysicsWorld(...args) {
     return activeDebugAPI.drawPhysicsWorld(...args);
@@ -361,6 +405,11 @@ class Game extends CoreGame {
   constructor(config = {}) {
     super(resolveRuntimeConfig(config));
     this.headless = Boolean(this.config.headless);
+    this.errorBoundary = new OmniCoreErrorBoundary({
+      module: 'Game',
+      events: this.events,
+      logger: this.logger
+    });
     this.liveInspector = null;
     this.apiQuickPanel = null;
     this.feedbackWidget = null;
@@ -426,6 +475,72 @@ class Game extends CoreGame {
   destroy() {
     this._detachRuntimeExtensions();
     super.destroy();
+    this.errorBoundary?.clear?.();
+    this.errorBoundary = null;
+  }
+
+  showFPS({ container = globalThis.document?.body } = {}) {
+    if (!globalThis.document) return null;
+    if (!this.fpsOverlay) {
+      this.fpsOverlay = globalThis.document.createElement('div');
+      this.fpsOverlay.dataset.omnicoreFps = 'true';
+      Object.assign(this.fpsOverlay.style, {
+        position: 'fixed',
+        top: '8px',
+        right: '8px',
+        zIndex: '2147483647',
+        padding: '4px 6px',
+        border: '1px solid rgba(148, 163, 184, 0.45)',
+        background: 'rgba(15, 23, 42, 0.78)',
+        color: '#e2e8f0',
+        font: '12px ui-monospace, SFMono-Regular, Consolas, monospace',
+        pointerEvents: 'none'
+      });
+    }
+    this.fpsOverlay.textContent = `FPS: ${this.store?.get?.('fps') || 0}`;
+    container?.appendChild?.(this.fpsOverlay);
+    return this.fpsOverlay;
+  }
+
+  hideFPS() {
+    this.fpsOverlay?.remove?.();
+    return this;
+  }
+
+  saveSnapshot(slot = 'default', {
+    storage = globalThis.localStorage,
+    prefix = 'omnicore:game:snapshot:'
+  } = {}) {
+    const snapshot = this.store?.snapshot?.() || {};
+    const key = `${prefix}${slot}`;
+    if (storage?.setItem) storage.setItem(key, JSON.stringify(snapshot));
+    else if (storage?.set) storage.set(key, snapshot);
+    return snapshot;
+  }
+
+  loadSnapshot(slot = 'default', {
+    storage = globalThis.localStorage,
+    prefix = 'omnicore:game:snapshot:'
+  } = {}) {
+    const key = `${prefix}${slot}`;
+    const raw = storage?.getItem ? storage.getItem(key) : storage?.get?.(key, null);
+    if (!raw) return null;
+
+    let snapshot = raw;
+    if (typeof raw === 'string') {
+      try {
+        snapshot = JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    }
+
+    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return null;
+    for (const [stateKey, value] of Object.entries(snapshot)) {
+      if (this.store?.set) this.store.set(stateKey, value);
+      else this.store?.setValue?.(stateKey, value);
+    }
+    return snapshot;
   }
 
   _attachRuntimeExtensions() {
@@ -709,6 +824,28 @@ const OmniCore = {
   Genealogy,
   help,
   listHelp,
+  OmniError,
+  Error: OmniCoreErrorTools,
+  createOmniError,
+  toOmniError,
+  formatOmniMessage,
+  ApiSurface,
+  API_TIERS,
+  DEFAULT_API_SURFACE,
+  buildApiSurface,
+  diffApiSurface,
+  assertNoBreakingApiChanges,
+  ErrorBoundary: OmniCoreErrorBoundary,
+  OmniCoreErrorBoundary,
+  PluginPermissionSandbox,
+  PLUGIN_PERMISSION_SCOPES,
+  Hook: GlobalHook,
+  HookClass: Hook,
+  Plugin,
+  PluginRegistry,
+  CrashHandler,
+  DeterministicReplay,
+  SeededRandom,
   addon,
   use,
   useAddon,
@@ -731,16 +868,23 @@ const OmniCore = {
   EditorPanel,
   PlaySession,
   RuntimeLiveSyncBridge,
+  EditorProtocol,
+  EDITOR_PROTOCOL_VERSION,
   PluginRecommendationEngine,
   Lean: LeanOmniCore,
   LeanCore,
   LeanAddons,
   createLeanRuntime,
   Node,
+  Container,
   Scene,
+  SceneLifecycle,
+  SCENE_LIFECYCLE_ORDER,
   Sprite,
+  CharacterRig,
   TileSprite,
   Text,
+  BitmapText,
   Entity,
   createEntity,
   Snapshot,
@@ -754,6 +898,7 @@ const OmniCore = {
   TimeGuard,
   Animation,
   AnimationManager,
+  UIFocusManager,
   UI: {
     Button,
     HtmlOverlay,
@@ -762,6 +907,7 @@ const OmniCore = {
     UIButton,
     UITextInput,
     UIScrollView,
+    UIFocusManager,
     UIStateMachine,
     layoutRichText
   },
@@ -775,6 +921,7 @@ const OmniCore = {
   Store,
   install: (name, options) => Store.install(name, options),
   Loader,
+  AssetCache,
   AssetLoader,
   Font,
   Renderer: { PixiRenderer, WebGPURenderer, RendererBackend, OffscreenCanvasRenderer, RenderWorkerBridge, Filters, WebGLContextManager, RendererManager, RenderLayerManager, PixiBatchAdapter, CommandBuffer, StaticBatchCompiler },
@@ -809,7 +956,7 @@ const OmniCore = {
   RendererManager,
   RenderLayerManager,
   Loop,
-  Math: MathTools,
+  Math: OmniMath,
   ECS,
   Components,
   World,
@@ -838,6 +985,8 @@ const OmniCore = {
   AIImporter,
   Analytics,
   AssetPatchManager,
+  AssetManifestGraph,
+  ResourceOwnershipGraph,
   ABTest,
   PackageManager,
   MarketplaceServer,
@@ -870,6 +1019,8 @@ const OmniCore = {
   SkeletonAnimationEditor,
   PhysicsWorld,
   PhysicsQuery,
+  Physics,
+  ArcadeAdapter,
   CollisionMask,
   ExportPaywall,
   SleepWakeSystem,
@@ -889,6 +1040,7 @@ const OmniCore = {
   Ad,
   WechatMiniGameMonetization,
   AudioManager,
+  Sound: AudioManager,
   AudioEditor,
   DataTable,
   DataTableEditor,
@@ -905,6 +1057,7 @@ const OmniCore = {
   Storage: StorageManager,
   Net,
   NetRoom,
+  MultiplayerSession,
   NavigationAgent2D,
   RealtimeConnection,
   WebTransportConnection,
@@ -944,7 +1097,8 @@ const OmniCore = {
   CrashReporter,
   VersionDialog,
   detectEnvironment,
-  Bootstrap: { detectEnvironment, safeInitialize, Sandbox, Bus },
+  detectPlatformAndMergeDefaults,
+  Bootstrap: { detectEnvironment, detectPlatformAndMergeDefaults, safeInitialize, Sandbox, Bus },
   safeInitialize,
   loadPhysics
 };
@@ -959,9 +1113,15 @@ Object.defineProperty(OmniCore, 'Assert', {
 export default OmniCore;
 export {
   ABTest,
+  API_TIERS,
+  DEFAULT_API_SURFACE,
+  ApiSurface,
+  assertNoBreakingApiChanges,
   AudioManager,
+  AudioManager as Sound,
   AudioAddon,
   Ad,
+  ArcadeAdapter,
   AudioEditor,
   AssetBrowser,
   AICommandService,
@@ -973,13 +1133,16 @@ export {
   AnimationEditor,
   AnimationStateMachine,
   ApiQuickPanel,
+  AssetCache,
   AssetPatchManager,
+  AssetManifestGraph,
   AssetLoader,
   Backend,
   BackendManager,
   BehaviorTree,
   Button,
   Camera,
+  CharacterRig,
   CanvasRendererAddon,
   AdaptiveQualityManager,
   ChunkCache,
@@ -989,6 +1152,7 @@ export {
   ComputeRuntime,
   CommandBuffer,
   Components,
+  CrashHandler,
   CrashReporter,
   DataAdapter,
   DataTable,
@@ -1006,12 +1170,15 @@ export {
   distance,
   Deprecation,
   Dimension3D,
+  DeterministicReplay,
   DragonBonesAdapter,
   Assert,
   Easing,
   ECS,
+  OmniMath as Math,
   ElectronNativeBridge,
   EditorPanel,
+  EditorProtocol,
   EditorOverlay,
   EditorPlugin,
   EditorPluginCascade,
@@ -1026,6 +1193,7 @@ export {
   ExportPaywall,
   FeedbackWidget,
   fetchWithTimeout,
+  formatOmniMessage,
   FixedMemoryPool,
   Font,
   FrameBudgetScheduler,
@@ -1034,6 +1202,9 @@ export {
   help,
   createGame,
   Game,
+  OmniCoreErrorTools as Error,
+  OmniError,
+  OmniCoreErrorBoundary,
   HotReload,
   HotfixManager,
   I18n,
@@ -1059,6 +1230,7 @@ export {
   MovementSystem,
   NetManager,
   NetRoom,
+  MultiplayerSession,
   NavigationAgent2D,
   HeightfieldNavMesh25D,
   SocialAwareness25D,
@@ -1069,6 +1241,7 @@ export {
   createEditorDeployBenchmark25D,
   RealtimeConnection,
   Node,
+  Container,
   TileSprite,
   ObjectPool,
   OBundle,
@@ -1090,6 +1263,7 @@ export {
   Transform2D,
   PhysicsWorld,
   PhysicsQuery,
+  Physics,
   PixiRenderer,
   PixiBatchAdapter,
   PixiFrameworkBridge,
@@ -1101,6 +1275,12 @@ export {
   PackageManager,
   PlatformAdapter,
   PlatformVariantResolver,
+  PluginPermissionSandbox,
+  PLUGIN_PERMISSION_SCOPES,
+  Hook,
+  GlobalHook,
+  Plugin,
+  PluginRegistry,
   Prefab,
   PrefabManager,
   PrefabRegistry,
@@ -1113,6 +1293,7 @@ export {
   runEngineQualityGate,
   runInvariantCheck,
   runTrendCheck,
+  ResourceOwnershipGraph,
   RenderLayerManager,
   RenderWorkerBridge,
   RemoteDevTools,
@@ -1125,6 +1306,8 @@ export {
   createNormalLightShader,
   createSpineFFDVertexShader,
   RuntimeLiveSyncBridge,
+  SceneLifecycle,
+  SCENE_LIFECYCLE_ORDER,
   Sandbox,
   SandboxBus,
   Scene,
@@ -1132,10 +1315,12 @@ export {
   SleepWakeSystem,
   Sprite,
   Text,
+  BitmapText,
   SplashScreen,
   stableHash,
   stableStringify,
   StaticBatchCompiler,
+  SeededRandom,
   SkeletalAnimation,
   SkeletonAnimationEditor,
   SpineAdapter,
@@ -1162,6 +1347,7 @@ export {
   UIElement,
   UIRenderManager,
   UIButton,
+  UIFocusManager,
   UIScrollView,
   UITextInput,
   UIStateMachine,
@@ -1183,7 +1369,9 @@ export {
   buildEditorMarketReadiness,
   buildMarketEngineComparison,
   buildMarketPositioningScorecard,
+  buildApiSurface,
   createLeanRuntime,
+  createOmniError,
   createPhaserCompatScene,
   createPixiFrameworkAdoptionPlan,
   createRendererPerformanceSandbox,
@@ -1202,6 +1390,7 @@ export {
   linearGradientFill,
   radialGradientFill,
   textureFill,
+  toOmniError,
   vectorPrimitiveToSvg,
   renderMarketEngineComparisonMarkdown,
   addon,
@@ -1210,6 +1399,8 @@ export {
   use,
   connectEditorSync,
   detectEnvironment,
+  detectPlatformAndMergeDefaults,
+  diffApiSurface,
   findPath,
   useAddon,
   safeInitialize,

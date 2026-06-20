@@ -7,8 +7,9 @@
  * tests, debug panels, and benchmark thresholds.
  */
 export class BatchOptimizer {
-  constructor({ fpsTarget = 60 } = {}) {
+  constructor({ fpsTarget = 60, roundPixels = false } = {}) {
     this.fpsTarget = fpsTarget;
+    this.roundPixels = Boolean(roundPixels);
   }
 
   analyze(children = [], displayRecords = new Map()) {
@@ -42,7 +43,7 @@ export class BatchOptimizer {
 
   prepare(displayObject, child = {}) {
     if ('eventMode' in displayObject && !child.interactive && !child.eventMode) displayObject.eventMode = 'none';
-    if ('roundPixels' in displayObject && child.roundPixels == null) displayObject.roundPixels = false;
+    if ('roundPixels' in displayObject) displayObject.roundPixels = child.roundPixels ?? this.roundPixels;
     displayObject.__omnicoreBatchKey = this.isBatchableSprite(displayObject, child)
       ? this.batchKey(displayObject, child)
       : null;

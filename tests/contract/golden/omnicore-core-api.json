@@ -49,6 +49,11 @@
       },
       {
         "kind": "property",
+        "name": "audioAutoResumeBinding",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
         "name": "auth",
         "valueType": "AuthManager"
       },
@@ -56,6 +61,11 @@
         "kind": "property",
         "name": "backend",
         "valueType": "BackendManager"
+      },
+      {
+        "kind": "property",
+        "name": "cache",
+        "valueType": "AssetCache"
       },
       {
         "kind": "property",
@@ -141,6 +151,11 @@
         "kind": "property",
         "name": "environment",
         "valueType": "Object"
+      },
+      {
+        "kind": "property",
+        "name": "errorBoundary",
+        "valueType": "OmniCoreErrorBoundary"
       },
       {
         "kind": "property",
@@ -249,6 +264,11 @@
       },
       {
         "kind": "property",
+        "name": "pool",
+        "valueType": "GamePoolFacade"
+      },
+      {
+        "kind": "property",
         "name": "profilerSnapshot",
         "valueType": "null"
       },
@@ -298,6 +318,11 @@
         "valueType": "function"
       },
       {
+        "kind": "method",
+        "name": "storageSyncUnsubscribe",
+        "valueType": "function"
+      },
+      {
         "kind": "property",
         "name": "store",
         "valueType": "Store"
@@ -316,6 +341,11 @@
         "kind": "property",
         "name": "telemetryUnpatches",
         "valueType": "array"
+      },
+      {
+        "kind": "property",
+        "name": "time",
+        "valueType": "Object"
       },
       {
         "kind": "property",
@@ -387,9 +417,33 @@
       },
       {
         "arity": 0,
+        "async": false,
+        "kind": "method",
+        "name": "hideFPS"
+      },
+      {
+        "arity": 0,
         "async": true,
         "kind": "method",
         "name": "init"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "kind": "method",
+        "name": "loadSnapshot"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "kind": "method",
+        "name": "saveSnapshot"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "kind": "method",
+        "name": "showFPS"
       }
     ],
     "staticMethods": []
@@ -550,6 +604,11 @@
         },
         {
           "kind": "property",
+          "name": "roundPixels",
+          "valueType": "boolean"
+        },
+        {
+          "kind": "property",
           "name": "sceneDisplayObjects",
           "valueType": "Map"
         },
@@ -601,6 +660,12 @@
           "async": false,
           "kind": "method",
           "name": "_applyEntityDiff"
+        },
+        {
+          "arity": 1,
+          "async": false,
+          "kind": "method",
+          "name": "_applyRoundPixels"
         },
         {
           "arity": 1,
@@ -846,6 +911,12 @@
           "arity": 0,
           "async": false,
           "kind": "method",
+          "name": "capture"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
           "name": "destroy"
         },
         {
@@ -1075,6 +1146,11 @@
     "instanceProperties": [
       {
         "kind": "property",
+        "name": "committing",
+        "valueType": "boolean"
+      },
+      {
+        "kind": "property",
         "name": "debug",
         "valueType": "boolean"
       },
@@ -1105,6 +1181,11 @@
       },
       {
         "kind": "property",
+        "name": "frameCommitDepth",
+        "valueType": "number"
+      },
+      {
+        "kind": "property",
         "name": "initialTypes",
         "valueType": "Map"
       },
@@ -1112,6 +1193,11 @@
         "kind": "property",
         "name": "middlewares",
         "valueType": "array"
+      },
+      {
+        "kind": "property",
+        "name": "pendingCommits",
+        "valueType": "Map"
       },
       {
         "kind": "property",
@@ -1167,6 +1253,18 @@
         "arity": 2,
         "async": false,
         "kind": "method",
+        "name": "_setValueImmediate"
+      },
+      {
+        "arity": 2,
+        "async": false,
+        "kind": "method",
+        "name": "_stageValue"
+      },
+      {
+        "arity": 2,
+        "async": false,
+        "kind": "method",
         "name": "_warnTypeDrift"
       },
       {
@@ -1174,6 +1272,18 @@
         "async": false,
         "kind": "method",
         "name": "atom"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "kind": "method",
+        "name": "beginFrame"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "kind": "method",
+        "name": "commit"
       },
       {
         "arity": 3,
@@ -1188,6 +1298,12 @@
         "name": "get"
       },
       {
+        "arity": 0,
+        "async": false,
+        "kind": "method",
+        "name": "hasPendingCommits"
+      },
+      {
         "arity": 1,
         "async": false,
         "kind": "method",
@@ -1198,6 +1314,12 @@
         "async": false,
         "kind": "method",
         "name": "loadSnapshot"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "kind": "method",
+        "name": "rollback"
       },
       {
         "arity": 2,
@@ -1339,12 +1461,32 @@
       {
         "arity": 0,
         "async": false,
+        "name": "ApiSurface"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ArcadeAdapter"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "AssetBrowser"
       },
       {
         "arity": 0,
         "async": false,
+        "name": "AssetCache"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "AssetLoader"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AssetManifestGraph"
       },
       {
         "arity": 0,
@@ -1374,12 +1516,22 @@
       {
         "arity": 0,
         "async": false,
+        "name": "BitmapText"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "Camera"
       },
       {
         "arity": 0,
         "async": false,
         "name": "CanvasRendererAddon"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "CharacterRig"
       },
       {
         "arity": 0,
@@ -1405,6 +1557,16 @@
         "arity": 0,
         "async": false,
         "name": "ComputeRuntime"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Container"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "CrashHandler"
       },
       {
         "arity": 0,
@@ -1445,6 +1607,11 @@
         "arity": 0,
         "async": false,
         "name": "Deprecation"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "DeterministicReplay"
       },
       {
         "arity": 0,
@@ -1509,6 +1676,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "EditorProtocol"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "ElectronNativeBridge"
       },
       {
@@ -1525,6 +1697,11 @@
         "arity": 0,
         "async": false,
         "name": "EntitySpatialIndex"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ErrorBoundary"
       },
       {
         "arity": 0,
@@ -1585,6 +1762,11 @@
         "arity": 0,
         "async": false,
         "name": "HeightfieldNavMesh25D"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "HookClass"
       },
       {
         "arity": 0,
@@ -1674,6 +1856,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "MultiplayerSession"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "NavigationAgent2D"
       },
       {
@@ -1700,6 +1887,16 @@
         "arity": 0,
         "async": false,
         "name": "OffscreenCanvasRenderer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "OmniCoreErrorBoundary"
+      },
+      {
+        "arity": 2,
+        "async": false,
+        "name": "OmniError"
       },
       {
         "arity": 0,
@@ -1769,7 +1966,17 @@
       {
         "arity": 0,
         "async": false,
+        "name": "PluginPermissionSandbox"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "PluginRecommendationEngine"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PluginRegistry"
       },
       {
         "arity": 0,
@@ -1839,6 +2046,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "ResourceOwnershipGraph"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "RuntimeLiveSyncBridge"
       },
       {
@@ -1855,6 +2067,16 @@
         "arity": 1,
         "async": false,
         "name": "Scene"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SceneLifecycle"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SeededRandom"
       },
       {
         "arity": 1,
@@ -1885,6 +2107,11 @@
         "arity": 0,
         "async": false,
         "name": "SocialAwareness25D"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "Sound"
       },
       {
         "arity": 0,
@@ -1997,6 +2224,11 @@
         "name": "TweenSequence"
       },
       {
+        "arity": 0,
+        "async": false,
+        "name": "UIFocusManager"
+      },
+      {
         "arity": 1,
         "async": false,
         "name": "VersionDialog"
@@ -2052,6 +2284,11 @@
         "name": "addon"
       },
       {
+        "arity": 0,
+        "async": false,
+        "name": "assertNoBreakingApiChanges"
+      },
+      {
         "arity": 1,
         "async": false,
         "name": "assertRendererBackend"
@@ -2060,6 +2297,11 @@
         "arity": 0,
         "async": false,
         "name": "benchmarkECSParticles"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "buildApiSurface"
       },
       {
         "arity": 0,
@@ -2127,6 +2369,11 @@
         "name": "createNormalLightShader"
       },
       {
+        "arity": 2,
+        "async": false,
+        "name": "createOmniError"
+      },
+      {
         "arity": 0,
         "async": false,
         "name": "createPolygonPrimitive"
@@ -2167,6 +2414,16 @@
         "name": "detectEnvironment"
       },
       {
+        "arity": 0,
+        "async": false,
+        "name": "detectPlatformAndMergeDefaults"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "diffApiSurface"
+      },
+      {
         "arity": 1,
         "async": true,
         "name": "disableAddon"
@@ -2180,6 +2437,11 @@
         "arity": 1,
         "async": false,
         "name": "findPath"
+      },
+      {
+        "arity": 2,
+        "async": false,
+        "name": "formatOmniMessage"
       },
       {
         "arity": 1,
@@ -2228,6 +2490,11 @@
       },
       {
         "arity": 1,
+        "async": false,
+        "name": "toOmniError"
+      },
+      {
+        "arity": 1,
         "async": true,
         "name": "use"
       },
@@ -2247,6 +2514,7 @@
       "AICommandService",
       "AIImporter",
       "AITilemapGenerator",
+      "API_TIERS",
       "Ad",
       "AdaptiveQualityManager",
       "Analytics",
@@ -2255,18 +2523,24 @@
       "AnimationManager",
       "AnimationStateMachine",
       "ApiQuickPanel",
+      "ApiSurface",
+      "ArcadeAdapter",
       "AssetBrowser",
+      "AssetCache",
       "AssetLoader",
+      "AssetManifestGraph",
       "AssetPatchManager",
       "AudioAddon",
       "AudioEditor",
       "AudioManager",
       "Backend",
       "BehaviorTree",
+      "BitmapText",
       "Bootstrap",
       "Bus",
       "Camera",
       "CanvasRendererAddon",
+      "CharacterRig",
       "ChunkCache",
       "ChunkManager",
       "CollisionMask",
@@ -2275,8 +2549,11 @@
       "Components",
       "ComputeRuntime",
       "Console",
+      "Container",
+      "CrashHandler",
       "CrashReporter",
       "DB",
+      "DEFAULT_API_SURFACE",
       "Data",
       "DataAdapter",
       "DataTable",
@@ -2286,6 +2563,7 @@
       "DebugConsole",
       "DebugRenderer",
       "Deprecation",
+      "DeterministicReplay",
       "DevProfile",
       "DeveloperUsageReport",
       "DeviceProfiler",
@@ -2293,18 +2571,22 @@
       "DragonBonesAdapter",
       "DualSpatialIndex",
       "ECS",
+      "EDITOR_PROTOCOL_VERSION",
       "Editor",
       "EditorCoCreator25D",
       "EditorOverlay",
       "EditorPanel",
       "EditorPlugin",
       "EditorPluginCascade",
+      "EditorProtocol",
       "ElectronNativeBridge",
       "EmergencyOverlay",
       "EmotionalPalette25D",
       "EngineQualityHarness",
       "Entity",
       "EntitySpatialIndex",
+      "Error",
+      "ErrorBoundary",
       "ErrorDiagnostics",
       "EventBus",
       "EventSheet",
@@ -2319,6 +2601,8 @@
       "Geom",
       "Graphics",
       "HeightfieldNavMesh25D",
+      "Hook",
+      "HookClass",
       "HotReload",
       "HotfixManager",
       "I18n",
@@ -2341,6 +2625,7 @@
       "Math",
       "MemoryGuardian",
       "MovementSystem",
+      "MultiplayerSession",
       "NavigationAgent2D",
       "Net",
       "NetRoom",
@@ -2348,6 +2633,9 @@
       "OBundle",
       "ObjectPool",
       "OffscreenCanvasRenderer",
+      "OmniCoreErrorBoundary",
+      "OmniError",
+      "PLUGIN_PERMISSION_SCOPES",
       "PackageManager",
       "ParticleEditorPanel",
       "ParticleSystem",
@@ -2355,6 +2643,7 @@
       "Payment",
       "PerformanceMetrics",
       "PerformanceMonitor",
+      "Physics",
       "PhysicsQuery",
       "PhysicsWorld",
       "PixiBatchAdapter",
@@ -2362,7 +2651,10 @@
       "PlatformAdapter",
       "PlatformVariantResolver",
       "PlaySession",
+      "Plugin",
+      "PluginPermissionSandbox",
       "PluginRecommendationEngine",
+      "PluginRegistry",
       "Pool",
       "PoolRegistry",
       "Prefab",
@@ -2383,10 +2675,14 @@
       "RendererBackend",
       "RendererContract",
       "RendererManager",
+      "ResourceOwnershipGraph",
       "RuntimeLiveSyncBridge",
+      "SCENE_LIFECYCLE_ORDER",
       "Sandbox",
       "SandboxBus",
       "Scene",
+      "SceneLifecycle",
+      "SeededRandom",
       "Shape",
       "ShapeBuilder",
       "SkeletalAnimation",
@@ -2394,6 +2690,7 @@
       "SleepWakeSystem",
       "Snapshot",
       "SocialAwareness25D",
+      "Sound",
       "SpineAdapter",
       "SpinePixiRuntimeAdapter",
       "SplashScreen",
@@ -2421,6 +2718,7 @@
       "Tween",
       "TweenSequence",
       "UI",
+      "UIFocusManager",
       "VersionDialog",
       "ViewportCulling",
       "VisualEventGraph",
@@ -2433,8 +2731,10 @@
       "World",
       "WorldMemory25D",
       "addon",
+      "assertNoBreakingApiChanges",
       "assertRendererBackend",
       "benchmarkECSParticles",
+      "buildApiSurface",
       "calculateDamage",
       "conicGradientFill",
       "connectEditorSync",
@@ -2448,6 +2748,7 @@
       "createHousePrimitive",
       "createLeanRuntime",
       "createNormalLightShader",
+      "createOmniError",
       "createPolygonPrimitive",
       "createRendererPerformanceSandbox",
       "createRichTextPrimitive",
@@ -2456,9 +2757,12 @@
       "createSpineFFDVertexShader",
       "createWebGPUComputeParticleDescriptor",
       "detectEnvironment",
+      "detectPlatformAndMergeDefaults",
+      "diffApiSurface",
       "disableAddon",
       "expandVectorPrimitive",
       "findPath",
+      "formatOmniMessage",
       "help",
       "install",
       "isDebugBuildEnabled",
@@ -2468,6 +2772,7 @@
       "radialGradientFill",
       "safeInitialize",
       "textureFill",
+      "toOmniError",
       "use",
       "useAddon",
       "vectorPrimitiveToSvg"

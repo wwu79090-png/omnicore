@@ -28,6 +28,21 @@ export class Camera {
     this.parallaxLayers = [];
     this.screenTarget = null;
     this.screenRect = null;
+    this.screenEffect = null;
+    this.listeners = new Map();
+  }
+
+  on(event, handler) {
+    if (!this.listeners.has(event)) this.listeners.set(event, new Set());
+    this.listeners.get(event).add(handler);
+    return () => this.off(event, handler);
+  }
+
+  off(event, handler) {
+    const handlers = this.listeners.get(event);
+    if (!handlers) return;
+    handlers.delete(handler);
+    if (handlers.size === 0) this.listeners.delete(event);
   }
 
   follow(target, { lerp = 1 } = {}) {
@@ -37,7 +52,15 @@ export class Camera {
   }
 
   zoom(value) {
+    const previousZoom = this.zoomLevel;
     this.zoomLevel = Math.max(0.01, Number(value));
+    if (this.zoomLevel !== previousZoom) {
+      this.emit('zoom', {
+        zoom: this.zoomLevel,
+        previousZoom,
+        camera: this
+      });
+    }
     return this;
   }
 
@@ -123,8 +146,21 @@ export class Camera {
     return this;
   }
 
+  fadeOut(duration = 250, color = '#000000') {
+    return this._startScreenEffect('fadeOut', duration, color, 0, 1);
+  }
+
+  fadeIn(duration = 250, color = '#000000') {
+    return this._startScreenEffect('fadeIn', duration, color, 1, 0);
+  }
+
+  flash(duration = 120, color = '#ffffff') {
+    return this._startScreenEffect('flash', duration, color, 1, 0);
+  }
+
   update(delta) {
     const deltaMs = delta <= 10 ? delta * 1000 : delta;
+    const previous = { x: this.x, y: this.y };
     if (this.target) {
       this.x += (this.target.x - this.x) * this.followLerp;
       this.y += (this.target.y - this.y) * this.followLerp;
@@ -143,6 +179,17 @@ export class Camera {
     } else {
       this.offsetX = 0;
       this.offsetY = 0;
+    }
+
+    this._updateScreenEffect(deltaMs);
+
+    if (this.x !== previous.x || this.y !== previous.y) {
+      this.emit('move', {
+        x: this.x,
+        y: this.y,
+        previous,
+        camera: this
+      });
     }
 
     return this;
@@ -205,11 +252,16 @@ export class Camera {
     this.parallaxLayers = [];
     this.screenTarget = null;
     this.screenRect = null;
+    this.screenEffect = null;
   }
 
   _screenRect() {
     if (this.screenRect) return this.screenRect;
     return this.screenTarget?.getBoundingClientRect?.() || null;
+  }
+
+  emit(event, payload) {
+    for (const handler of this.listeners.get(event) || []) handler(payload);
   }
 
   _clampToBounds() {
@@ -222,6 +274,31 @@ export class Camera {
     const maxY = viewHeight ? this.bounds.y + Math.max(0, this.bounds.height - viewHeight) : this.bounds.y + this.bounds.height;
     this.x = Math.min(maxX, Math.max(minX, this.x));
     this.y = Math.min(maxY, Math.max(minY, this.y));
+  }
+
+  _startScreenEffect(type, duration, color, fromAlpha, toAlpha) {
+    const normalizedDuration = Math.max(0, Number(duration) || 0);
+    this.screenEffect = {
+      type,
+      duration: normalizedDuration,
+      elapsed: 0,
+      color,
+      fromAlpha,
+      toAlpha,
+      alpha: fromAlpha,
+      complete: normalizedDuration === 0
+    };
+    this.emit(type, { camera: this, effect: this.screenEffect });
+    return this;
+  }
+
+  _updateScreenEffect(deltaMs) {
+    const effect = this.screenEffect;
+    if (!effect || effect.complete) return;
+    effect.elapsed = Math.min(effect.duration, effect.elapsed + Math.max(0, Number(deltaMs) || 0));
+    const progress = effect.duration > 0 ? effect.elapsed / effect.duration : 1;
+    effect.alpha = effect.fromAlpha + (effect.toAlpha - effect.fromAlpha) * progress;
+    if (effect.elapsed >= effect.duration) effect.complete = true;
   }
 }
 

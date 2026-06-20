@@ -247,6 +247,43 @@ describe('OmniCore 2.5D editor co-creation', () => {
     app.destroy();
   });
 
+  it('renders Z-axis mapping depth preview lines in the 2.5D scene view', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const app = createEditorApp(root, {
+      state: {
+        scene: {
+          name: 'depth-preview-demo',
+          entities: [{
+            id: 'tower',
+            type: 'dimension3d-model',
+            x: 96,
+            y: 120,
+            z: 6,
+            width: 48,
+            height: 80,
+            bounds: { width: 48, height: 80, depth: 64 }
+          }]
+        }
+      }
+    });
+
+    const preview = app.create25DPreview({ zToYScale: 12, showDepthMappingLines: true });
+    app.update(app.getState());
+    const line = root.querySelector('[data-z-depth-preview-line="tower"]');
+
+    expect(preview.guides.zDepthPreviewLines[0]).toMatchObject({
+      id: 'tower',
+      from: { x: 120, y: 200 },
+      to: { x: 120, y: 128 },
+      depthRange: { minY: 168, maxY: 232 }
+    });
+    expect(line).toBeTruthy();
+    expect(line?.textContent).toContain('Z 6');
+    expect(line?.style.height).toBe('72px');
+    app.destroy();
+  });
+
   it('exports visual evidence for 2.5D occlusion, shadows, events, and production previews', () => {
     const root = document.createElement('main');
     document.body.appendChild(root);

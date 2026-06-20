@@ -255,9 +255,9 @@ export class EditorPlugin {
     [
       ['x', this.selected.x ?? 0],
       ['y', this.selected.y ?? 0],
-      ['scale', this.selected.scale ?? this.selected.scaleX ?? 1],
-      ['scaleX', this.selected.scaleX ?? this.selected.scale ?? 1],
-      ['scaleY', this.selected.scaleY ?? this.selected.scale ?? 1],
+      ['scale', entityUniformScale(this.selected)],
+      ['scaleX', entityScaleX(this.selected)],
+      ['scaleY', entityScaleY(this.selected)],
       ['rotation', this.selected.rotation ?? 0],
       ['width', this.selected.width ?? 0],
       ['height', this.selected.height ?? 0]
@@ -576,8 +576,8 @@ export class EditorPlugin {
   _hitTest(point) {
     const entities = [...this._entities()].sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0));
     return entities.find((entity) => {
-      const scaleX = entity.scale ?? entity.scaleX ?? 1;
-      const scaleY = entity.scale ?? entity.scaleY ?? 1;
+      const scaleX = entityScaleX(entity);
+      const scaleY = entityScaleY(entity);
       const width = (entity.width || 0) * scaleX;
       const height = (entity.height || 0) * scaleY;
       return point.x >= (entity.x || 0)
@@ -608,14 +608,14 @@ export class EditorPlugin {
     const rect = canvas?.getBoundingClientRect?.() || { left: 0, top: 0, width: canvas?.width || 1, height: canvas?.height || 1 };
     const scaleX = (rect.width || canvas?.width || 1) / (canvas?.width || rect.width || 1);
     const scaleY = (rect.height || canvas?.height || 1) / (canvas?.height || rect.height || 1);
-    const entityScaleX = this.selected.scale ?? this.selected.scaleX ?? 1;
-    const entityScaleY = this.selected.scale ?? this.selected.scaleY ?? 1;
+    const entityDisplayScaleX = entityScaleX(this.selected);
+    const entityDisplayScaleY = entityScaleY(this.selected);
     Object.assign(this.transformBox.style, {
       display: 'block',
       left: `${rect.left + (this.selected.x || 0) * scaleX}px`,
       top: `${rect.top + (this.selected.y || 0) * scaleY}px`,
-      width: `${(this.selected.width || 0) * entityScaleX * scaleX}px`,
-      height: `${(this.selected.height || 0) * entityScaleY * scaleY}px`,
+      width: `${(this.selected.width || 0) * entityDisplayScaleX * scaleX}px`,
+      height: `${(this.selected.height || 0) * entityDisplayScaleY * scaleY}px`,
       transform: `rotate(${this.selected.rotation || 0}rad)`
     });
   }
@@ -640,9 +640,9 @@ export class EditorPlugin {
       texture: entity.texture || null,
       x: entity.x ?? 0,
       y: entity.y ?? 0,
-      scale: entity.scale ?? entity.scaleX ?? 1,
-      scaleX: entity.scaleX ?? entity.scale ?? 1,
-      scaleY: entity.scaleY ?? entity.scale ?? 1,
+      scale: entityUniformScale(entity),
+      scaleX: entityScaleX(entity),
+      scaleY: entityScaleY(entity),
       rotation: entity.rotation ?? 0,
       width: entity.width ?? 0,
       height: entity.height ?? 0,
@@ -786,6 +786,25 @@ export class EditorPlugin {
     target.addEventListener?.(type, handler, options);
     this.listeners.push({ target, type, handler, options });
   }
+}
+
+function entityScaleX(entity) {
+  return numericScale(entity?.scale?.x ?? entity?.scaleX ?? entity?.scale, 1);
+}
+
+function entityScaleY(entity) {
+  return numericScale(entity?.scale?.y ?? entity?.scaleY ?? entity?.scale, 1);
+}
+
+function entityUniformScale(entity) {
+  const x = entityScaleX(entity);
+  const y = entityScaleY(entity);
+  return x === y ? x : x;
+}
+
+function numericScale(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
 }
 
 function defaultEditorAssets() {

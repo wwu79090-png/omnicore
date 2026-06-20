@@ -113,6 +113,13 @@
       ]
     },
     {
+      "path": "assets/AssetManifestGraph.js",
+      "summary": "",
+      "exports": [
+        "AssetManifestGraph"
+      ]
+    },
+    {
       "path": "assets/AssetPatchManager.js",
       "summary": "Runtime resource patch applier for OTA asset overlays. @example const patches = new AssetPatchManager(); await patches.apply('/patches/v2.patch'); patches.resolve('hero.png');",
       "exports": [
@@ -145,6 +152,13 @@
       "summary": "WebSocket-style resource hot-module replacement receiver. @example const hmr = new ResourceHMRClient({ patchManager }); hmr.connect(new WebSocket('/assets-hmr'));",
       "exports": [
         "ResourceHMRClient"
+      ]
+    },
+    {
+      "path": "assets/ResourceOwnershipGraph.js",
+      "summary": "",
+      "exports": [
+        "ResourceOwnershipGraph"
       ]
     },
     {
@@ -208,6 +222,13 @@
       "summary": "2D camera utility with follow, zoom, and shake. The camera is available as `game.camera` and injected into scenes as `scene.camera`. @example scene.camera.follow(player, { lerp: 0.2 }); scene.camera.zoom(1.5); scene.camera.shake(180, 8);",
       "exports": [
         "Camera"
+      ]
+    },
+    {
+      "path": "character/CharacterRig.js",
+      "summary": "",
+      "exports": [
+        "CharacterRig"
       ]
     },
     {
@@ -280,6 +301,7 @@
         "DEFAULT_AUTO_RESIZE",
         "DEFAULT_AUTO_START",
         "DEFAULT_AUTO_ATTACH",
+        "DEFAULT_SCALE_MODE",
         "DEFAULT_DEBUG",
         "DEFAULT_ENGINE_VERSION",
         "DEFAULT_DIMENSION3D_BACKEND",
@@ -293,18 +315,46 @@
       ]
     },
     {
+      "path": "core/ApiSurface.js",
+      "summary": "",
+      "exports": [
+        "API_TIERS",
+        "DEFAULT_API_SURFACE",
+        "ApiSurface",
+        "buildApiSurface",
+        "diffApiSurface",
+        "assertNoBreakingApiChanges"
+      ]
+    },
+    {
+      "path": "core/AssetCache.js",
+      "summary": "",
+      "exports": [
+        "AssetCache"
+      ]
+    },
+    {
       "path": "core/Bootstrap.js",
       "summary": "Bootstrapping helpers for standard OmniCore configuration and DOM attachment. @example const config = normalizeConfig({ width: 960, height: 540, platform: 'web' }); const container = resolveContainer(config.container);",
       "exports": [
         "STANDARD_DIRECTORIES",
         "normalizeConfig",
+        "detectPlatformAndMergeDefaults",
         "hasDocument",
         "resolveContainer",
         "createCanvas",
+        "normalizeScaleMode",
         "removeContainerCanvases",
         "createNoopCanvasContext",
         "detectEnvironment",
         "safeInitialize"
+      ]
+    },
+    {
+      "path": "core/CrashHandler.js",
+      "summary": "",
+      "exports": [
+        "CrashHandler"
       ]
     },
     {
@@ -313,6 +363,14 @@
       "exports": [
         "DEPRECATED_APIS",
         "Deprecation"
+      ]
+    },
+    {
+      "path": "core/DeterministicReplay.js",
+      "summary": "",
+      "exports": [
+        "SeededRandom",
+        "DeterministicReplay"
       ]
     },
     {
@@ -385,6 +443,14 @@
       ]
     },
     {
+      "path": "core/Hook.js",
+      "summary": "",
+      "exports": [
+        "Hook",
+        "GlobalHook"
+      ]
+    },
+    {
       "path": "core/Logger.js",
       "summary": "Namespaced logger with debug gating. @example const logger = new Logger({ debug: true }); logger.info('renderer', 'Pixi renderer initialized');",
       "exports": [
@@ -417,8 +483,26 @@
         "createOmniError",
         "toOmniError",
         "normalizeNativeError",
+        "explainNativeError",
+        "captureOmniError",
         "warnMessage",
         "errorMessage"
+      ]
+    },
+    {
+      "path": "core/Plugin.js",
+      "summary": "",
+      "exports": [
+        "PluginRegistry",
+        "Plugin"
+      ]
+    },
+    {
+      "path": "core/PluginPermissionSandbox.js",
+      "summary": "",
+      "exports": [
+        "PLUGIN_PERMISSION_SCOPES",
+        "PluginPermissionSandbox"
       ]
     },
     {
@@ -426,6 +510,13 @@
       "summary": "",
       "exports": [
         "PrefabRegistry"
+      ]
+    },
+    {
+      "path": "core/RuntimeErrorBoundary.js",
+      "summary": "",
+      "exports": [
+        "OmniCoreErrorBoundary"
       ]
     },
     {
@@ -789,6 +880,14 @@
       ]
     },
     {
+      "path": "editor/EditorProtocol.js",
+      "summary": "",
+      "exports": [
+        "EDITOR_PROTOCOL_VERSION",
+        "EditorProtocol"
+      ]
+    },
+    {
       "path": "editor/ParticleEditorPanel.js",
       "summary": "Debug-only particle parameter editor.",
       "exports": [
@@ -1095,7 +1194,11 @@
       "summary": "",
       "exports": [
         "distance",
-        "isInRadius"
+        "isInRadius",
+        "randomBetween",
+        "lerp",
+        "angle",
+        "random"
       ]
     },
     {
@@ -1145,6 +1248,13 @@
       "summary": "",
       "exports": [
         "NavigationAgent2D"
+      ]
+    },
+    {
+      "path": "net/MultiplayerSession.js",
+      "summary": "",
+      "exports": [
+        "MultiplayerSession"
       ]
     },
     {
@@ -1247,6 +1357,13 @@
       ]
     },
     {
+      "path": "physics/ArcadeAdapter.js",
+      "summary": "Phaser Arcade Physics style contact adapter with AABB checks.",
+      "exports": [
+        "ArcadeAdapter"
+      ]
+    },
+    {
       "path": "physics/backends/Box2DWasmBackend.js",
       "summary": "",
       "exports": [
@@ -1288,6 +1405,13 @@
       "exports": [
         "CATEGORY_BITS",
         "CollisionMask"
+      ]
+    },
+    {
+      "path": "physics/Physics.js",
+      "summary": "@namespace Physics",
+      "exports": [
+        "Physics"
       ]
     },
     {
@@ -1517,11 +1641,26 @@
       ]
     },
     {
+      "path": "scene/Container.js",
+      "summary": "Display container with child hierarchy and world-space position helpers.",
+      "exports": [
+        "Container"
+      ]
+    },
+    {
       "path": "scene/Scene.js",
       "summary": "Scene and Sprite primitives. Scene mirrors Phaser's small lifecycle surface while keeping plugins explicit. Sprite supports Cocos-style `addComponent()` without bringing an editor runtime. @example const scene = new Scene('play'); const hero = scene.add(new Sprite('hero.png')); hero.addComponent(class Health { constructor(owner) { this.owner = owner; } });",
       "exports": [
         "Sprite",
         "Scene"
+      ]
+    },
+    {
+      "path": "scene/SceneLifecycle.js",
+      "summary": "",
+      "exports": [
+        "SCENE_LIFECYCLE_ORDER",
+        "SceneLifecycle"
       ]
     },
     {
@@ -1543,6 +1682,13 @@
       "summary": "Nano Stores based global state registry. Renderer backends inject their current identity here so cross-backend state is retained during experimental renderer switching. @example const store = new Store({ score: 0 }); store.subscribe('score', (score) => uiScore.text = String(score)); store.injectBackend('pixi');",
       "exports": [
         "Store"
+      ]
+    },
+    {
+      "path": "text/BitmapText.js",
+      "summary": "AngelCode BMFont bitmap text renderer for Phaser migration.",
+      "exports": [
+        "BitmapText"
       ]
     },
     {
@@ -1650,6 +1796,13 @@
       "exports": [
         "UIElement",
         "sortByZIndex"
+      ]
+    },
+    {
+      "path": "ui/UIFocusManager.js",
+      "summary": "",
+      "exports": [
+        "UIFocusManager"
       ]
     },
     {

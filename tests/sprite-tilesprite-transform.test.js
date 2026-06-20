@@ -55,6 +55,19 @@ describe('OmniCore Sprite slicing, tiling, and transforms', () => {
     expect(Transform2D.worldMatrix(child)).not.toEqual(Transform2D.localMatrix(child));
     expect(child.bounds()).toMatchObject({ width: 40, height: 30 });
   });
+
+  it('marks sprites as 2.5D billboards and counter-rotates them toward the camera', () => {
+    const tree = new Sprite('tree', {
+      billboard: true,
+      rotation: 0.75,
+      label: false
+    });
+
+    expect(tree.billboard).toBe(true);
+    expect(tree.omnicoreBillboard).toBe(true);
+    expect(tree.faceCamera({ rotation: 0.4 })).toBe(tree);
+    expect(tree.rotation).toBe(-0.4);
+  });
 });
 
 function createRecordingContext(calls) {

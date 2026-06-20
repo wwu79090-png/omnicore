@@ -23,6 +23,14 @@ class DebugRendererNoop {
     return null;
   }
 
+  drawTextAt() {
+    return null;
+  }
+
+  drawColliderRects() {
+    return [];
+  }
+
   drawPhysicsWorld() {
     return [];
   }
@@ -94,6 +102,28 @@ const DebugRendererBase = DEBUG_RENDERER_BUILD ? class DebugRendererImpl {
     });
   }
 
+  drawTextAt(x = 0, y = 0, text = '', color = 0xffffff) {
+    if (!this.debug) return null;
+    return this._push({
+      type: 'text',
+      x: Number(x || 0),
+      y: Number(y || 0),
+      text: String(text ?? ''),
+      color: normalizeColor(color)
+    });
+  }
+
+  drawColliderRects(source = [], {
+    activeColor = 0x22c55e,
+    inactiveColor = 0x64748b,
+    sensorColor = 0xef4444
+  } = {}) {
+    if (!this.debug) return [];
+    return collectColliderRects(source)
+      .map((rect) => this.drawAABB(rect, rect.sensor ? sensorColor : (rect.active === false ? inactiveColor : activeColor)))
+      .filter(Boolean);
+  }
+
   drawPhysicsWorld(world = {}, {
     bodyColor = 0x22c55e,
     sensorColor = 0xef4444,
@@ -145,6 +175,7 @@ const DebugRendererBase = DEBUG_RENDERER_BUILD ? class DebugRendererImpl {
     if (command.type === 'line') this._drawLine(overlay, command);
     else if (command.type === 'circle') this._drawCircle(overlay, command);
     else if (command.type === 'aabb') this._drawAABB(overlay, command);
+    else if (command.type === 'text') this._drawText(overlay, command);
   }
 
   _drawLine(overlay, command) {
@@ -178,6 +209,15 @@ const DebugRendererBase = DEBUG_RENDERER_BUILD ? class DebugRendererImpl {
     overlay.rect?.(command.x, command.y, command.width, command.height);
     overlay.stroke?.({ width: 1, color: colorForPixi(command.color), alpha: 1 });
   }
+
+  _drawText(overlay, command) {
+    if (typeof overlay.fillText === 'function') {
+      overlay.fillStyle = typeof command.color === 'string' ? command.color : `#${colorForPixi(command.color).toString(16).padStart(6, '0')}`;
+      overlay.fillText(command.text, command.x, command.y);
+      return;
+    }
+    overlay.text?.(command.text, command.x, command.y, { color: colorForPixi(command.color) });
+  }
 } : DebugRendererNoop;
 
 export class DebugRenderer extends DebugRendererBase {}
@@ -193,6 +233,8 @@ function createNoopDebugAPI() {
     drawLine: () => null,
     drawCircle: () => null,
     drawAABB: () => null,
+    drawTextAt: () => null,
+    drawColliderRects: () => [],
     drawPhysicsWorld: () => [],
     flush: () => 0,
     clear: () => {}
@@ -211,6 +253,8 @@ export function createDebugAPI(options = {}) {
     drawLine: (...args) => renderer.drawLine(...args),
     drawCircle: (...args) => renderer.drawCircle(...args),
     drawAABB: (...args) => renderer.drawAABB(...args),
+    drawTextAt: (...args) => renderer.drawTextAt(...args),
+    drawColliderRects: (...args) => renderer.drawColliderRects(...args),
     drawPhysicsWorld: (...args) => renderer.drawPhysicsWorld(...args),
     flush: (...args) => renderer.flush(...args),
     clear: () => renderer.clear()
@@ -220,6 +264,28 @@ export function createDebugAPI(options = {}) {
 function collectBodies(world = {}) {
   const bodies = world?.engine?.world?.bodies || world?.bodies || [];
   return Array.isArray(bodies) ? bodies : [...bodies];
+}
+
+function collectColliderRects(source = []) {
+  const values = Array.isArray(source)
+    ? source
+    : [
+      ...(source.colliderRects || source.colliders || []),
+      ...(source.children || []).flatMap((child) => child.colliderRects || child.colliders || child.collider || [])
+    ];
+  return values
+    .filter(Boolean)
+    .map((item) => {
+      const rect = item.bounds || item.rect || item;
+      return {
+        x: Number(rect.x ?? rect.left ?? 0),
+        y: Number(rect.y ?? rect.top ?? 0),
+        width: Number(rect.width ?? rect.w ?? Math.max(0, Number(rect.right || 0) - Number(rect.left || 0))),
+        height: Number(rect.height ?? rect.h ?? Math.max(0, Number(rect.bottom || 0) - Number(rect.top || 0))),
+        active: item.active,
+        sensor: Boolean(item.sensor || item.isSensor)
+      };
+    });
 }
 
 function boundsFromBody(body = {}) {

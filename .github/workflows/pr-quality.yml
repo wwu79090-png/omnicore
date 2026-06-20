@@ -13,6 +13,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run audit:api-surface
       - run: npm test
       - run: npm test -- --coverage --coverage.include "src/core/**" --coverage.include "src/renderer/**" --coverage.include "src/store/**" --coverage.thresholds.lines 100 --coverage.thresholds.functions 100 --coverage.thresholds.branches 100 --coverage.thresholds.statements 100
       - run: npm run test:e2e

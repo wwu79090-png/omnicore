@@ -17,10 +17,12 @@ export class SceneManager {
     this.game = game;
     this.registry = new Map();
     this.stack = [];
+    this.overlays = new Map();
     this.ready = Promise.resolve(null);
     this.pendingSceneOptions = new Map();
     this.reactiveSceneName = null;
     this.unsubscribeLoop = game?.loop?.subscribe?.((delta, time) => this.update(delta, time));
+    this.unsubscribeRender = game?.loop?.subscribeRender?.((alpha, time, frame) => this.render(alpha, time, frame));
     this.unsubscribeSceneStore = game?.store?.subscribe?.('currentScene', (name) => {
       this.ready = this.ready.then(() => this._transitionToStoreScene(name, this._takeSceneOptions(name)));
     });
@@ -50,6 +52,7 @@ export class SceneManager {
     if (this.current) this.current.active = false;
     this.stack.push(scene);
     await this._bootScene(scene, options.data);
+    scene.enter?.(options.data);
     if (options.fadeIn) await this.fadeIn(options.fadeIn);
     this.game?.renderer?.renderScene?.(scene);
     return scene;
@@ -67,7 +70,9 @@ export class SceneManager {
     const scene = this.stack.pop();
     if (!scene) return null;
     if (options.fadeOut) await this.fadeOut(options.fadeOut);
+    scene.exit?.(options.data);
     scene.destroy();
+    this.game?.pool?.releaseAll?.();
     if (this.current) this.current.active = true;
     this.game?.renderer?.renderScene?.(this.current);
     return scene;
@@ -77,6 +82,47 @@ export class SceneManager {
     if (this.game?.store) return this.push(name, options);
     if (this.current) await this.pop({ fadeOut: options.fadeOut });
     return this.push(name, options);
+  }
+
+  async overlay(id, sceneOrName, options = {}) {
+    if (!id) throw createOmniError('Scene', 'overlay(id, scene) 需要叠加层 id。');
+    if (this.overlays.has(id)) this.dismiss(id);
+    const scene = typeof sceneOrName === 'string'
+      ? await this._createScene(sceneOrName, options.data)
+      : await this._prepareProvidedScene(sceneOrName, options.data);
+    scene.active = true;
+    scene.overlay = true;
+    scene.overlayId = id;
+    this.overlays.set(id, scene);
+    await this._bootScene(scene, options.data);
+    scene.enter?.(options.data);
+    this.game?.events?.emit?.('scene:overlay', { id, scene });
+    this.game?.renderer?.renderScene?.(scene);
+    return scene;
+  }
+
+  async pushOverlay(sceneOrName, options = {}) {
+    const id = options.id
+      || (typeof sceneOrName === 'string' ? sceneOrName : sceneOrName?.overlayId || sceneOrName?.name)
+      || `overlay-${this.overlays.size + 1}`;
+    const scene = await this.overlay(id, sceneOrName, {
+      ...options,
+      blockUnderlying: false
+    });
+    scene.uiOnly = options.uiOnly ?? true;
+    scene.blocksUnderlying = false;
+    return scene;
+  }
+
+  dismiss(id) {
+    const scene = this.overlays.get(id);
+    if (!scene) return null;
+    this.overlays.delete(id);
+    this.game?.events?.emit?.('scene:dismiss', { id, scene });
+    scene.exit?.();
+    scene.destroy?.();
+    this.game?.pool?.releaseAll?.();
+    return scene;
   }
 
   async load(name, options = {}) {
@@ -135,17 +181,50 @@ export class SceneManager {
     const profiler = this.game?.frameProfiler || null;
     const frameIndex = this.game?.loop?.frame || this.game?.playSession?.frame || 0;
     profiler?.startFrame?.({ frame: frameIndex, time });
-    measureFrameSection(profiler, 'input.update', () => this.game?.input?.update?.(delta, time));
-    measureFrameSection(profiler, 'camera.update', () => this.game?.camera?.update?.(delta, time));
-    const shouldAdvance = this.game?.playSession?.shouldAdvanceSimulation?.() ?? true;
-    if (shouldAdvance) {
-      measureFrameSection(profiler, 'scene.update', () => this.current?.update?.(delta, time));
+    const store = this.game?.store || null;
+    store?.beginFrame?.();
+    try {
+      measureFrameSection(profiler, 'input.update', () => {
+        if (this.game?.input?.refresh) return this.game.input.refresh(delta, time);
+        return this.game?.input?.update?.(delta, time);
+      });
+      measureFrameSection(profiler, 'camera.update', () => this.game?.camera?.update?.(delta, time));
+      const shouldAdvance = this.game?.playSession?.shouldAdvanceSimulation?.() ?? true;
+      if (shouldAdvance) {
+        measureFrameSection(profiler, 'scene.update', () => this.current?.update?.(delta, time));
+        measureFrameSection(profiler, 'scene.overlay.update', () => {
+          for (const overlay of this.overlays.values()) overlay.update?.(delta, time);
+        });
+      }
+      store?.commit?.();
+    } catch (error) {
+      store?.rollback?.();
+      throw error;
     }
+    this.game?.adaptiveQualityManager?.observeFrame?.({
+      fps: delta > 0 ? Math.round(1 / delta) : 0,
+      scene: this.current,
+      renderer: this.game?.renderer,
+      culling: this.game?.culling,
+      sleepWake: this.game?.sleepWake,
+      store: this.game?.store,
+      reason: 'frame'
+    });
+  }
+
+  render(alpha = 0, time = 0, frameContext = {}) {
+    const profiler = this.game?.frameProfiler || null;
     const renderStart = now();
+    this.current?.render?.(alpha, time, frameContext);
     this.game?.renderer?.renderScene?.(this.current);
+    for (const overlay of this.overlays.values()) {
+      overlay.render?.(alpha, time, frameContext);
+      this.game?.renderer?.renderScene?.(overlay);
+    }
     const renderEnd = now();
     const renderMs = renderEnd - renderStart;
     profiler?.record?.('renderer.renderScene', renderMs);
+    const delta = this.game?.time?.delta || frameContext?.delta || 0;
     const fps = delta > 0 ? Math.round(1 / delta) : this.game?.performanceMonitor?.current?.fps || 0;
     measureFrameSection(profiler, 'performance.monitor', () => this.game?.performanceMonitor?.updateFromGame?.(this.game, delta, renderMs));
     this.game?.adaptiveQualityManager?.observeFrame?.({
@@ -171,9 +250,12 @@ export class SceneManager {
   destroyAll() {
     while (this.stack.length) {
       const scene = this.stack.pop();
+      scene.exit?.();
       scene.destroy();
     }
+    for (const id of [...this.overlays.keys()]) this.dismiss(id);
     this.unsubscribeLoop?.();
+    this.unsubscribeRender?.();
     this.unsubscribeSceneStore?.();
     this.registry.clear();
   }
@@ -190,7 +272,9 @@ export class SceneManager {
     if (previous) {
       if (options.fadeOut) await this.fadeOut(options.fadeOut);
       this.game?.events?.emit?.('scene:unmount', { name: previous.name, scene: previous });
+      previous.exit?.(options.data);
       previous.destroy();
+      this.game?.pool?.releaseAll?.();
     }
     this.stack.length = 0;
     this.reactiveSceneName = name || null;
@@ -203,6 +287,7 @@ export class SceneManager {
     const scene = await this._createScene(name, options.data);
     this.stack.push(scene);
     await this._bootScene(scene, options.data);
+    scene.enter?.(options.data);
     if (options.fadeIn) await this.fadeIn(options.fadeIn);
     this.game?.events?.emit?.('scene:mount', { name, scene });
     this.game?.renderer?.releaseSceneTextures?.(scene);
@@ -223,11 +308,29 @@ export class SceneManager {
     return scene;
   }
 
+  async _prepareProvidedScene(scene, data) {
+    if (!scene) throw createOmniError('Scene', 'overlay(id, scene) 需要有效场景。');
+    scene.debug = Boolean(this.game?.config?.debug);
+    scene.game = this.game;
+    scene.input = this.game?.input || null;
+    scene.camera = this.game?.camera || null;
+    if (typeof scene.bindTimer === 'function') scene.bindTimer(this.game?.timer || null);
+    else scene.timer = this.game?.timer || null;
+    await Promise.resolve(data);
+    return scene;
+  }
+
   async _bootScene(scene, data) {
     if (scene.created) return;
-    await scene.init?.(data);
-    await scene.preload?.(data);
-    await scene.create?.(data);
+    scene._transitionLifecycle?.('init', { data });
+    await scene.init?.(data, scene.lifecycleSignal);
+    scene.lifecycle?.assertAlive?.();
+    scene._transitionLifecycle?.('preload', { data });
+    await scene.preload?.(data, scene.lifecycleSignal);
+    scene.lifecycle?.assertAlive?.();
+    scene._transitionLifecycle?.('create', { data });
+    await scene.create?.(data, scene.lifecycleSignal);
+    scene.lifecycle?.assertAlive?.();
     scene.created = true;
   }
 

@@ -1,10 +1,12 @@
 import PlaySession from './PlaySession.js';
+import EditorProtocol, { EDITOR_PROTOCOL_VERSION } from './EditorProtocol.js';
 
 export class RuntimeLiveSyncBridge {
-  constructor({ game, transport = null, playSession = null } = {}) {
+  constructor({ game, transport = null, playSession = null, protocol = null } = {}) {
     this.game = game;
     this.transport = transport;
     this.playSession = playSession || game?.playSession || null;
+    this.protocol = protocol || new EditorProtocol();
   }
 
   connect(transport = this.transport) {
@@ -19,10 +21,14 @@ export class RuntimeLiveSyncBridge {
   publishHello() {
     return this._send('runtime:hello', {
       version: this.game?.config?.engineVersion || '0.1.0',
+      protocol: EDITOR_PROTOCOL_VERSION,
       capabilities: {
         playMode: true,
         liveEdit: true,
-        profiler: Boolean(this.game?.frameProfiler)
+        profiler: Boolean(this.game?.frameProfiler),
+        transactions: true,
+        rollback: true,
+        pausedHotEdit: true
       }
     });
   }
@@ -45,7 +51,12 @@ export class RuntimeLiveSyncBridge {
 
   handleEditorMessage(message = {}) {
     const parsed = typeof message === 'string' ? JSON.parse(message) : message;
-    const result = this._ensurePlaySession().applyEditorMessage(parsed);
+    const validated = this.protocol.validate(parsed);
+    const result = this._ensurePlaySession().applyEditorMessage({
+      ...parsed,
+      type: validated.type,
+      payload: validated.payload
+    });
     if (result?.ok && ['editor:update-entity', 'editor:create-entity'].includes(parsed.type)) {
       if (parsed.type === 'editor:update-entity') {
         this._send('runtime:entity-updated', {
@@ -61,6 +72,22 @@ export class RuntimeLiveSyncBridge {
     return result;
   }
 
+  beginTransaction(id, snapshot = this.game?.store?.snapshot?.()) {
+    return this.protocol.beginTransaction(id, snapshot);
+  }
+
+  commitTransaction(id) {
+    return this.protocol.commit(id);
+  }
+
+  rollbackTransaction(id) {
+    const snapshot = this.protocol.rollback(id);
+    if (snapshot && this.game?.store) {
+      for (const [key, value] of Object.entries(snapshot)) this.game.store.set?.(key, value);
+    }
+    return snapshot;
+  }
+
   applyEditorCommand(command = {}) {
     const result = this.handleEditorMessage({ type: 'editor:update-entity', payload: command });
     return result?.entity || null;
@@ -70,6 +97,7 @@ export class RuntimeLiveSyncBridge {
     const message = {
       type,
       payload,
+      protocol: this.protocol.version,
       meta: {
         source: 'omnicore-runtime',
         sentAt: new Date().toISOString()

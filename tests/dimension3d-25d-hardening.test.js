@@ -305,6 +305,60 @@ describe('Dimension3D 2.5D hardening', () => {
     expect(plan.renderQueue[1]).toMatchObject({ kind: '2d', visible: true });
   });
 
+  it('samples 2.5D terrain height for sprite-to-model slope following', () => {
+    const dimension = new Dimension3D({
+      heightMap: {
+        origin: { x: 0, y: 0 },
+        cellSize: 10,
+        data: [
+          [0, 10],
+          [20, 30]
+        ]
+      }
+    });
+
+    expect(dimension.getHeightAt(0, 0)).toBe(0);
+    expect(dimension.getHeightAt(10, 0)).toBe(10);
+    expect(dimension.getHeightAt(5, 5)).toBe(15);
+
+    dimension.setHeightMap((x, y) => x * 0.25 + y * 0.5);
+    expect(dimension.getHeightAt(8, 4)).toBe(4);
+  });
+
+  it('keeps transparent 2.5D models in an independent depth-sorted render pass', () => {
+    const layer = new Dimension3D.PlaneLayer({ zToYScale: 8 });
+    const hero = { id: 'hero', x: 94, y: 148, width: 28, height: 42 };
+    const opaqueTree = {
+      id: 'opaque-tree',
+      position: { x: 96, y: 0, z: 14 },
+      bounds: { width: 80, height: 120, depth: 60 }
+    };
+    const glassBack = {
+      id: 'glass-back',
+      position: { x: 96, y: 0, z: 8 },
+      bounds: { width: 80, height: 120, depth: 60 },
+      material: { transparent: true, opacity: 0.45 }
+    };
+    const glassFront = {
+      id: 'glass-front',
+      position: { x: 96, y: 0, z: 20 },
+      bounds: { width: 80, height: 120, depth: 60 },
+      transparent: true
+    };
+
+    const plan = layer.composeScene2D({
+      sprites: [hero],
+      models: [glassFront, opaqueTree, glassBack],
+      viewport: { x: 0, y: 0, width: 260, height: 260 }
+    });
+
+    expect(plan.transparentRenderQueue.map((item) => item.id)).toEqual(['glass-back', 'glass-front']);
+    expect(plan.transparentRenderQueue.every((item) => item.renderPass === 'transparent')).toBe(true);
+    expect(plan.transparentRenderQueue.every((item) => item.depthWrite === false)).toBe(true);
+    expect(plan.opaqueRenderQueue.map((item) => item.id)).toContain('opaque-tree');
+    expect(plan.diagnostics.transparentModels).toBe(2);
+  });
+
   it('exposes coordinate bias tuning on Dimension3D debug guide projection', () => {
     const dimension = new Dimension3D({ debug: true });
     const returned = dimension.setCoordinateBias(1, 2);

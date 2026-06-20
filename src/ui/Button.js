@@ -26,6 +26,12 @@ export class Button extends UIElement {
     return this.on('click', handler);
   }
 
+  setLabel(label = '') {
+    this.text = String(label ?? '');
+    this.markDirty('label');
+    return this;
+  }
+
   setHover(hovered) {
     if (this.hovered === hovered) return this;
     this.hovered = hovered;

@@ -7,6 +7,7 @@ export const DEFAULT_ASSET_MANIFEST = 'asset-manifest.json';
 export const DEFAULT_AUTO_RESIZE = true;
 export const DEFAULT_AUTO_START = true;
 export const DEFAULT_AUTO_ATTACH = true;
+export const DEFAULT_SCALE_MODE = 'NONE';
 export const DEFAULT_DEBUG = false;
 export const DEFAULT_ENGINE_VERSION = '0.1.0';
 export const DEFAULT_DIMENSION3D_BACKEND = 'three';
@@ -32,6 +33,7 @@ export const DEFAULT_GAME_CONFIG = Object.freeze({
   autoResize: DEFAULT_AUTO_RESIZE,
   autoStart: DEFAULT_AUTO_START,
   autoAttach: DEFAULT_AUTO_ATTACH,
+  scaleMode: DEFAULT_SCALE_MODE,
   webkitLightMode: true,
   debug: DEFAULT_DEBUG,
   background: DEFAULT_BACKGROUND_COLOR,

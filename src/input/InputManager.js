@@ -20,6 +20,9 @@ class KeyboardState {
   } = {}) {
     this.keys = new Set();
     this.normalizedKeys = new Set();
+    this.justPressed = new Set();
+    this.justReleased = new Set();
+    this.enabled = true;
     this.ignoreTags = new Set(ignoreTags.map((tag) => String(tag).toUpperCase()));
     this.ignoreContentEditable = ignoreContentEditable !== false;
   }
@@ -37,21 +40,49 @@ class KeyboardState {
   }
 
   press(code) {
+    if (!this.enabled) return;
+    const normalized = normalizeKeyToken(code);
+    if (!this.keys.has(code) && !this.normalizedKeys.has(normalized)) this.justPressed.add(normalized);
     this.keys.add(code);
-    this.normalizedKeys.add(normalizeKeyToken(code));
+    this.normalizedKeys.add(normalized);
   }
 
   release(code) {
+    const normalized = normalizeKeyToken(code);
+    if (this.keys.has(code) || this.normalizedKeys.has(normalized)) this.justReleased.add(normalized);
     this.keys.delete(code);
-    this.normalizedKeys.delete(normalizeKeyToken(code));
+    this.normalizedKeys.delete(normalized);
+  }
+
+  justDown(code) {
+    const normalized = normalizeKeyToken(code);
+    const result = this.justPressed.has(normalized);
+    this.justPressed.delete(normalized);
+    return result;
+  }
+
+  justUp(code) {
+    const normalized = normalizeKeyToken(code);
+    const result = this.justReleased.has(normalized);
+    this.justReleased.delete(normalized);
+    return result;
   }
 
   clear() {
     this.keys.clear();
     this.normalizedKeys.clear();
+    this.justPressed.clear();
+    this.justReleased.clear();
   }
 
-  shouldIgnoreEvent({ target } = {}) {
+  shouldIgnoreEvent(event = {}) {
+    const target = event?.target || null;
+    if (this.isIgnoredElement(target)) return true;
+    const activeElement = target?.ownerDocument?.activeElement || globalThis.document?.activeElement || null;
+    return this.isIgnoredElement(activeElement);
+  }
+
+  isIgnoredElement(target) {
     if (!target) return false;
     const { tagName = '', isContentEditable = false } = target;
     const tag = String(tagName).toUpperCase();
@@ -119,13 +150,15 @@ export class InputManager {
     resolution = null,
     events = null,
     keyboard = {},
-    ignoreTags = undefined
+    ignoreTags = undefined,
+    lockBrowserGestures = true
   } = {}) {
     this.target = target;
     this.preventDefault = preventDefault;
     this.resolutionOverride = resolution;
     this.resolution = resolution || 1;
     this.events = events || new EventBus();
+    this.lockBrowserGestures = lockBrowserGestures !== false;
     this.keyboard = new KeyboardState({
       ...keyboard,
       ignoreTags: ignoreTags ?? keyboard.ignoreTags
@@ -134,12 +167,21 @@ export class InputManager {
     this.mouse = this.pointer;
     this.actionBindings = new Map();
     this.comboActions = new Map();
+    this.actionMap = new Map();
+    this.actionStates = new Map();
+    this.actionJustPressed = new Set();
+    this.actionJustReleased = new Set();
+    this.focusScopes = [];
+    this.gamepads = new Map();
     this.listeners = [];
     this.enabled = true;
     this.dragThreshold = 4;
     this.doubleClickMs = 300;
+    this.swipeThreshold = 32;
     this.pointerDownPayload = null;
     this.lastClickPayload = null;
+    this.pinchState = null;
+    this.lastFrame = null;
     this.bind(target);
   }
 
@@ -155,6 +197,7 @@ export class InputManager {
     const combos = normalizeCombos(keys);
     this.unbindAction(action);
     this.actionBindings.set(action, combos);
+    this.actionMap.set(action, combos.map((combo) => ({ type: 'keyboard', combo })));
     for (const combo of combos) {
       if (!this.comboActions.has(combo)) this.comboActions.set(combo, new Set());
       this.comboActions.get(combo).add(action);
@@ -171,17 +214,125 @@ export class InputManager {
       if (actions?.size === 0) this.comboActions.delete(combo);
     }
     this.actionBindings.delete(action);
+    this.actionMap.delete(action);
+    this.actionStates.delete(action);
+    this.actionJustPressed.delete(action);
+    this.actionJustReleased.delete(action);
     return true;
+  }
+
+  mapAction(action, bindings = [], options = {}) {
+    if (!action || typeof action !== 'string') throw createOmniError('Input', 'mapAction(action, bindings) requires an action name.');
+    const normalizedBindings = normalizeActionBindings(bindings);
+    if (normalizedBindings.length === 0) throw createOmniError('Input', 'mapAction(action, bindings) requires at least one binding.');
+    this.unbindAction(action);
+    this.actionMap.set(action, normalizedBindings);
+    const combos = normalizedBindings
+      .filter((binding) => binding.type === 'keyboard')
+      .map((binding) => binding.combo);
+    if (combos.length) {
+      this.actionBindings.set(action, combos);
+      for (const combo of combos) {
+        if (!this.comboActions.has(combo)) this.comboActions.set(combo, new Set());
+        this.comboActions.get(combo).add(action);
+      }
+    }
+    if (options.initialDown) this.actionStates.set(action, true);
+    return () => this.unbindAction(action);
+  }
+
+  isActionDown(action) {
+    if (!this.isActionAllowed(action)) return false;
+    if (this.actionStates.get(action) === true) return true;
+    const bindings = this.actionMap.get(action) || [];
+    return bindings.some((binding) => binding.type === 'keyboard' && this.keyboard.isCombo(binding.combo));
+  }
+
+  justActionDown(action) {
+    const result = this.actionJustPressed.has(action);
+    this.actionJustPressed.delete(action);
+    return result;
+  }
+
+  justActionUp(action) {
+    const result = this.actionJustReleased.has(action);
+    this.actionJustReleased.delete(action);
+    return result;
+  }
+
+  triggerAction(action, {
+    down = true,
+    value = down ? 1 : 0,
+    source = 'manual',
+    originalEvent = null,
+    ...extra
+  } = {}) {
+    if (!this.isActionAllowed(action)) return null;
+    const wasDown = this.actionStates.get(action) === true;
+    this.actionStates.set(action, Boolean(down));
+    if (down && !wasDown) this.actionJustPressed.add(action);
+    if (!down && wasDown) this.actionJustReleased.add(action);
+    const payload = {
+      action,
+      down: Boolean(down),
+      value,
+      source,
+      originalEvent,
+      ...extra
+    };
+    this.events.emit(`action:${action}`, payload);
+    this.events.emit('action', payload);
+    return payload;
+  }
+
+  pushFocusScope({ id = `scope-${this.focusScopes.length + 1}`, actions = null, capture = true } = {}) {
+    const scope = {
+      id,
+      actions: actions ? new Set(actions) : null,
+      capture: capture !== false
+    };
+    this.focusScopes.push(scope);
+    return () => this.popFocusScope(id);
+  }
+
+  popFocusScope(id = null) {
+    if (!id) return this.focusScopes.pop() || null;
+    const index = this.focusScopes.findIndex((scope) => scope.id === id);
+    if (index < 0) return null;
+    return this.focusScopes.splice(index, 1)[0] || null;
+  }
+
+  isActionAllowed(action) {
+    const scope = this.focusScopes[this.focusScopes.length - 1];
+    if (!scope || !scope.capture || !scope.actions) return true;
+    return scope.actions.has(action);
+  }
+
+  setGamepadState(index = 0, state = {}) {
+    this.gamepads.set(index, state);
+    for (const [action, bindings] of this.actionMap) {
+      for (const binding of bindings) {
+        if (binding.type !== 'gamepad' || binding.index !== index) continue;
+        const button = state.buttons?.[binding.button];
+        const value = typeof button === 'object' ? Number(button.value || 0) : Number(button || 0);
+        const down = value >= binding.threshold;
+        this.triggerAction(action, { down, value, source: 'gamepad' });
+      }
+    }
+    return state;
   }
 
   bindTarget(target) {
     this.unbind();
     this.target = target;
     if (!target || typeof window === 'undefined') return;
+    this._lockTargetBrowserGestures(target);
 
     this._listen(window, 'keydown', (event) => this._handleKeyDown(event));
     this._listen(window, 'keyup', (event) => this._handleKeyUp(event));
     this._listen(window, 'resize', () => this.resizeTarget());
+    const ownerDocument = target.ownerDocument || globalThis.document;
+    if (ownerDocument) this._listen(ownerDocument, 'focusin', (event) => this._handleFocusIn(event));
     this._listen(target, 'pointermove', (event) => {
       this._prevent(event);
       this._move(event);
@@ -196,12 +347,16 @@ export class InputManager {
       const payload = this._payload(event);
       this.pointerDownPayload = payload;
       this.pointer.emit('down', payload);
+      this._emitPointerAction('down', payload, event);
     }, { passive: false });
     this._listen(target, 'pointerup', (event) => {
       this._prevent(event);
       this.pointer.down = false;
       this._move(event);
-      this.pointer.emit('up', this._payload(event));
+      const payload = this._payload(event);
+      this.pointer.emit('up', payload);
+      this._emitPointerAction('up', payload, event);
+      this._emitSwipe(payload);
       this.pointerDownPayload = null;
     }, { passive: false });
     this._listen(target, 'click', (event) => {
@@ -209,6 +364,7 @@ export class InputManager {
       this._move(event);
       const payload = this._payload(event);
       this.pointer.emit('click', payload);
+      this._emitPointerAction('click', payload, event);
       this._emitDoubleClick(payload);
     }, { passive: false });
     this._listen(target, 'wheel', (event) => {
@@ -222,14 +378,45 @@ export class InputManager {
         deltaMode: Number(event.deltaMode || 0)
       });
     }, { passive: false });
+    this._listen(target, 'touchstart', (event) => this._handleTouchStart(event), { passive: false });
+    this._listen(target, 'touchmove', (event) => this._handleTouchMove(event), { passive: false });
+    this._listen(target, 'touchend', (event) => this._handleTouchEnd(event), { passive: false });
+    this._listen(target, 'touchcancel', (event) => this._handleTouchEnd(event), { passive: false });
     this.resizeTarget();
   }
 
-  update() {
-    return {
+  refresh(delta = 0, time = performanceNow()) {
+    if (this.keyboard.shouldIgnoreEvent({ target: null })) this._suspendKeyboardForTextEntry();
+    this.lastFrame = {
+      delta,
+      time,
       keyboard: this.keyboard,
       pointer: this.pointer
     };
+    return {
+      keyboard: this.keyboard,
+      pointer: this.pointer,
+      frame: this.lastFrame
+    };
+  }
+
+  update(delta = 0, time = performanceNow()) {
+    return this.refresh(delta, time);
+  }
+
+  disableAll() {
+    this.enabled = false;
+    this.keyboard.enabled = false;
+    this.keyboard.clear();
+    this.pointer.down = false;
+    this.pointerDownPayload = null;
+    return this;
+  }
+
+  enableAll() {
+    this.enabled = true;
+    this.keyboard.enabled = true;
+    return this;
   }
 
   destroy() {
@@ -238,6 +425,12 @@ export class InputManager {
     this.pointer.clear();
     this.actionBindings.clear();
     this.comboActions.clear();
+    this.actionMap.clear();
+    this.actionStates.clear();
+    this.actionJustPressed.clear();
+    this.actionJustReleased.clear();
+    this.focusScopes.length = 0;
+    this.gamepads.clear();
     this.enabled = false;
   }
 
@@ -257,6 +450,15 @@ export class InputManager {
     }
   }
 
+  setCursor(cursor = 'default') {
+    if (cursor !== 'pointer' && cursor !== 'default') {
+      throw createOmniError('Input', 'setCursor(cursor) only supports "pointer" or "default" cursor values.');
+    }
+    this.cursor = cursor;
+    if (this.target?.style) this.target.style.cursor = cursor;
+    return this;
+  }
+
   unbind() {
     for (const { target, event, handler, options } of this.listeners) {
       target.removeEventListener?.(event, handler, options);
@@ -264,6 +466,8 @@ export class InputManager {
     this.listeners.length = 0;
     this.pointerDownPayload = null;
     this.lastClickPayload = null;
+    this.pinchState = null;
+    this.lastFrame = null;
   }
 
   _listen(target, event, handler, options = false) {
@@ -271,19 +475,42 @@ export class InputManager {
     this.listeners.push({ target, event, handler, options });
   }
 
+  _lockTargetBrowserGestures(target) {
+    if (!this.lockBrowserGestures || !target?.style) return;
+    target.style.touchAction = 'none';
+    target.style.userSelect = 'none';
+    target.style.webkitUserSelect = 'none';
+  }
+
   _handleKeyDown(event) {
-    if (this.keyboard.shouldIgnoreEvent(event)) return;
+    if (!this.enabled) return;
+    if (this.keyboard.shouldIgnoreEvent(event)) {
+      this._suspendKeyboardForTextEntry();
+      return;
+    }
     this.keyboard.press(event.code || event.key);
     this._emitAction(event, true);
   }
 
   _handleKeyUp(event) {
+    if (!this.enabled) return;
     if (this.keyboard.shouldIgnoreEvent(event)) {
-      this.keyboard.release(event.code || event.key);
+      this._suspendKeyboardForTextEntry();
       return;
     }
     this.keyboard.release(event.code || event.key);
     this._emitAction(event, false);
+  }
+
+  _handleFocusIn(event) {
+    if (this.keyboard.shouldIgnoreEvent(event)) this._suspendKeyboardForTextEntry();
+  }
+
+  _suspendKeyboardForTextEntry() {
+    this.keyboard.clear();
+    this.actionStates.clear();
+    this.actionJustPressed.clear();
+    this.actionJustReleased.clear();
   }
 
   _emitAction(event, down) {
@@ -293,13 +520,39 @@ export class InputManager {
     if (!actions?.size) return;
     if (this.preventDefault && event.cancelable) event.preventDefault();
     for (const action of actions) {
-      this.events.emit(`action:${action}`, {
+      this.triggerAction(action, {
         action,
         combo,
         down,
+        value: down ? 1 : 0,
+        source: 'keyboard',
         keys: [...this.keyboard.keys],
         originalEvent: event
       });
+    }
+  }
+
+  _emitPointerAction(eventName, payload, originalEvent) {
+    for (const [action, bindings] of this.actionMap) {
+      if (!this.isActionAllowed(action)) continue;
+      for (const binding of bindings) {
+        if (binding.type === 'pointer' && binding.event === eventName) {
+          this.triggerAction(action, {
+            down: eventName !== 'up',
+            value: eventName === 'up' ? 0 : 1,
+            source: 'pointer',
+            originalEvent
+          });
+        }
+        if (binding.type === 'touch' && binding.event === eventName) {
+          this.triggerAction(action, {
+            down: eventName !== 'up',
+            value: eventName === 'up' ? 0 : 1,
+            source: 'touch',
+            originalEvent
+          });
+        }
+      }
     }
   }
 
@@ -358,10 +611,79 @@ export class InputManager {
       });
     }
   }
+
+  _handleTouchStart(event) {
+    this._prevent(event);
+    const touches = normalizeTouches(event.touches, this.target);
+    if (touches.length >= 2) this.pinchState = createPinchState(touches[0], touches[1]);
+  }
+
+  _handleTouchMove(event) {
+    this._prevent(event);
+    const touches = normalizeTouches(event.touches, this.target);
+    if (touches.length < 2 || !this.pinchState) return;
+    const next = createPinchState(touches[0], touches[1]);
+    this.pointer.emit('pinch', {
+      ...next,
+      previousDistance: this.pinchState.distance,
+      scale: next.distance / Math.max(1, this.pinchState.distance),
+      originalEvent: event
+    });
+    this.pinchState = next;
+  }
+
+  _handleTouchEnd(event) {
+    this._prevent(event);
+    if (!event.touches || event.touches.length < 2) this.pinchState = null;
+  }
+
+  _emitSwipe(payload) {
+    if (!this.pointerDownPayload) return;
+    const dx = payload.x - this.pointerDownPayload.x;
+    const dy = payload.y - this.pointerDownPayload.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance < this.swipeThreshold) return;
+    this.pointer.emit('swipe', {
+      ...payload,
+      startX: this.pointerDownPayload.x,
+      startY: this.pointerDownPayload.y,
+      dx,
+      dy,
+      distance,
+      direction: swipeDirection(dx, dy)
+    });
+  }
 }
 
 function performanceNow() {
   return typeof performance !== 'undefined' ? performance.now() : Date.now();
+}
+
+function normalizeTouches(touches, target) {
+  const rect = target?.getBoundingClientRect?.() || { left: 0, top: 0 };
+  return Array.from(touches || []).map((touch) => ({
+    id: touch.identifier,
+    x: Number(touch.clientX || 0) - rect.left,
+    y: Number(touch.clientY || 0) - rect.top,
+    clientX: Number(touch.clientX || 0),
+    clientY: Number(touch.clientY || 0)
+  }));
+}
+
+function createPinchState(left, right) {
+  const dx = right.x - left.x;
+  const dy = right.y - left.y;
+  return {
+    distance: Math.hypot(dx, dy),
+    centerX: (left.x + right.x) / 2,
+    centerY: (left.y + right.y) / 2,
+    touches: [left, right]
+  };
+}
+
+function swipeDirection(dx, dy) {
+  if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? 'right' : 'left';
+  return dy >= 0 ? 'down' : 'up';
 }
 
 function normalizeCombos(keys) {
@@ -369,6 +691,29 @@ function normalizeCombos(keys) {
   const combos = list.map((combo) => normalizeCombo(combo)).filter(Boolean);
   if (combos.length === 0) throw createOmniError('Input', 'Input.bind(action, keys) requires at least one key or combo.');
   return combos;
+}
+
+function normalizeActionBindings(bindings) {
+  const list = Array.isArray(bindings) ? bindings : [bindings];
+  return list.map((binding) => {
+    if (typeof binding === 'string') {
+      return { type: 'keyboard', combo: normalizeCombo(binding) };
+    }
+    if (!binding || typeof binding !== 'object') return null;
+    const type = binding.type || (binding.button != null ? 'gamepad' : 'keyboard');
+    if (type === 'keyboard') return { type, combo: normalizeCombo(binding.combo || binding.key || binding.keys) };
+    if (type === 'pointer') return { type, event: binding.event || 'down', button: binding.button ?? 0 };
+    if (type === 'touch') return { type, event: binding.event || 'down' };
+    if (type === 'gamepad') {
+      return {
+        type,
+        index: Number(binding.index || 0),
+        button: Number(binding.button || 0),
+        threshold: Number(binding.threshold ?? 0.5)
+      };
+    }
+    return null;
+  }).filter((binding) => binding && (binding.type !== 'keyboard' || binding.combo));
 }
 
 function normalizeCombo(combo) {

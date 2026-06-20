@@ -34,6 +34,17 @@ export class Text {
     return this;
   }
 
+  setStyle(style = {}) {
+    this.style = {
+      ...this.style,
+      ...style,
+      stroke: style.stroke !== undefined ? normalizeStroke(style.stroke) : this.style.stroke,
+      shadow: style.shadow !== undefined ? normalizeShadow(style.shadow) : this.style.shadow,
+      wordWrap: style.wordWrap !== undefined ? normalizeWordWrap(style.wordWrap) : this.style.wordWrap
+    };
+    return this;
+  }
+
   setStroke(color = '#000000', thickness = 1) {
     this.style.stroke = {
       color,

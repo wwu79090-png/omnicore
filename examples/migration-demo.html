@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OmniCore Migration Timing Demo</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: #101820;
+        color: #f8fafc;
+      }
+
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      canvas {
+        display: block;
+        width: 640px;
+        height: 360px;
+        max-width: 100%;
+        background: #17212b;
+        border: 1px solid #334155;
+      }
+
+      dl {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 8px 16px;
+      }
+
+      dt {
+        color: #93c5fd;
+      }
+
+      dd {
+        margin: 0;
+        font-family: ui-monospace, Consolas, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>OmniCore Migration Timing Demo</h1>
+      <canvas id="stage" width="640" height="360"></canvas>
+      <dl>
+        <dt>Fixed updates</dt><dd data-field="updates">0</dd>
+        <dt>Render frames</dt><dd data-field="renders">0</dd>
+        <dt>Interpolation alpha</dt><dd data-field="alpha">0</dd>
+        <dt>Input snapshot</dt><dd data-field="input">none</dd>
+        <dt>Committed score</dt><dd data-field="score">0</dd>
+        <dt>Timer delay</dt><dd data-field="delay">pending</dd>
+        <dt>Timer interval</dt><dd data-field="interval">0</dd>
+        <dt>Dimension3D delta rotation</dt><dd data-field="rotation">0</dd>
+      </dl>
+    </main>
+
+    <script type="module">
+      import OmniCore, { Dimension3D, Scene, Store, InputManager, Loop } from '../src/index.js';
+
+      const fields = Object.fromEntries(
+        [...document.querySelectorAll('[data-field]')].map((node) => [node.dataset.field, node])
+      );
+      const canvas = document.querySelector('#stage');
+      const ctx = canvas.getContext('2d');
+      const store = new Store({ score: 0 });
+      const input = new InputManager({ target: canvas });
+      const loop = new Loop({ fps: 60, framerateCap: 60 });
+      const dimension = new Dimension3D();
+      dimension.bindGameTime(loop.time);
+      dimension.renderer = { render() {} };
+      dimension.scene = {};
+      dimension.camera = {};
+      dimension.models = [{
+        root: { rotation: { x: 0, y: 0, z: 0 } },
+        rotationSpeed: { x: 0, y: 1, z: 0 }
+      }];
+
+      const scene = new Scene('migration-demo');
+      scene.input = input;
+      scene.game = { store, time: loop.time };
+      scene.onEnter = () => {
+        scene.timer.delay(500, () => {
+          fields.delay.textContent = 'done';
+        });
+        scene.timer.interval(250, () => {
+          fields.interval.textContent = String(Number(fields.interval.textContent) + 1);
+        });
+      };
+      scene.onUpdate = (delta) => {
+        store.set('score', store.get('score') + 1);
+        fields.input.textContent = input.keyboard.isDown('Space') ? 'Space down' : 'Space up';
+        fields.updates.textContent = String(Number(fields.updates.textContent) + 1);
+        fields.score.textContent = String(store.get('score'));
+        dimension.render();
+        fields.rotation.textContent = dimension.models[0].root.rotation.y.toFixed(3);
+      };
+      scene.onRender = (alpha) => {
+        fields.alpha.textContent = alpha.toFixed(3);
+        fields.renders.textContent = String(Number(fields.renders.textContent) + 1);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(80 + alpha * 40, 140, 96, 96);
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillText(`OmniCore ${OmniCore.Genealogy?.()?.brand || 'runtime'}`, 24, 32);
+      };
+
+      scene.enter();
+      loop.subscribe((delta, time) => {
+        input.refresh(delta, time);
+        store.beginFrame();
+        scene.update(delta, time);
+        store.commit();
+        fields.score.textContent = String(store.get('score'));
+      });
+      loop.subscribeRender((alpha, time) => scene.render(alpha, time));
+      loop.start();
+    </script>
+  </body>
+</html>

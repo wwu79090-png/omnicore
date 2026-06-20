@@ -51,6 +51,9 @@ export class Store {
     this.dependencyGraph = new Map();
     this.derivedFlushScheduled = false;
     this.derivedFlushing = false;
+    this.frameCommitDepth = 0;
+    this.pendingCommits = new Map();
+    this.committing = false;
     STORE_CHECKPOINTS.set(this, {
       enabled: Boolean(options.debug && options.checkpointStorage),
       storage: options.checkpointStorage || null,
@@ -91,6 +94,63 @@ export class Store {
    * @returns {*} Stored value after emergency patching.
    */
   setValue(key, value) {
+    if (this.frameCommitDepth > 0 && !this.committing) return this._stageValue(key, value);
+    return this._setValueImmediate(key, value);
+  }
+
+  /**
+   * @returns {Store} Store instance for chaining staged writes.
+   */
+  beginFrame() {
+    this.frameCommitDepth += 1;
+    return this;
+  }
+
+  /**
+   * @returns {boolean} Whether staged writes are waiting for commit.
+   */
+  hasPendingCommits() {
+    return this.pendingCommits.size > 0;
+  }
+
+  /**
+   * @returns {Record<string, *>} Snapshot after staged writes are committed.
+   */
+  commit() {
+    if (this.frameCommitDepth > 0) this.frameCommitDepth -= 1;
+    if (this.frameCommitDepth > 0 || this.pendingCommits.size === 0) return this.snapshot();
+    const pending = [...this.pendingCommits.entries()];
+    this.pendingCommits.clear();
+    this.committing = true;
+    try {
+      for (const [key, value] of pending) this._setValueImmediate(key, value);
+    } finally {
+      this.committing = false;
+    }
+    return this.snapshot();
+  }
+
+  /**
+   * @returns {Record<string, *>} Snapshot after staged writes are discarded.
+   */
+  rollback() {
+    this.pendingCommits.clear();
+    this.frameCommitDepth = 0;
+    return this.snapshot();
+  }
+
+  _stageValue(key, value) {
+    const previous = this.pendingCommits.has(key) ? this.pendingCommits.get(key) : this.get(key);
+    if (Object.is(previous, value)) return previous;
+    const next = this._applyMiddleware(key, value, previous);
+    this._warnTypeDrift(key, next);
+    const patched = this._applyEmergencyPatch(key, next);
+    if (Object.is(this.get(key), patched) && !this.pendingCommits.has(key)) return patched;
+    this.pendingCommits.set(key, patched);
+    return patched;
+  }
+
+  _setValueImmediate(key, value) {
     const previous = this.get(key);
     if (Object.is(previous, value)) return previous;
     const next = this._applyMiddleware(key, value, previous);
@@ -408,7 +468,26 @@ export class Store {
     if (!manifest.version) throw createOmniError('Store', `插件缺少版本号：${expectedName}`);
     if (!manifest.module) throw createOmniError('Store', `插件缺少模块入口：${expectedName}`);
     const permissions = manifest.permissions || [];
-    const allowed = new Set(['events', 'store', 'renderer', 'assets']);
+    const allowed = new Set([
+      'events',
+      'store',
+      'renderer',
+      'assets',
+      'events:emit',
+      'events:on',
+      'store:read',
+      'store:write',
+      'assets:read',
+      'assets:write',
+      'net:request',
+      'payment:request',
+      'ad:show',
+      'editor:command',
+      'file:read',
+      'file:write',
+      'storage:read',
+      'storage:write'
+    ]);
     const denied = permissions.filter((permission) => !allowed.has(permission));
     if (denied.length) throw createOmniError('Store', `插件请求了不支持的权限：${denied.join(', ')}`);
   }
@@ -423,6 +502,16 @@ export class Store {
       name: manifest.name,
       version: manifest.version,
       permissions: [...(manifest.permissions || [])],
+      hasPermission(scope) {
+        const permissions = new Set(manifest.permissions || []);
+        return permissions.has('*') || permissions.has(scope) || permissions.has(String(scope).split(':')[0]);
+      },
+      requirePermission(scope) {
+        const permissions = new Set(manifest.permissions || []);
+        const allowed = permissions.has('*') || permissions.has(scope) || permissions.has(String(scope).split(':')[0]);
+        if (!allowed) throw createOmniError('Store', `插件缺少权限：${scope}`);
+        return true;
+      },
       register(key, value) {
         if (key === manifest.name && value && typeof value === 'object' && !Array.isArray(value)) {
           Object.assign(exports, value);

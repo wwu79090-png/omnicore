@@ -86,7 +86,8 @@ export class PixiRenderer {
     commandBuffer = false,
     commandCapacity = 4096,
     spritePoolSize = 2048,
-    debugRenderer = null
+    debugRenderer = null,
+    roundPixels = false
   } = {}) {
     this.backend = backend;
     this.canvas = canvas;
@@ -105,6 +106,7 @@ export class PixiRenderer {
     this.commandCapacity = commandCapacity;
     this.spritePoolSize = spritePoolSize;
     this.debugRenderer = debugRenderer;
+    this.roundPixels = Boolean(roundPixels);
     this.app = null;
     this.stage = null;
     this.ctx = null;
@@ -116,7 +118,7 @@ export class PixiRenderer {
     this.textureCache = new Map();
     this.unsubscribeEntities = null;
     this.layerManager = null;
-    this.batchOptimizer = new BatchOptimizer();
+    this.batchOptimizer = new BatchOptimizer({ roundPixels: this.roundPixels });
     this.batchAdapter = this.commandBufferEnabled ? new PixiBatchAdapter({ capacity: commandCapacity }) : null;
     this.batchStats = null;
     this.batchStatsDirty = true;
@@ -150,6 +152,7 @@ export class PixiRenderer {
         sharedTicker: false,
         resizeTo: this.autoResize && typeof window !== 'undefined' ? window : undefined
       });
+      if ('roundPixels' in this.app.renderer) this.app.renderer.roundPixels = this.roundPixels;
       this.stage = new Container();
       this.app.stage.addChild(this.stage);
       this.layerManager = new RenderLayerManager({ store: this.store, container: this.stage });
@@ -188,6 +191,32 @@ export class PixiRenderer {
 
   render(scene) {
     this.renderScene(scene);
+  }
+
+  capture(x = 0, y = 0, width = this.width, height = this.height) {
+    const rect = {
+      x: Math.max(0, Number(x) || 0),
+      y: Math.max(0, Number(y) || 0),
+      width: Math.max(1, Number(width) || this.width || 1),
+      height: Math.max(1, Number(height) || this.height || 1)
+    };
+    const ctx = this.ctx || (this.backend === 'canvas' ? this._getCanvasContext() : null);
+    if (ctx?.getImageData) {
+      return ctx.getImageData(rect.x, rect.y, rect.width, rect.height);
+    }
+    const extract = this.app?.renderer?.extract;
+    if (extract?.pixels) {
+      return extract.pixels({
+        target: this.app.stage,
+        frame: rect
+      });
+    }
+    return {
+      type: 'ImageData',
+      ...rect,
+      data: new Uint8ClampedArray(rect.width * rect.height * 4),
+      fallback: true
+    };
   }
 
   resize(width, height) {
@@ -768,6 +797,7 @@ export class PixiRenderer {
 
   _syncCommandSprite(sprite, command) {
     if (!sprite) return;
+    this._applyRoundPixels(sprite, command.child || command);
     if (sprite.__omnicoreTextureKey !== command.textureKey && sprite.texture !== undefined) {
       const texture = this._resolveTexture(command.texture);
       sprite.texture = texture;
@@ -786,6 +816,7 @@ export class PixiRenderer {
 
   _syncPixiSprite(sprite, child) {
     if (!sprite) return;
+    this._applyRoundPixels(sprite, child);
     if (typeof child.texture === 'string' && sprite.texture !== undefined) {
       const texture = this._resolveTexture(child.texture);
       if (sprite.texture !== texture) {
@@ -801,6 +832,13 @@ export class PixiRenderer {
     if (sprite.scale && (sprite.scale.x !== child.scaleX || sprite.scale.y !== child.scaleY)) {
       sprite.scale.set(child.scaleX, child.scaleY);
     }
+  }
+
+  _applyRoundPixels(displayObject, source = {}) {
+    if (displayObject && 'roundPixels' in displayObject) {
+      displayObject.roundPixels = source.roundPixels ?? this.roundPixels;
+    }
+    return displayObject;
   }
 
   _childKey(child) {

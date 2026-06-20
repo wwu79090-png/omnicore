@@ -17,7 +17,9 @@ export const Font = {
     if (typeof FontFace === 'function') {
       const face = new FontFace(name, source, descriptors);
       const loaded = await face.load();
-      document?.fonts?.add?.(loaded);
+      const fonts = globalThis.document?.fonts;
+      fonts?.add?.(loaded);
+      if (fonts?.ready && typeof fonts.ready.then === 'function') await fonts.ready;
       loadedFonts.set(cacheKey, loaded);
       return loaded;
     }

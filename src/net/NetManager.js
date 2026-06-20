@@ -78,10 +78,54 @@ export class StorageManager {
 
   static migrations = {};
 
+  static saveSlotPrefix = 'omnicore:save:slot:';
+
+  static cloudAdapter = null;
+
+  static storeBindings = new Set();
+
   static configure({ engineVersion, onVersionMismatch, migrations = {} } = {}) {
     if (engineVersion) StorageManager.engineVersion = engineVersion;
     if (onVersionMismatch) StorageManager.onVersionMismatch = onVersionMismatch;
     StorageManager.migrations = { ...StorageManager.migrations, ...migrations };
+  }
+
+  static configureSaveSlots({ prefix, cloudAdapter } = {}) {
+    if (prefix) StorageManager.saveSlotPrefix = prefix;
+    if (cloudAdapter) StorageManager.cloudAdapter = cloudAdapter;
+    return {
+      prefix: StorageManager.saveSlotPrefix,
+      cloudAdapter: StorageManager.cloudAdapter
+    };
+  }
+
+  static bindStore(store, {
+    prefix = 'omnicore:store:',
+    target = globalThis.window
+  } = {}) {
+    if (!store || typeof store.set !== 'function') throw createOmniError('Storage', 'bindStore(store) requires a Store-like object.');
+    if (!target?.addEventListener) return () => {};
+    const handler = (event) => {
+      if (!event?.key || !event.key.startsWith(prefix)) return;
+      const key = event.key.slice(prefix.length);
+      if (!key) return;
+      store.set(key, parseStorageEventValue(event.newValue));
+    };
+    target.addEventListener('storage', handler);
+    const binding = { store, target, handler };
+    StorageManager.storeBindings.add(binding);
+    return () => {
+      target.removeEventListener?.('storage', handler);
+      StorageManager.storeBindings.delete(binding);
+    };
+  }
+
+  static unbindStore(store = null) {
+    for (const binding of [...StorageManager.storeBindings]) {
+      if (store && binding.store !== store) continue;
+      binding.target.removeEventListener?.('storage', binding.handler);
+      StorageManager.storeBindings.delete(binding);
+    }
   }
 
   static async ensureEngineVersion({ engineVersion, onVersionMismatch, migrations = {} } = {}) {
@@ -270,6 +314,95 @@ export class StorageManager {
     }
   }
 
+  static async saveSlot(slot, data, {
+    schema = null,
+    version = StorageManager.engineVersion,
+    atomic = true,
+    encrypt = false,
+    secret = 'omnicore',
+    cloudAdapter = StorageManager.cloudAdapter
+  } = {}) {
+    const key = slotKey(slot);
+    const payload = setSaveVersion({
+      ...cloneJson(data),
+      savedAt: new Date().toISOString()
+    }, '__version', String(version || StorageManager.engineVersion));
+    validateSaveSchema(payload, schema);
+    const previous = StorageManager.get(key, null);
+    if (previous != null) StorageManager.set(`${key}:backup`, previous);
+    const writeValue = encrypt ? encodeEncryptedPayload(payload, secret) : payload;
+    if (atomic) {
+      StorageManager.set(`${key}:tmp`, writeValue);
+      StorageManager.set(key, StorageManager.get(`${key}:tmp`));
+      StorageManager.remove(`${key}:tmp`);
+    } else {
+      StorageManager.set(key, writeValue);
+    }
+    await cloudAdapter?.save?.(slot, payload);
+    return {
+      slot,
+      key,
+      version: payload.__version,
+      saved: true,
+      cloud: Boolean(cloudAdapter)
+    };
+  }
+
+  static async loadSlot(slot, {
+    fallback = null,
+    schema = null,
+    encrypted = false,
+    secret = 'omnicore',
+    cloudAdapter = StorageManager.cloudAdapter
+  } = {}) {
+    const key = slotKey(slot);
+    let value = StorageManager.get(key, null);
+    if (value == null && cloudAdapter?.load) {
+      value = await cloudAdapter.load(slot);
+      if (value != null) StorageManager.set(key, value);
+    }
+    if (value == null) return fallback;
+    const decoded = encrypted ? decodeEncryptedPayload(value, secret, fallback) : value;
+    if (decoded == null) return fallback;
+    validateSaveSchema(decoded, schema);
+    return decoded;
+  }
+
+  static rollbackSlot(slot) {
+    const key = slotKey(slot);
+    const backup = StorageManager.get(`${key}:backup`, null);
+    if (backup == null) return null;
+    StorageManager.set(key, backup);
+    return backup;
+  }
+
+  static deleteSlot(slot, { cloudAdapter = StorageManager.cloudAdapter } = {}) {
+    const key = slotKey(slot);
+    StorageManager.remove(key);
+    StorageManager.remove(`${key}:backup`);
+    cloudAdapter?.delete?.(slot);
+    return true;
+  }
+
+  static listSlots({ prefix = StorageManager.saveSlotPrefix } = {}) {
+    const keys = new Set();
+    for (const key of StorageManager.memory.keys()) {
+      if (String(key).startsWith(prefix) && !String(key).endsWith(':backup') && !String(key).endsWith(':tmp')) {
+        keys.add(String(key).slice(prefix.length));
+      }
+    }
+    try {
+      const storage = globalThis.localStorage;
+      for (let index = 0; storage && index < storage.length; index += 1) {
+        const key = storage.key(index);
+        if (key?.startsWith(prefix) && !key.endsWith(':backup') && !key.endsWith(':tmp')) keys.add(key.slice(prefix.length));
+      }
+    } catch {
+      // In private modes localStorage enumeration can throw; memory keys still work.
+    }
+    return [...keys].sort();
+  }
+
   static read(key, fallback = null) {
     console.warn(warnMessage('Storage', '已废弃 API OmniCore.Storage.read，自 0.2.0 起废弃，将在 1.0.0 移除；请改用 OmniCore.Storage.get。'));
     return StorageManager.get(key, fallback);
@@ -297,6 +430,62 @@ function resolveLegacyMapping(legacy, mapping, context) {
       : raw;
   }
   return readLegacyPath(legacy, mapping || context.targetKey);
+}
+
+function slotKey(slot) {
+  if (!slot) throw createOmniError('Storage', 'save slot name is required.');
+  return `${StorageManager.saveSlotPrefix}${String(slot)}`;
+}
+
+function cloneJson(value) {
+  if (value == null || typeof value !== 'object') return { value };
+  return JSON.parse(JSON.stringify(value));
+}
+
+function validateSaveSchema(value, schema = null) {
+  if (!schema) return true;
+  const required = schema.required || [];
+  for (const key of required) {
+    if (value?.[key] === undefined) {
+      throw createOmniError('Storage', `存档缺少必填字段：${key}`, {
+        code: 'OMNICORE_SAVE_SCHEMA_INVALID',
+        category: 'storage',
+        recoverable: true,
+        details: { key }
+      });
+    }
+  }
+  const properties = schema.properties || {};
+  for (const [key, rule] of Object.entries(properties)) {
+    if (value?.[key] === undefined || !rule?.type) continue;
+    const actual = Array.isArray(value[key]) ? 'array' : typeof value[key];
+    if (actual !== rule.type) {
+      throw createOmniError('Storage', `存档字段类型不匹配：${key}`, {
+        code: 'OMNICORE_SAVE_SCHEMA_INVALID',
+        category: 'storage',
+        recoverable: true,
+        details: { key, expected: rule.type, actual }
+      });
+    }
+  }
+  return true;
+}
+
+function encodeEncryptedPayload(value, secret) {
+  return {
+    __encrypted: true,
+    payload: encodeBase64(xorCipher(JSON.stringify(value), secret))
+  };
+}
+
+function decodeEncryptedPayload(value, secret, fallback) {
+  try {
+    if (value?.__encrypted) return JSON.parse(xorCipher(decodeBase64(value.payload), secret));
+    if (typeof value === 'string') return JSON.parse(xorCipher(decodeBase64(value), secret));
+    return value;
+  } catch {
+    return fallback;
+  }
 }
 
 function readLegacyPath(source, path, fallback = undefined) {
@@ -334,6 +523,15 @@ function setSaveVersion(save, versionField, version) {
     return { ...save, [versionField]: version };
   }
   return { [versionField]: version, value: save };
+}
+
+function parseStorageEventValue(value) {
+  if (value == null) return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
 }
 
 function resolveMigrationSteps(from, to, migrations = {}) {

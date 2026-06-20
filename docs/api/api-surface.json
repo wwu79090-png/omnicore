@@ -1,0 +1,40 @@
+{
+  "schema": "omnicore.api-surface.v1",
+  "tiers": {
+    "public": [
+      "AssetLoader",
+      "AudioManager",
+      "Backend",
+      "Database",
+      "EventBus",
+      "Game",
+      "InputManager",
+      "Loader",
+      "Prefab",
+      "RendererManager",
+      "Scene",
+      "Sprite",
+      "Storage",
+      "Store",
+      "Tilemap",
+      "createGame",
+      "createLeanRuntime"
+    ],
+    "experimental": [
+      "AIImporter",
+      "Dimension3D",
+      "EditorPanel",
+      "Kernel",
+      "MarketplaceServer",
+      "RenderWorkerBridge",
+      "RuntimeLiveSyncBridge",
+      "WebGPURenderer"
+    ],
+    "internal": [
+      "Assert",
+      "Bootstrap",
+      "DebugRenderer",
+      "safeInitialize"
+    ]
+  }
+}

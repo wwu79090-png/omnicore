@@ -126,6 +126,8 @@ export function migrateSource({ source, file = '', from = '1.x', to = '2.x' } = 
   output = replace(output, 'new OmniCore.Game(', 'OmniCore.createGame(', 'OmniCore.Game -> OmniCore.createGame', changes, 'OmniCore.Game');
   output = replace(output, 'OmniCore.Entity.create(', 'OmniCore.createEntity(', 'Entity.create -> createEntity', changes, 'OmniCore.Entity.create');
   output = replace(output, 'Entity.create(', 'Entity.createEntity(', 'Entity.create -> Entity.createEntity', changes, 'Entity.create');
+  output = replace(output, 'OmniCore.Storage.read(', 'OmniCore.Storage.get(', 'Storage.read -> Storage.get', changes, 'OmniCore.Storage.read');
+  output = replace(output, 'OmniCore.Storage.write(', 'OmniCore.Storage.set(', 'Storage.write -> Storage.set', changes, 'OmniCore.Storage.write');
   output = replace(output, 'Store.set(', 'Store.setValue(', 'Store.set -> Store.setValue', changes, 'Store.set');
   output = replace(output, '.store.set(', '.store.setValue(', 'Store#set -> Store#setValue', changes, 'Store#set');
   output = replace(output, 'store.set(', 'store.setValue(', 'Store#set -> Store#setValue', changes, 'Store#set');

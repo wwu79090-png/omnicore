@@ -2774,7 +2774,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     };
   }
 
-  function create25DPreview({ zToYScale = 16, showReferenceLines = true } = {}) {
+  function create25DPreview({ zToYScale = 16, showReferenceLines = true, showDepthMappingLines = true } = {}) {
     const entities = current.scene?.entities || [];
     const mixedNodes = entities
       .filter((entity) => isSpine25DNode(entity) || isDimension25DNode(entity))
@@ -2784,6 +2784,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
         x: Number(entity.x || 0),
         y: Number(entity.y || 0),
         z: Number(entity.z || entity.position?.z || 0),
+        width: Number(entity.width || entity.bounds?.width || 32),
+        height: Number(entity.height || entity.bounds?.height || 32),
+        depth: Number(entity.depth || entity.bounds?.depth || entity.bounds?.height || 32),
         baselineY: Number(entity.y || 0) + Number(entity.height || entity.bounds?.height || 0)
       }));
     const yToZReferenceLines = showReferenceLines
@@ -2795,13 +2798,31 @@ export function createEditorApp(root = document.querySelector('#app'), {
         z: node.z
       }))
       : [];
+    const zDepthPreviewLines = showDepthMappingLines
+      ? mixedNodes.map((node) => {
+        const centerX = node.x + node.width / 2;
+        const depthHalf = node.depth / 2;
+        return {
+          id: node.id,
+          axis: 'z-depth',
+          from: { x: centerX, y: node.baselineY },
+          to: { x: centerX, y: node.baselineY - node.z * Number(zToYScale) },
+          z: node.z,
+          depthRange: {
+            minY: node.baselineY - depthHalf,
+            maxY: node.baselineY + depthHalf
+          }
+        };
+      })
+      : [];
     const preview = {
       protocol: 'omnicore-editor-25d-preview/v1',
       scene: current.scene?.name || 'untitled',
       zToYScale: Number(zToYScale),
       mixedNodes,
       guides: {
-        yToZReferenceLines
+        yToZReferenceLines,
+        zDepthPreviewLines
       }
     };
     current = createEditorState({ ...current, preview25D: preview });
@@ -3838,6 +3859,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
     if (current.sceneOverlays?.depth) {
       for (const entity of current.scene.entities) view.appendChild(createDepthOverlay(entity));
     }
+    for (const line of current.preview25D?.guides?.zDepthPreviewLines || []) {
+      view.appendChild(createZDepthPreviewLine(line));
+    }
     for (const entity of current.scene.entities.filter((item) => selectedIds(current).includes(item.id))) {
       view.appendChild(createSelectionOutline(entity));
       view.appendChild(createOriginMarker(entity));
@@ -3959,6 +3983,17 @@ export function createEditorApp(root = document.querySelector('#app'), {
     overlay.style.left = `${Number(entity.x || 0)}px`;
     overlay.style.top = `${Number(entity.y || 0) - 18}px`;
     overlay.textContent = `z:${Number(entity.zIndex ?? entity.depth ?? 0)}`;
+    return overlay;
+  }
+
+  function createZDepthPreviewLine(line) {
+    const overlay = document.createElement('div');
+    overlay.className = 'z-depth-preview-line';
+    overlay.dataset.zDepthPreviewLine = line.id;
+    overlay.style.left = `${Number(line.from?.x || 0)}px`;
+    overlay.style.top = `${Math.min(Number(line.from?.y || 0), Number(line.to?.y || 0))}px`;
+    overlay.style.height = `${Math.abs(Number(line.from?.y || 0) - Number(line.to?.y || 0))}px`;
+    overlay.textContent = `Z ${Number(line.z || 0)} (${Math.round(Number(line.depthRange?.minY || 0))}-${Math.round(Number(line.depthRange?.maxY || 0))})`;
     return overlay;
   }
 
@@ -5660,6 +5695,7 @@ const EDITOR_CSS = `
   .selection-marquee { position: absolute; box-sizing: border-box; pointer-events: none; border: 1px dashed #67e8f9; background: rgba(34,211,238,.12); }
   .collision-overlay { position: absolute; box-sizing: border-box; pointer-events: none; border: 1px dashed rgba(248,113,113,.95); background: rgba(127,29,29,.18); }
   .depth-overlay { position: absolute; pointer-events: none; padding: 1px 4px; border: 1px solid #a3e635; background: rgba(20,83,45,.86); color: #dcfce7; font-size: 10px; }
+  .z-depth-preview-line { position: absolute; min-height: 1px; width: 2px; pointer-events: none; border-left: 2px solid #38bdf8; color: #cffafe; font-size: 10px; text-indent: 5px; background: linear-gradient(180deg, rgba(56,189,248,.36), rgba(250,204,21,.28)); box-shadow: 0 0 0 1px rgba(15,23,42,.6), 0 0 12px rgba(56,189,248,.34); }
   .undo-history { display: grid; gap: 3px; max-height: 72px; overflow: auto; padding: 5px; border: 1px solid #334155; background: #020617; color: #cbd5e1; }
   .undo-history div.selected { color: #facc15; }
   .floating-editor-panel { position: absolute; right: 12px; z-index: 22; display: grid; gap: 8px; width: min(360px, calc(100% - 24px)); max-height: calc(100vh - 88px); overflow: auto; padding: 10px; border: 1px solid #38bdf8; background: #020617; box-shadow: 0 18px 44px rgba(2,6,23,.48); }

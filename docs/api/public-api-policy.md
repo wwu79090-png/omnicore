@@ -29,6 +29,8 @@ Internal or compatibility exports should not be promoted in tutorials. They stay
 ## Release Rules
 
 - Any new stable export must update `tests/contract/golden/omnicore-core-api.json`.
+- Any public/experimental/internal tier change must update `docs/api/api-surface.json`.
+- `npm run audit:api-surface` runs in PR CI and blocks removed or demoted stable APIs unless a migration note is supplied through `OMNICORE_API_MIGRATION_NOTE`.
 - Breaking stable API changes require a deprecation entry and migration note.
 - Experimental exports can change, but release notes must call out the change.
 - New tutorials should import from the narrowest available entry point, usually `omnicore`, `omnicore/core`, or `omnicore/lean`.

@@ -7,7 +7,8 @@
 import {
   createCanvas,
   detectEnvironment,
-  normalizeConfig,
+  detectPlatformAndMergeDefaults,
+  normalizeScaleMode,
   removeContainerCanvases,
   resolveContainer,
   safeInitialize
@@ -25,6 +26,7 @@ import SceneManager from '../scene/SceneManager.js';
 import Store from '../store/Store.js';
 import Loader from '../loader/Loader.js';
 import AssetLoader from '../loader/AssetLoader.js';
+import AssetCache from './AssetCache.js';
 import { DB, Database } from '../database/Database.js';
 import Inspector from '../debug/Inspector.js';
 import FrameProfiler from '../debug/FrameProfiler.js';
@@ -94,6 +96,26 @@ class CoreContext {
     if (this.config.autoAttach && this.container && !this.canvas.parentNode) {
       this.container.appendChild(this.canvas);
     }
+    this.applyScaleMode();
+  }
+
+  applyScaleMode() {
+    const mode = normalizeScaleMode(this.config.scaleMode);
+    if (!this.canvas?.style || mode === 'NONE') return;
+    const width = Number(this.config.width || this.canvas.width || 0);
+    const height = Number(this.config.height || this.canvas.height || 0);
+    const containerWidth = Number(this.container?.clientWidth || width);
+    const containerHeight = Number(this.container?.clientHeight || height);
+    const scale = mode === 'FIT'
+      ? Math.min(containerWidth / width, containerHeight / height)
+      : (mode === 'HEIGHT' ? containerHeight / height : 1);
+    const cssWidth = Math.max(1, Math.round(width * scale));
+    const cssHeight = Math.max(1, Math.round(height * scale));
+    this.canvas.style.width = `${cssWidth}px`;
+    this.canvas.style.height = `${cssHeight}px`;
+    this.canvas.style.marginLeft = `${Math.max(0, Math.round((containerWidth - cssWidth) / 2))}px`;
+    this.canvas.style.marginTop = `${Math.max(0, Math.round((containerHeight - cssHeight) / 2))}px`;
+    this.canvas.style.transformOrigin = 'top left';
   }
 
   recreateCanvas() {
@@ -115,13 +137,20 @@ class CoreContext {
     }
   }
 
-  autoResize(rendererOrGetter) {
+  autoResize(rendererOrGetter, onResize = null) {
     if (!this.config.autoResize || typeof window === 'undefined') return;
     this.resizeHandler = () => {
       const width = this.container?.clientWidth || this.config.width;
       const height = this.container?.clientHeight || this.config.height;
       const renderer = typeof rendererOrGetter === 'function' ? rendererOrGetter() : rendererOrGetter;
+      if (normalizeScaleMode(this.config.scaleMode) !== 'NONE') {
+        this.applyScaleMode();
+        renderer?.resize?.(this.config.width, this.config.height);
+        onResize?.({ width: this.config.width, height: this.config.height, renderer, canvas: this.canvas });
+        return;
+      }
       renderer?.resize?.(width, height);
+      onResize?.({ width, height, renderer, canvas: this.canvas });
     };
     window.addEventListener('resize', this.resizeHandler);
   }
@@ -232,16 +261,44 @@ export async function loadPhysics(loader) {
   return loader();
 }
 
+function normalizeRendererRuntimeConfig(config = {}) {
+  const { renderer } = config;
+  if (!renderer || typeof renderer !== 'object' || Array.isArray(renderer)) {
+    return {
+      ...config,
+      renderer: renderer || config.backend
+    };
+  }
+
+  const {
+    backend,
+    type,
+    name,
+    roundPixels,
+    ...rendererOptions
+  } = renderer;
+  const rendererBackend = backend || type || name || config.backend;
+  return {
+    ...config,
+    renderer: rendererBackend,
+    backend: config.backend || rendererBackend,
+    rendererOptions: {
+      ...rendererOptions,
+      ...(config.rendererOptions || {}),
+      roundPixels: config.rendererOptions?.roundPixels ?? roundPixels
+    },
+    roundPixels: config.roundPixels ?? roundPixels
+  };
+}
+
 export class Game {
   constructor(config = {}) {
-    this.config = normalizeConfig({
-      ...config,
-      renderer: config.renderer || config.backend
-    });
     this.environment = detectEnvironment(globalThis);
-    if (!Object.prototype.hasOwnProperty.call(config, 'platform') && this.environment.platform !== 'web') {
-      this.config.platform = this.environment.platform;
-    }
+    const runtimeConfig = normalizeRendererRuntimeConfig(config);
+    this.config = detectPlatformAndMergeDefaults({
+      ...runtimeConfig,
+      renderer: runtimeConfig.renderer || runtimeConfig.backend
+    }, this.environment);
     this.hooks = {
       onStart: this.config.onStart,
       onPause: this.config.onPause,
@@ -253,6 +310,7 @@ export class Game {
     this.logger = new Logger({ debug: this.config.debug });
     Assert.configure({ enabled: this.config.debug === true });
     Pool.setDebug(Boolean(this.config.debug));
+    this.pool = new GamePoolFacade(Pool, this.config.pool || {}, this.logger);
     this.platform = PlatformAdapter.prepare(this.config.platform, this.environment.raw);
     this.events = new EventBus();
     this.logger.setEventBus(this.events);
@@ -270,10 +328,15 @@ export class Game {
       checkpointStorage: StorageManager,
       checkpointPrefix: this.config.store?.checkpointPrefix || this.config.checkpointPrefix
     });
+    const storageSync = this.config.store?.storageSync;
+    this.storageSyncUnsubscribe = storageSync === false
+      ? null
+      : StorageManager.bindStore(this.store, typeof storageSync === 'object' ? storageSync : {});
     this.loader = new Loader({
       fetcher: this.environment.fetcher,
       onFriendlyError: (error) => this.events.emit('loader:error', error)
     });
+    this.cache = new AssetCache(this.config.cache || {});
     this.assetLoader = new AssetLoader({ fetcher: this.environment.fetcher, logger: this.logger });
     this.database = this.config.database instanceof Database ? this.config.database : DB;
     this.rendererManager = new RendererManager({
@@ -285,7 +348,7 @@ export class Game {
       fps: 60,
       framerateCap: this.config.framerateCap ?? 60,
       vsync: this.config.vsync ?? true,
-      autoPause: true,
+      autoPause: this.config.pausedOnHidden !== false,
       onFrameStart: (frame) => this.snapshot?.startFrame?.(frame),
       onFrameEnd: (frame) => this.snapshot?.endFrame?.(frame),
       onFrameError: (error, frame) => this.snapshot?.rollbackOnError?.(error, frame),
@@ -293,6 +356,7 @@ export class Game {
       onTimeJump: (payload) => this.logger.warn('Loop', '检测到大跨度时间跳跃，已限制增量时间', payload),
       timeGuard: this.timeGuard
     });
+    this.time = this.loop.time;
     this.snapshot = new Snapshot({
       game: this,
       logger: this.logger,
@@ -347,6 +411,7 @@ export class Game {
     this.crashReporter = null;
     this.webglContext = null;
     this.transitionLayer = null;
+    this.audioAutoResumeBinding = null;
     this.microkernelBridge = null;
     this.initialized = false;
     this.destroyed = false;
@@ -389,7 +454,10 @@ export class Game {
       (error) => this.createRenderer('canvas', { fallbackReason: error }),
       this.logger
     );
-    this.core.autoResize(() => this.renderer);
+    this.core.autoResize(
+      () => this.renderer,
+      ({ width, height }) => this._syncResizeProjection(width, height)
+    );
     const inputOptions = typeof this.config.input === 'object' ? this.config.input : {};
     this.input = safeInitialize('InputManager', () => new InputManager({
       ...inputOptions,
@@ -397,6 +465,7 @@ export class Game {
       events: this.events
     }), null, this.logger);
     this.scene = safeInitialize('SceneManager', () => new SceneManager(this), null, this.logger);
+    this.audioAutoResumeBinding = this.audio?.installAutoResume?.();
     if (this.config.debug || this.config.editorLiveEdit || this.config.profiler) {
       this.frameProfiler = safeInitialize(
         'FrameProfiler',
@@ -427,6 +496,7 @@ export class Game {
         return null;
       }, this.logger);
       if (this.dimension3D) {
+        this.dimension3D.bindGameTime?.(this.time);
         this.dimension3D.startRenderLoop?.({ fps: 30 });
         this.dimension3DUnsubscribe = () => this.dimension3D?.stopRenderLoop?.();
       }
@@ -530,6 +600,34 @@ export class Game {
     this.events.emit('resume', this);
   }
 
+  showFPS() {
+    if (typeof document === 'undefined') return null;
+    if (this.fpsOverlay?.isConnected) return this.fpsOverlay;
+    const overlay = document.createElement('div');
+    overlay.dataset.omnicoreFps = 'true';
+    overlay.textContent = 'FPS: --';
+    Object.assign(overlay.style, {
+      position: 'fixed',
+      left: '8px',
+      top: '8px',
+      zIndex: '2147483647',
+      padding: '4px 6px',
+      font: '12px monospace',
+      color: '#dbeafe',
+      background: 'rgba(15,23,42,0.82)',
+      pointerEvents: 'none'
+    });
+    document.body?.appendChild?.(overlay);
+    this.fpsOverlay = overlay;
+    return overlay;
+  }
+
+  hideFPS() {
+    this.fpsOverlay?.remove?.();
+    this.fpsOverlay = null;
+    return this;
+  }
+
   async createRenderer(backend, options = {}) {
     if (backend === 'offscreen') {
       const renderer = new OffscreenCanvasRenderer({
@@ -571,7 +669,11 @@ export class Game {
       metrics: this.metrics,
       commandBuffer: this.config.commandBuffer ?? this.config.pixi?.commandBuffer ?? false,
       commandCapacity: this.config.commandCapacity ?? this.config.pixi?.commandCapacity ?? 4096,
-      spritePoolSize: this.config.spritePoolSize ?? this.config.pool?.spritePoolSize ?? 2048
+      spritePoolSize: this.config.spritePoolSize ?? this.config.pool?.spritePoolSize ?? 2048,
+      roundPixels: this.config.roundPixels
+        ?? this.config.rendererOptions?.roundPixels
+        ?? this.config.pixi?.roundPixels
+        ?? false
     });
     await renderer.init();
     return renderer;
@@ -590,6 +692,7 @@ export class Game {
     this.dimension3DUnsubscribe?.();
     this.dimension3D?.destroy?.();
     this.audio?.stopAll?.();
+    this.audioAutoResumeBinding?.destroy?.();
     this.performanceMonitor?.destroy?.();
     this.profilerWaterfallPanel?.detach?.();
     this.profilerSnapshotBinding?.destroy?.();
@@ -598,15 +701,20 @@ export class Game {
     this.emergencyOverlay?.detach?.();
     this.crashReporter?.destroy?.();
     this.inspector?.detach?.();
+    this.hideFPS?.();
     this.transitionLayer?.destroy?.();
     this.snapshot?.destroy?.();
     this.core?.destroy?.();
     this.events?.clear?.();
+    this.storageSyncUnsubscribe?.();
     this.initialized = false;
     if (Backend.game === this) Backend.game = null;
     this.renderer = null;
+    this.cache?.destroy?.();
     this.scene = null;
     this.input = null;
+    this.cache = null;
+    this.storageSyncUnsubscribe = null;
     this.webglContext = null;
     this.microkernelBridge = null;
     this.hotReload = null;
@@ -625,7 +733,22 @@ export class Game {
     this.snapshot = null;
     this.inspector = null;
     this.transitionLayer = null;
+    this.audioAutoResumeBinding = null;
     this.destroyed = true;
+  }
+
+  _syncResizeProjection(width, height) {
+    this.config.width = width;
+    this.config.height = height;
+    this.camera?.setViewport?.({ width, height });
+    this.camera?.setScreenTarget?.(this.core?.canvas || null);
+    this.input?.resizeTarget?.();
+    this.events?.emit?.('resize', {
+      width,
+      height,
+      camera: this.camera,
+      renderer: this.renderer
+    });
   }
 
   _bindWebGLContextManager() {
@@ -650,6 +773,67 @@ export class Game {
     }
 
     this.webglContext.bind(this.core.canvas);
+  }
+}
+
+class GamePoolFacade {
+  constructor(registry, config = {}, logger = null) {
+    this.registry = registry;
+    this.logger = logger;
+    this.checkedOut = new Map();
+    this._configure(config);
+  }
+
+  get(type) {
+    const pool = this._ensurePool(type);
+    const item = pool.allocate();
+    if (!this.checkedOut.has(type)) this.checkedOut.set(type, new Set());
+    this.checkedOut.get(type).add(item);
+    return item;
+  }
+
+  release(item) {
+    const type = item?.__omnicorePoolName;
+    if (!type) return false;
+    const pool = this.registry.get(type);
+    const released = Boolean(pool?.free?.(item));
+    this.checkedOut.get(type)?.delete(item);
+    return released;
+  }
+
+  releaseAll(type = null) {
+    const entries = type ? [[type, this.checkedOut.get(type) || new Set()]] : [...this.checkedOut.entries()];
+    let count = 0;
+    for (const [name, items] of entries) {
+      for (const item of [...items]) {
+        if (this.release(item)) count += 1;
+      }
+      if (!type) this.checkedOut.delete(name);
+    }
+    return count;
+  }
+
+  stats(type) {
+    return this.registry.get(type)?.stats?.() || null;
+  }
+
+  _configure(config) {
+    for (const [name, options] of Object.entries(config || {})) {
+      const size = options.size || options.preAllocCount || options.capacity || 32;
+      this.registry.create(name, size, {
+        ...options,
+        logger: options.logger || this.logger
+      });
+    }
+  }
+
+  _ensurePool(type) {
+    const name = String(type || '');
+    let pool = this.registry.get(name);
+    if (!pool) {
+      pool = this.registry.create(name, 32, { logger: this.logger });
+    }
+    return pool;
   }
 }
 

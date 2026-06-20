@@ -1,0 +1,45 @@
+{
+  "OmniCore Game": {
+    "prefix": "omni-game",
+    "description": "Create an OmniCore Game instance.",
+    "body": [
+      "import OmniCore from 'omnicore';",
+      "",
+      "const game = await new OmniCore.Game({",
+      "  parent: '${1:#app}',",
+      "  width: ${2:960},",
+      "  height: ${3:540},",
+      "  renderer: '${4:pixi}',",
+      "  debug: ${5:true}",
+      "}).init();",
+      "",
+      "$0"
+    ]
+  },
+  "OmniCore Scene": {
+    "prefix": "omni-scene",
+    "description": "Create a Scene subclass with create and update hooks.",
+    "body": [
+      "import { Scene, Sprite } from 'omnicore';",
+      "",
+      "class ${1:PlayScene} extends Scene {",
+      "  create() {",
+      "    this.${2:hero} = this.add(new Sprite('${3:hero}', { x: ${4:120}, y: ${5:120}, width: ${6:32}, height: ${7:32} }));",
+      "  }",
+      "",
+      "  update(delta) {",
+      "    $0",
+      "  }",
+      "}"
+    ]
+  },
+  "OmniCore Hook": {
+    "prefix": "omni-hook",
+    "description": "Register an OmniCore Hook listener.",
+    "body": [
+      "const dispose${1:Hook} = OmniCore.Hook.on('${2:game:init}', (${3:payload}) => {",
+      "  $0",
+      "});"
+    ]
+  }
+}

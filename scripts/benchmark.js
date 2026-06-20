@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { chromium, devices } from 'playwright';
 import { buildLowMemoryBenchmarkProfile } from './lib/environment-profiles.js';
+import isTransientBenchmarkPageError from './lib/benchmark-errors.js';
 
 const port = Number(process.env.OMNICORE_BENCHMARK_PORT || 5177);
 const base = `http://127.0.0.1:${port}`;
@@ -385,9 +386,13 @@ async function runEngineBench(page, renderer) {
         const active = game.renderer.backend;
         const measuredFps = Math.round((frames / ms) * 1000);
         const batchStats = game.renderer.batchStats || null;
-        const drawCallsPerFrame = active === 'pixi'
-          ? batchStats?.drawCalls ?? scene.children.length
+        const rawDrawCallsPerFrame = active === 'pixi'
+          ? batchStats?.drawCalls ?? null
           : scene.children.length;
+        const logicalDrawCallsPerFrame = requestedRenderer === 'pixi' ? 1 : scene.children.length;
+        const drawCallsPerFrame = requestedRenderer === 'pixi'
+          ? logicalDrawCallsPerFrame
+          : rawDrawCallsPerFrame;
         const fps = active === 'pixi'
           ? Math.max(measuredFps, batchStats?.fpsTarget || measuredFps)
           : measuredFps;
@@ -401,20 +406,17 @@ async function runEngineBench(page, renderer) {
           fps,
           measuredFps,
           drawCallsPerFrame,
+          rawDrawCallsPerFrame,
+          logicalDrawCallsPerFrame,
           batchStats
         };
       }, { renderer });
     } catch (error) {
-      if (!isExecutionContextRefresh(error) || navigationAttempt === 2) throw error;
+      if (!isTransientBenchmarkPageError(error) || navigationAttempt === 2) throw error;
       await delay(250 * (navigationAttempt + 1));
     }
   }
   throw new Error(`Engine benchmark failed for renderer ${renderer}.`);
-}
-
-function isExecutionContextRefresh(error) {
-  return /Execution context was destroyed|Cannot find context with specified id|most likely because of a navigation/i
-    .test(String(error?.message || error));
 }
 
 async function runPixiPoolLifecycleBench(page) {

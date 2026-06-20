@@ -21,6 +21,7 @@ export class AudioManager {
     this.outputNode = null;
     this.compressor = null;
     this.buffers = new Map();
+    this.streams = new Map();
     this.active = new Set();
     this.buses = new Map();
     this.ducking = new Map();
@@ -30,11 +31,59 @@ export class AudioManager {
       compileSuccess: { type: 'sine', frequency: 660, duration: 0.16, attack: 0.01, release: 0.12 },
       footstep: { type: 'triangle', frequency: 140, duration: 0.08, attack: 0.004, release: 0.06 }
     };
+    this.autoResumeBinding = null;
+  }
+
+  configureStandardBuses(volumes = {}) {
+    const defaults = {
+      master: 1,
+      music: 1,
+      sfx: 1,
+      voice: 1,
+      ui: 1,
+      ...volumes
+    };
+    this.createBus('master', { volume: defaults.master, parent: null });
+    for (const name of ['music', 'sfx', 'voice', 'ui']) {
+      this.createBus(name, { volume: defaults[name], parent: 'master' });
+    }
+    return this.snapshotMixer();
   }
 
   _ensureContext() {
-    if (!this.context && typeof AudioContext !== 'undefined') this.context = new AudioContext();
+    const AudioContextRef = globalThis.AudioContext || globalThis.webkitAudioContext;
+    if (!this.context && AudioContextRef) this.context = new AudioContextRef();
     return this.context;
+  }
+
+  installAutoResume({
+    window: ownerWindow = globalThis.window,
+    events = ['pointerdown', 'touchstart', 'keydown', 'visibilitychange']
+  } = {}) {
+    if (this.autoResumeBinding) return this.autoResumeBinding;
+    if (!ownerWindow?.addEventListener) {
+      this.autoResumeBinding = { destroy: () => {} };
+      return this.autoResumeBinding;
+    }
+    const options = { capture: true, passive: true };
+    const resume = () => this.resumeIfSuspended();
+    for (const event of events) ownerWindow.addEventListener(event, resume, options);
+    const binding = {
+      destroy: () => {
+        for (const event of events) ownerWindow.removeEventListener?.(event, resume, options);
+        if (this.autoResumeBinding === binding) this.autoResumeBinding = null;
+      }
+    };
+    this.autoResumeBinding = binding;
+    return this.autoResumeBinding;
+  }
+
+  async resumeIfSuspended() {
+    const context = this._ensureContext();
+    if (context?.state === 'suspended' && typeof context.resume === 'function') {
+      await context.resume();
+    }
+    return context || null;
   }
 
   _ensureOutputNode() {
@@ -86,11 +135,86 @@ export class AudioManager {
     return this.setBusVolume('master', volume);
   }
 
+  setVolume(name = 'master', volume = 1) {
+    return this.setBusVolume(name, volume);
+  }
+
   setBusVolume(name, volume = 1) {
     const bus = this.buses.get(name) || this.createBus(name);
     bus.volume = Number(volume);
     this._applyBusVolume(name);
     return bus;
+  }
+
+  snapshotMixer() {
+    return {
+      buses: Object.fromEntries([...this.buses.entries()].map(([name, bus]) => [name, {
+        volume: bus.volume,
+        effectiveVolume: bus.effectiveVolume,
+        parent: bus.parent
+      }])),
+      ducking: Object.fromEntries([...this.ducking.entries()].map(([name, duck]) => [name, { ...duck }]))
+    };
+  }
+
+  saveMixerState(storage, key = 'omnicore:audio:mixer') {
+    const snapshot = this.snapshotMixer();
+    storage?.set?.(key, snapshot);
+    return snapshot;
+  }
+
+  loadMixerState(storage, key = 'omnicore:audio:mixer') {
+    const snapshot = storage?.get?.(key, null);
+    if (!snapshot?.buses) return null;
+    for (const [name, bus] of Object.entries(snapshot.buses)) {
+      this.createBus(name, { volume: bus.volume, parent: bus.parent });
+      this.setBusVolume(name, bus.volume);
+    }
+    for (const [name, duck] of Object.entries(snapshot.ducking || {})) this.duck(name, duck);
+    return this.snapshotMixer();
+  }
+
+  createStream(key, {
+    url,
+    bus = 'music',
+    loop = true,
+    volume = 1,
+    preload = 'auto'
+  } = {}) {
+    const stream = {
+      key,
+      url,
+      bus,
+      loop: Boolean(loop),
+      volume: Number(volume),
+      preload,
+      type: 'audio-stream',
+      play: () => this.playStream(key)
+    };
+    this.streams.set(key, stream);
+    return stream;
+  }
+
+  playStream(key) {
+    const stream = this.streams.get(key);
+    if (!stream) return null;
+    const voice = {
+      ...stream,
+      playing: true,
+      paused: false,
+      stop: () => {
+        voice.playing = false;
+        this.active.delete(voice);
+      },
+      pause: () => {
+        voice.paused = true;
+      },
+      resume: () => {
+        voice.paused = false;
+      }
+    };
+    this.active.add(voice);
+    return voice;
   }
 
   duck(name, { amount = 0.5, trigger = null } = {}) {
@@ -264,6 +388,24 @@ export class AudioManager {
   stopAll() {
     for (const source of [...this.active]) source.stop?.();
     this.active.clear();
+  }
+
+  pauseAll() {
+    for (const source of this.active) {
+      source.omniPaused = true;
+      source.pause?.();
+    }
+    this.context?.suspend?.();
+    return this;
+  }
+
+  resumeAll() {
+    this.context?.resume?.();
+    for (const source of this.active) {
+      source.omniPaused = false;
+      source.resume?.();
+    }
+    return this;
   }
 
   createSpatial25DProfile({

@@ -3,6 +3,7 @@ import {
   DEFAULT_LOADER_RETRIES,
   DEFAULT_LOADER_TIMEOUT_MS
 } from '../config/defaults.js';
+import EventBus from '../core/EventBus.js';
 import { createOmniError } from '../core/OmniError.js';
 
 const DEFAULT_FALLBACK_PATHS = Object.freeze([
@@ -41,7 +42,8 @@ export class Loader {
     caches = globalThis.caches,
     cacheName = 'omnicore-assets-v1',
     scheduleIdle = defaultIdleScheduler,
-    imageFactory = defaultImageFactory
+    imageFactory = defaultImageFactory,
+    fileProtocolFallback = true
   } = {}) {
     this.timeout = timeout;
     this.retries = retries;
@@ -57,8 +59,22 @@ export class Loader {
     this.cacheName = cacheName;
     this.scheduleIdle = scheduleIdle;
     this.imageFactory = imageFactory;
+    this.fileProtocolFallback = fileProtocolFallback !== false;
     this.cache = new Map();
     this.inflight = new Map();
+    this.events = new EventBus({ recursionGuard: false });
+  }
+
+  on(event, handler) {
+    return this.events.on(event, handler);
+  }
+
+  off(event, handler) {
+    return this.events.off(event, handler);
+  }
+
+  emit(event, payload) {
+    return this.events.emit(event, payload);
   }
 
   async preflightManifest(url = DEFAULT_ASSET_MANIFEST) {
@@ -72,11 +88,22 @@ export class Loader {
   async loadBundle(items, options = {}) {
     const list = Array.isArray(items) ? items : items?.assets || [];
     const output = {};
+    const total = list.length;
+    let loaded = 0;
     await Promise.all(
       list.map(async (item) => {
         output[this._cacheKey(item)] = await this._loadItem(item, options.retries ?? this.retries);
+        loaded += 1;
+        this.emit('progress', {
+          item,
+          key: this._cacheKey(item),
+          loaded,
+          total,
+          progress: total > 0 ? loaded / total : 1
+        });
       })
     );
+    this.emit('complete', { loaded, total, assets: output });
     return output;
   }
 
@@ -174,6 +201,12 @@ export class Loader {
       }
     }
 
+    if (this.fileProtocolFallback && isFileProtocolMode(item?.url)) {
+      const localFallback = this._createFileProtocolFallback(item, lastError, candidates);
+      this.cache.set(key, localFallback);
+      return localFallback;
+    }
+
     const friendly = new FriendlyLoadError(lastError?.message || 'resource missing', item, lastError);
     this.onFriendlyError?.(friendly);
     console.error('资源丢失，请检查路径配置', {
@@ -263,17 +296,35 @@ export class Loader {
     };
   }
 
+  _createFileProtocolFallback(item, error, candidates = []) {
+    const payload = {
+      key: this._cacheKey(item),
+      url: item?.url,
+      type: item?.type || 'text',
+      protocol: 'file:',
+      localFileFallback: true,
+      tried: candidates.map((candidate) => candidate.url),
+      error
+    };
+    this.emit('fileFallback', payload);
+    return createLocalFileFallbackValue(item, payload);
+  }
+
   _cacheKey(item) {
     return item?.key || item?.url;
   }
 
   async _fetchWithTimeout(item) {
+    if (hasInlinePayload(item)) return decodeInlineItem(item);
     if (!this.fetcher) throw createOmniError('Loader', '当前环境没有可用的 fetch 实现。');
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const timer = setTimeout(() => controller?.abort(), item.timeout ?? this.timeout);
     try {
-      const response = await this.fetcher(item.url, { signal: controller?.signal });
-      if (!response.ok) throw createOmniError('Loader', `资源路径不存在：${item.url}`);
+      const response = await this.fetcher(item.url, {
+        signal: controller?.signal,
+        ...(shouldUseNoCors(item.url) ? { mode: 'no-cors' } : {})
+      });
+      if (!response.ok && response.type !== 'opaque') throw createOmniError('Loader', `资源路径不存在：${item.url}`);
       switch (item.type) {
         case 'json':
           return response.json();
@@ -297,6 +348,98 @@ export class Loader {
     } finally {
       clearTimeout(timer);
     }
+  }
+}
+
+function hasInlinePayload(item = {}) {
+  return Boolean(item.base64 || item.inlineBase64 || isDataUrl(item.url));
+}
+
+function decodeInlineItem(item = {}) {
+  const text = decodeInlineText(item);
+  switch (item.type) {
+    case 'json':
+      return JSON.parse(text);
+    case 'arrayBuffer':
+      return textToArrayBuffer(text);
+    case 'blob':
+      return typeof Blob !== 'undefined' ? new Blob([text]) : text;
+    case 'image':
+      return {
+        type: 'ImageAsset',
+        key: item.key || item.url,
+        url: item.url,
+        inline: true,
+        blob: typeof Blob !== 'undefined' ? new Blob([text]) : null
+      };
+    case 'text':
+    case 'csv':
+    default:
+      return text;
+  }
+}
+
+function decodeInlineText(item = {}) {
+  const dataUrlPayload = isDataUrl(item.url) ? String(item.url).split(',').slice(1).join(',') : '';
+  const value = item.base64 || item.inlineBase64 || dataUrlPayload;
+  if (typeof Buffer !== 'undefined') return Buffer.from(String(value), 'base64').toString('utf8');
+  if (typeof atob === 'function') return decodeURIComponent(escape(atob(String(value))));
+  return String(value);
+}
+
+function textToArrayBuffer(text) {
+  if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(text).buffer;
+  if (typeof Buffer !== 'undefined') {
+    const buffer = Buffer.from(text);
+    return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+  }
+  return new ArrayBuffer(0);
+}
+
+function isDataUrl(url = '') {
+  return /^data:/i.test(String(url || ''));
+}
+
+function shouldUseNoCors(url = '') {
+  return isFileProtocolMode(url);
+}
+
+function isFileProtocolUrl(url = '') {
+  return /^file:\/\//i.test(String(url || ''));
+}
+
+function isFileProtocolMode(url = '') {
+  return isFileProtocolUrl(url) || globalThis.location?.protocol === 'file:';
+}
+
+function createLocalFileFallbackValue(item = {}, payload = {}) {
+  switch (item.type) {
+    case 'json':
+      if (item.key === 'manifest' || /asset-manifest\.json(?:$|[?#])/i.test(item.url || '')) {
+        return { assets: [], localFileFallback: true, fileFallback: payload };
+      }
+      return { localFileFallback: true, fileFallback: payload };
+    case 'arrayBuffer':
+      return new ArrayBuffer(0);
+    case 'blob':
+      return typeof Blob !== 'undefined'
+        ? new Blob([])
+        : { type: 'LocalFileFallbackBlob', localFileFallback: true, fileFallback: payload };
+    case 'image':
+    case 'texture':
+      return {
+        type: 'ImageAsset',
+        key: item.key || item.url,
+        url: item.url,
+        blob: null,
+        fallback: true,
+        localFileFallback: true,
+        fileFallback: payload
+      };
+    case 'text':
+    case 'csv':
+    default:
+      return '';
   }
 }
 

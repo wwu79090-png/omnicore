@@ -37,6 +37,10 @@ function commandBounds(commands) {
       points.push({ x: command.x - command.radius, y: command.y - command.radius });
       points.push({ x: command.x + command.radius, y: command.y + command.radius });
     }
+    if (command.op === 'ring') {
+      points.push({ x: command.x - command.outerRadius, y: command.y - command.outerRadius });
+      points.push({ x: command.x + command.outerRadius, y: command.y + command.outerRadius });
+    }
     if (command.op === 'moveTo' || command.op === 'lineTo') points.push({ x: command.x, y: command.y });
     if (command.op === 'quadraticCurveTo') points.push({ x: command.cpx, y: command.cpy }, { x: command.x, y: command.y });
     if (command.op === 'bezierCurveTo') {
@@ -54,6 +58,13 @@ function commandBounds(commands) {
 
 function rectContains(rect, x, y) {
   return x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height;
+}
+
+function ringContains(command, x, y) {
+  const dx = x - command.x;
+  const dy = y - command.y;
+  const distance = Math.hypot(dx, dy);
+  return distance >= command.innerRadius && distance <= command.outerRadius;
 }
 
 export class Graphics {
@@ -154,6 +165,10 @@ export class Graphics {
     return this;
   }
 
+  line(x1, y1, x2, y2) {
+    return this.moveTo(x1, y1).lineTo(x2, y2);
+  }
+
   quadraticCurveTo(cpx, cpy, x, y) {
     this.commands.push({ op: 'quadraticCurveTo', cpx: number(cpx), cpy: number(cpy), x: number(x), y: number(y) });
     return this;
@@ -185,6 +200,22 @@ export class Graphics {
     return this;
   }
 
+  ring(x, y, outerRadius, innerRadius = 0, startAngle = 0, endAngle = Math.PI * 2, anticlockwise = false) {
+    const outer = Math.max(0, number(outerRadius, 1));
+    const inner = Math.max(0, Math.min(outer, number(innerRadius)));
+    this.commands.push({
+      op: 'ring',
+      x: number(x),
+      y: number(y),
+      outerRadius: outer,
+      innerRadius: inner,
+      startAngle: number(startAngle),
+      endAngle: number(endAngle, Math.PI * 2),
+      anticlockwise: Boolean(anticlockwise)
+    });
+    return this;
+  }
+
   ellipse(x, y, radiusX, radiusY, rotation = 0, startAngle = 0, endAngle = Math.PI * 2, anticlockwise = false) {
     this.commands.push({
       op: 'ellipse',
@@ -208,6 +239,14 @@ export class Graphics {
   polygon(points = []) {
     this.commands.push({ op: 'polygon', points: (Array.isArray(points) ? points : []).map(normalizePoint) });
     return this;
+  }
+
+  triangle(x1, y1, x2, y2, x3, y3) {
+    return this.polygon([
+      { x: number(x1), y: number(y1) },
+      { x: number(x2), y: number(y2) },
+      { x: number(x3), y: number(y3) }
+    ]);
   }
 
   closePath() {
@@ -247,6 +286,7 @@ export class Graphics {
       if (command.op === 'rect' && rectContains(command, px, py)) return true;
       if (command.op === 'ellipse' && Geom.ellipse(command.x, command.y, command.radiusX * 2, command.radiusY * 2).containsPoint(px, py)) return true;
       if (command.op === 'arc' && Geom.arc(command.x, command.y, command.radius).containsPoint(px, py)) return true;
+      if (command.op === 'ring' && ringContains(command, px, py)) return true;
       if (command.op === 'polygon' && Geom.polygon(command.points).containsPoint(px, py)) return true;
     }
     return rectContains(this.bounds(), px, py);
@@ -357,6 +397,11 @@ export class Graphics {
     if (command.op === 'arc') {
       displayObject.arc?.(command.x, command.y, command.radius, command.startAngle, command.endAngle, command.anticlockwise);
     }
+    if (command.op === 'ring') {
+      displayObject.arc?.(command.x, command.y, command.outerRadius, command.startAngle, command.endAngle, command.anticlockwise);
+      displayObject.arc?.(command.x, command.y, command.innerRadius, command.endAngle, command.startAngle, !command.anticlockwise);
+      displayObject.closePath?.();
+    }
     if (command.op === 'rect') {
       displayObject.rect?.(command.x, command.y, command.width, command.height);
     }
@@ -449,7 +494,7 @@ export class Graphics {
       ctx.clip?.();
       return;
     }
-    if (command.op === 'rect' || command.op === 'ellipse' || command.op === 'polygon') {
+    if (command.op === 'rect' || command.op === 'ellipse' || command.op === 'polygon' || command.op === 'ring') {
       this._flushPath(ctx, state);
       ctx.beginPath?.();
       this._pathCommand(ctx, command);
@@ -487,6 +532,11 @@ export class Graphics {
     }
     if (command.op === 'arc') {
       ctx.arc?.(command.x, command.y, command.radius, command.startAngle, command.endAngle, command.anticlockwise);
+    }
+    if (command.op === 'ring') {
+      ctx.arc?.(command.x, command.y, command.outerRadius, command.startAngle, command.endAngle, command.anticlockwise);
+      ctx.arc?.(command.x, command.y, command.innerRadius, command.endAngle, command.startAngle, !command.anticlockwise);
+      ctx.closePath?.();
     }
     if (command.op === 'ellipse') {
       ctx.ellipse?.(

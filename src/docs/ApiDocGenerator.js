@@ -93,6 +93,7 @@ function renderHtml({ generatedAt, modules }) {
   <body>
     <main>
       <h1>OmniCore API</h1>
+      <p>JSDoc powered HTML documentation site for OmniCore public modules.</p>
       <p>Generated at ${escapeHtml(generatedAt)}</p>
       ${rows}
     </main>

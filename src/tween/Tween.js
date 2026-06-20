@@ -71,6 +71,14 @@ export class Tween {
     this.direction = 1;
     this.properties = this._parseProperties(config);
     this.totalSegments = Math.max(1, this.repeat + 1);
+    this.onComplete = (handler) => {
+      this.config.onComplete = handler;
+      return this;
+    };
+    this.onUpdate = (handler) => {
+      this.config.onUpdate = handler;
+      return this;
+    };
 
     for (const property of this.properties) {
       if (property.start !== undefined) this.target[property.key] = property.start;
@@ -110,6 +118,10 @@ export class Tween {
     return this;
   }
 
+  start() {
+    return this.play();
+  }
+
   pause() {
     this.playing = false;
     return this;
@@ -135,6 +147,16 @@ export class Tween {
   stop() {
     this.playing = false;
     this.completed = true;
+    return this;
+  }
+
+  onComplete(handler) {
+    this.config.onComplete = handler;
+    return this;
+  }
+
+  onUpdate(handler) {
+    this.config.onUpdate = handler;
     return this;
   }
 

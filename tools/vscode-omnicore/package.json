@@ -1,0 +1,65 @@
+{
+  "name": "vscode-omnicore",
+  "displayName": "OmniCore Tools",
+  "description": "VS Code snippets and debug helpers for OmniCore projects.",
+  "version": "0.1.0",
+  "publisher": "omnicore",
+  "engines": {
+    "vscode": "^1.86.0"
+  },
+  "categories": [
+    "Snippets",
+    "Debuggers"
+  ],
+  "activationEvents": [
+    "onLanguage:javascript",
+    "onLanguage:typescript"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "snippets": [
+      {
+        "language": "javascript",
+        "path": "./snippets/omnicore.code-snippets"
+      },
+      {
+        "language": "typescript",
+        "path": "./snippets/omnicore.code-snippets"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "omnicore",
+        "label": "OmniCore",
+        "program": "./debug-adapter.js",
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "url"
+            ],
+            "properties": {
+              "url": {
+                "type": "string",
+                "description": "Local OmniCore dev server URL.",
+                "default": "http://localhost:5173"
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "pwa-chrome",
+            "request": "launch",
+            "name": "Launch OmniCore",
+            "url": "http://localhost:5173",
+            "webRoot": "${workspaceFolder}"
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "lint": "node -e \"JSON.parse(require('fs').readFileSync('package.json','utf8'))\""
+  },
+  "devDependencies": {}
+}
