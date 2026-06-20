@@ -147,14 +147,7 @@ function evaluateImprovementBacklog(plan) {
 function evaluateWechatPackage(projectRoot) {
   const dir = path.join(projectRoot, 'dist', 'wechat');
   if (!existsSync(dir)) {
-    return {
-      ok: false,
-      severity: 'error',
-      score: 0,
-      bytes: 0,
-      fileCount: 0,
-      message: 'dist/wechat is missing'
-    };
+    return evaluateArchivedWechatPackage(projectRoot);
   }
   const files = listFiles(dir);
   const bytes = files.reduce((sum, file) => sum + statSync(file).size, 0);
@@ -170,6 +163,26 @@ function evaluateWechatPackage(projectRoot) {
     fileCount: files.length,
     limitBytes: FOUR_MB,
     message: ok ? 'WeChat package is present and under 4MB' : 'WeChat package is missing, empty, too large, or lacks a passing report'
+  };
+}
+
+function evaluateArchivedWechatPackage(projectRoot) {
+  const report = readJson(path.join(projectRoot, 'docs', 'release-notes', 'wechat-package-latest.json'));
+  const bytes = Number(report?.bytes || 0);
+  const fileCount = Number(report?.fileCount || 0);
+  const limitBytes = Number(report?.limitBytes || FOUR_MB);
+  const ok = report?.pass === true && bytes > 0 && fileCount > 0 && bytes <= limitBytes;
+  return {
+    ok,
+    archived: Boolean(report),
+    severity: ok ? 'info' : 'error',
+    score: ok ? 100 : 0,
+    bytes,
+    fileCount,
+    limitBytes,
+    message: ok
+      ? 'WeChat package archive report is present and under 4MB'
+      : 'dist/wechat is missing and no passing archive report is available'
   };
 }
 

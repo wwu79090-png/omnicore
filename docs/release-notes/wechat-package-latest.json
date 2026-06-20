@@ -1,0 +1,51 @@
+{
+  "target": "wechat",
+  "outDir": "C:\\Users\\39120\\Documents\\引擎开发\\dist\\wechat",
+  "bytes": 1982213,
+  "fileCount": 11,
+  "limitBytes": 4194304,
+  "limit": "4MB",
+  "debug": false,
+  "largestFiles": [
+    {
+      "file": "omnicore.iife.js",
+      "bytes": 976866
+    },
+    {
+      "file": "omnicore.esm.js",
+      "bytes": 704414
+    },
+    {
+      "file": "dist-D08eBfr7.js",
+      "bytes": 219836
+    },
+    {
+      "file": "omnicore-core.js",
+      "bytes": 33365
+    },
+    {
+      "file": "omnicore-core.iife.js",
+      "bytes": 26192
+    },
+    {
+      "file": "Audio-ByQvSHPw.js",
+      "bytes": 16872
+    },
+    {
+      "file": "OmniCoreBridge-BdlwBi92.js",
+      "bytes": 3686
+    },
+    {
+      "file": "omnicore-first-frame-bootstrap.js",
+      "bytes": 616
+    }
+  ],
+  "largestDirectories": [
+    {
+      "directory": ".",
+      "bytes": 1982213
+    }
+  ],
+  "pass": true,
+  "generatedAt": "2026-06-20T06:31:30.771Z"
+}

@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "errors": [],
+  "plugins": [
+    {
+      "packageName": "@omnicore/plugin-wechat-monetization",
+      "version": "0.1.0",
+      "demo": "examples/plugins/WechatMiniGameMonetization/demo/index.html",
+      "installSnippet": "npm install @omnicore/plugin-wechat-monetization",
+      "listed": true
+    }
+  ]
+}

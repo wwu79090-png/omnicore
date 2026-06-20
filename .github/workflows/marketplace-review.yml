@@ -20,8 +20,14 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Validate marketplace index
-        run: npm run marketplace:validate
+        run: npm run marketplace:validate -- --out docs/release-notes/marketplace-validation-report.json
       - name: Check malicious plugin patterns
         run: node scripts/generate-marketplace-site.js --review-issue "${{ github.event.issue.number || 0 }}" --malicious-scan
       - name: Generate marketplace detail pages
         run: node scripts/generate-marketplace-site.js --emit-details
+      - uses: actions/upload-artifact@v4
+        with:
+          name: marketplace-review-report
+          path: |
+            docs/release-notes/marketplace-validation-report.json
+            website/marketplace

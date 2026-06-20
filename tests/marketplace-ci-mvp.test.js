@@ -37,4 +37,14 @@ describe('marketplace and CI MVP', () => {
     expect(workflow).toContain('actions/upload-artifact');
     expect(workflow).toContain('visual-regression-report');
   });
+
+  it('publishes marketplace validation artifacts from plugin review automation', () => {
+    const workflow = readFileSync('.github/workflows/marketplace-review.yml', 'utf8');
+
+    expect(workflow).toContain('npm run marketplace:validate -- --out docs/release-notes/marketplace-validation-report.json');
+    expect(workflow).toContain('node scripts/generate-marketplace-site.js --emit-details');
+    expect(workflow).toContain('actions/upload-artifact');
+    expect(workflow).toContain('marketplace-review-report');
+    expect(workflow).toContain('docs/release-notes/marketplace-validation-report.json');
+  });
 });

@@ -19,7 +19,8 @@ function parseArgs(argv) {
     out: path.resolve('dist', 'wechat'),
     debug: false,
     appid: 'touristappid',
-    limitBytes: FOUR_MB
+    limitBytes: FOUR_MB,
+    archiveReportPath: path.resolve('docs', 'release-notes', 'wechat-package-latest.json')
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -39,6 +40,11 @@ function parseArgs(argv) {
     } else if (arg === '--limit-bytes') {
       index += 1;
       options.limitBytes = Number(argv[index]);
+    } else if (arg === '--archive-report') {
+      index += 1;
+      options.archiveReportPath = path.resolve(argv[index]);
+    } else if (arg === '--no-archive-report') {
+      options.archiveReportPath = null;
     }
   }
   return options;
@@ -50,7 +56,8 @@ export default function buildWechatPackage(options = {}) {
     out: path.resolve(options.out || path.join('dist', 'wechat')),
     debug: Boolean(options.debug),
     appid: options.appid || 'touristappid',
-    limitBytes: Number(options.limitBytes || FOUR_MB)
+    limitBytes: Number(options.limitBytes || FOUR_MB),
+    archiveReportPath: options.archiveReportPath ? path.resolve(options.archiveReportPath) : null
   };
   if (!fs.existsSync(config.source)) {
     throw new Error(`WeChat source directory not found: ${config.source}`);
@@ -100,6 +107,7 @@ export default function buildWechatPackage(options = {}) {
     target: 'wechat',
     outDir: config.out,
     bytes,
+    fileCount: files.length,
     limitBytes: config.limitBytes,
     limit: '4MB',
     debug: config.debug,
@@ -108,6 +116,7 @@ export default function buildWechatPackage(options = {}) {
     pass
   };
   writeJson(path.join(config.out, 'wechat-build-report.json'), report);
+  if (config.archiveReportPath) writeJson(config.archiveReportPath, { ...report, generatedAt: new Date().toISOString() });
   if (!pass) {
     throw new Error([
       `WeChat package size ${bytes} bytes exceeds 4MB red line (${config.limitBytes} bytes).`,

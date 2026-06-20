@@ -44,6 +44,21 @@ describe('OmniCore Engine Doctor', () => {
     }));
   });
 
+  it('uses archived WeChat package evidence when dist/wechat has been cleaned', async () => {
+    const { createEngineDoctorReport } = await import(doctorUrl);
+    const root = createDoctorFixture({ includeWechatPackage: false, includeWechatArchive: true });
+    const report = createEngineDoctorReport({ projectRoot: root });
+
+    expect(report.ready).toBe(true);
+    expect(report.categories.wechatPackage).toMatchObject({
+      ok: true,
+      archived: true,
+      bytes: 2048,
+      fileCount: 12
+    });
+    expect(report.nextActions).toEqual([]);
+  });
+
   it('writes markdown and json from the doctor CLI', () => {
     const root = createDoctorFixture({ includeWechatPackage: true });
     execFileSync(process.execPath, [
@@ -79,7 +94,7 @@ describe('OmniCore Engine Doctor', () => {
   });
 });
 
-function createDoctorFixture({ includeWechatPackage }) {
+function createDoctorFixture({ includeWechatPackage, includeWechatArchive = false }) {
   const root = path.join(tmpdir(), `omnicore-doctor-${Date.now()}-${Math.random().toString(16).slice(2)}`);
   mkdirSync(root, { recursive: true });
   writeJson(path.join(root, 'package.json'), {
@@ -228,6 +243,17 @@ function createDoctorFixture({ includeWechatPackage }) {
       pass: true,
       bytes: 1024,
       limitBytes: 4194304
+    });
+  }
+  if (includeWechatArchive) {
+    writeJson(path.join(root, 'docs/release-notes/wechat-package-latest.json'), {
+      target: 'wechat',
+      pass: true,
+      bytes: 2048,
+      fileCount: 12,
+      limitBytes: 4194304,
+      outDir: path.join(root, 'dist/wechat'),
+      generatedAt: '2026-06-20T00:00:00.000Z'
     });
   }
 
