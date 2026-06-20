@@ -91,6 +91,27 @@ describe('deterministic performance and package budgets', () => {
     expect(report.largestDirectories.some((entry) => entry.directory === 'assets')).toBe(true);
   });
 
+  it('keeps archived WeChat release evidence untouched when a build fails', () => {
+    temp = mkdtempSync(path.join(tmpdir(), 'omnicore-wechat-archive-'));
+    const source = path.join(temp, 'dist');
+    const out = path.join(temp, 'wechat');
+    const archiveReportPath = path.join(temp, 'wechat-package-latest.json');
+    mkdirSync(source, { recursive: true });
+    writeFileSync(path.join(source, 'game.js'), Buffer.alloc((4 * 1024 * 1024) + 1, 1));
+    writeFileSync(archiveReportPath, JSON.stringify({
+      pass: true,
+      bytes: 1024,
+      fileCount: 2
+    }, null, 2));
+
+    expect(() => buildWechatPackage({ source, out, archiveReportPath })).toThrow(/exceeds 4MB/);
+    expect(JSON.parse(readFileSync(archiveReportPath, 'utf8'))).toMatchObject({
+      pass: true,
+      bytes: 1024,
+      fileCount: 2
+    });
+  });
+
   it('writes a combined performance budget report with failures and optimization advice', () => {
     temp = mkdtempSync(path.join(tmpdir(), 'omnicore-budget-report-'));
     const packageDir = path.join(temp, 'package');
