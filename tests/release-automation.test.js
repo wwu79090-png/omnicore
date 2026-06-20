@@ -13,9 +13,9 @@ describe('release automation workflows', () => {
   it('publishes tagged releases to npm after tests, build, docs build, changelog, and GitHub Release creation', () => {
     const workflow = readFileSync('.github/workflows/release.yml', 'utf8');
 
-    expect(workflow).toContain('branches: ["**"]');
+    expect(workflow).not.toContain('branches: [main]');
     expect(workflow).toContain("github.ref == 'refs/heads/main'");
-    expect(workflow).toContain("tags: ['v*.*.*']");
+    expect(workflow).toContain("startsWith(github.ref, 'refs/tags/v')");
     expect(workflow).toContain('npm test');
     expect(workflow).toContain('npm run build');
     expect(workflow).toContain('npm run docs:build');
@@ -69,12 +69,17 @@ describe('release automation workflows', () => {
   it('keeps branch pushes green for release-only workflows with explicit no-op guards', () => {
     const docsSync = readFileSync('.github/workflows/docs-sync.yml', 'utf8');
     const release = readFileSync('.github/workflows/release.yml', 'utf8');
+    const expressionOpen = '${{';
 
-    expect(docsSync).toContain('branches: ["**"]');
+    expect(docsSync).not.toContain('branches: [main]');
+    expect(docsSync).toContain('push:');
     expect(docsSync).toContain('branch-guard');
+    expect(docsSync).toContain(`${expressionOpen} github.ref != 'refs/heads/main' }}`);
     expect(docsSync).toContain('No docs sync work for this branch');
-    expect(release).toContain('branches: ["**"]');
+    expect(release).not.toContain('branches: [main]');
+    expect(release).toContain('push:');
     expect(release).toContain('branch-guard');
+    expect(release).toContain(`${expressionOpen} github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/v') }}`);
     expect(release).toContain('No release work for this branch');
   });
 });

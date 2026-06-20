@@ -2,7 +2,6 @@ name: Docs Sync
 
 on:
   push:
-    branches: ["**"]
   workflow_dispatch:
 
 permissions:
@@ -11,14 +10,14 @@ permissions:
 
 jobs:
   branch-guard:
-    if: github.ref != 'refs/heads/main'
+    if: ${{ github.ref != 'refs/heads/main' }}
     runs-on: ubuntu-latest
     steps:
       - name: No docs sync work for this branch
         run: echo "No docs sync work for this branch"
 
   docs-sync:
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: ${{ github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -54,7 +53,7 @@ jobs:
         with:
           branch: automation/update-docs
           title: 更新文档
-          commit-message: docs: update generated API docs
+          commit-message: "docs: update generated API docs"
           body: 自动同步最新源码生成的 docs/api 与 docs/api-site 文档。
           add-paths: |
             docs/api
