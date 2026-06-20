@@ -137,6 +137,7 @@ import SleepWakeSystem from './optimization/SleepWakeSystem.js';
 import ViewportCulling from './optimization/ViewportCulling.js';
 import AdaptiveQualityManager from './optimization/AdaptiveQualityManager.js';
 import DeviceProfiler from './optimization/DeviceProfiler.js';
+import FrameBudgetScheduler from './performance/FrameBudgetScheduler.js';
 import CollisionMask from './physics/CollisionMask.js';
 import PhysicsQuery from './physics/PhysicsQuery.js';
 import PhysicsWorld from './physics/PhysicsWorld.js';
@@ -763,6 +764,7 @@ const OmniCore = {
   ViewportCulling,
   AdaptiveQualityManager,
   DeviceProfiler,
+  FrameBudgetScheduler,
   Quality: EngineQualityHarness,
   EngineQualityHarness,
   Kernel,
@@ -904,6 +906,7 @@ export {
   ExportPaywall,
   FeedbackWidget,
   FixedMemoryPool,
+  FrameBudgetScheduler,
   FrameProfiler,
   Genealogy,
   help,

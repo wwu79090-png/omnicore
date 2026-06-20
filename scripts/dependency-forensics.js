@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(__dirname, '..');
 const LIFECYCLE_SCRIPTS = ['preinstall', 'install', 'postinstall', 'prepare', 'prepublish', 'prepublishOnly'];
+const DEFAULT_GENERATED_AT = '2026-06-20T00:00:00.000Z';
 const DEFAULT_ALLOWED_HOSTS = new Set([
   'registry.npmjs.org',
   'www.npmjs.com',
@@ -32,6 +33,15 @@ const STANDARD_INSTALLER_FILES = [
   'scripts/postinstall.js',
   'bin/install.js'
 ];
+
+function resolveGeneratedAt() {
+  if (process.env.OMNICORE_GENERATED_AT) return process.env.OMNICORE_GENERATED_AT;
+  if (process.env.SOURCE_DATE_EPOCH) {
+    const epoch = Number(process.env.SOURCE_DATE_EPOCH);
+    if (Number.isFinite(epoch)) return new Date(epoch * 1000).toISOString();
+  }
+  return DEFAULT_GENERATED_AT;
+}
 
 function parseArgs(argv) {
   const options = {
@@ -252,8 +262,7 @@ function lockfileVersion(root, packageName) {
   return entry?.[1]?.version || null;
 }
 
-function buildMarkdownReport({ root, scanned, packages, highFindings }) {
-  const generatedAt = new Date().toISOString();
+function buildMarkdownReport({ root, scanned, packages, highFindings, generatedAt }) {
   const lines = [
     '# OmniCore Dependency Forensics Report',
     '',
@@ -294,6 +303,7 @@ function buildMarkdownReport({ root, scanned, packages, highFindings }) {
 function writeReports(root, packages) {
   const securityDir = path.join(root, 'docs', 'security');
   mkdirSync(securityDir, { recursive: true });
+  const generatedAt = resolveGeneratedAt();
   const highFindings = packages.flatMap((pkg) => pkg.findings
     .filter((finding) => finding.severity === 'high')
     .map((finding) => ({
@@ -306,7 +316,8 @@ function writeReports(root, packages) {
     root,
     scanned: packages.length,
     packages,
-    highFindings
+    highFindings,
+    generatedAt
   });
   const locked = highFindings.map((finding) => ({
     name: finding.name,
@@ -319,7 +330,7 @@ function writeReports(root, packages) {
   }));
   writeFileSync(path.join(securityDir, 'dependency-forensics-latest.md'), markdown);
   writeFileSync(path.join(securityDir, 'dependency-forensics-lock.json'), JSON.stringify({
-    generatedAt: new Date().toISOString(),
+    generatedAt,
     root,
     locked
   }, null, 2));

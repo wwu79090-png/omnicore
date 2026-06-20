@@ -10,7 +10,20 @@
 npm run build:wechat -- --source dist --out dist/wechat
 ```
 
-构建脚本会复制小游戏入口文件，生成 `project.config.json`、`game.json` 和 `wechat-build-report.json`。输出目录总包体超过 4MB 时会直接报错并中断构建。
+构建脚本会复制小游戏入口文件，生成 `project.config.json`、`game.json` 和 `wechat-build-report.json`。输出目录总包体超过 4MB 时会直接报错并中断构建，并在错误信息与报告中输出最大的文件和目录明细。
+
+包体红线配置：
+
+```bash
+npm run build:wechat -- --source dist --out dist/wechat --limit-bytes 4194304
+```
+
+`wechat-build-report.json` 会包含：
+
+- `bytes`：最终输出目录总字节数。
+- `limitBytes`：当前红线，默认 4MB。
+- `largestFiles`：最大文件列表，用于定位大图、音频或未压缩脚本。
+- `largestDirectories`：最大目录列表，用于判断是否需要分包、远程资源或 OBundle。
 
 debug 真机调试包：
 
@@ -47,7 +60,7 @@ GameGlobal.__OMNICORE_DEBUG_PROXY__.install({
 
 | 检查项 | 通过标准 |
 | --- | --- |
-| 包体 | `wechat-build-report.json` 中 `pass: true`，总大小小于 4MB |
+| 包体 | `wechat-build-report.json` 中 `pass: true`，总大小小于 4MB，并检查 `largestFiles` / `largestDirectories` 无异常大资源 |
 | 首屏 | 模拟器和真机均能进入首场景 |
 | 日志 | release 包无未处理 error，debug 包能打印 Store 关键字段 |
 | 资源 | 图片、音频、JSON 无 404 |
@@ -63,7 +76,7 @@ GameGlobal.__OMNICORE_DEBUG_PROXY__.install({
 
 ## 常见问题
 
-包体超过 4MB：删除 source map、把大图和音频放入分包或远程资源，重新运行 `npm run build:wechat`。
+包体超过 4MB：先查看报错中的 `Largest files` 和 `Largest directories`，删除 source map，把大图和音频放入分包、远程资源或 OBundle，重新运行 `npm run build:wechat`。
 
 真机没有 debug 日志：确认使用了 `--debug` 构建，并且调试器 Console 过滤级别没有隐藏 info。
 

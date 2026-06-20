@@ -78,7 +78,23 @@ export default function buildWechatPackage(options = {}) {
   ensureGameEntry(config.out);
   if (config.debug) installDebugProxy(config.out);
 
-  const bytes = directorySize(config.out);
+  const files = collectFiles(config.out);
+  const directories = collectDirectories(config.out);
+  const bytes = files.reduce((total, file) => total + file.bytes, 0);
+  const largestFiles = files
+    .sort((left, right) => right.bytes - left.bytes)
+    .slice(0, 8)
+    .map((file) => ({
+      file: path.relative(config.out, file.file).replace(/\\/g, '/'),
+      bytes: file.bytes
+    }));
+  const largestDirectories = directories
+    .sort((left, right) => right.bytes - left.bytes)
+    .slice(0, 8)
+    .map((entry) => ({
+      directory: path.relative(config.out, entry.directory).replace(/\\/g, '/') || '.',
+      bytes: entry.bytes
+    }));
   const pass = bytes <= config.limitBytes;
   const report = {
     target: 'wechat',
@@ -87,11 +103,19 @@ export default function buildWechatPackage(options = {}) {
     limitBytes: config.limitBytes,
     limit: '4MB',
     debug: config.debug,
+    largestFiles,
+    largestDirectories,
     pass
   };
   writeJson(path.join(config.out, 'wechat-build-report.json'), report);
   if (!pass) {
-    throw new Error(`WeChat package size ${bytes} bytes exceeds 4MB red line (${config.limitBytes} bytes).`);
+    throw new Error([
+      `WeChat package size ${bytes} bytes exceeds 4MB red line (${config.limitBytes} bytes).`,
+      'Largest files:',
+      formatSizeEntries(largestFiles, 'file'),
+      'Largest directories:',
+      formatSizeEntries(largestDirectories, 'directory')
+    ].join('\n'));
   }
   return report;
 }
@@ -130,14 +154,37 @@ function installDebugProxy(out) {
   }
 }
 
-function directorySize(dir) {
-  let total = 0;
+function collectFiles(dir) {
+  const output = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) total += directorySize(fullPath);
-    else if (entry.isFile()) total += fs.statSync(fullPath).size;
+    if (entry.isDirectory()) output.push(...collectFiles(fullPath));
+    else if (entry.isFile()) output.push({ file: fullPath, bytes: fs.statSync(fullPath).size });
   }
-  return total;
+  return output;
+}
+
+function collectDirectories(root, dir = root) {
+  let bytes = 0;
+  const output = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      const childEntries = collectDirectories(root, fullPath);
+      output.push(...childEntries);
+      bytes += childEntries.find((item) => item.directory === fullPath)?.bytes || 0;
+    } else if (entry.isFile()) {
+      bytes += fs.statSync(fullPath).size;
+    }
+  }
+  output.push({ directory: dir, bytes });
+  return output;
+}
+
+function formatSizeEntries(entries, key) {
+  return entries.length
+    ? entries.map((entry) => `- ${entry[key]}: ${entry.bytes} bytes`).join('\n')
+    : '- none';
 }
 
 function writeJson(file, payload) {

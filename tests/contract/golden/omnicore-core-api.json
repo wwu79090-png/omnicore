@@ -1527,6 +1527,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "FrameBudgetScheduler"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "FrameProfiler"
       },
       {
@@ -2113,6 +2118,7 @@
       "ExportPaywall",
       "FeedbackWidget",
       "FixedMemoryPool",
+      "FrameBudgetScheduler",
       "FrameProfiler",
       "Game",
       "Genealogy",

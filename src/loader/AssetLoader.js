@@ -2,6 +2,10 @@ import { Assets, Graphics } from 'pixi.js';
 import { DEFAULT_DEBUG } from '../config/defaults.js';
 import { createOmniError, toOmniError } from '../core/OmniError.js';
 
+const PLACEHOLDER_AUDIO_DURATION_SECONDS = 0.045;
+const PLACEHOLDER_AUDIO_FREQUENCY = 220;
+const PLACEHOLDER_AUDIO_GAIN = 0.004;
+
 /**
  * Defensive image asset loader with missing-texture fallback.
  *
@@ -20,6 +24,8 @@ export class AssetLoader {
       fetcher,
       preferFetcher = true,
       graphicsFactory = null,
+      audioContext = null,
+      AudioContextRef = globalThis.AudioContext || globalThis.webkitAudioContext,
       logger = null,
       fallbackColor = 0xff3b30,
       debug = DEFAULT_DEBUG
@@ -28,6 +34,8 @@ export class AssetLoader {
     this.fetcher = fetcher || globalThis.fetch?.bind(globalThis);
     this.preferFetcher = Boolean(preferFetcher && this.fetcher);
     this.graphicsFactory = graphicsFactory;
+    this.audioContext = audioContext;
+    this.AudioContextRef = AudioContextRef;
     this.logger = logger;
     this.fallbackColor = fallbackColor;
     this.debug = debug;
@@ -72,6 +80,36 @@ export class AssetLoader {
     return output;
   }
 
+  async loadAudio(item) {
+    const normalized = typeof item === 'string' ? { key: item, url: item } : item;
+    const key = normalized.key || normalized.url;
+    const cacheKey = `audio:${key}`;
+    if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
+
+    try {
+      const buffer = await this._loadAudioBuffer(normalized);
+      const asset = {
+        key,
+        url: normalized.url,
+        type: 'audio',
+        buffer,
+        fallback: false,
+        error: null
+      };
+      this.cache.set(cacheKey, asset);
+      return asset;
+    } catch (error) {
+      const omniError = toOmniError(error, {
+        module: 'Loader',
+        message: `音频资源加载失败：${normalized.url || key}`
+      });
+      const asset = this._createMissingAudio(normalized, omniError);
+      this.cache.set(cacheKey, asset);
+      this._reportAudioLoadFailure(key, normalized, omniError);
+      return asset;
+    }
+  }
+
   clear() {
     this.cache.clear();
   }
@@ -90,6 +128,26 @@ export class AssetLoader {
     const response = await this.fetcher(item.url);
     if (!response.ok) throw createOmniError('Loader', `资源路径不存在：${item.url}，HTTP ${response.status || 500}`);
     return response.blob ? response.blob() : response;
+  }
+
+  async _loadAudioBuffer(item) {
+    if (item.buffer) return item.buffer;
+    if (!item.url) throw createOmniError('Loader', '音频资源缺少 url。');
+    if (!this.fetcher) throw createOmniError('Loader', '当前环境没有可用的资源加载器。');
+    const context = this._getAudioContext();
+    if (!context?.decodeAudioData) throw createOmniError('Loader', '当前环境没有可用的音频解码器。');
+
+    const response = await this.fetcher(item.url);
+    if (!response?.ok) throw createOmniError('Loader', `音频路径不存在：${item.url}，HTTP ${response?.status || 500}`);
+    const arrayBuffer = await response.arrayBuffer();
+    return context.decodeAudioData(arrayBuffer);
+  }
+
+  _getAudioContext() {
+    if (this.audioContext) return this.audioContext;
+    if (!this.AudioContextRef) return null;
+    this.audioContext = new this.AudioContextRef();
+    return this.audioContext;
   }
 
   _createMissingTexture(item, error) {
@@ -114,6 +172,19 @@ export class AssetLoader {
     };
   }
 
+  _createMissingAudio(item, error) {
+    const key = item.key || item.url || 'missing-audio';
+    const buffer = this._createPlaceholderAudioBuffer();
+    return {
+      key,
+      url: item.url,
+      type: 'audio',
+      buffer,
+      fallback: true,
+      error
+    };
+  }
+
   _reportLoadFailure(key, item, error) {
     const message = `图片资源加载失败，已生成占位纹理：${key}`;
     if (this.logger?.error) {
@@ -122,6 +193,49 @@ export class AssetLoader {
     if (!this.debug) return;
     const detail = item?.url ? `${message} (${item.url})` : message;
     console?.error?.(`[OmniCore] [loader] ${detail}`, error);
+  }
+
+  _reportAudioLoadFailure(key, item, error) {
+    const message = `音频资源加载失败，已生成占位音频：${key}`;
+    if (this.logger?.warn) {
+      this.logger.warn('loader', message, error);
+    }
+    if (!this.debug) return;
+    const detail = item?.url ? `${message} (${item.url})` : message;
+    console?.warn?.(`[OmniCore] [loader] ${detail}`);
+  }
+
+  _createPlaceholderAudioBuffer() {
+    const context = this._getAudioContext();
+    const sampleRate = Number(context?.sampleRate) || 44100;
+    const length = Math.max(1, Math.round(sampleRate * PLACEHOLDER_AUDIO_DURATION_SECONDS));
+    if (!context?.createBuffer) {
+      return {
+        duration: length / sampleRate,
+        length,
+        sampleRate,
+        omnicorePlaceholder: 'missing-audio',
+        getChannelData: () => new Float32Array(length)
+      };
+    }
+
+    const buffer = context.createBuffer(1, length, sampleRate);
+    const channel = buffer.getChannelData(0);
+    let previous = 0;
+    for (let index = 0; index < length; index += 1) {
+      const t = index / sampleRate;
+      const envelope = Math.sin((Math.PI * index) / Math.max(1, length - 1));
+      const raw = Math.sin(2 * Math.PI * PLACEHOLDER_AUDIO_FREQUENCY * t) * PLACEHOLDER_AUDIO_GAIN * envelope;
+      const lowPassed = previous + (raw - previous) * 0.12;
+      previous = lowPassed;
+      channel[index] = Math.abs(lowPassed) < 0.00002 ? 0 : lowPassed;
+    }
+    try {
+      Object.defineProperty(buffer, 'omnicorePlaceholder', { value: 'missing-audio', configurable: true });
+    } catch {
+      // Native AudioBuffer objects may be non-extensible in some runtimes.
+    }
+    return buffer;
   }
 
   _createFallbackGraphic(options) {

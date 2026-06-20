@@ -2,6 +2,16 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import path from 'node:path';
 
 const EXPORT_PATTERN = /export\s+(?:class|function|const|let|var)\s+([A-Za-z0-9_]+)/g;
+const DEFAULT_GENERATED_AT = '2026-06-20T00:00:00.000Z';
+
+function resolveGeneratedAt() {
+  if (process.env.OMNICORE_GENERATED_AT) return process.env.OMNICORE_GENERATED_AT;
+  if (process.env.SOURCE_DATE_EPOCH) {
+    const epoch = Number(process.env.SOURCE_DATE_EPOCH);
+    if (Number.isFinite(epoch)) return new Date(epoch * 1000).toISOString();
+  }
+  return DEFAULT_GENERATED_AT;
+}
 
 /**
  * Generate a small structured API documentation site from source exports.
@@ -9,14 +19,15 @@ const EXPORT_PATTERN = /export\s+(?:class|function|const|let|var)\s+([A-Za-z0-9_
 export function generateApiDocs({
   srcDir = path.resolve('src'),
   outDir = path.resolve('docs/api-site'),
-  siteDomain = 'docs.omnicore.dev'
+  siteDomain = 'docs.omnicore.dev',
+  generatedAt = resolveGeneratedAt()
 } = {}) {
   const files = listJavaScriptFiles(srcDir);
   const modules = files
     .map((file) => parseModule(file, srcDir))
     .filter((module) => module.exports.length > 0);
   mkdirSync(outDir, { recursive: true });
-  const manifest = { generatedAt: new Date().toISOString(), modules };
+  const manifest = { generatedAt, modules };
   writeFileSync(path.join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
   writeFileSync(path.join(outDir, 'index.html'), renderHtml(manifest));
   if (siteDomain) writeFileSync(path.join(outDir, 'CNAME'), `${siteDomain}\n`);

@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import Dimension3D from '../src/dimension3d/Dimension3D.js';
+import buildWechatPackage from '../scripts/build-wechat.js';
 import {
   analyzePackageBudget,
   createPerformanceBudgetReport,
@@ -70,6 +71,24 @@ describe('deterministic performance and package budgets', () => {
     expect(suggestBudgetFixes(budget)).toEqual(expect.arrayContaining([
       expect.stringContaining('game.js')
     ]));
+  });
+
+  it('fails WeChat builds over 4MB with largest file and directory details', () => {
+    temp = mkdtempSync(path.join(tmpdir(), 'omnicore-wechat-redline-'));
+    const source = path.join(temp, 'dist');
+    const assets = path.join(source, 'assets');
+    const out = path.join(temp, 'wechat');
+    mkdirSync(assets, { recursive: true });
+    writeFileSync(path.join(source, 'game.js'), Buffer.alloc(2 * 1024 * 1024, 1));
+    writeFileSync(path.join(assets, 'big-audio.bin'), Buffer.alloc((2 * 1024 * 1024) + 64, 1));
+
+    expect(() => buildWechatPackage({ source, out })).toThrow(/Largest files:[\s\S]*assets\/big-audio\.bin[\s\S]*Largest directories:[\s\S]*assets/);
+    const report = JSON.parse(readFileSync(path.join(out, 'wechat-build-report.json'), 'utf8'));
+
+    expect(report.pass).toBe(false);
+    expect(report.largestFiles[0]).toMatchObject({ file: 'assets/big-audio.bin' });
+    expect(report.largestDirectories[0]).toMatchObject({ directory: '.', bytes: report.bytes });
+    expect(report.largestDirectories.some((entry) => entry.directory === 'assets')).toBe(true);
   });
 
   it('writes a combined performance budget report with failures and optimization advice', () => {

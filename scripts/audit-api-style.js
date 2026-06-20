@@ -4,7 +4,17 @@ import path from 'node:path';
 
 const ROOT = process.cwd();
 const SRC_ROOT = path.join(ROOT, 'src');
+const DEFAULT_GENERATED_AT = '2026-06-20T00:00:00.000Z';
 const PUBLIC_NAMESPACE_EXPORTS = new Set(['Addons', 'Backend', 'Bus', 'Core', 'DB', 'Easing', 'License', 'Pool', 'Query', 'Task']);
+
+function resolveGeneratedAt() {
+  if (process.env.OMNICORE_GENERATED_AT) return process.env.OMNICORE_GENERATED_AT;
+  if (process.env.SOURCE_DATE_EPOCH) {
+    const epoch = Number(process.env.SOURCE_DATE_EPOCH);
+    if (Number.isFinite(epoch)) return new Date(epoch * 1000).toISOString();
+  }
+  return DEFAULT_GENERATED_AT;
+}
 
 async function walk(dir) {
   const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
@@ -63,7 +73,7 @@ async function main() {
   const report = [
     '# API Style Polish Report',
     '',
-    `Generated: ${new Date().toISOString()}`,
+    `Generated: ${resolveGeneratedAt()}`,
     '',
     '## Naming Rules',
     '',

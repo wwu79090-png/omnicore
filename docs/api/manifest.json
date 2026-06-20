@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T04:45:57.553Z",
+  "generatedAt": "2026-06-20T00:00:00.000Z",
   "modules": [
     {
       "path": "addons/Ad.js",
@@ -1095,6 +1095,13 @@
       "summary": "",
       "exports": [
         "PluginInstaller"
+      ]
+    },
+    {
+      "path": "performance/FrameBudgetScheduler.js",
+      "summary": "Runtime frame-budget scheduler for slicing non-critical work.",
+      "exports": [
+        "FrameBudgetScheduler"
       ]
     },
     {

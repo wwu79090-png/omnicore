@@ -119,6 +119,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
   let recoveryChecked = false;
   let clipboard = [];
   let copySerial = 1;
+  let editorFeedback = null;
   let history = [cloneState(current)];
   let historyLabels = ['Initial scene'];
   let historyIndex = 0;
@@ -134,10 +135,11 @@ export function createEditorApp(root = document.querySelector('#app'), {
     }
   };
   root.className = 'omnicore-desktop-editor';
+  root.dataset.editorTheme = 'omnicore-unified';
   root.innerHTML = `
     <style>${EDITOR_CSS}</style>
     <div class="editor-frame">
-      <nav class="editor-toolbar" data-editor-toolbar aria-label="Editor toolbar"></nav>
+      <nav class="editor-toolbar" data-editor-toolbar data-editor-surface="topbar" aria-label="Editor toolbar"></nav>
       <div class="editor-shell" data-dock-layout></div>
       <footer class="editor-statusbar" data-editor-statusbar></footer>
     </div>
@@ -296,6 +298,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       const regionNode = document.createElement('div');
       regionNode.className = `dock-region dock-${region}`;
       regionNode.dataset.dockRegion = region;
+      regionNode.dataset.editorSurface = region === 'center' ? 'canvas' : 'sidebar';
       regionNode.addEventListener('dragover', (event) => event.preventDefault());
       regionNode.addEventListener('drop', (event) => {
         event.preventDefault();
@@ -391,6 +394,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
       activeSceneTabPath: current.activeSceneTabPath || null
     };
     emit('editor:save-snapshot', snapshot);
+    showEditorFeedback(`Saved ${name}`, 'success');
+    update(current);
     return snapshot;
   }
 
@@ -2455,6 +2460,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       if (dragSession.changed) {
         emitDragEntityUpdates();
         pushHistory(current, `Drag ${dragSession.ids.length} entity${dragSession.ids.length === 1 ? '' : 's'}`);
+        showEditorFeedback(`Moved ${dragSession.ids.length} entity${dragSession.ids.length === 1 ? '' : 's'}`, 'success');
       }
       update(current);
     }
@@ -2592,6 +2598,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       button.type = 'button';
       button.dataset.editorTool = action.id;
       button.dataset.editorAction = action.id;
+      button.dataset.editorIcon = action.id;
       button.title = action.shortcut ? `${action.label} (${action.shortcut})` : action.label;
       button.textContent = t(`toolbar.${action.id}`, action.label);
       const mode = current.playState?.mode || (current.simulation.active ? 'playing' : 'editing');
@@ -2607,10 +2614,23 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const entityCount = current.scene.entities.length;
     const mode = current.playState?.mode || (current.simulation.active ? 'running' : 'editing');
     statusbar.textContent = `${current.scene.name || 'untitled'} | ${entityCount} entities | ${current.gizmoMode} | ${mode}`;
+    statusbar.dataset.editorSurface = 'statusbar';
     const workspace = document.createElement('span');
     workspace.dataset.workspaceRoot = 'true';
     workspace.textContent = current.workspace?.root ? ` | ${current.workspace.root}` : '';
     statusbar.appendChild(workspace);
+    if (editorFeedback?.message) {
+      const feedback = document.createElement('span');
+      feedback.dataset.editorFeedback = editorFeedback.tone || 'info';
+      feedback.textContent = ` | ${editorFeedback.message}`;
+      statusbar.appendChild(feedback);
+    }
+  }
+
+  function showEditorFeedback(message, tone = 'info') {
+    editorFeedback = { message, tone };
+    emit('editor:feedback', editorFeedback);
+    return editorFeedback;
   }
 
   function renderTransientSurfaces() {
@@ -2852,6 +2872,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const section = document.createElement('section');
     section.dataset.panel = name;
     section.dataset.dockPanel = name;
+    section.dataset.editorSurface = 'panel';
     section.className = `editor-panel ${name}`;
     section.draggable = true;
     section.addEventListener('dragstart', (event) => {
@@ -2993,6 +3014,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     });
 
     for (const entity of current.scene.entities) view.appendChild(createSceneNodeButton(entity));
+    if (!current.scene.entities.length) view.appendChild(createOnboardingGuide());
     if (current.sceneOverlays?.collision) {
       for (const entity of current.scene.entities) view.appendChild(createCollisionOverlay(entity));
     }
@@ -3007,6 +3029,18 @@ export function createEditorApp(root = document.querySelector('#app'), {
     if (current.prefabPreview) view.appendChild(createPrefabPreviewModel(current.prefabPreview));
     wrap.append(sceneTabs, gizmoToolbar, view, createUndoHistoryView());
     return wrap;
+  }
+
+  function createOnboardingGuide() {
+    const guide = document.createElement('aside');
+    guide.className = 'editor-onboarding';
+    guide.dataset.editorOnboarding = 'true';
+    guide.innerHTML = [
+      '<strong>Open Project</strong>',
+      '<span>Drop assets or prefabs into the canvas.</span>',
+      '<span>Use W/E/R to move, rotate, and scale after selecting an entity.</span>'
+    ].join('');
+    return guide;
   }
 
   function renderSceneTabs() {
@@ -4638,6 +4672,7 @@ const EDITOR_CSS = `
   .editor-frame { display: grid; grid-template-rows: 40px minmax(0, 1fr) 24px; height: 100vh; background: #111827; }
   .editor-toolbar { display: flex; gap: 6px; align-items: center; padding: 6px 8px; border-bottom: 1px solid rgba(148,163,184,.28); background: #0b1120; }
   .editor-toolbar button { min-width: 56px; padding: 5px 8px; }
+  .editor-toolbar button::before { content: attr(data-editor-icon); display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: 5px; border-radius: 4px; background: rgba(56,189,248,.14); color: #93c5fd; font-size: 9px; text-transform: uppercase; }
   .editor-shell { display: grid; grid-template-columns: 240px minmax(320px, 1fr) 300px; grid-template-rows: minmax(0, 1fr) 220px; min-height: 0; }
   .dock-region { display: grid; gap: 0; min-width: 0; min-height: 0; overflow: hidden; }
   .dock-left { grid-column: 1; grid-row: 1 / span 2; grid-template-rows: minmax(0, 1.2fr) minmax(0, .9fr) minmax(0, .9fr); }
@@ -4661,6 +4696,8 @@ const EDITOR_CSS = `
   .gizmo-toolbar, .tilemap-toolbar { display: flex; gap: 6px; align-items: center; }
   .gizmo-toolbar button, .tilemap-toolbar button { padding: 5px 8px; }
   .scene-canvas { position: relative; min-height: 260px; height: 100%; overflow: hidden; background-image: linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px); background-size: 24px 24px; }
+  .editor-onboarding { position: absolute; inset: 16px auto auto 16px; display: grid; gap: 6px; max-width: 340px; padding: 10px 12px; border: 1px solid rgba(56,189,248,.42); background: rgba(2,6,23,.86); color: #dbeafe; box-shadow: 0 12px 28px rgba(2,6,23,.36); }
+  .editor-onboarding strong { color: #f8fafc; }
   .scene-node { position: absolute; display: grid; place-items: center; overflow: hidden; padding: 0 4px; border: 1px solid #38bdf8; background: #082f49; font-size: 11px; transform-origin: center; }
   .scene-node.selected { outline: 2px solid #facc15; }
   .scene-node.issue-target { box-shadow: 0 0 0 3px rgba(248,113,113,.78), 0 0 18px rgba(248,113,113,.42); }

@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const ROOT = process.cwd();
+const DEFAULT_GENERATED_AT = '2026-06-20T00:00:00.000Z';
 const CORE_FILES = [
   'src/core/Bootstrap.js',
   'src/core/EventBus.js',
@@ -10,6 +11,15 @@ const CORE_FILES = [
   'src/microkernel/RendererAdapter.js',
   'src/microkernel/Kernel.js'
 ];
+
+function resolveGeneratedAt() {
+  if (process.env.OMNICORE_GENERATED_AT) return process.env.OMNICORE_GENERATED_AT;
+  if (process.env.SOURCE_DATE_EPOCH) {
+    const epoch = Number(process.env.SOURCE_DATE_EPOCH);
+    if (Number.isFinite(epoch)) return new Date(epoch * 1000).toISOString();
+  }
+  return DEFAULT_GENERATED_AT;
+}
 
 function extractPublicMembers(source) {
   const members = [];
@@ -107,7 +117,7 @@ function tutorialGapDocument(entries, apiOutput) {
 
 async function main() {
   const allFindings = [];
-  const sections = ['# OmniCore API Reference', '', `Generated: ${new Date().toISOString()}`, ''];
+  const sections = ['# OmniCore API Reference', '', `Generated: ${resolveGeneratedAt()}`, ''];
   const telemetry = telemetryEntries(await loadTelemetryInsights());
   sections.push(...telemetrySection(telemetry));
 

@@ -7,8 +7,18 @@ import { DEPRECATED_APIS } from '../src/core/Deprecation.js';
 
 const DEFAULT_IGNORED = new Set(['.git', 'node_modules', 'dist', 'coverage']);
 const DEFAULT_EXTENSIONS = new Set(['.js', '.mjs', '.html']);
+const DEFAULT_GENERATED_AT = '2026-06-20T00:00:00.000Z';
 const README_START = '<!-- OMNICORE_DEPRECATED_API_TABLE:start -->';
 const README_END = '<!-- OMNICORE_DEPRECATED_API_TABLE:end -->';
+
+function resolveGeneratedAt() {
+  if (process.env.OMNICORE_GENERATED_AT) return process.env.OMNICORE_GENERATED_AT;
+  if (process.env.SOURCE_DATE_EPOCH) {
+    const epoch = Number(process.env.SOURCE_DATE_EPOCH);
+    if (Number.isFinite(epoch)) return new Date(epoch * 1000).toISOString();
+  }
+  return DEFAULT_GENERATED_AT;
+}
 
 export async function auditDeprecatedApis({
   root = process.cwd(),
@@ -40,7 +50,7 @@ export async function auditDeprecatedApis({
   })).filter((entry) => entry.callCount > 0);
 
   return {
-    generatedAt: new Date().toISOString(),
+    generatedAt: resolveGeneratedAt(),
     entries
   };
 }
