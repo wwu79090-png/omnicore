@@ -75,6 +75,13 @@ import RealtimeConnection from './net/RealtimeConnection.js';
 import WebTransportConnection from './net/WebTransportConnection.js';
 import NavigationAgent2D from './navigation/NavigationAgent2D.js';
 import HeightfieldNavMesh25D from './navigation/HeightfieldNavMesh25D.js';
+import {
+  EditorCoCreator25D,
+  EmotionalPalette25D,
+  RealitySensor25D,
+  SocialAwareness25D,
+  WorldMemory25D
+} from './livingworld/index.js';
 import Inspector from './debug/Inspector.js';
 import ApiQuickPanel from './debug/ApiQuickPanel.js';
 import LiveInspector from './debug/LiveInspector.js';
@@ -739,6 +746,11 @@ const OmniCore = {
   ChunkCache,
   ChunkManager,
   HeightfieldNavMesh25D,
+  SocialAwareness25D,
+  WorldMemory25D,
+  EmotionalPalette25D,
+  RealitySensor25D,
+  EditorCoCreator25D,
   Timeline,
   VisualEventGraph,
   HotReload,
@@ -953,6 +965,11 @@ export {
   NetRoom,
   NavigationAgent2D,
   HeightfieldNavMesh25D,
+  SocialAwareness25D,
+  WorldMemory25D,
+  EmotionalPalette25D,
+  RealitySensor25D,
+  EditorCoCreator25D,
   RealtimeConnection,
   Node,
   ObjectPool,

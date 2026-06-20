@@ -44,6 +44,10 @@ export function createEditorState(initial = {}) {
     sceneTabs: normalizeSceneTabs(initial.sceneTabs),
     activeSceneTabPath: initial.activeSceneTabPath || null,
     authoringHealth: normalizeAuthoringHealth(initial.authoringHealth),
+    preview25D: initial.preview25D || null,
+    coCreation25D: initial.coCreation25D || null,
+    livingWorldPreview25D: initial.livingWorldPreview25D || null,
+    worldMemoryPreview25D: initial.worldMemoryPreview25D || null,
     autoSave: normalizeAutoSave(initial.autoSave),
     pendingCommands: initial.pendingCommands || []
   };

@@ -332,6 +332,19 @@ async function installDom() {
     localStorage: dom.window.localStorage,
     sessionStorage: dom.window.sessionStorage
   };
+  Object.defineProperty(dom.window.HTMLCanvasElement.prototype, 'getContext', {
+    configurable: true,
+    value(type) {
+      if (type === '2d') return createAcceptanceCanvasContext(this);
+      if (type === 'webgl' || type === 'webgl2') {
+        return {
+          canvas: this,
+          getExtension: () => ({ loseContext() {} })
+        };
+      }
+      return null;
+    }
+  });
   const previous = new Map();
   for (const [key, value] of Object.entries(globals)) {
     previous.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
@@ -347,6 +360,45 @@ async function installDom() {
       else delete globalThis[key];
     }
     dom.window.close();
+  };
+}
+
+function createAcceptanceCanvasContext(canvas) {
+  const noop = () => {};
+  return {
+    canvas,
+    save: noop,
+    restore: noop,
+    clearRect: noop,
+    fillRect: noop,
+    strokeRect: noop,
+    beginPath: noop,
+    moveTo: noop,
+    lineTo: noop,
+    closePath: noop,
+    fill: noop,
+    stroke: noop,
+    fillText: noop,
+    drawImage: noop,
+    measureText: (text) => ({ width: String(text).length * 8 }),
+    setTransform: noop,
+    transform: noop,
+    translate: noop,
+    rotate: noop,
+    scale: noop,
+    createImageData: (width, height) => ({
+      width,
+      height,
+      data: new Uint8ClampedArray(Math.max(0, width * height * 4))
+    }),
+    getImageData: (x, y, width = 1, height = 1) => ({
+      x,
+      y,
+      width,
+      height,
+      data: new Uint8ClampedArray(Math.max(4, width * height * 4))
+    }),
+    putImageData: noop
   };
 }
 

@@ -941,6 +941,41 @@
       ]
     },
     {
+      "path": "livingworld/EditorCoCreator25D.js",
+      "summary": "",
+      "exports": [
+        "EditorCoCreator25D"
+      ]
+    },
+    {
+      "path": "livingworld/EmotionalPalette25D.js",
+      "summary": "",
+      "exports": [
+        "EmotionalPalette25D"
+      ]
+    },
+    {
+      "path": "livingworld/RealitySensor25D.js",
+      "summary": "",
+      "exports": [
+        "RealitySensor25D"
+      ]
+    },
+    {
+      "path": "livingworld/SocialAwareness25D.js",
+      "summary": "",
+      "exports": [
+        "SocialAwareness25D"
+      ]
+    },
+    {
+      "path": "livingworld/WorldMemory25D.js",
+      "summary": "",
+      "exports": [
+        "WorldMemory25D"
+      ]
+    },
+    {
       "path": "loader/AssetLoader.js",
       "summary": "Defensive image asset loader with missing-texture fallback. Single image failures are converted into a generated Pixi.Graphics square so bundle loading can continue and scenes can still render a visible placeholder. @example const loader = new AssetLoader(); const hero = await loader.loadImage({ key: 'hero', url: '/hero.png' }); scene.add(new OmniCore.Sprite(hero.texture || hero.displayObject));",
       "exports": [

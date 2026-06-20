@@ -1460,6 +1460,11 @@
         "name": "Editor"
       },
       {
+        "arity": 0,
+        "async": false,
+        "name": "EditorCoCreator25D"
+      },
+      {
         "arity": 1,
         "async": false,
         "name": "EditorOverlay"
@@ -1488,6 +1493,11 @@
         "arity": 0,
         "async": false,
         "name": "EmergencyOverlay"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "EmotionalPalette25D"
       },
       {
         "arity": 0,
@@ -1757,6 +1767,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "RealitySensor25D"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "RealtimeConnection"
       },
       {
@@ -1828,6 +1843,11 @@
         "arity": 0,
         "async": false,
         "name": "Snapshot"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SocialAwareness25D"
       },
       {
         "arity": 0,
@@ -1968,6 +1988,11 @@
         "arity": 0,
         "async": false,
         "name": "World"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "WorldMemory25D"
       },
       {
         "arity": 2,
@@ -2138,12 +2163,14 @@
       "DualSpatialIndex",
       "ECS",
       "Editor",
+      "EditorCoCreator25D",
       "EditorOverlay",
       "EditorPanel",
       "EditorPlugin",
       "EditorPluginCascade",
       "ElectronNativeBridge",
       "EmergencyOverlay",
+      "EmotionalPalette25D",
       "EngineQualityHarness",
       "Entity",
       "EntitySpatialIndex",
@@ -2210,6 +2237,7 @@
       "ProfilerWaterfallPanel",
       "Quality",
       "Query",
+      "RealitySensor25D",
       "RealtimeConnection",
       "RemoteDevTools",
       "RenderLayerManager",
@@ -2228,6 +2256,7 @@
       "SkeletonAnimationEditor",
       "SleepWakeSystem",
       "Snapshot",
+      "SocialAwareness25D",
       "SpineAdapter",
       "SpinePixiRuntimeAdapter",
       "SplashScreen",
@@ -2261,6 +2290,7 @@
       "Worker",
       "WorkerManager",
       "World",
+      "WorldMemory25D",
       "addon",
       "assertRendererBackend",
       "benchmarkECSParticles",

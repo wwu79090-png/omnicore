@@ -1,3 +1,8 @@
+import {
+  EditorCoCreator25D,
+  SocialAwareness25D,
+  WorldMemory25D
+} from 'omnicore';
 import { createEditorState, createLiveSyncMessage } from './live-sync-protocol.js';
 import LiveSyncClient from './live-sync-client.js';
 import AITilemapGenerator from './ai-tilemap-generator.js';
@@ -214,6 +219,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
     create25DPreview,
     drag25DNode,
     generateFakeShadows,
+    plan25DCoCreation,
+    previewLivingWorld25D,
+    previewWorldMemory25D,
     buildAssetDependencyGraph,
     replaceAssetReferences,
     runIncrementalCompile,
@@ -2463,6 +2471,50 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return shadows;
   }
 
+  function plan25DCoCreation({
+    prompt = '',
+    scene = current.scene,
+    terrain = current.tilemap,
+    availableAssets = current.assets
+  } = {}) {
+    const plan = new EditorCoCreator25D().plan({ prompt, scene, terrain, availableAssets });
+    current = createEditorState({ ...current, coCreation25D: plan });
+    update(current);
+    emit('editor:25d-cocreation-plan', { plan });
+    return plan;
+  }
+
+  function previewLivingWorld25D({
+    npcs = current.scene?.entities || [],
+    locations = current.scene?.locations || [],
+    weather = current.scene?.weather || null
+  } = {}) {
+    const decisions = new SocialAwareness25D().evaluate({ npcs, locations, weather });
+    const preview = {
+      protocol: 'omnicore-editor-25d-living-world-preview/v1',
+      decisions
+    };
+    current = createEditorState({ ...current, livingWorldPreview25D: preview });
+    update(current);
+    emit('editor:25d-living-world-preview', preview);
+    return preview;
+  }
+
+  function previewWorldMemory25D({ events = [], scene = current.scene, npcId = null } = {}) {
+    const memory = new WorldMemory25D();
+    events.forEach((event) => memory.record(event));
+    const preview = {
+      protocol: 'omnicore-editor-25d-world-memory-preview/v1',
+      snapshot: memory.snapshot(),
+      patches: memory.resolveScenePatches(scene),
+      dialogue: npcId ? memory.resolveDialogue(npcId) : null
+    };
+    current = createEditorState({ ...current, worldMemoryPreview25D: preview });
+    update(current);
+    emit('editor:25d-world-memory-preview', preview);
+    return preview;
+  }
+
   function recordDebugEvent(event = {}) {
     debugTimeline = {
       ...debugTimeline,
@@ -2494,7 +2546,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       format: 'OmniCore.AnimationStateMachine',
       version: 1,
       id: machine.id || 'animation-state-machine',
-      states: Array.isArray(machine.states) ? machine.states.map((state) => ({ ...state })) : [],
+      states: Array.isArray(machine.states) ? machine.states.map((machineState) => ({ ...machineState })) : [],
       transitions: Array.isArray(machine.transitions) ? machine.transitions.map((transition) => ({ ...transition })) : []
     };
     current = {
