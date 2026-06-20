@@ -26,9 +26,17 @@ describe('OmniCore Engine Doctor', () => {
     expect(report.categories.improvementBacklog).toMatchObject({
       ok: true,
       opportunities: expect.any(Number),
-      p0Count: expect.any(Number)
+      p0Count: expect.any(Number),
+      evidenceCompleteCount: expect.any(Number),
+      evidencePendingCount: expect.any(Number)
     });
     expect(report.improvementBacklog.summary.totalOpportunities).toBeGreaterThanOrEqual(30);
+    expect(report.improvementBacklog.completedOpportunities.map((item) => item.id)).toEqual(expect.arrayContaining([
+      'runtime-frame-profiler-hotspots',
+      'improvement-backlog-ci',
+      'market-benchmark-trend-parity'
+    ]));
+    expect(report.improvementBacklog.nextActions.map((item) => item.id)).not.toContain('runtime-frame-profiler-hotspots');
     expect(report.nextActions).toEqual([]);
   });
 
@@ -219,6 +227,15 @@ function createDoctorFixture({ includeWechatPackage, includeWechatArchive = fals
     'tests/market-competitiveness-score.test.js'
   ];
   files.forEach((file) => writeText(path.join(root, file), 'ok\n'));
+  writeText(path.join(root, 'src/debug/FrameProfiler.js'), 'class FrameProfiler { summarize() {} recommend() {} }\n');
+  writeText(path.join(root, 'tests/engine-improvement-planner.test.js'), 'describe("FrameProfiler insights", () => {});\n');
+  writeText(path.join(root, 'scripts/engine-improvements.js'), '--out --markdown\n');
+  writeText(path.join(root, 'scripts/generate-quality-report.js'), 'const engineImprovementPlan = true;\n');
+  writeText(path.join(root, 'scripts/engine-doctor.js'), 'const improvementBacklog = true;\n');
+  writeText(path.join(root, 'scripts/benchmark-threshold.js'), 'compareBenchmarkTrend 历史趋势回归\n');
+  writeText(path.join(root, 'src/quality/EngineQualityHarness.js'), 'export function runTrendCheck() {}\n');
+  writeText(path.join(root, 'tests/benchmark-threshold.test.js'), 'fails historical trend regressions across fps, draw calls, memory, physics, and frame time\n');
+  writeText(path.join(root, 'tests/engine-quality-harness.test.js'), 'detects benchmark trend regressions before absolute budgets fail\n');
   writeText(path.join(root, 'website/case-studies.html'), [
     '<article data-case-study="one"></article>',
     '<article data-case-study="two"></article>',

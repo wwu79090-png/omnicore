@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+
 const DEFAULT_GENERATED_AT = '1970-01-01T00:00:00.000Z';
 
 const IMPROVEMENT_PHASES = [
@@ -586,31 +589,65 @@ const IMPROVEMENT_OPPORTUNITIES = [
   }
 ];
 
+const COMPLETION_CHECKS = {
+  'runtime-frame-profiler-hotspots': [
+    { file: 'src/debug/FrameProfiler.js', includes: 'summarize(' },
+    { file: 'src/debug/FrameProfiler.js', includes: 'recommend(' },
+    { file: 'tests/engine-improvement-planner.test.js', includes: 'FrameProfiler insights' }
+  ],
+  'market-benchmark-trend-parity': [
+    { file: 'scripts/benchmark-threshold.js', includes: 'compareBenchmarkTrend' },
+    { file: 'scripts/benchmark-threshold.js', includes: '历史趋势回归' },
+    { file: 'src/quality/EngineQualityHarness.js', includes: 'runTrendCheck' },
+    { file: 'tests/benchmark-threshold.test.js', includes: 'fails historical trend regressions across fps, draw calls, memory, physics, and frame time' },
+    { file: 'tests/engine-quality-harness.test.js', includes: 'detects benchmark trend regressions before absolute budgets fail' }
+  ],
+  'improvement-backlog-ci': [
+    { file: 'scripts/engine-improvements.js', includes: '--out' },
+    { file: 'scripts/engine-improvements.js', includes: '--markdown' },
+    { file: 'scripts/generate-quality-report.js', includes: 'engineImprovementPlan' },
+    { file: 'scripts/engine-doctor.js', includes: 'improvementBacklog' }
+  ],
+  'plugin-sandbox-signing': [
+    { file: 'src/package/PluginInstaller.js', includes: 'permissionJustifications' },
+    { file: 'src/package/PluginInstaller.js', includes: 'invalid-plugin-sha256' },
+    { file: 'src/package/PluginInstaller.js', includes: 'dangerous-plugin-file' },
+    { file: 'src/package/PluginInstaller.js', includes: 'sanitizeReceipt' },
+    { file: 'scripts/validate-marketplace-index.js', includes: 'validatePluginSecurity' },
+    { file: 'scripts/validate-marketplace-index.js', includes: 'dangerous-plugin-lifecycle-script' },
+    { file: 'packages/omnicore-plugin-wechat-monetization/package.json', includes: 'omnicorePlugin' },
+    { file: 'tests/plugin-installer-platform.test.js', includes: 'requires declared permissions, sha256 integrity' },
+    { file: 'tests/omnicore-full-stack-phase4.test.js', includes: 'fails marketplace validation when plugin security metadata is unsafe' }
+  ]
+};
+
 export function buildEngineImprovementPlan({
   generatedAt = new Date().toISOString(),
+  projectRoot = process.cwd(),
   opportunities = IMPROVEMENT_OPPORTUNITIES
 } = {}) {
   const normalized = opportunities
-    .map((item, index) => ({
-      rank: index + 1,
-      ...item,
-      evidence: [...(item.evidence || [])],
-      actions: [...(item.actions || [])]
-    }))
+    .map((item, index) => normalizeOpportunity(item, index, projectRoot))
     .sort((left, right) => priorityWeight(left.priority) - priorityWeight(right.priority) || left.rank - right.rank);
+  const completedOpportunities = normalized.filter((item) => item.status === 'complete');
+  const pendingOpportunities = normalized.filter((item) => item.status !== 'complete');
   const phases = IMPROVEMENT_PHASES.map((phase) => {
     const phaseItems = normalized.filter((item) => item.phase === phase.id);
+    const completed = phaseItems.filter((item) => item.status === 'complete');
     return {
       ...phase,
       opportunityCount: phaseItems.length,
       p0Count: phaseItems.filter((item) => item.priority === 'P0').length,
+      evidenceCompleteCount: completed.length,
+      evidencePendingCount: phaseItems.length - completed.length,
       opportunityIds: phaseItems.map((item) => item.id)
     };
   });
-  const nextActions = normalized.slice(0, 12).map((item) => ({
+  const nextActions = pendingOpportunities.slice(0, 12).map((item) => ({
     id: item.id,
     priority: item.priority,
     command: item.command,
+    status: item.status,
     reason: item.improvement
   }));
   return {
@@ -621,10 +658,17 @@ export function buildEngineImprovementPlan({
       p0Count: normalized.filter((item) => item.priority === 'P0').length,
       p1Count: normalized.filter((item) => item.priority === 'P1').length,
       p2Count: normalized.filter((item) => item.priority === 'P2').length,
-      p3Count: normalized.filter((item) => item.priority === 'P3').length
+      p3Count: normalized.filter((item) => item.priority === 'P3').length,
+      evidenceCompleteCount: completedOpportunities.length,
+      evidencePendingCount: pendingOpportunities.length,
+      evidenceCompletionScore: normalized.length
+        ? Math.round((completedOpportunities.length / normalized.length) * 100)
+        : 100
     },
     phases,
     opportunities: normalized,
+    completedOpportunities: completedOpportunities.map((item) => summarizeOpportunity(item)),
+    pendingOpportunities: pendingOpportunities.map((item) => summarizeOpportunity(item)),
     nextActions
   };
 }
@@ -636,6 +680,7 @@ export function formatEngineImprovementMarkdown(plan = buildEngineImprovementPla
     `Generated: ${plan.generatedAt}`,
     `Total opportunities: ${plan.summary.totalOpportunities}`,
     `P0/P1/P2/P3: ${plan.summary.p0Count}/${plan.summary.p1Count}/${plan.summary.p2Count}/${plan.summary.p3Count}`,
+    `Evidence completion: ${plan.summary.evidenceCompleteCount}/${plan.summary.totalOpportunities} complete (${plan.summary.evidenceCompletionScore}%)`,
     '',
     '## Phases'
   ];
@@ -668,6 +713,85 @@ function priorityWeight(priority) {
   if (priority === 'P1') return 1;
   if (priority === 'P2') return 2;
   return 3;
+}
+
+function normalizeOpportunity(item, index, projectRoot) {
+  const evidence = [...(item.evidence || [])];
+  const actions = [...(item.actions || [])];
+  const evidenceStatus = evaluateEvidence(evidence, projectRoot);
+  const completionStatus = evaluateCompletion(item.id, projectRoot, evidenceStatus);
+  return {
+    rank: index + 1,
+    ...item,
+    evidence,
+    actions,
+    evidenceStatus,
+    completionStatus,
+    status: completionStatus.complete
+      ? 'complete'
+      : evidenceStatus.complete
+        ? 'evidence-present'
+        : 'missing-evidence'
+  };
+}
+
+function evaluateEvidence(evidence, projectRoot) {
+  const checks = evidence.map((file) => ({
+    file,
+    present: existsSync(path.join(projectRoot, file))
+  }));
+  const missing = checks.filter((check) => !check.present).map((check) => check.file);
+  return {
+    complete: missing.length === 0,
+    presentCount: checks.length - missing.length,
+    totalCount: checks.length,
+    missing,
+    checks
+  };
+}
+
+function evaluateCompletion(id, projectRoot, evidenceStatus) {
+  const checks = (COMPLETION_CHECKS[id] || []).map((check) => runCompletionCheck(check, projectRoot));
+  if (!checks.length) {
+    return {
+      complete: false,
+      explicit: false,
+      checks,
+      missing: evidenceStatus.missing
+    };
+  }
+  const missing = checks.filter((check) => !check.present || !check.matched).map((check) => check.label);
+  return {
+    complete: missing.length === 0,
+    explicit: true,
+    checks,
+    missing
+  };
+}
+
+function runCompletionCheck(check, projectRoot) {
+  const fullPath = path.join(projectRoot, check.file);
+  const present = existsSync(fullPath);
+  const source = present ? readFileSync(fullPath, 'utf8') : '';
+  const matched = present && (!check.includes || source.includes(check.includes));
+  return {
+    label: check.includes ? `${check.file} includes ${check.includes}` : check.file,
+    file: check.file,
+    present,
+    matched
+  };
+}
+
+function summarizeOpportunity(item) {
+  return {
+    id: item.id,
+    priority: item.priority,
+    area: item.area,
+    status: item.status,
+    command: item.command,
+    missingEvidence: item.evidenceStatus.missing,
+    missingCompletion: item.completionStatus.missing
+  };
 }
 
 export default {

@@ -40,12 +40,63 @@ describe('engine improvement planner', () => {
     expect(plan.nextActions.length).toBeGreaterThanOrEqual(10);
   });
 
+  it('tracks evidence coverage and completed improvement items instead of keeping the backlog static', () => {
+    const plan = buildEngineImprovementPlan({
+      generatedAt: '2026-06-20T00:00:00.000+08:00'
+    });
+    const profiler = plan.opportunities.find((item) => item.id === 'runtime-frame-profiler-hotspots');
+    const backlogCi = plan.opportunities.find((item) => item.id === 'improvement-backlog-ci');
+    const benchmarkTrend = plan.opportunities.find((item) => item.id === 'market-benchmark-trend-parity');
+    const pluginSecurity = plan.opportunities.find((item) => item.id === 'plugin-sandbox-signing');
+
+    expect(plan.summary.evidenceCompleteCount).toBeGreaterThan(0);
+    expect(plan.summary.evidenceCompletionScore).toBeGreaterThan(0);
+    expect(profiler).toMatchObject({
+      status: 'complete',
+      evidenceStatus: {
+        complete: true,
+        missing: []
+      }
+    });
+    expect(backlogCi).toMatchObject({
+      status: 'complete',
+      evidenceStatus: {
+        complete: true,
+        missing: []
+      }
+    });
+    expect(benchmarkTrend).toMatchObject({
+      status: 'complete',
+      evidenceStatus: {
+        complete: true,
+        missing: []
+      }
+    });
+    expect(pluginSecurity).toMatchObject({
+      status: 'complete',
+      evidenceStatus: {
+        complete: true,
+        missing: []
+      }
+    });
+    expect(plan.completedOpportunities.map((item) => item.id)).toEqual(expect.arrayContaining([
+      'runtime-frame-profiler-hotspots',
+      'improvement-backlog-ci',
+      'market-benchmark-trend-parity',
+      'plugin-sandbox-signing'
+    ]));
+    expect(plan.nextActions.map((item) => item.id)).not.toContain('runtime-frame-profiler-hotspots');
+    expect(plan.nextActions.map((item) => item.id)).not.toContain('market-benchmark-trend-parity');
+    expect(plan.nextActions.map((item) => item.id)).not.toContain('plugin-sandbox-signing');
+  });
+
   it('formats the backlog as a markdown execution plan', () => {
     const markdown = formatEngineImprovementMarkdown(buildEngineImprovementPlan({
       generatedAt: '2026-06-20T00:00:00.000+08:00'
     }));
 
     expect(markdown).toContain('# OmniCore Engine Improvement Plan');
+    expect(markdown).toContain('Evidence completion:');
     expect(markdown).toContain('| Priority | Area | Improvement | Evidence | First Action |');
     expect(markdown).toContain('runtime-frame-profiler-hotspots');
     expect(markdown).toContain('market-benchmark-trend-parity');

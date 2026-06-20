@@ -22,5 +22,17 @@
     "ads",
     "minigame"
   ],
+  "omnicorePlugin": {
+    "main": "src/index.js",
+    "permissions": [
+      "network",
+      "payment"
+    ],
+    "permissionJustifications": {
+      "network": "Accesses the WeChat Mini Game SDK ad and payment provider APIs inside the host game runtime.",
+      "payment": "Registers a WeChat payment provider for explicit in-game purchase flows."
+    },
+    "sha256": "d487eef49fcb56c7f99062d54ba294d005451ed1eabb379d5e419646fb0241db"
+  },
   "license": "MIT"
 }

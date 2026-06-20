@@ -7,7 +7,27 @@
       "version": "0.1.0",
       "demo": "examples/plugins/WechatMiniGameMonetization/demo/index.html",
       "installSnippet": "npm install @omnicore/plugin-wechat-monetization",
-      "listed": true
+      "listed": true,
+      "security": {
+        "ok": true,
+        "required": true,
+        "permissions": [
+          "network",
+          "payment"
+        ],
+        "permissionJustifications": {
+          "network": "Accesses the WeChat Mini Game SDK ad and payment provider APIs inside the host game runtime.",
+          "payment": "Registers a WeChat payment provider for explicit in-game purchase flows."
+        },
+        "integrity": {
+          "algorithm": "sha256",
+          "expected": "d487eef49fcb56c7f99062d54ba294d005451ed1eabb379d5e419646fb0241db",
+          "actual": "d487eef49fcb56c7f99062d54ba294d005451ed1eabb379d5e419646fb0241db",
+          "matched": true
+        },
+        "errors": [],
+        "warnings": []
+      }
     }
   ]
 }

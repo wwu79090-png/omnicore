@@ -102,15 +102,18 @@ describe('quality report generation', () => {
     expect(report.engineImprovementPlan).toMatchObject({
       summary: expect.objectContaining({
         totalOpportunities: expect.any(Number),
-        p0Count: expect.any(Number)
+        p0Count: expect.any(Number),
+        evidenceCompleteCount: expect.any(Number),
+        evidenceCompletionScore: expect.any(Number)
       }),
-      nextActions: expect.arrayContaining([
+      completedOpportunities: expect.arrayContaining([
         expect.objectContaining({
           id: 'runtime-frame-profiler-hotspots',
-          command: expect.any(String)
+          status: 'complete'
         })
       ])
     });
+    expect(report.engineImprovementPlan.nextActions.map((item) => item.id)).not.toContain('runtime-frame-profiler-hotspots');
     expect(report.engineImprovementPlan.summary.totalOpportunities).toBeGreaterThanOrEqual(30);
     expect(report.marketPositioningScorecard).toMatchObject({
       target: 90,

@@ -32,7 +32,10 @@ export function createEngineDoctorReport({
   const marketCompetitiveness = buildMarketCompetitivenessScorecard({ projectRoot: normalizedRoot, packageSummary });
   const marketAdoptionReadiness = buildMarketAdoptionReadiness({ projectRoot: normalizedRoot, packageSummary });
   const marketPositioningScorecard = buildMarketPositioningScorecard({ projectRoot: normalizedRoot, packageSummary });
-  const engineImprovementPlan = buildEngineImprovementPlan();
+  const engineImprovementPlan = buildEngineImprovementPlan({
+    projectRoot: normalizedRoot,
+    generatedAt
+  });
   const categories = {
     releaseGates: evaluateReleaseGates(marketReadiness),
     non3DStrength: evaluateScorecard(non3DMarketScorecard, 'non-3D market scorecard'),
@@ -52,6 +55,8 @@ export function createEngineDoctorReport({
     categories,
     improvementBacklog: {
       summary: engineImprovementPlan.summary,
+      completedOpportunities: engineImprovementPlan.completedOpportunities,
+      pendingOpportunities: engineImprovementPlan.pendingOpportunities,
       nextActions: engineImprovementPlan.nextActions
     },
     marketPositioningScorecard,
@@ -131,6 +136,9 @@ function evaluateScorecard(scorecard, label) {
 function evaluateImprovementBacklog(plan) {
   const total = Number(plan?.summary?.totalOpportunities || 0);
   const p0Count = Number(plan?.summary?.p0Count || 0);
+  const evidenceCompleteCount = Number(plan?.summary?.evidenceCompleteCount || 0);
+  const evidencePendingCount = Number(plan?.summary?.evidencePendingCount || 0);
+  const evidenceCompletionScore = Number(plan?.summary?.evidenceCompletionScore || 0);
   const ok = total >= 30 && p0Count >= 5;
   return {
     ok,
@@ -138,8 +146,11 @@ function evaluateImprovementBacklog(plan) {
     score: ok ? 100 : Math.min(90, Math.round((total / 30) * 100)),
     opportunities: total,
     p0Count,
+    evidenceCompleteCount,
+    evidencePendingCount,
+    evidenceCompletionScore,
     message: ok
-      ? `engine improvement backlog is actionable with ${total} opportunities`
+      ? `engine improvement backlog is actionable with ${total} opportunities; ${evidenceCompleteCount} complete and ${evidencePendingCount} pending`
       : 'engine improvement backlog is too small or lacks P0 actions'
   };
 }

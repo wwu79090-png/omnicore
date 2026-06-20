@@ -1,8 +1,9 @@
 # OmniCore Engine Improvement Plan
 
-Generated: 2026-06-20T00:00:00.000+08:00
+Generated: 2026-06-20T07:25:20.987Z
 Total opportunities: 55
 P0/P1/P2/P3: 15/17/17/6
+Evidence completion: 4/55 complete (7%)
 
 ## Phases
 - 质量智能底座: Make every future engine weakness visible, ranked, and actionable before release. (3 items)
@@ -73,11 +74,7 @@ P0/P1/P2/P3: 15/17/17/6
 | P3 | 治理/LTS | governance-lts-compatibility: LTS、治理、兼容表、API lifecycle、案例证据和安全历史集中展示 | GOVERNANCE.md<br>LTS.md<br>docs/security/security.md | add compatibility matrix |
 
 ## Next Actions
-- P0 runtime-frame-profiler-hotspots: npm test -- tests/engine-improvement-planner.test.js
-- P0 market-benchmark-trend-parity: npm test -- tests/engine-quality-harness.test.js tests/benchmark-threshold.test.js
-- P0 improvement-backlog-ci: node scripts/engine-improvements.js --out dist/engine-improvements.json
 - P0 golden-scene-visual-regression: npm run test:visual
-- P0 plugin-sandbox-signing: npm test -- tests/plugin-installer-platform.test.js tests/plugin-marketplace-page.test.js
 - P0 migration-codemod-parity: npm test -- tests/market-adoption-readiness.test.js
 - P0 webgpu-webgl-canvas-contract: npm test -- tests/omnicore-2d-extreme-runtime.test.js
 - P0 pixi-lifecycle-parity: npm test -- tests/pixi-lifecycle-parity.test.js
@@ -85,3 +82,7 @@ P0/P1/P2/P3: 15/17/17/6
 - P0 phaser-pixi-parity-harness: npm test -- tests/benchmark/phaser-pixi-parity.test.js && npm run benchmark
 - P0 editor-live-sync-security: npm test -- tests/editor-live-sync-security.test.js
 - P0 platform-export-artifacts: npm test -- tests/platform-export-artifacts.test.js
+- P0 worker-render-ownership: npm test -- tests/omnicore-2d-extreme-runtime.test.js
+- P0 batching-material-atlas-diagnostics: npm run benchmark:ci
+- P0 scene-logic-sleep-wake-scale: npm test -- tests/performance-systems.test.js tests/performance-refactor.test.js
+- P1 phaser-compat-layer: npm test -- tests/phaser-compat-layer.test.js

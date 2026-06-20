@@ -87,10 +87,62 @@ describe('OmniCore full stack phase 4 plugin marketplace closure', () => {
       expect.objectContaining({
         packageName: '@omnicore/plugin-wechat-monetization',
         demo: 'examples/plugins/WechatMiniGameMonetization/demo/index.html',
-        listed: true
+        listed: true,
+        security: expect.objectContaining({
+          ok: true,
+          permissions: expect.arrayContaining(['network', 'payment']),
+          integrity: expect.objectContaining({
+            algorithm: 'sha256',
+            matched: true,
+            actual: expect.stringMatching(/^[a-f0-9]{64}$/u)
+          })
+        })
       })
     ]));
     expect(packageJson.scripts['marketplace:validate']).toBe('node scripts/validate-marketplace-index.js');
+  });
+
+  it('fails marketplace validation when plugin security metadata is unsafe', () => {
+    const temp = makeTempRoot('omnicore-market-unsafe-plugin-');
+    const site = path.join(temp, 'website', 'plugins');
+    const pkgDir = path.join(temp, 'unsafe-plugin');
+    mkdirSync(site, { recursive: true });
+    mkdirSync(path.join(pkgDir, 'src'), { recursive: true });
+    writeFileSync(path.join(site, 'index.html'), [
+      '<code>npm install @omnicore/plugin-unsafe</code>',
+      'examples/plugins/plugin-unsafe/demo/index.html'
+    ].join('\n'), 'utf8');
+    writeFileSync(path.join(pkgDir, 'src', 'index.js'), 'export default {};\n', 'utf8');
+    writeFileSync(path.join(pkgDir, 'package.json'), JSON.stringify({
+      name: '@omnicore/plugin-unsafe',
+      version: '0.0.1',
+      main: 'src/index.js',
+      scripts: { postinstall: 'node install.js' },
+      keywords: ['omnicore-plugin'],
+      omnicorePlugin: {
+        permissions: ['network'],
+        permissionJustifications: {},
+        sha256: 'bad-sha'
+      }
+    }, null, 2), 'utf8');
+
+    let failed = false;
+    try {
+      execFileSync(process.execPath, [
+        path.resolve('scripts/validate-marketplace-index.js'),
+        '--website',
+        site,
+        '--package',
+        path.join(pkgDir, 'package.json')
+      ], { cwd: process.cwd(), encoding: 'utf8', stdio: 'pipe' });
+    } catch (error) {
+      failed = true;
+      expect(error.status).toBe(1);
+      expect(String(error.stderr)).toContain('unsafe-plugin-permission');
+      expect(String(error.stderr)).toContain('invalid-plugin-sha256');
+      expect(String(error.stderr)).toContain('dangerous-plugin-lifecycle-script');
+    }
+    expect(failed).toBe(true);
   });
 
   it('fails marketplace validation when a package is listed under the wrong install command', () => {
