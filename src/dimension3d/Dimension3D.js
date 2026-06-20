@@ -38,7 +38,11 @@ const DECORATIVE_CAPABILITIES = Object.freeze({
     '30fps-decorative-loop',
     'model-complexity-budget',
     'instanced-static-models',
-    'aabb-occlusion-candidates'
+    'aabb-occlusion-candidates',
+    'cinematic-25d-projection',
+    'depth-band-render-plan',
+    'lod-aware-2d-composition',
+    'parallax-depth-scaling'
   ]),
   unsupported: Object.freeze(['3d-collision', '3d-camera-control', 'free-3d-camera-control'])
 });
@@ -916,7 +920,10 @@ export class PlaneLayer {
     zToYScale = 1,
     baseY = 0,
     debug = false,
-    coordinateBias = null
+    coordinateBias = null,
+    perspective = null,
+    depthBands = [],
+    lodPolicy = null
   } = {}) {
     this.zScale = zScale;
     this.baseZ = baseZ;
@@ -924,6 +931,9 @@ export class PlaneLayer {
     this.baseY = baseY;
     this.debug = Boolean(debug);
     this.coordinateBias = normalizeCoordinateBias(coordinateBias);
+    this.perspective = normalizePerspectiveConfig(perspective);
+    this.depthBands = normalizeDepthBands(depthBands);
+    this.lodPolicy = normalizeLodPolicy(lodPolicy);
     this.items = [];
   }
 
@@ -971,6 +981,195 @@ export class PlaneLayer {
     return {
       x: point.x + this.coordinateBias.x,
       y: this.baseY + point.y + point.z * this.zToYScale + this.coordinateBias.y
+    };
+  }
+
+  scaleAtDepth(depth = 0) {
+    const depthValue = Number.isFinite(Number(depth)) ? Number(depth) : 0;
+    const rawScale = 1 - depthValue * this.perspective.depthScale;
+    return roundProjectionNumber(clampNumber(
+      rawScale,
+      this.perspective.minScale,
+      this.perspective.maxScale
+    ));
+  }
+
+  parallaxOffset(depth = 0, camera = {}) {
+    const depthValue = Number.isFinite(Number(depth)) ? Number(depth) : 0;
+    const cameraX = Number.isFinite(Number(camera?.x)) ? Number(camera.x) : 0;
+    const cameraY = Number.isFinite(Number(camera?.y)) ? Number(camera.y) : 0;
+    return {
+      x: roundProjectionNumber(-cameraX * depthValue * this.perspective.parallax.x),
+      y: roundProjectionNumber(-cameraY * depthValue * this.perspective.parallax.y)
+    };
+  }
+
+  resolveDepthBand(y = 0) {
+    const targetY = Number.isFinite(Number(y)) ? Number(y) : 0;
+    const match = this.depthBands.find((band) => targetY >= band.minY && targetY < band.maxY);
+    return match ? { ...match } : createDefaultDepthBand();
+  }
+
+  projectModel2D(model = {}, { camera = {}, viewport = null, lodPolicy = null } = {}) {
+    const depthMap = normalizeDepthMap(model.depthMap);
+    const depth = readModelDepth(model);
+    const basePlane = this.worldToPlane(model.position || model);
+    const baselineY = Number.isFinite(Number(depthMap?.baselineY))
+      ? Number(depthMap.baselineY)
+      : basePlane.y;
+    const scale = this.scaleAtDepth(depth);
+    const parallaxOffset = this.parallaxOffset(depth, camera);
+    const center = {
+      x: roundProjectionNumber(basePlane.x + parallaxOffset.x),
+      y: roundProjectionNumber(baselineY + parallaxOffset.y)
+    };
+    const bounds = normalizeBounds(model.bounds || model);
+    const width = roundProjectionNumber(bounds.width * scale);
+    const footprintHeight = roundProjectionNumber((bounds.depth || bounds.height) * scale);
+    const manualCollider = depthMap?.collider ? normalizeDepthMapCollider(depthMap.collider) : null;
+    const collider = manualCollider
+      ? roundProjectedRect(manualCollider)
+      : roundProjectedRect({
+        x: center.x - width / 2,
+        y: center.y - footprintHeight / 2,
+        width,
+        height: footprintHeight
+      });
+    const visible = viewport ? this.collidesProjected2D(viewport, collider) : true;
+    const screenArea = roundProjectionNumber(collider.width * collider.height);
+    const band = this.resolveDepthBand(center.y);
+    const policy = lodPolicy || this.lodPolicy;
+    const lod = selectModelLod(model, { screenArea, depth, scale, policy });
+    const shadow = scaleProjectedShadow(model.shadow, scale);
+    const projection = {
+      id: model.id || model.name || 'model',
+      kind: '3d',
+      depth,
+      position: {
+        x: roundProjectionNumber(basePlane.x),
+        y: roundProjectionNumber(basePlane.y)
+      },
+      center,
+      scale,
+      parallaxOffset,
+      band,
+      lod,
+      visible,
+      screenArea,
+      collider,
+      shadow,
+      sortDepth: roundProjectionNumber((band.zIndex || 0) + center.y)
+    };
+    if (!visible) projection.cullReason = 'outside-viewport';
+
+    if (model && typeof model === 'object') {
+      model.omnicore25DProjection = projection;
+      model.omnicoreProjectedAabb = collider;
+      model.omnicoreDepthBand = band.name;
+      model.omnicoreLodLevel = lod?.level || null;
+      model.omnicoreOcclusionSkipped = !visible;
+    }
+    return projection;
+  }
+
+  projectSprite2D(sprite = {}, { viewport = null } = {}) {
+    const rect = roundProjectedRect(sprite);
+    const foot = {
+      x: roundProjectionNumber(rect.x + rect.width / 2),
+      y: roundProjectionNumber(rect.y + rect.height)
+    };
+    const band = this.resolveDepthBand(foot.y);
+    const visible = viewport ? this.collidesProjected2D(rect, roundProjectedRect(viewport)) : true;
+    const projection = {
+      id: sprite.id || sprite.name || 'sprite',
+      kind: '2d',
+      rect,
+      foot,
+      band,
+      visible,
+      sortDepth: roundProjectionNumber((band.zIndex || 0) + foot.y)
+    };
+    if (!visible) projection.cullReason = 'outside-viewport';
+    return projection;
+  }
+
+  composeScene2D({
+    sprites = null,
+    models = null,
+    viewport = null,
+    camera = {},
+    lodPolicy = null
+  } = {}) {
+    const modelSource = Array.isArray(models)
+      ? models
+      : this.items.filter((item) => item.kind === '3d').map((item) => item.object);
+    const spriteSource = Array.isArray(sprites)
+      ? sprites
+      : this.items.filter((item) => item.kind === '2d').map((item) => item.object);
+    const modelProjections = modelSource.map((model, sourceIndex) => ({
+      ...this.projectModel2D(model, { camera, viewport, lodPolicy }),
+      model,
+      sourceIndex
+    }));
+    const spriteProjections = spriteSource.map((sprite, sourceIndex) => ({
+      ...this.projectSprite2D(sprite, { viewport }),
+      sprite,
+      sourceIndex
+    }));
+    const visibleModels = modelProjections.filter((item) => item.visible);
+    const visibleSprites = spriteProjections.filter((item) => item.visible);
+    const occlusionPairs = [];
+    visibleSprites.forEach((spriteProjection) => {
+      visibleModels.forEach((modelProjection) => {
+        if (!this.collidesProjected2D(spriteProjection.rect, modelProjection.collider)) return;
+        occlusionPairs.push({
+          spriteId: spriteProjection.id,
+          modelId: modelProjection.id,
+          sprite: spriteProjection.sprite,
+          model: modelProjection.model,
+          projected: modelProjection.collider
+        });
+      });
+    });
+    const renderQueue = [
+      ...visibleModels.map((projection) => ({
+        id: projection.id,
+        kind: '3d',
+        visible: projection.visible,
+        model: projection.model,
+        projection,
+        band: projection.band,
+        lod: projection.lod,
+        sortDepth: projection.sortDepth,
+        sourceIndex: projection.sourceIndex
+      })),
+      ...visibleSprites.map((projection) => ({
+        id: projection.id,
+        kind: '2d',
+        visible: projection.visible,
+        sprite: projection.sprite,
+        projection,
+        band: projection.band,
+        sortDepth: projection.sortDepth,
+        sourceIndex: projection.sourceIndex
+      }))
+    ].sort(compareRenderQueueItem);
+
+    return {
+      modelProjections,
+      spriteProjections,
+      occlusionPairs,
+      renderQueue,
+      diagnostics: {
+        modelCount: modelSource.length,
+        spriteCount: spriteSource.length,
+        visibleModels: visibleModels.length,
+        culledModels: modelSource.length - visibleModels.length,
+        visibleSprites: visibleSprites.length,
+        culledSprites: spriteSource.length - visibleSprites.length,
+        occlusionPairs: occlusionPairs.length,
+        renderQueue: renderQueue.length
+      }
     };
   }
 
@@ -1078,6 +1277,7 @@ export class PlaneLayer {
     return {
       enabled: this.debug,
       coordinateBias: { ...this.coordinateBias },
+      depthBands: this.depthBands.map((band) => ({ ...band })),
       modelDepthRanges,
       spriteProjectionLines
     };
@@ -1369,6 +1569,155 @@ function normalizeBounds(bounds = {}) {
     height: Number(bounds.height ?? bounds.h ?? 1),
     depth: Number(bounds.depth ?? bounds.d ?? 1)
   };
+}
+
+function normalizePerspectiveConfig(value = null) {
+  const source = value && typeof value === 'object' ? value : {};
+  const minScale = Number.isFinite(Number(source.minScale)) ? Number(source.minScale) : 0;
+  const maxScale = Number.isFinite(Number(source.maxScale)) ? Number(source.maxScale) : Infinity;
+  const parallax = source.parallax && typeof source.parallax === 'object' ? source.parallax : {};
+  return {
+    depthScale: Number.isFinite(Number(source.depthScale)) ? Number(source.depthScale) : 0,
+    minScale: Math.min(minScale, maxScale),
+    maxScale: Math.max(minScale, maxScale),
+    parallax: {
+      x: Number.isFinite(Number(parallax.x)) ? Number(parallax.x) : 0,
+      y: Number.isFinite(Number(parallax.y)) ? Number(parallax.y) : 0
+    }
+  };
+}
+
+function normalizeDepthBands(depthBands = []) {
+  if (!Array.isArray(depthBands)) return [];
+  return depthBands.map((band, index) => {
+    const source = band && typeof band === 'object' ? band : {};
+    const minY = Number.isFinite(Number(source.minY)) ? Number(source.minY) : -Infinity;
+    const maxY = Number.isFinite(Number(source.maxY)) ? Number(source.maxY) : Infinity;
+    return {
+      name: source.name || `band-${index}`,
+      minY: Math.min(minY, maxY),
+      maxY: Math.max(minY, maxY),
+      zIndex: Number.isFinite(Number(source.zIndex)) ? Number(source.zIndex) : index
+    };
+  });
+}
+
+function normalizeLodPolicy(value = null) {
+  if (!value || typeof value !== 'object') return {};
+  return {
+    forceLevel: value.forceLevel || value.level || null,
+    screenAreaScale: Number.isFinite(Number(value.screenAreaScale))
+      ? Number(value.screenAreaScale)
+      : 1
+  };
+}
+
+function createDefaultDepthBand() {
+  return {
+    name: 'default',
+    minY: -Infinity,
+    maxY: Infinity,
+    zIndex: 0
+  };
+}
+
+function readModelDepth(model = {}) {
+  if (Number.isFinite(Number(model?.position?.z))) return Number(model.position.z);
+  if (Number.isFinite(Number(model?.z))) return Number(model.z);
+  if (Number.isFinite(Number(model?.depth))) return Number(model.depth);
+  return 0;
+}
+
+function selectModelLod(model = {}, { screenArea = 0, depth = 0, scale = 1, policy = {} } = {}) {
+  const lods = Array.isArray(model.lods)
+    ? model.lods
+    : Array.isArray(model.lod)
+      ? model.lod
+      : [];
+  if (!lods.length) return null;
+  const normalizedPolicy = normalizeLodPolicy(policy);
+  const forcedLevel = normalizedPolicy.forceLevel || model.lodLevel || null;
+  if (forcedLevel) {
+    const forced = lods.find((lod) => lod?.level === forcedLevel);
+    if (forced) return { ...forced };
+  }
+  const areaScale = normalizedPolicy.screenAreaScale || 1;
+  const targetArea = Number.isFinite(Number(screenArea)) ? Number(screenArea) : 0;
+  const targetDepth = Number.isFinite(Number(depth)) ? Number(depth) : 0;
+  const targetScale = Number.isFinite(Number(scale)) ? Number(scale) : 1;
+  const match = lods.find((lod) => {
+    const minScreenArea = Number.isFinite(Number(lod?.minScreenArea))
+      ? Number(lod.minScreenArea) * areaScale
+      : -Infinity;
+    const maxScreenArea = Number.isFinite(Number(lod?.maxScreenArea))
+      ? Number(lod.maxScreenArea) * areaScale
+      : Infinity;
+    const minDepth = Number.isFinite(Number(lod?.minDepth)) ? Number(lod.minDepth) : -Infinity;
+    const maxDepth = Number.isFinite(Number(lod?.maxDepth)) ? Number(lod.maxDepth) : Infinity;
+    const minScale = Number.isFinite(Number(lod?.minScale)) ? Number(lod.minScale) : -Infinity;
+    const maxScale = Number.isFinite(Number(lod?.maxScale)) ? Number(lod.maxScale) : Infinity;
+    return targetArea >= minScreenArea
+      && targetArea <= maxScreenArea
+      && targetDepth >= minDepth
+      && targetDepth <= maxDepth
+      && targetScale >= minScale
+      && targetScale <= maxScale;
+  });
+  return match ? { ...match } : { ...lods[lods.length - 1] };
+}
+
+function scaleProjectedShadow(shadow = null, scale = 1) {
+  if (!shadow || typeof shadow !== 'object') return null;
+  const output = { ...shadow, scale };
+  [
+    'radiusX',
+    'radiusY',
+    'width',
+    'height',
+    'blur',
+    'offsetX',
+    'offsetY'
+  ].forEach((key) => {
+    if (Number.isFinite(Number(output[key]))) {
+      output[key] = roundProjectionNumber(Number(output[key]) * scale);
+    }
+  });
+  if (Number.isFinite(Number(output.opacity))) {
+    output.opacity = roundProjectionNumber(clampNumber(Number(output.opacity) * scale, 0, 1));
+  }
+  return output;
+}
+
+function roundProjectedRect(rect = {}) {
+  const projected = normalizeDepthMapCollider(rect);
+  return {
+    x: roundProjectionNumber(projected.x),
+    y: roundProjectionNumber(projected.y),
+    width: roundProjectionNumber(projected.width),
+    height: roundProjectionNumber(projected.height),
+    minX: roundProjectionNumber(projected.minX),
+    maxX: roundProjectionNumber(projected.maxX),
+    minY: roundProjectionNumber(projected.minY),
+    maxY: roundProjectionNumber(projected.maxY)
+  };
+}
+
+function compareRenderQueueItem(left, right) {
+  const depthDelta = left.sortDepth - right.sortDepth;
+  if (depthDelta !== 0) return depthDelta;
+  const kindOrder = { '3d': 0, '2d': 1 };
+  const kindDelta = (kindOrder[left.kind] ?? 9) - (kindOrder[right.kind] ?? 9);
+  if (kindDelta !== 0) return kindDelta;
+  return (left.sourceIndex ?? 0) - (right.sourceIndex ?? 0);
+}
+
+function clampNumber(value, min = -Infinity, max = Infinity) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function roundProjectionNumber(value) {
+  if (!Number.isFinite(Number(value))) return value;
+  return Number(Number(value).toFixed(6));
 }
 
 function modelAabb(model = {}) {

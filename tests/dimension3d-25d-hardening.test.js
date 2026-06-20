@@ -192,6 +192,119 @@ describe('Dimension3D 2.5D hardening', () => {
     });
   });
 
+  it('projects cinematic 2.5D models with depth scaling, parallax, lod, shadow, and depth bands', () => {
+    const layer = new Dimension3D.PlaneLayer({
+      zToYScale: 10,
+      perspective: {
+        depthScale: 0.02,
+        minScale: 0.5,
+        maxScale: 1.25,
+        parallax: { x: 0.1, y: 0.05 }
+      },
+      depthBands: [
+        { name: 'background', maxY: 160, zIndex: 0 },
+        { name: 'midground', minY: 160, maxY: 230, zIndex: 100 },
+        { name: 'foreground', minY: 230, zIndex: 200 }
+      ]
+    });
+    const tower = {
+      id: 'tower',
+      position: { x: 50, y: 0, z: 20 },
+      bounds: { width: 100, height: 160, depth: 80 },
+      shadow: { type: 'ellipse', opacity: 0.4, radiusX: 50, radiusY: 40 },
+      lods: [
+        { level: 'high', minScreenArea: 4000, mesh: 'tower-high.glb' },
+        { level: 'mid', minScreenArea: 1000, mesh: 'tower-mid.glb' },
+        { level: 'low', mesh: 'tower-low.glb' }
+      ]
+    };
+
+    const projected = layer.projectModel2D(tower, {
+      camera: { x: 10, y: -4 },
+      viewport: { x: 0, y: 0, width: 240, height: 260 }
+    });
+
+    expect(projected).toMatchObject({
+      id: 'tower',
+      scale: 0.6,
+      parallaxOffset: { x: -20, y: 4 },
+      band: { name: 'midground', zIndex: 100 },
+      lod: { level: 'mid', mesh: 'tower-mid.glb' },
+      visible: true,
+      screenArea: 2880
+    });
+    expect(projected.collider).toMatchObject({
+      x: 0,
+      y: 180,
+      width: 60,
+      height: 48,
+      minX: 0,
+      maxX: 60,
+      minY: 180,
+      maxY: 228
+    });
+    expect(projected.shadow).toMatchObject({
+      radiusX: 30,
+      radiusY: 24,
+      opacity: 0.24
+    });
+  });
+
+  it('composes a 2.5D render plan with culling, occlusion pairs, stable sorting, and diagnostics', () => {
+    const layer = new Dimension3D.PlaneLayer({
+      zToYScale: 8,
+      perspective: { depthScale: 0.01, minScale: 0.7 },
+      depthBands: [
+        { name: 'back', maxY: 120, zIndex: 0 },
+        { name: 'playfield', minY: 120, maxY: 220, zIndex: 100 },
+        { name: 'front', minY: 220, zIndex: 200 }
+      ]
+    });
+    const hero = { id: 'hero', x: 94, y: 148, width: 28, height: 42 };
+    const nearTree = {
+      id: 'near-tree',
+      position: { x: 110, y: 0, z: 18 },
+      bounds: { width: 90, height: 150, depth: 80 },
+      lods: [{ level: 'high', minScreenArea: 6000 }, { level: 'mid', minScreenArea: 1500 }, { level: 'low' }]
+    };
+    const farTree = {
+      id: 'far-tree',
+      position: { x: 520, y: 0, z: 12 },
+      bounds: { width: 90, height: 150, depth: 80 },
+      lods: [{ level: 'high', minScreenArea: 6000 }, { level: 'mid', minScreenArea: 1500 }, { level: 'low' }]
+    };
+
+    const plan = layer.composeScene2D({
+      sprites: [hero],
+      models: [nearTree, farTree],
+      viewport: { x: 0, y: 0, width: 260, height: 260 },
+      camera: { x: 0, y: 0 }
+    });
+
+    expect(plan.diagnostics).toMatchObject({
+      modelCount: 2,
+      spriteCount: 1,
+      visibleModels: 1,
+      culledModels: 1,
+      occlusionPairs: 1
+    });
+    expect(plan.modelProjections.find((item) => item.id === 'near-tree')).toMatchObject({
+      visible: true,
+      lod: { level: 'mid' },
+      band: { name: 'playfield' }
+    });
+    expect(plan.modelProjections.find((item) => item.id === 'far-tree')).toMatchObject({
+      visible: false,
+      cullReason: 'outside-viewport'
+    });
+    expect(plan.occlusionPairs).toEqual([
+      expect.objectContaining({ spriteId: 'hero', modelId: 'near-tree' })
+    ]);
+    expect(plan.renderQueue.map((item) => item.id)).toEqual(['near-tree', 'hero']);
+    expect(plan.renderQueue[0]).toMatchObject({ kind: '3d', visible: true });
+    expect(plan.renderQueue[1]).toMatchObject({ kind: '2d', visible: true });
+  });
+
   it('exposes coordinate bias tuning on Dimension3D debug guide projection', () => {
     const dimension = new Dimension3D({ debug: true });
     const returned = dimension.setCoordinateBias(1, 2);
