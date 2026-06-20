@@ -878,7 +878,7 @@
     <article>
       <h2>renderer/RendererBackend.js</h2>
       <p></p>
-      <code>assertRendererBackend</code>
+      <code>RendererContract, assertRendererBackend, createRendererPerformanceSandbox</code>
     </article>
     <article>
       <h2>renderer/RendererManager.js</h2>
@@ -908,7 +908,7 @@
     <article>
       <h2>renderer/WebGPURenderer.js</h2>
       <p>MVP WebGPU renderer abstraction. It detects WebGPU, configures the canvas context, and converts scene children into serializable draw instructions. A worker bridge can consume those instructions through OffscreenCanvas when the host provides a worker.</p>
-      <code>WebGPURenderer, collectDrawInstructions, buildGPUBatches</code>
+      <code>WebGPURenderer, createWebGPUComputeParticleDescriptor, collectDrawInstructions, buildGPUBatches</code>
     </article>
     <article>
       <h2>scene/Scene.js</h2>

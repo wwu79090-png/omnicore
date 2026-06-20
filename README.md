@@ -2,12 +2,23 @@
 
 OmniCore: 33KB WebGPU 轻量引擎，跑 1000 个 Sprite 还能稳 144 FPS。
 
-![Tests](https://img.shields.io/badge/tests-521%2F521%20passed-16a34a)
+<p>
+  <img src="./assets/branding/perf-demo.gif" alt="OmniCore 144 FPS demo with 1000 sprites" width="100%">
+</p>
+
+<p>
+  <a href="https://omnicore.vercel.app/"><img alt="在线体验" src="https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E4%BD%93%E9%AA%8C-OmniCore%20Demo-2563eb"></a>
+  <a href="https://omnicore.vercel.app/website/playground/"><img alt="在线 IDE" src="https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%20IDE-Playground-0f766e"></a>
+  <a href="https://www.npmjs.com/package/omnicore"><img alt="NPM" src="https://img.shields.io/npm/v/omnicore?label=npm"></a>
+  <a href="https://github.com/wwu79090-png/omnicore"><img alt="GitHub" src="https://img.shields.io/badge/GitHub-Star%20OmniCore-111827"></a>
+</p>
+
+![Tests](https://img.shields.io/badge/tests-590%2F590%20passed-16a34a)
 ![Build](https://img.shields.io/badge/build-passing-0f766e)
-![ESM](https://img.shields.io/badge/esm-692.83%20kB-2563eb)
+![ESM](https://img.shields.io/badge/esm-701.60%20kB-2563eb)
 ![Lean Core](https://img.shields.io/badge/lean%20core-33.36%20kB-7c3aed)
 ![Security](https://img.shields.io/badge/high--risk%20deps-0-16a34a)
-![Release](https://img.shields.io/github/v/release/omnicore/omnicore?label=release)
+![Release](https://img.shields.io/github/v/release/wwu79090-png/omnicore?label=release)
 
 OmniCore 是一个 HTML5 2D/2.5D 优先游戏引擎骨架：默认使用 PixiJS v8 做 2D 渲染，提供 Phaser 风格场景栈和 Tween、Construct/GDevelop 风格 JSON Event Sheet、Cocos 风格 `addComponent()`，并把 Three.js 作为独立的装饰背景层延迟加载。
 
@@ -21,7 +32,38 @@ OmniCore 专注于 2D 游戏开发和有限 2.5D 表现，明确不是全 3D 引
 
 - [每月开发进度总结](website/news/)：运行时健康遥测、弱网与低内存模拟、版本发布说明和社区案例展示。
 
+## 在线体验
+
+- 官网与 144 FPS 演示：https://omnicore.vercel.app/
+- 在线 Playground：https://omnicore.vercel.app/website/playground/
+- 在线场景编辑器：https://omnicore.vercel.app/website/editor/
+- NPM 包：https://www.npmjs.com/package/omnicore
+
+## AI 加速开发
+
+OmniCore 是一个学生/小团队风格的真实开源项目：资源有限，所以开发过程尽量把 AI 当成“加速器”而不是“替代者”。AI 主要参与重复性的脚手架、测试补全、文档草稿、发布检查清单和错误复盘；架构取舍、性能目标、API 边界、最终验收和社区反馈仍由作者手动把关。
+
+这个工作流让项目能在较短周期里持续补齐编辑器、资源流水线、测试门禁、微信小游戏构建和性能治理，但 README 里的数据只保留可验证结果：Lean Core ESM 约 33KB、`dist/omnicore.esm.js` 可构建、590 个测试用例全绿、依赖高风险项为 0。
+
 ## 快速开始
+
+### 10 分钟极简教程：三行画出第一个角色
+
+准备一个页面容器：
+
+```html
+<div id="app"></div>
+```
+
+安装后在入口文件中写入 3 行代码：
+
+```js
+const game = await new OmniCore.Game({ parent: '#app', renderer: 'canvas' }).init();
+const scene = Object.assign(new OmniCore.Scene('play'), { create() { this.add(new OmniCore.Sprite('hero', { x: 120, y: 120, width: 48, height: 48, color: '#38bdf8' })); } });
+game.scene.register(scene); await game.scene.push('play');
+```
+
+完整可复制版本见 [`docs/ten-minute-quickstart.md`](docs/ten-minute-quickstart.md)。
 
 ### 安装
 

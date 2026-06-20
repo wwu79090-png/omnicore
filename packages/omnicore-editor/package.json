@@ -13,6 +13,28 @@
     "package:desktop": "node scripts/package-desktop.cjs",
     "build": "vite build"
   },
+  "omnicoreEditor": {
+    "standalone": true,
+    "stack": {
+      "view": "React",
+      "graph": "React Flow",
+      "canvas": [
+        "Fabric.js",
+        "Konva.js"
+      ],
+      "collaboration": "Yjs",
+      "state": "Zustand"
+    },
+    "transports": [
+      "WebSocket",
+      "WebRTC"
+    ],
+    "exports": [
+      "EventSheet",
+      "BehaviorTree",
+      "UI_Layout"
+    ]
+  },
   "build": {
     "productName": "OmniCore Editor",
     "appId": "dev.omnicore.editor",

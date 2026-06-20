@@ -25,9 +25,9 @@ import Store from './store/Store.js';
 import Loader from './loader/Loader.js';
 import AssetLoader from './loader/AssetLoader.js';
 import PixiRenderer from './renderer/PixiRenderer.js';
-import WebGPURenderer from './renderer/WebGPURenderer.js';
+import WebGPURenderer, { createWebGPUComputeParticleDescriptor } from './renderer/WebGPURenderer.js';
 import * as RendererBackend from './renderer/RendererBackend.js';
-import { assertRendererBackend } from './renderer/RendererBackend.js';
+import { RendererContract, assertRendererBackend, createRendererPerformanceSandbox } from './renderer/RendererBackend.js';
 import OffscreenCanvasRenderer from './renderer/OffscreenCanvasRenderer.js';
 import RenderWorkerBridge from './renderer/RenderWorkerBridge.js';
 import RendererManager from './renderer/RendererManager.js';
@@ -701,11 +701,14 @@ const OmniCore = {
   AssetLoader,
   Renderer: { PixiRenderer, WebGPURenderer, RendererBackend, OffscreenCanvasRenderer, RenderWorkerBridge, Filters, WebGLContextManager, RendererManager, RenderLayerManager, PixiBatchAdapter, CommandBuffer, StaticBatchCompiler },
   RendererBackend,
+  RendererContract,
   assertRendererBackend,
+  createRendererPerformanceSandbox,
   PixiBatchAdapter,
   StaticBatchCompiler,
   CommandBuffer,
   WebGPURenderer,
+  createWebGPUComputeParticleDescriptor,
   OffscreenCanvasRenderer,
   RenderWorkerBridge,
   RendererManager,
@@ -979,6 +982,7 @@ export {
   RenderWorkerBridge,
   RemoteDevTools,
   RendererBackend,
+  RendererContract,
   RendererAdapter,
   RendererManager,
   RenderSystem,
@@ -1040,6 +1044,8 @@ export {
   createLeanRuntime,
   createPhaserCompatScene,
   createPixiFrameworkAdoptionPlan,
+  createRendererPerformanceSandbox,
+  createWebGPUComputeParticleDescriptor,
   renderMarketEngineComparisonMarkdown,
   addon,
   calculateDamage,

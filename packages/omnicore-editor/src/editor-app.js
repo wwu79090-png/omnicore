@@ -120,6 +120,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
   let clipboard = [];
   let copySerial = 1;
   let editorFeedback = null;
+  let debugTimeline = { events: [], frames: [] };
   let history = [cloneState(current)];
   let historyLabels = ['Initial scene'];
   let historyIndex = 0;
@@ -208,6 +209,15 @@ export function createEditorApp(root = document.querySelector('#app'), {
     exportBehaviorTreeJson,
     exportUILayoutJson,
     exportDataJson,
+    createRuntimeSyncPayload,
+    applyRuntimeSyncPayload,
+    buildAssetDependencyGraph,
+    replaceAssetReferences,
+    runIncrementalCompile,
+    recordDebugEvent,
+    exportDebugTimeline,
+    exportAnimationStateMachine,
+    instantiateNestedScene,
     validateAuthoringAssets,
     exportAuthoringBundle,
     createAssetWorkflowIndex,
@@ -2258,7 +2268,11 @@ export function createEditorApp(root = document.querySelector('#app'), {
   }
 
   function exportFlowGraphEventSheet() {
-    return createVisualGraph(current.flowGraph).toEventSheet();
+    return {
+      format: 'OmniCore.EventSheet',
+      version: 1,
+      ...createVisualGraph(current.flowGraph).toEventSheet()
+    };
   }
 
   function exportBehaviorTreeJson() {
@@ -2271,6 +2285,162 @@ export function createEditorApp(root = document.querySelector('#app'), {
 
   function exportDataJson() {
     return cloneState(current.database?.tables || {});
+  }
+
+  function createRuntimeSyncPayload() {
+    return {
+      protocol: 'omnicore-editor-runtime-sync/v1',
+      generatedAt: new Date().toISOString(),
+      scene: cloneState(current.scene),
+      eventSheet: exportFlowGraphEventSheet(),
+      behaviorTree: exportBehaviorTreeJson(),
+      uiLayout: exportUILayoutJson()
+    };
+  }
+
+  function applyRuntimeSyncPayload(payload = {}) {
+    current = createEditorState({
+      ...current,
+      scene: payload.scene || current.scene,
+      behaviorTree: payload.behaviorTree || current.behaviorTree,
+      uiLayout: payload.uiLayout || current.uiLayout,
+      flowGraph: payload.flowGraph || current.flowGraph
+    });
+    emit('editor:runtime-sync-applied', { protocol: payload.protocol || null });
+    update(current);
+    return current;
+  }
+
+  function buildAssetDependencyGraph() {
+    const nodes = new Map();
+    const edges = [];
+    const addNode = (id, type) => {
+      if (id && !nodes.has(id)) nodes.set(id, { id, type });
+    };
+    for (const asset of current.assets || []) addNode(asset.path, asset.type || 'asset');
+    for (const [file, source] of Object.entries(current.projectFiles || {})) {
+      addNode(file, 'file');
+      for (const asset of current.assets || []) {
+        if (String(source).includes(asset.path)) edges.push({ from: file, to: asset.path, type: 'reference' });
+      }
+    }
+    for (const entity of current.scene?.entities || []) {
+      addNode(`entity:${entity.id || entity.name}`, 'entity');
+      if (entity.sprite) {
+        addNode(entity.sprite, 'asset');
+        edges.push({ from: `entity:${entity.id || entity.name}`, to: entity.sprite, type: 'sprite' });
+      }
+      if (entity.scene) {
+        addNode(entity.scene, 'scene');
+        edges.push({ from: `entity:${entity.id || entity.name}`, to: entity.scene, type: 'nested-scene' });
+      }
+    }
+    return { nodes: [...nodes.values()], edges };
+  }
+
+  function replaceAssetReferences(from, to) {
+    const projectFiles = { ...(current.projectFiles || {}) };
+    const changedFiles = [];
+    for (const [file, source] of Object.entries(projectFiles)) {
+      if (!String(source).includes(from)) continue;
+      projectFiles[file] = String(source).split(from).join(to);
+      changedFiles.push(file);
+    }
+    const scene = {
+      ...current.scene,
+      entities: (current.scene?.entities || []).map((entity) => (
+        entity.sprite === from ? { ...entity, sprite: to } : entity
+      ))
+    };
+    current = createEditorState({ ...current, projectFiles, scene });
+    emit('editor:asset-references-replaced', { from, to, changedFiles });
+    update(current);
+    return { from, to, changedFiles };
+  }
+
+  function runIncrementalCompile(changedFiles = []) {
+    const files = [...new Set(changedFiles)];
+    const graph = buildAssetDependencyGraph();
+    const hotReloadManifest = {
+      protocol: 'omnicore-hot-reload/v1',
+      changedFiles: files,
+      affectedAssets: graph.edges.filter((edge) => files.includes(edge.from)).map((edge) => edge.to),
+      eventSheet: exportFlowGraphEventSheet(),
+      behaviorTree: exportBehaviorTreeJson()
+    };
+    emit('editor:incremental-compile', hotReloadManifest);
+    return {
+      ok: true,
+      compiledAt: new Date().toISOString(),
+      changedFiles: files,
+      hotReloadManifest
+    };
+  }
+
+  function recordDebugEvent(event = {}) {
+    debugTimeline = {
+      ...debugTimeline,
+      events: [...debugTimeline.events, { ...event, at: Number(event.at ?? Date.now()) }]
+    };
+    return debugTimeline;
+  }
+
+  function exportDebugTimeline({ now = Date.now(), windowMs = 10000 } = {}) {
+    const minTime = now - windowMs;
+    const frames = (Array.isArray(current.profilerHistory) ? current.profilerHistory : []).filter(Boolean);
+    const recentFrames = frames.filter((frame) => Number(frame.at || frame.frameStartedAt || now) >= minTime);
+    const latest = recentFrames.at(-1) || current.profilerFrame || null;
+    const sections = latest?.sections || [];
+    return {
+      windowMs,
+      events: (debugTimeline.events || []).filter((event) => Number(event.at || 0) >= minTime),
+      frames: recentFrames,
+      profiler: {
+        cpuMs: Number(latest?.cpuMs || latest?.totalMs || 0),
+        gpuMs: Number(latest?.gpuMs || 0),
+        hotspots: [...sections].sort((left, right) => Number(right.duration || 0) - Number(left.duration || 0))
+      }
+    };
+  }
+
+  function exportAnimationStateMachine(machine = {}) {
+    const output = {
+      format: 'OmniCore.AnimationStateMachine',
+      version: 1,
+      id: machine.id || 'animation-state-machine',
+      states: Array.isArray(machine.states) ? machine.states.map((state) => ({ ...state })) : [],
+      transitions: Array.isArray(machine.transitions) ? machine.transitions.map((transition) => ({ ...transition })) : []
+    };
+    current = {
+      ...current,
+      animationStateMachines: {
+        ...(current.animationStateMachines || {}),
+        [output.id]: output
+      }
+    };
+    return output;
+  }
+
+  function instantiateNestedScene(scenePath, transform = {}) {
+    const entity = {
+      id: transform.id || `nested-${Date.now()}`,
+      type: 'NestedScene',
+      scenePath,
+      scene: scenePath,
+      x: Number(transform.x || 0),
+      y: Number(transform.y || 0)
+    };
+    current = createEditorState({
+      ...current,
+      scene: {
+        ...current.scene,
+        entities: [...(current.scene?.entities || []), entity]
+      }
+    });
+    emit('editor:nested-scene-instantiated', entity);
+    pushHistory(current, `Instantiate nested scene ${scenePath}`);
+    update(current);
+    return entity;
   }
 
   function addFlowNode(type) {

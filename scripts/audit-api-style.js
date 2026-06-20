@@ -5,7 +5,19 @@ import path from 'node:path';
 const ROOT = process.cwd();
 const SRC_ROOT = path.join(ROOT, 'src');
 const DEFAULT_GENERATED_AT = '2026-06-20T00:00:00.000Z';
-const PUBLIC_NAMESPACE_EXPORTS = new Set(['Addons', 'Backend', 'Bus', 'Core', 'DB', 'Easing', 'License', 'Pool', 'Query', 'Task']);
+const PUBLIC_NAMESPACE_EXPORTS = new Set([
+  'Addons',
+  'Backend',
+  'Bus',
+  'Core',
+  'DB',
+  'Easing',
+  'License',
+  'Pool',
+  'Query',
+  'RendererContract',
+  'Task'
+]);
 
 function resolveGeneratedAt() {
   if (process.env.OMNICORE_GENERATED_AT) return process.env.OMNICORE_GENERATED_AT;
@@ -80,7 +92,7 @@ async function main() {
     '- Classes: PascalCase',
     '- Methods: camelCase',
     '- Constants: UPPER_SNAKE_CASE',
-    '- Public namespace objects retained for compatibility: Addons, Backend, Core, DB, Easing, License, Pool, Query, Task',
+    '- Public namespace objects retained for compatibility: Addons, Backend, Core, DB, Easing, License, Pool, Query, RendererContract, Task',
     '',
     '## Findings',
     '',

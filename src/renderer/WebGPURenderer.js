@@ -40,7 +40,10 @@ export class WebGPURenderer {
     this.entityFloat32 = null;
     this.entityBufferCapacityBytes = 0;
     this.pipelineDescriptor = create2DPipelineDescriptor();
+    this.computeParticleDescriptor = createWebGPUComputeParticleDescriptor();
     this.pipeline = null;
+    this.computeParticlePipeline = null;
+    this.shaderCacheWarmed = false;
     this.destroyed = false;
   }
 
@@ -179,6 +182,54 @@ export class WebGPURenderer {
     this.entityFloat32 = null;
     this.entityBufferCapacityBytes = 0;
     this.pipeline = null;
+    this.computeParticlePipeline = null;
+    this.shaderCacheWarmed = false;
+  }
+
+  prewarmShaderCache() {
+    const pipelines = [];
+    if (!this.pipeline) this.pipeline = this._createPipeline();
+    if (this.pipeline) pipelines.push('2d-instanced');
+    if (!this.computeParticlePipeline && this.device?.createComputePipeline) {
+      this.createComputeParticlePipeline();
+    }
+    if (this.computeParticlePipeline) pipelines.push('compute-particles');
+    this.shaderCacheWarmed = pipelines.length > 0;
+    return {
+      backend: this.backend,
+      warmed: this.shaderCacheWarmed,
+      pipelines
+    };
+  }
+
+  createComputeParticlePipeline(options = {}) {
+    this.computeParticleDescriptor = createWebGPUComputeParticleDescriptor(options);
+    if (!this.device?.createShaderModule || !this.device?.createComputePipeline) {
+      return {
+        backend: this.backend,
+        maxParticles: this.computeParticleDescriptor.maxParticles,
+        pipeline: null,
+        descriptor: this.computeParticleDescriptor
+      };
+    }
+    const shaderModule = this.device.createShaderModule({
+      label: 'omnicore-compute-particles-wgsl',
+      code: this.computeParticleDescriptor.wgsl
+    });
+    this.computeParticlePipeline = this.device.createComputePipeline({
+      label: 'omnicore-compute-particles',
+      layout: 'auto',
+      compute: {
+        module: shaderModule,
+        entryPoint: 'cs_main'
+      }
+    });
+    return {
+      backend: this.backend,
+      maxParticles: this.computeParticleDescriptor.maxParticles,
+      pipeline: this.computeParticlePipeline,
+      descriptor: this.computeParticleDescriptor
+    };
   }
 
   _createPipeline() {
@@ -202,6 +253,34 @@ export class WebGPURenderer {
       primitive: { topology: 'triangle-list' }
     });
   }
+}
+
+export function createWebGPUComputeParticleDescriptor({ maxParticles = 8192, workgroupSize = 64 } = {}) {
+  return {
+    shaderLanguage: 'wgsl',
+    maxParticles,
+    workgroupSize,
+    storageLayout: 'position.xy velocity.xy lifetime',
+    wgsl: `
+struct Particle {
+  position: vec2f,
+  velocity: vec2f,
+  lifetime: f32,
+};
+
+@group(0) @binding(0) var<storage, read_write> particles: array<Particle>;
+
+@compute @workgroup_size(${workgroupSize})
+fn cs_main(@builtin(global_invocation_id) id: vec3u) {
+  let index = id.x;
+  if (index >= ${maxParticles}u) {
+    return;
+  }
+  particles[index].position = particles[index].position + particles[index].velocity;
+  particles[index].lifetime = max(particles[index].lifetime - 0.016, 0.0);
+}
+`
+  };
 }
 
 function normalizeStaticBatchCommands(batches = []) {

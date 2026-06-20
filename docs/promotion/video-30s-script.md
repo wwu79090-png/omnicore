@@ -1,6 +1,8 @@
 # OmniCore 30 秒短视频脚本
 
-目标：用 30 秒讲清楚“学生 + AI 辅助 + 超轻量 + 144 FPS + 三行跑起来”。
+目标平台：B 站、抖音、视频号、即刻视频、X/Reddit 附件。
+
+画幅建议：竖屏 1080x1920 或横屏 1920x1080。节奏要快，不讲大而全，只让观众记住“学生 + AI 辅助 + 33KB + 144 FPS + 三行跑起来”。
 
 ## 时间轴
 
@@ -25,9 +27,14 @@ Lean Core 约 33KB，1000 个 Sprite 演示能跑到 144 FPS。
 
 如果你做 Web 小游戏，欢迎来 GitHub 试试，顺手点个 Star。
 
-## 录制入口
+## BGM 建议
 
-- 可录制页面：`website/promo/30s-demo.html`
-- 已生成 WebM：`assets/branding/omnicore-30s-demo.webm`
-- 详细脚本：`docs/promotion/video-30s-script.md`
-- 建议 BGM：95-110 BPM、电子、清爽、无歌词，音量低于旁白 12-16 dB。
+- 95-110 BPM。
+- 电子、清爽、无歌词。
+- 音量低于旁白 12-16 dB。
+- 如果没有素材，可以用 `website/promo/30s-demo.html` 的浏览器合成 BGM 做临时版本。
+
+## 已生成素材
+
+- WebM 视频文件：`assets/branding/omnicore-30s-demo.webm`
+- 可重新录制页面：`website/promo/30s-demo.html`

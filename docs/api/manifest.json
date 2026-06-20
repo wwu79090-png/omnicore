@@ -1301,7 +1301,9 @@
       "path": "renderer/RendererBackend.js",
       "summary": "",
       "exports": [
-        "assertRendererBackend"
+        "RendererContract",
+        "assertRendererBackend",
+        "createRendererPerformanceSandbox"
       ]
     },
     {
@@ -1344,6 +1346,7 @@
       "summary": "MVP WebGPU renderer abstraction. It detects WebGPU, configures the canvas context, and converts scene children into serializable draw instructions. A worker bridge can consume those instructions through OffscreenCanvas when the host provides a worker.",
       "exports": [
         "WebGPURenderer",
+        "createWebGPUComputeParticleDescriptor",
         "collectDrawInstructions",
         "buildGPUBatches"
       ]
