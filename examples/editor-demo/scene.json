@@ -1,0 +1,60 @@
+{
+  "name": "editor-demo",
+  "version": 1,
+  "entities": [
+    {
+      "id": "player",
+      "name": "Player",
+      "type": "Sprite",
+      "x": 96,
+      "y": 176,
+      "scale": 1,
+      "rotation": 0,
+      "width": 32,
+      "height": 48,
+      "components": [
+        { "type": "KeyboardController", "speed": 180 },
+        { "type": "PlatformerBody", "gravity": 1600 }
+      ]
+    },
+    {
+      "id": "platform",
+      "name": "Ground Platform",
+      "type": "Sprite",
+      "x": 0,
+      "y": 360,
+      "scale": 1,
+      "rotation": 0,
+      "width": 640,
+      "height": 32,
+      "components": [
+        { "type": "StaticCollider", "layer": "collision" }
+      ]
+    },
+    {
+      "id": "coin",
+      "name": "Coin Pickup",
+      "type": "Sprite",
+      "x": 360,
+      "y": 220,
+      "scale": 1,
+      "rotation": 0,
+      "width": 24,
+      "height": 24,
+      "components": [
+        { "type": "Collectible", "value": 10 }
+      ]
+    }
+  ],
+  "tilemap": {
+    "width": 20,
+    "height": 12,
+    "tileSize": 32,
+    "collisionLayerVisible": true,
+    "brush": 1
+  },
+  "preview": {
+    "mode": "paused",
+    "stepFrame": true
+  }
+}

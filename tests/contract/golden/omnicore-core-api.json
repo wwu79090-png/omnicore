@@ -249,6 +249,16 @@
       },
       {
         "kind": "property",
+        "name": "profilerSnapshot",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
+        "name": "profilerSnapshotBinding",
+        "valueType": "null"
+      },
+      {
+        "kind": "property",
         "name": "profilerWaterfallPanel",
         "valueType": "null"
       },
@@ -669,6 +679,12 @@
           "async": false,
           "kind": "method",
           "name": "_poolKey"
+        },
+        {
+          "arity": 0,
+          "async": false,
+          "kind": "method",
+          "name": "_preparePixiApplicationDestroy"
         },
         {
           "arity": 2,
@@ -1586,12 +1602,22 @@
       {
         "arity": 0,
         "async": false,
+        "name": "LogicWorker"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "Loop"
       },
       {
         "arity": 0,
         "async": false,
         "name": "MarketplaceServer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "MemoryGuardian"
       },
       {
         "arity": 2,
@@ -1702,6 +1728,11 @@
         "arity": 0,
         "async": false,
         "name": "PrefabRegistry"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ProfilerSnapshot"
       },
       {
         "arity": 0,
@@ -2101,9 +2132,11 @@
       "Loader",
       "Localization",
       "LogForwarder",
+      "LogicWorker",
       "Loop",
       "MarketplaceServer",
       "Math",
+      "MemoryGuardian",
       "MovementSystem",
       "NavigationAgent2D",
       "Net",
@@ -2130,6 +2163,7 @@
       "Prefab",
       "PrefabManager",
       "PrefabRegistry",
+      "ProfilerSnapshot",
       "ProfilerWaterfallPanel",
       "Quality",
       "Query",

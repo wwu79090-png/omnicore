@@ -166,7 +166,6 @@ function findCallSites({ root, files, definition }) {
   for (const file of files) {
     const content = readFileSync(file, 'utf8');
     const relativeFile = path.relative(root, file).replace(/\\/g, '/');
-    if (definition.definedIn && definition.definedIn === relativeFile) continue;
     const lines = stripCommentsAndStrings(content).split(/\r?\n/);
     lines.forEach((line, index) => {
       if (!line.includes(definition.pattern)) return;

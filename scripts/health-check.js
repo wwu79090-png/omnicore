@@ -5,12 +5,14 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { JSDOM } from 'jsdom';
 import { createViteDevServerCommand } from './lib/dev-server-command.js';
+import { networkProfiles, summarizeNetworkProbe } from './lib/environment-profiles.js';
 import { evaluateBrowserProbe } from './lib/health-probe.js';
 
 const args = new Set(process.argv.slice(2));
 const projectRoot = process.cwd();
 const reportPath = path.join(projectRoot, 'docs', 'release-notes', 'maintenance-health-report.json');
 const exampleHealthUrl = 'http://127.0.0.1:5173/examples/?backend=canvas';
+const networkHealthUrl = 'http://127.0.0.1:5173/tests/network-health.html?backend=canvas';
 
 function withTimeout(promise, ms, label) {
   return Promise.race([
@@ -220,6 +222,101 @@ async function runPlaywrightScan() {
   };
 }
 
+async function runNetworkSimulationScan() {
+  const results = [];
+  let server = await ensureExampleServer();
+
+  let playwright;
+  try {
+    playwright = await import('playwright');
+  } catch (error) {
+    server?.kill?.();
+    return { name: 'network', status: 'skip', reason: error.message, results };
+  }
+
+  let browser;
+  try {
+    browser = await playwright.chromium.launch({ headless: true });
+    for (const profile of networkProfiles) {
+      if (!profile.offline) server = await ensureServerAlive(server);
+      let summary = null;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const context = await browser.newContext({ viewport: { width: 960, height: 540 } });
+        const page = await context.newPage();
+        const consoleIssues = [];
+        let loaded = false;
+        let pageStatus = '';
+        let canvasCount = 0;
+        let error = null;
+        page.on('console', (message) => {
+          if (message.type() === 'warning' || message.type() === 'error') consoleIssues.push(message.text());
+        });
+        page.on('pageerror', (pageError) => {
+          consoleIssues.push(pageError.message);
+        });
+        try {
+          await applyNetworkProfile(context, page, profile);
+          const response = await page.goto(networkHealthUrl, {
+            waitUntil: 'commit',
+            timeout: profile.offline ? 5000 : 15000
+          });
+          loaded = Boolean(response?.ok()) || (!profile.offline && Number(response?.status()) < 500);
+          if (loaded) {
+            pageStatus = await waitForBackendStatus(page, profile.name === '3g' ? 20000 : 12000);
+            canvasCount = await page.locator('canvas').count();
+          }
+        } catch (networkError) {
+          [error] = networkError.message.split('\n');
+        } finally {
+          await context.close();
+        }
+        if (!profile.offline && error?.includes('ERR_CONNECTION_REFUSED') && attempt === 0) {
+          server = await restartExampleServer(server);
+          continue;
+        }
+        summary = summarizeNetworkProbe({
+          profile,
+          loaded,
+          error,
+          durationMs: profile.latencyMs,
+          pageStatus,
+          canvasCount,
+          consoleIssues
+        });
+        break;
+      }
+      if (summary) results.push(summary);
+    }
+  } finally {
+    await browser?.close?.();
+    server?.kill?.();
+  }
+
+  return {
+    name: 'network',
+    status: results.every((result) => result.status === 'pass') ? 'pass' : 'fail',
+    results
+  };
+}
+
+async function applyNetworkProfile(context, page, profile) {
+  if (profile.offline) {
+    await context.setOffline(true);
+    return;
+  }
+  const session = await context.newCDPSession(page).catch(() => null);
+  if (session) {
+    await session.send('Network.enable');
+    await session.send('Network.emulateNetworkConditions', {
+      offline: false,
+      latency: profile.latencyMs,
+      downloadThroughput: Math.max(1, Math.round((profile.downlinkKbps * 1024) / 8)),
+      uploadThroughput: Math.max(1, Math.round((Math.max(128, profile.downlinkKbps / 4) * 1024) / 8)),
+      connectionType: profile.name === '3g' ? 'cellular3g' : 'cellular4g'
+    });
+  }
+}
+
 async function waitForBackendStatus(page, timeoutMs) {
   const started = Date.now();
   let lastStatus = '';
@@ -265,11 +362,22 @@ async function ensureExampleServer() {
   return null;
 }
 
+async function ensureServerAlive(server) {
+  if (await canReachExample()) return server;
+  return restartExampleServer(server);
+}
+
+async function restartExampleServer(server) {
+  server?.kill?.();
+  return ensureExampleServer();
+}
+
 async function main() {
   const full = args.has('--full') || process.env.OMNICORE_HEALTH_FULL === '1';
   const checks = [];
   if (!args.size || args.has('--quick') || args.has('--memory')) checks.push(await runMemoryScan({ full }));
   if (!args.size || args.has('--quick') || args.has('--backends')) checks.push(await runBackendScan());
+  if (args.has('--network')) checks.push(await runNetworkSimulationScan());
   if (!args.size || args.has('--quick') || args.has('--browsers')) checks.push(await runPlaywrightScan());
 
   const report = {

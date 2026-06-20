@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { defineConfig, loadEnv } from 'vite';
 
@@ -43,7 +43,7 @@ export default defineConfig(({ mode }) => {
 
   const config = {
     root: '.',
-    plugins: [leanCoreBuildPlugin(isProduction)],
+    plugins: [startupBootstrapPlugin(), leanCoreBuildPlugin(isProduction)],
     define: {
       __OMNICORE_DEV__: JSON.stringify(!isProduction),
       __OMNICORE_MODE__: JSON.stringify(mode),
@@ -127,9 +127,48 @@ function leanCoreBuildPlugin(enabled) {
       if (result.status !== 0) throw new Error('Lean core build failed.');
       const coreFile = path.join(leanOutDir, 'omnicore-core.js');
       if (!existsSync(coreFile)) throw new Error(`Lean core build did not emit ${path.relative(process.cwd(), coreFile)}.`);
-      const size = statSync(coreFile).size;
+      const { size } = statSync(coreFile);
       console.log(`[OmniCore] lean core ESM size: ${size} bytes`);
       if (size > 40 * 1024) throw new Error('Lean core ESM exceeds 40KB budget.');
     }
   };
+}
+
+export function startupBootstrapPlugin() {
+  let outDir = path.resolve('dist');
+  return {
+    name: 'omnicore-startup-bootstrap',
+    configResolved(config) {
+      outDir = path.resolve(config.build?.outDir || 'dist');
+    },
+    closeBundle() {
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        path.join(outDir, 'omnicore-first-frame-bootstrap.js'),
+        createStartupBootstrapSource(),
+        'utf8'
+      );
+    }
+  };
+}
+
+export function createStartupBootstrapSource() {
+  return `(() => {
+  const marks = window.__OMNICORE_BOOT_METRICS__ || (window.__OMNICORE_BOOT_METRICS__ = []);
+  const mark = (name) => {
+    marks.push({ name, time: performance.now() });
+    performance.mark?.(name);
+  };
+  mark('omnicore:first-frame-start');
+  window.__OMNICORE_PRECOMPILE_GAME__ = function precompileOmniCoreGame(OmniCore) {
+    if (!OmniCore?.Game) return false;
+    try {
+      new OmniCore.Game({ width: 1, height: 1, autoAttach: false, autoStart: false, renderer: 'canvas' });
+      mark('omnicore:game-constructor-precompiled');
+      return true;
+    } catch {
+      return false;
+    }
+  };
+})();\n`;
 }

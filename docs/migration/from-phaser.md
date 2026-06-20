@@ -17,6 +17,37 @@
 | Tilemap | Tilemap + ChunkManager | medium | 大地图可迁移，编辑器资产流程需要按 OmniCore 模板整理。 |
 | Phaser Plugins | OmniCore addon/plugin | medium | 插件生命周期不同，需要显式 `useAddon()` 或 `OmniCore.use()`。 |
 
+## 20 个常用 API 对照表
+
+这张表面向 Phaser 旧用户的一站式迁移，优先列出最常见的 Scene、Sprite、输入、物理、相机和 Tilemap 调用。实际项目可以先按表迁移入口和主角控制，再处理插件、粒子、后处理等高差异模块。
+
+| Phaser 3 写法 | OmniCore 写法 | 迁移提示 |
+| --- | --- | --- |
+| `this.scene.start(key)` | `OmniCore.SceneManager.push(key)` | 进入新场景时先注册同名 OmniCore Scene。 |
+| `this.scene.stop(key)` | `game.scene.pop(key)` | 适合关闭当前覆盖层或返回上一个关卡。 |
+| `this.scene.restart()` | `game.scene.replace(currentKey)` | 保留资源缓存，只重建场景状态。 |
+| `this.add.sprite(x, y, key)` | `OmniCore.Entity.create('sprite', options)` | 用实体承载 Sprite、动画和碰撞组件。 |
+| `this.add.image(x, y, key)` | `new Sprite(key, options)` | 静态图片可以直接挂到场景。 |
+| `this.add.text(x, y, text)` | `OmniCore.UIElement.create('text', options)` | HUD 文本建议放在 UI 层。 |
+| `this.tweens.add(config)` | `new OmniCore.Tween(target, config)` | 补间目标和 duration、repeat、yoyo 可直接对齐。 |
+| `this.time.delayedCall(ms, fn)` | `scene.timer.delay(ms, fn)` | 把 Phaser Timer 迁到 Scene 计时器。 |
+| `this.input.keyboard.on(event, fn)` | `InputManager.keyboard.on(event, fn)` | 输入统一走 InputManager，便于 Web/微信/Electron 复用。 |
+| `this.input.on('pointerdown', fn)` | `InputManager.pointer.on('down', fn)` | 鼠标和触控事件统一成 pointer。 |
+| `this.load.image(key, url)` | `Loader.loadBundle({ images })` | 资源集中进入 bundle，方便构建产物检查。 |
+| `this.load.atlas(key, png, json)` | `AssetLoader.loadBundle({ atlases })` | 图集资源建议保留 key 命名。 |
+| `this.anims.create(config)` | `new OmniCore.Animation(config)` | 先迁移帧序列，再迁移动画事件。 |
+| `sprite.play(key)` | `animation.play(key)` | 复杂状态机可拆到组件内。 |
+| `this.physics.add.sprite(x, y, key)` | `loadPhysics() + world.addBody(entity)` | 先等待物理适配器加载完成，再创建刚体。 |
+| `this.physics.add.collider(a, b, fn)` | `PhysicsWorld.addCollider(a, b, fn)` | 回调参数需要按 OmniCore 物理后端适配。 |
+| `this.physics.add.overlap(a, b, fn)` | `PhysicsWorld.addOverlap(a, b, fn)` | 触发器逻辑建议单独写测试。 |
+| `this.cameras.main.startFollow(target)` | `game.camera.follow(target)` | 相机跟随可保留 deadzone 和 lerp 参数。 |
+| `this.cameras.main.shake(ms, intensity)` | `game.camera.shake({ duration, intensity })` | 把位置参数换成对象配置。 |
+| `this.make.tilemap(config)` | `new OmniCore.Tilemap(config)` | 先验证 tileset 路径和碰撞层。 |
+| `map.createLayer(name, tileset)` | `tilemap.createLayer(name, tileset)` | 图层命名保持一致，便于编辑器回读。 |
+| `this.registry.set(key, value)` | `game.store.set(key, value)` | 全局状态迁到 OmniCore store。 |
+| `this.events.emit(name, data)` | `game.events.emit(name, data)` | 跨系统事件建议统一命名空间。 |
+| `this.plugins.install(key)` | `OmniCore.install(addon)` | 插件需要声明 manifest 和生命周期。 |
+
 ## 推荐步骤
 
 1. 用 `create-omnicore-app` 创建 platformer 模板。

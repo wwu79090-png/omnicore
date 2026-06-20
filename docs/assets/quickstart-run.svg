@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="First OmniCore run screen">
+  <rect width="960" height="540" fill="#dbeafe"/>
+  <rect x="118" y="78" width="724" height="384" rx="12" fill="#ffffff" stroke="#93c5fd" stroke-width="3"/>
+  <rect x="160" y="346" width="640" height="36" fill="#334155"/>
+  <rect x="226" y="286" width="32" height="48" fill="#38bdf8"/>
+  <rect x="548" y="314" width="32" height="32" fill="#ef4444"/>
+  <text x="160" y="140" fill="#111827" font-family="system-ui, sans-serif" font-size="30">OmniCore Platformer Template</text>
+  <text x="160" y="188" fill="#475569" font-family="system-ui, sans-serif" font-size="22">Move with ArrowLeft / ArrowRight. Press Space to jump.</text>
+</svg>

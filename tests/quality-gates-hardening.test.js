@@ -195,4 +195,35 @@ describe('quality gates hardening', () => {
     expect(distFullSource).toContain('result.stderr.trim()');
     expect(distFullSource).not.toContain('Compress-Archive');
   });
+
+  it('documents and automates contributor sandbox preview verification', () => {
+    const contributing = readFileSync('CONTRIBUTING.md', 'utf8');
+    const dockerfile = readFileSync('Dockerfile.contributor', 'utf8');
+    const workflow = readFileSync('.github/workflows/contributor-preview.yml', 'utf8');
+
+    expect(contributing).toContain('npm link');
+    expect(contributing).toContain('Dockerfile.contributor');
+    expect(dockerfile).toContain('npm ci');
+    expect(dockerfile).toContain('npm run quality:gate');
+    expect(workflow).toContain('name: Contributor Preview');
+    expect(workflow).toContain('npm run dist:full');
+    expect(workflow).toContain('contributor-preview-dist');
+    expect(workflow).toContain('docs/release-notes/production-ready-report.json');
+  });
+
+  it('publishes a News surface and latest release badge for community updates', () => {
+    const readme = readFileSync('README.md', 'utf8');
+    const home = readFileSync('website/index.html', 'utf8');
+    const news = readFileSync('website/news/index.html', 'utf8');
+    const monthly = readFileSync('website/news/2026-06-runtime-observability.md', 'utf8');
+
+    expect(readme).toContain('github/v/release');
+    expect(readme).toContain('最新动态');
+    expect(home).toContain('/website/news/');
+    expect(news).toContain('每月开发进度总结');
+    expect(news).toContain('版本发布说明');
+    expect(news).toContain('社区案例展示');
+    expect(monthly).toContain('运行时健康遥测');
+    expect(monthly).toContain('弱网与低内存模拟');
+  });
 });

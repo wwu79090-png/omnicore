@@ -7,6 +7,13 @@ import { createOmniError } from '../core/OmniError.js';
 
 const MODEL_URL_PATTERN = /\.(gltf|glb)(?:$|[?#])/i;
 const DEFAULT_MODEL_ROTATION_SPEED = Object.freeze({ x: 0, y: 0, z: 0 });
+const DECORATIVE_RENDER_FPS = 30;
+const MODEL_COMPLEXITY_WARNING = '[OmniCore] 2.5D 模型复杂度过高，建议优化。';
+const MODEL_COMPLEXITY_LIMITS = Object.freeze({
+  triangles: 20000,
+  textureSize: 2048
+});
+const DEFAULT_INSTANCE_CAPACITY = 1024;
 const DEFAULT_MODEL_TRANSFORM = Object.freeze({
   position: Object.freeze({ x: 0, y: 0, z: 0 }),
   rotation: Object.freeze({ x: 0, y: 0, z: 0 }),
@@ -14,15 +21,28 @@ const DEFAULT_MODEL_TRANSFORM = Object.freeze({
 });
 const DECORATIVE_CAPABILITIES = Object.freeze({
   decorativeOnly: true,
-  maxModels: 1,
-  supports: Object.freeze(['single-static-gltf-background']),
-  unsupported: Object.freeze(['3d-animation', '3d-collision', '3d-camera-control'])
+  maxModels: Infinity,
+  renderFps: DECORATIVE_RENDER_FPS,
+  complexityWarning: MODEL_COMPLEXITY_WARNING,
+  complexityLimits: MODEL_COMPLEXITY_LIMITS,
+  instanceCapacity: DEFAULT_INSTANCE_CAPACITY,
+  supports: Object.freeze([
+    'multi-gltf-backgrounds',
+    'basic-mask-sorting',
+    'preset-animation-playback',
+    'raycaster-click-events',
+    'manual-depth-map',
+    'debug-depth-guides',
+    'async-model-loading',
+    'ground-shadow-metadata',
+    '30fps-decorative-loop',
+    'model-complexity-budget',
+    'instanced-static-models',
+    'aabb-occlusion-candidates'
+  ]),
+  unsupported: Object.freeze(['3d-collision', '3d-camera-control', 'free-3d-camera-control'])
 });
 const UNSUPPORTED_3D_OPTIONS = Object.freeze({
-  animation: '3D 动画',
-  animations: '3D 动画',
-  animationMixer: '3D 动画',
-  mixer: '3D 动画',
   physics: '3D 碰撞',
   physicsWorld: '3D 碰撞',
   collision: '3D 碰撞',
@@ -35,12 +55,25 @@ const UNSUPPORTED_3D_OPTIONS = Object.freeze({
   pointerLockControls: '3D 摄像机控制'
 });
 
+function getOptionalThreeExport(THREE, name) {
+  if (!THREE) return null;
+  if (Object.prototype.hasOwnProperty.call(THREE, name)) return THREE[name] || null;
+  try {
+    if (Object.prototype.hasOwnProperty.call(THREE, 'default')) return THREE.default?.[name] || null;
+    return null;
+  } catch (error) {
+    if (/No ".+" export/.test(String(error?.message || ''))) return null;
+    throw error;
+  }
+}
+
 /**
  * Independent decorative 3D background layer for Three.js.
  *
  * This layer owns a separate canvas and lifecycle, but intentionally exposes
- * only a single static glTF/GLB model as a non-interactive visual background.
- * No 3D collisions, glTF animation playback, or camera controls are provided.
+ * decorative glTF/GLB models, preset animation playback, simple rotation, and
+ * raycast click events for bridging back into 2D gameplay. No 3D collisions,
+ * physics world, or free 3D camera controls are provided.
  *
  * @example
  * const dimension = new Dimension3D({
@@ -48,6 +81,8 @@ const UNSUPPORTED_3D_OPTIONS = Object.freeze({
  *   decorativeModel: { url: '/models/cyberpunk-city.glb', rotationSpeed: { y: 0.2 } }
  * });
  * await dimension.init();
+ * const hero = await dimension.addModel('hero', '/models/hero.glb');
+ * hero.playAnimation('Idle');
  * dimension.render(1 / 60);
  */
 export class Dimension3D {
@@ -60,6 +95,10 @@ export class Dimension3D {
     decorativeModel = null,
     backgroundModel = null,
     pixelRatio = null,
+    debug = false,
+    shadowGenerator = true,
+    coordinateBias = null,
+    targetFps = DECORATIVE_RENDER_FPS,
     ...options
   } = {}) {
     if (backend !== 'three') throw createOmniError('Dimension3D', '3D 背景层仅支持 Three.js。');
@@ -73,14 +112,30 @@ export class Dimension3D {
     this.height = height;
     this.parent = parent;
     this.pixelRatio = pixelRatio;
+    this.debug = Boolean(debug);
+    this.shadowGenerator = shadowGenerator;
+    this.coordinateBias = normalizeCoordinateBias(coordinateBias);
     this.engine = null;
     this.renderer = null;
     this.scene = null;
     this.camera = null;
     this.decorativeModelConfig = decorativeModel || backgroundModel;
     this.decorativeModel = null;
+    this.models = [];
+    this.pendingModelLoads = [];
+    this.modelRoots = new WeakMap();
+    this.instanceGroups = new Map();
+    this.raycaster = null;
     this.gltfLoader = null;
     this.THREE = null;
+    this.renderTargetFps = Math.max(1, Number(targetFps) || DECORATIVE_RENDER_FPS);
+    this.renderLoopRunning = false;
+    this.renderLoopFrame = null;
+    this.renderLoopLastTimestamp = null;
+    this.renderLoopAccumulatorMs = 0;
+    this.renderLoopRequestFrame = null;
+    this.renderLoopCancelFrame = null;
+    this.handlePointerEvent = this.handlePointerEvent.bind(this);
     this.capabilities = {
       ...DECORATIVE_CAPABILITIES,
       supports: [...DECORATIVE_CAPABILITIES.supports],
@@ -98,13 +153,16 @@ export class Dimension3D {
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(60, this.width / this.height, 0.1, 1000);
     this.camera.position.z = 5;
+    const Raycaster = getOptionalThreeExport(THREE, 'Raycaster');
+    this.raycaster = Raycaster ? new Raycaster() : null;
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
     const ratio = this.pixelRatio ?? globalThis.devicePixelRatio ?? 1;
     this.renderer.setPixelRatio?.(Math.min(ratio, 2));
     this.renderer.setSize(this.width, this.height, false);
     this.canvas = this.renderer.domElement || this.canvas;
-    if (this.canvas?.style) this.canvas.style.pointerEvents = 'none';
-    this.canvas?.setAttribute?.('aria-hidden', 'true');
+    if (this.canvas?.style) this.canvas.style.pointerEvents = 'auto';
+    this.canvas?.setAttribute?.('aria-label', 'OmniCore 2.5D decorative model layer');
+    this.canvas?.addEventListener?.('click', this.handlePointerEvent);
     if (this.parent && this.canvas && !this.canvas.parentNode) this.parent.appendChild(this.canvas);
     this._addDefaultLights(THREE);
     if (this.decorativeModelConfig) await this.loadDecorativeModel(this.decorativeModelConfig);
@@ -120,6 +178,57 @@ export class Dimension3D {
 
   async loadDecorativeModel(config = {}) {
     assertDecorativeOnly(config);
+    const previousModel = this.decorativeModel;
+    const model = await this.addModel(
+      config.name || 'decorative',
+      config.url,
+      config.position,
+      config.scale,
+      config
+    );
+    if (previousModel && previousModel !== model) this._removeModel(previousModel);
+    this.decorativeModel = model;
+    return model;
+  }
+
+  static loadModelAsync(dimension, config = {}) {
+    if (!dimension || typeof dimension.loadModelAsync !== 'function') {
+      throw createOmniError('Dimension3D', 'Dimension3D.loadModelAsync 需要传入已初始化的 Dimension3D 实例。');
+    }
+    return dimension.loadModelAsync(config);
+  }
+
+  loadModelAsync(config = {}) {
+    const request = {
+      url: config.url || config.glbPath || config.path,
+      status: 'loading',
+      startedAt: Date.now()
+    };
+    const promise = this.addModel(config)
+      .then((model) => {
+        model.root.userData ||= {};
+        model.root.userData.omnicoreAsyncLoaded = true;
+        installFadeInState(model, config.fadeInMs ?? config.fadeMs ?? 300);
+        request.status = 'loaded';
+        request.model = model;
+        return model;
+      })
+      .catch((error) => {
+        request.status = 'failed';
+        request.error = error;
+        throw error;
+      })
+      .finally(() => {
+        this.pendingModelLoads = this.pendingModelLoads.filter((item) => item !== request);
+      });
+    request.promise = promise;
+    this.pendingModelLoads.push(request);
+    return promise;
+  }
+
+  async addModel(name, glbPath, position, scale, options = {}) {
+    const config = normalizeAddModelConfig(name, glbPath, position, scale, options);
+    assertDecorativeOnly(config);
     if (!this.scene) throw createOmniError('Dimension3D', '请先调用 init() 再加载装饰模型。');
     if (!config.url || typeof config.url !== 'string') {
       throw createOmniError('Dimension3D', '装饰模型必须提供 url。');
@@ -134,20 +243,162 @@ export class Dimension3D {
     const root = gltf.scene || gltf.scenes?.[0];
     if (!root) throw createOmniError('Dimension3D', 'glTF/GLB 文件中没有可渲染场景。');
 
-    this._removeDecorativeModel();
+    const modelPosition = normalizeVector(config.position, DEFAULT_MODEL_TRANSFORM.position);
+    const modelRotation = normalizeVector(config.rotation, DEFAULT_MODEL_TRANSFORM.rotation);
+    const modelBounds = normalizeBounds(config.bounds || config);
+    const depthMap = normalizeDepthMap(config.depthMap);
     applyModelTransform(root, config);
-    this.scene.add(root);
-    this.decorativeModel = {
+    const complexity = inspectModelComplexity(root, config.url);
+    warnIfModelOverBudget(complexity);
+    const clips = Array.isArray(gltf.animations) ? gltf.animations.filter(Boolean) : [];
+    const AnimationMixer = getOptionalThreeExport(this.THREE, 'AnimationMixer');
+    const mixer = AnimationMixer ? new AnimationMixer(root) : null;
+    const handlers = new Map();
+    const model = {
+      name: config.name,
+      glbPath: config.url,
       url: config.url,
       root,
-      rotationSpeed: normalizeVector(config.rotationSpeed, DEFAULT_MODEL_ROTATION_SPEED)
+      position: modelPosition,
+      rotation: modelRotation,
+      scale: config.scale ?? DEFAULT_MODEL_TRANSFORM.scale,
+      bounds: modelBounds,
+      depthMap,
+      complexity,
+      mixer,
+      clips,
+      actions: new Map(),
+      animations: clips.map((clip) => clip.name).filter(Boolean),
+      currentAnimation: null,
+      rotationSpeed: normalizeVector(config.rotationSpeed, DEFAULT_MODEL_ROTATION_SPEED),
+      userData: { ...(config.userData || {}) },
+      playAnimation(animationName) {
+        const clip = clips.find((item) => item?.name === animationName);
+        if (!clip) {
+          throw createOmniError('Dimension3D', `动画不存在：${animationName}`);
+        }
+        if (!mixer?.clipAction) return null;
+        const action = this.actions.get(animationName) || mixer.clipAction(clip);
+        this.actions.set(animationName, action);
+        action.reset?.();
+        action.play?.();
+        this.currentAnimation = animationName;
+        return action;
+      },
+      rotateY(speed) {
+        this.rotationSpeed.y = Number.isFinite(Number(speed)) ? Number(speed) : 0;
+        root.userData ||= {};
+        root.userData.omnicoreRotationSpeed = this.rotationSpeed;
+        return this;
+      },
+      setMaskSortDepth(depth) {
+        const value = Number(depth);
+        if (!Number.isFinite(value)) throw createOmniError('Dimension3D', '遮罩排序深度必须是数字。');
+        this.maskSortDepth = value;
+        root.renderOrder = value;
+        root.userData ||= {};
+        root.userData.omnicoreMaskSortDepth = value;
+        return this;
+      },
+      on(eventName, callback) {
+        if (typeof callback !== 'function') {
+          throw createOmniError('Dimension3D', '模型事件回调必须是函数。');
+        }
+        if (!handlers.has(eventName)) handlers.set(eventName, new Set());
+        handlers.get(eventName).add(callback);
+        return () => this.off(eventName, callback);
+      },
+      off(eventName, callback) {
+        handlers.get(eventName)?.delete(callback);
+        return this;
+      },
+      emit(eventName, payload) {
+        for (const callback of handlers.get(eventName) || []) callback(payload);
+        return this;
+      }
     };
-    delete this.decorativeModel.gltf;
-    return this.decorativeModel;
+
+    root.userData ||= {};
+    root.userData.omnicoreDimension3DModel = model;
+    root.userData.omnicoreRotationSpeed = model.rotationSpeed;
+    if (depthMap) root.userData.omnicoreDepthMap = depthMap;
+    model.shadow = createModelShadow(model, config.shadowGenerator ?? this.shadowGenerator);
+    const instanceGroup = this._registerInstancedModel(model, config);
+    if (!instanceGroup) this.scene.add(root);
+    this.models.push(model);
+    this.modelRoots.set(root, model);
+    if (!this.decorativeModel) this.decorativeModel = model;
+    delete model.gltf;
+    return model;
+  }
+
+  createDebugGuides({ layer = null, sprites = [], models = this.models } = {}) {
+    if (!this.debug) {
+      return {
+        enabled: false,
+        modelDepthRanges: [],
+        spriteProjectionLines: []
+      };
+    }
+    const guideLayer = layer || new PlaneLayer({ debug: true, coordinateBias: this.coordinateBias });
+    return guideLayer.createDebugGuides({ sprites, models });
+  }
+
+  setCoordinateBias(x = 0, y = 0) {
+    this.coordinateBias = normalizeCoordinateBias({ x, y });
+    return this;
+  }
+
+  startRenderLoop({
+    fps = this.renderTargetFps,
+    requestAnimationFrame: requestFrame = globalThis.requestAnimationFrame,
+    cancelAnimationFrame: cancelFrame = globalThis.cancelAnimationFrame
+  } = {}) {
+    if (this.renderLoopRunning) return this;
+    const frameRequest = typeof requestFrame === 'function'
+      ? requestFrame
+      : (callback) => setTimeout(() => callback(Date.now()), 16);
+    const frameCancel = typeof cancelFrame === 'function'
+      ? cancelFrame
+      : (id) => clearTimeout(id);
+    this.renderTargetFps = Math.max(1, Number(fps) || DECORATIVE_RENDER_FPS);
+    this.renderLoopRequestFrame = frameRequest;
+    this.renderLoopCancelFrame = frameCancel;
+    this.renderLoopRunning = true;
+    this.renderLoopLastTimestamp = null;
+    this.renderLoopAccumulatorMs = 0;
+    const intervalMs = 1000 / this.renderTargetFps;
+    const tick = (timestamp = Date.now()) => {
+      if (!this.renderLoopRunning) return;
+      if (this.renderLoopLastTimestamp === null) {
+        this.renderLoopLastTimestamp = timestamp;
+      } else {
+        const deltaMs = Math.max(0, Number(timestamp) - this.renderLoopLastTimestamp);
+        this.renderLoopLastTimestamp = timestamp;
+        this.renderLoopAccumulatorMs += deltaMs;
+        if (this.renderLoopAccumulatorMs >= intervalMs) {
+          const renderDeltaMs = this.renderLoopAccumulatorMs;
+          this.renderLoopAccumulatorMs %= intervalMs;
+          this.render(renderDeltaMs / 1000);
+        }
+      }
+      this.renderLoopFrame = frameRequest(tick);
+    };
+    this.renderLoopFrame = frameRequest(tick);
+    return this;
+  }
+
+  stopRenderLoop() {
+    if (this.renderLoopFrame !== null) this.renderLoopCancelFrame?.(this.renderLoopFrame);
+    this.renderLoopRunning = false;
+    this.renderLoopFrame = null;
+    this.renderLoopLastTimestamp = null;
+    this.renderLoopAccumulatorMs = 0;
+    return this;
   }
 
   render(deltaSeconds = 0) {
-    this._rotateDecorativeModel(deltaSeconds);
+    this._updateModels(deltaSeconds);
     this.renderer?.render?.(this.scene, this.camera);
   }
 
@@ -161,32 +412,160 @@ export class Dimension3D {
     this.renderer?.setSize?.(width, height, false);
   }
 
-  _rotateDecorativeModel(deltaSeconds) {
-    if (!this.decorativeModel || typeof deltaSeconds !== 'number' || !Number.isFinite(deltaSeconds)) return;
-    const { root, rotationSpeed } = this.decorativeModel;
-    root.rotation.x += rotationSpeed.x * deltaSeconds;
-    root.rotation.y += rotationSpeed.y * deltaSeconds;
-    root.rotation.z += rotationSpeed.z * deltaSeconds;
+  handlePointerEvent(event = {}) {
+    if (!this.raycaster || !this.camera || !this.models.length) return null;
+    event.preventDefault?.();
+    const pointer = this.normalizedPointer(event);
+    this.raycaster.setFromCamera?.(pointer, this.camera);
+    const roots = this.models.map((model) => model.root).filter(Boolean);
+    const intersections = this.raycaster.intersectObjects?.(roots, true) || [];
+    const intersection = intersections[0] || null;
+    const model = this._modelFromIntersectedObject(intersection?.object);
+    if (!model) return null;
+    model.emit('click', {
+      model,
+      event,
+      intersection,
+      pointer
+    });
+    return model;
+  }
+
+  normalizedPointer(point = {}) {
+    const rect = this.canvas?.getBoundingClientRect?.();
+    const width = rect?.width || this.width || DEFAULT_CANVAS_WIDTH;
+    const height = rect?.height || this.height || DEFAULT_CANVAS_HEIGHT;
+    const left = rect?.left || 0;
+    const top = rect?.top || 0;
+    const x = Number(point.x ?? point.clientX ?? 0) - left;
+    const y = Number(point.y ?? point.clientY ?? 0) - top;
+    return {
+      x: (x / width) * 2 - 1,
+      y: -(y / height) * 2 + 1
+    };
+  }
+
+  sortModelsForMasking({ zToYScale = 1, startRenderOrder = 0 } = {}) {
+    const scale = Number.isFinite(Number(zToYScale)) ? Number(zToYScale) : 1;
+    const start = Number.isFinite(Number(startRenderOrder)) ? Number(startRenderOrder) : 0;
+    const sorted = [...this.models].sort((left, right) => modelMaskSortDepth(left, scale) - modelMaskSortDepth(right, scale));
+    sorted.forEach((model, index) => {
+      const depth = modelMaskSortDepth(model, scale);
+      model.maskSortDepth = depth;
+      model.maskSortIndex = index;
+      model.root.renderOrder = start + index;
+      model.root.userData ||= {};
+      model.root.userData.omnicoreMaskSortDepth = depth;
+      model.root.userData.omnicoreMaskSortIndex = index;
+    });
+    return sorted;
+  }
+
+  _updateModels(deltaSeconds) {
+    if (typeof deltaSeconds !== 'number' || !Number.isFinite(deltaSeconds)) return;
+    for (const model of this.models) {
+      const { root, rotationSpeed } = model;
+      root.rotation.x += rotationSpeed.x * deltaSeconds;
+      root.rotation.y += rotationSpeed.y * deltaSeconds;
+      root.rotation.z += rotationSpeed.z * deltaSeconds;
+      model.mixer?.update?.(deltaSeconds);
+    }
   }
 
   destroy() {
-    this._removeDecorativeModel();
+    this.stopRenderLoop();
+    this.canvas?.removeEventListener?.('click', this.handlePointerEvent);
+    for (const model of [...this.models]) this._removeModel(model);
+    this.models.length = 0;
+    this.pendingModelLoads.length = 0;
+    this.modelRoots = new WeakMap();
+    this.instanceGroups.clear();
     this.renderer?.dispose?.();
     this.engine = null;
     this.renderer = null;
     this.scene = null;
     this.camera = null;
     this.decorativeModel = null;
+    this.raycaster = null;
     this.gltfLoader = null;
     this.THREE = null;
   }
 
   _removeDecorativeModel() {
-    if (!this.decorativeModel?.root) return;
-    const { root } = this.decorativeModel;
-    this.scene?.remove?.(root);
-    disposeObject(root);
+    if (!this.decorativeModel) return;
+    this._removeModel(this.decorativeModel);
     this.decorativeModel = null;
+  }
+
+  _removeModel(model) {
+    if (!model?.root) return;
+    this.scene?.remove?.(model.root);
+    this._removeFromInstanceGroup(model);
+    model.mixer?.stopAllAction?.();
+    disposeObject(model.root);
+    this.modelRoots.delete?.(model.root);
+    if (model.root.userData) {
+      delete model.root.userData.omnicoreDimension3DModel;
+      delete model.root.userData.omnicoreRotationSpeed;
+    }
+    model.actions?.clear?.();
+    this.models = this.models.filter((item) => item !== model);
+    if (this.decorativeModel === model) this.decorativeModel = null;
+  }
+
+  _registerInstancedModel(model, config = {}) {
+    const InstancedMesh = getOptionalThreeExport(this.THREE, 'InstancedMesh');
+    if (!InstancedMesh || config.instanced === false) return null;
+    const sourceMesh = findInstanceableMesh(model.root);
+    if (!sourceMesh?.geometry || !sourceMesh?.material || model.animations?.length) return null;
+    const key = model.glbPath;
+    if (!key) return null;
+    let group = this.instanceGroups.get(key);
+    if (!group) {
+      group = {
+        key,
+        sourceMesh,
+        capacity: Math.max(1, Number(config.instanceCapacity || DEFAULT_INSTANCE_CAPACITY)),
+        models: [],
+        instancedMesh: null
+      };
+      this.instanceGroups.set(key, group);
+    }
+    group.models.push(model);
+    model.instanceGroup = group;
+    if (group.models.length === 1) return null;
+    if (!group.instancedMesh) {
+      group.instancedMesh = new InstancedMesh(sourceMesh.geometry, sourceMesh.material, Math.max(group.capacity, group.models.length));
+      group.instancedMesh.name = `OmniCoreInstanced:${key}`;
+      group.instancedMesh.userData ||= {};
+      group.instancedMesh.userData.omnicoreInstanceGroup = key;
+      this.scene?.remove?.(group.models[0].root);
+      this.scene?.add?.(group.instancedMesh);
+    }
+    updateInstanceGroupMatrices(group);
+    return group;
+  }
+
+  _removeFromInstanceGroup(model) {
+    const group = model?.instanceGroup;
+    if (!group) return;
+    group.models = group.models.filter((item) => item !== model);
+    updateInstanceGroupMatrices(group);
+    if (!group.models.length) {
+      this.scene?.remove?.(group.instancedMesh);
+      this.instanceGroups.delete(group.key);
+    }
+    model.instanceGroup = null;
+  }
+
+  _modelFromIntersectedObject(object) {
+    let current = object;
+    while (current) {
+      const model = this.modelRoots.get(current);
+      if (model) return model;
+      current = current.parent;
+    }
+    return this.models.find((model) => model.root === object) || null;
   }
 }
 
@@ -199,7 +578,8 @@ export class Dimension3DScene {
     pixelRatio = null,
     camera = {},
     controls = false,
-    background = null
+    background = null,
+    coordinateBias = null
   } = {}) {
     this.canvas = canvas;
     this.parent = parent;
@@ -209,6 +589,7 @@ export class Dimension3DScene {
     this.cameraConfig = camera;
     this.controlsConfig = normalizeControlsConfig(controls);
     this.background = background;
+    this.coordinateBias = normalizeCoordinateBias(coordinateBias);
     this.THREE = null;
     this.scene = null;
     this.camera = null;
@@ -304,11 +685,16 @@ export class Dimension3DScene {
     return this.skybox;
   }
 
+  setCoordinateBias(x = 0, y = 0) {
+    this.coordinateBias = normalizeCoordinateBias({ x, y });
+    return this;
+  }
+
   worldToScreen(point = {}) {
     const scale = this._coordScale();
     return {
-      x: Number(((this.width / 2) + Number(point.x || 0) * scale).toFixed(6)),
-      y: Number(((this.height / 2) - Number(point.y || 0) * scale).toFixed(6)),
+      x: Number(((this.width / 2) + Number(point.x || 0) * scale + this.coordinateBias.x).toFixed(6)),
+      y: Number(((this.height / 2) - Number(point.y || 0) * scale + this.coordinateBias.y).toFixed(6)),
       z: Number(point.z || 0)
     };
   }
@@ -316,8 +702,8 @@ export class Dimension3DScene {
   screenToWorld(point = {}) {
     const scale = this._coordScale();
     return {
-      x: Number(((Number(point.x || 0) - this.width / 2) / scale).toFixed(6)),
-      y: Number(((this.height / 2 - Number(point.y || 0)) / scale).toFixed(6)),
+      x: Number(((Number(point.x || 0) - this.width / 2 - this.coordinateBias.x) / scale).toFixed(6)),
+      y: Number(((this.height / 2 - (Number(point.y || 0) - this.coordinateBias.y)) / scale).toFixed(6)),
       z: Number(point.z || 0)
     };
   }
@@ -339,8 +725,9 @@ export class Dimension3DScene {
 
   raycastFromScreen(point = {}) {
     const normalized = this.normalizedPointer(point);
-    if (this.THREE?.Raycaster && this.camera && this.scene) {
-      const raycaster = new this.THREE.Raycaster();
+    const Raycaster = getOptionalThreeExport(this.THREE, 'Raycaster');
+    if (Raycaster && this.camera && this.scene) {
+      const raycaster = new Raycaster();
       raycaster.setFromCamera?.(normalized, this.camera);
       const intersects = raycaster.intersectObjects?.(this.models, true) || [];
       const object = intersects[0]?.object || null;
@@ -523,11 +910,20 @@ export class Character3D {
 }
 
 export class PlaneLayer {
-  constructor({ zScale = 1, baseZ = 0, zToYScale = 1, baseY = 0 } = {}) {
+  constructor({
+    zScale = 1,
+    baseZ = 0,
+    zToYScale = 1,
+    baseY = 0,
+    debug = false,
+    coordinateBias = null
+  } = {}) {
     this.zScale = zScale;
     this.baseZ = baseZ;
     this.zToYScale = zToYScale;
     this.baseY = baseY;
+    this.debug = Boolean(debug);
+    this.coordinateBias = normalizeCoordinateBias(coordinateBias);
     this.items = [];
   }
 
@@ -565,16 +961,26 @@ export class PlaneLayer {
     return this.sorted();
   }
 
+  setCoordinateBias(x = 0, y = 0) {
+    this.coordinateBias = normalizeCoordinateBias({ x, y });
+    return this.coordinateBias;
+  }
+
   worldToPlane(position = {}) {
     const point = normalizeVector(position, DEFAULT_MODEL_TRANSFORM.position);
     return {
-      x: point.x,
-      y: this.baseY + point.y + point.z * this.zToYScale
+      x: point.x + this.coordinateBias.x,
+      y: this.baseY + point.y + point.z * this.zToYScale + this.coordinateBias.y
     };
   }
 
   projectCollider3D(model = {}) {
-    const position = this.worldToPlane(model.position || model);
+    const depthMap = normalizeDepthMap(model.depthMap);
+    if (depthMap?.collider) return normalizeDepthMapCollider(depthMap.collider);
+    const position = {
+      ...this.worldToPlane(model.position || model),
+      ...(Number.isFinite(Number(depthMap?.baselineY)) ? { y: Number(depthMap.baselineY) } : {})
+    };
     const bounds = normalizeBounds(model.bounds || model);
     const footprintHeight = bounds.depth || bounds.height;
     return {
@@ -617,15 +1023,160 @@ export class PlaneLayer {
       && bottom > projected.minY;
   }
 
+  occlusionCandidates2D(rect = {}, models = null) {
+    const source = Array.isArray(models)
+      ? models
+      : this.items.filter((item) => item.kind === '3d').map((item) => item.object);
+    return source.reduce((candidates, model) => {
+      const projected = this.projectCollider3D(model);
+      model.omnicoreProjectedAabb = projected;
+      const overlaps = this.collidesProjected2D(rect, projected);
+      model.omnicoreOcclusionSkipped = !overlaps;
+      if (overlaps) candidates.push({ model, projected });
+      return candidates;
+    }, []);
+  }
+
+  createDebugGuides({ sprites = [], models = null } = {}) {
+    const modelSource = Array.isArray(models)
+      ? models
+      : this.items.filter((item) => item.kind === '3d').map((item) => item.object);
+    const spriteSource = Array.isArray(sprites) && sprites.length
+      ? sprites
+      : this.items.filter((item) => item.kind === '2d').map((item) => item.object);
+    const modelDepthRanges = modelSource.map((model) => {
+      const depthMap = normalizeDepthMap(model.depthMap);
+      const collider = this.projectCollider3D(model);
+      const baselineY = Number.isFinite(Number(depthMap?.baselineY))
+        ? Number(depthMap.baselineY)
+        : this.worldToPlane(model.position || model).y;
+      return {
+        id: model.id || model.name || 'model',
+        x: collider.x,
+        width: collider.width,
+        baselineY,
+        minY: Number.isFinite(Number(depthMap?.range?.minY)) ? Number(depthMap.range.minY) : collider.minY,
+        maxY: Number.isFinite(Number(depthMap?.range?.maxY)) ? Number(depthMap.range.maxY) : collider.maxY,
+        color: depthMap?.color || 'rgba(34, 211, 238, 0.55)'
+      };
+    });
+    const targetY = modelDepthRanges[0]?.baselineY ?? 0;
+    const spriteProjectionLines = spriteSource.map((sprite) => {
+      const width = Number(sprite.width ?? sprite.w ?? 0);
+      const height = Number(sprite.height ?? sprite.h ?? 0);
+      const foot = {
+        x: Number(sprite.x ?? sprite.left ?? 0) + width / 2,
+        y: Number(sprite.y ?? sprite.top ?? 0) + height
+      };
+      return {
+        id: sprite.id || sprite.name || 'sprite',
+        from: foot,
+        to: { x: foot.x, y: targetY },
+        color: 'rgba(250, 204, 21, 0.7)'
+      };
+    });
+    return {
+      enabled: this.debug,
+      coordinateBias: { ...this.coordinateBias },
+      modelDepthRanges,
+      spriteProjectionLines
+    };
+  }
+
   _add(kind, object, options) {
     const item = {
       kind,
       object,
       ...normalizePlaneOptions(object, options, this)
     };
+    if (item.depthMap && object && typeof object === 'object') object.depthMap = item.depthMap;
     this.items.push(item);
     return item;
   }
+}
+
+function inspectModelComplexity(root, url = null) {
+  const complexity = {
+    url,
+    triangles: 0,
+    maxTextureSize: 0,
+    overBudget: false
+  };
+
+  traverseModel(root, (object) => {
+    const geometry = object?.geometry;
+    if (geometry) complexity.triangles += geometryTriangleCount(geometry);
+    for (const material of normalizeMaterials(object?.material)) {
+      complexity.maxTextureSize = Math.max(
+        complexity.maxTextureSize,
+        inspectMaterialTextureSize(material)
+      );
+    }
+  });
+
+  complexity.overBudget = complexity.triangles > MODEL_COMPLEXITY_LIMITS.triangles
+    || complexity.maxTextureSize > MODEL_COMPLEXITY_LIMITS.textureSize;
+  return complexity;
+}
+
+function warnIfModelOverBudget(complexity = {}) {
+  if (!complexity.overBudget) return;
+  console.warn(MODEL_COMPLEXITY_WARNING, {
+    url: complexity.url,
+    triangles: complexity.triangles,
+    maxTextureSize: complexity.maxTextureSize,
+    limits: MODEL_COMPLEXITY_LIMITS
+  });
+}
+
+function traverseModel(root, visitor) {
+  if (!root || typeof visitor !== 'function') return;
+  if (typeof root.traverse === 'function') {
+    root.traverse(visitor);
+    return;
+  }
+  visitor(root);
+  for (const child of root.children || []) traverseModel(child, visitor);
+}
+
+function geometryTriangleCount(geometry = {}) {
+  const indexCount = Number(geometry.index?.count);
+  if (Number.isFinite(indexCount) && indexCount > 0) return Math.ceil(indexCount / 3);
+  const positionCount = Number(geometry.attributes?.position?.count);
+  return Number.isFinite(positionCount) && positionCount > 0 ? Math.ceil(positionCount / 3) : 0;
+}
+
+function normalizeMaterials(material) {
+  if (!material) return [];
+  return Array.isArray(material) ? material.filter(Boolean) : [material];
+}
+
+function inspectMaterialTextureSize(material = {}) {
+  const textureFields = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap'];
+  return textureFields.reduce((maxSize, field) => {
+    const image = material[field]?.image;
+    const width = Number(image?.width || 0);
+    const height = Number(image?.height || 0);
+    return Math.max(maxSize, width, height);
+  }, 0);
+}
+
+function findInstanceableMesh(root) {
+  let mesh = null;
+  root?.traverse?.((object) => {
+    if (!mesh && object?.geometry && object?.material) mesh = object;
+  });
+  return mesh;
+}
+
+function updateInstanceGroupMatrices(group) {
+  if (!group?.instancedMesh) return;
+  group.instancedMesh.count = group.models.length;
+  group.models.forEach((model, index) => {
+    model.root?.updateMatrix?.();
+    group.instancedMesh.setMatrixAt?.(index, model.root?.matrix || { model: model.name || model.glbPath });
+  });
+  if (group.instancedMesh.instanceMatrix) group.instancedMesh.instanceMatrix.needsUpdate = true;
 }
 
 function assertDecorativeOnly(options) {
@@ -638,6 +1189,22 @@ function assertDecorativeOnly(options) {
 
 function optionEnabled(value) {
   return value !== undefined && value !== null && value !== false;
+}
+
+function normalizeAddModelConfig(name, glbPath, position, scale, options = {}) {
+  if (name && typeof name === 'object') {
+    return {
+      ...name,
+      url: name.glbPath || name.url || name.path
+    };
+  }
+  return {
+    ...options,
+    name: name || options.name || `model-${Date.now().toString(36)}`,
+    url: glbPath || options.glbPath || options.url || options.path,
+    position: position ?? options.position ?? DEFAULT_MODEL_TRANSFORM.position,
+    scale: scale ?? options.scale ?? DEFAULT_MODEL_TRANSFORM.scale
+  };
 }
 
 function normalizeVector(value = {}, fallback = {}) {
@@ -664,6 +1231,12 @@ function applyModelTransform(root, config) {
   }
 }
 
+function modelMaskSortDepth(model, zToYScale = 1) {
+  if (Number.isFinite(model.maskSortDepth)) return model.maskSortDepth;
+  const position = normalizeVector(model.position, DEFAULT_MODEL_TRANSFORM.position);
+  return position.y + position.z * zToYScale;
+}
+
 function disposeObject(root) {
   root.traverse?.((object) => {
     object.geometry?.dispose?.();
@@ -677,6 +1250,37 @@ function normalizeControlsConfig(controls) {
   if (controls === true) return { type: 'orbit' };
   if (typeof controls === 'string') return { type: controls };
   return { type: controls.type || controls.mode || 'orbit', ...controls };
+}
+
+function installFadeInState(model, durationMs = 300) {
+  const duration = Math.max(0, Number(durationMs) || 0);
+  model.fadeIn = {
+    durationMs: duration,
+    opacity: 0,
+    startedAt: Date.now()
+  };
+  model.root.userData ||= {};
+  model.root.userData.omnicoreFadeIn = {
+    durationMs: duration,
+    opacity: 0
+  };
+  return model.fadeIn;
+}
+
+function createModelShadow(model, config = true) {
+  if (!config) return null;
+  const options = config === true ? {} : config;
+  const bounds = normalizeBounds(model.bounds || {});
+  const position = normalizeVector(model.position, DEFAULT_MODEL_TRANSFORM.position);
+  return {
+    type: 'ellipse',
+    x: position.x,
+    y: position.y,
+    radiusX: Math.max(0.5, bounds.width / 2),
+    radiusY: Math.max(0.5, bounds.depth / 2),
+    color: options.color || 'rgba(0, 0, 0, 0.35)',
+    opacity: Number.isFinite(Number(options.opacity)) ? Number(options.opacity) : 0.28
+  };
 }
 
 function createLight(THREE, type, config = {}) {
@@ -700,18 +1304,62 @@ function createLight(THREE, type, config = {}) {
   return new THREE.AmbientLight(color, intensity);
 }
 
-function normalizePlaneOptions(object, options, layer) {
-  const depth = Number.isFinite(Number(options.depth))
-    ? Number(options.depth)
-    : Number.isFinite(Number(options.z))
-      ? Number(options.z)
-      : object?.position && Number.isFinite(Number(object.position.z))
-        ? layer.worldToPlane(object.position).y
-        : Number.isFinite(Number(object?.y))
-          ? Number(object.y)
-          : Number(object?.zIndex ?? 0);
+function normalizeCoordinateBias(value = null) {
+  if (Array.isArray(value)) {
+    return {
+      x: Number.isFinite(Number(value[0])) ? Number(value[0]) : 0,
+      y: Number.isFinite(Number(value[1])) ? Number(value[1]) : 0
+    };
+  }
+  if (!value || typeof value !== 'object') return { x: 0, y: 0 };
   return {
-    depth: layer.baseZ + depth * layer.zScale
+    x: Number.isFinite(Number(value.x)) ? Number(value.x) : 0,
+    y: Number.isFinite(Number(value.y)) ? Number(value.y) : 0
+  };
+}
+
+function normalizePlaneOptions(object, options, layer) {
+  const depthMap = normalizeDepthMap(options.depthMap || object?.depthMap);
+  let depth = Number(object?.zIndex ?? 0);
+  if (Number.isFinite(Number(object?.y))) depth = Number(object.y);
+  if (object?.position && Number.isFinite(Number(object.position.z))) depth = layer.worldToPlane(object.position).y;
+  if (Number.isFinite(Number(depthMap?.baselineY))) depth = Number(depthMap.baselineY);
+  if (Number.isFinite(Number(options.z))) depth = Number(options.z);
+  if (Number.isFinite(Number(options.depth))) depth = Number(options.depth);
+  return {
+    depth: layer.baseZ + depth * layer.zScale,
+    depthMap
+  };
+}
+
+function normalizeDepthMap(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  const output = { ...value };
+  if (Number.isFinite(Number(value.baselineY))) output.baselineY = Number(value.baselineY);
+  if (value.range && typeof value.range === 'object') {
+    output.range = {
+      minY: Number.isFinite(Number(value.range.minY)) ? Number(value.range.minY) : undefined,
+      maxY: Number.isFinite(Number(value.range.maxY)) ? Number(value.range.maxY) : undefined
+    };
+  }
+  if (value.collider) output.collider = normalizeDepthMapCollider(value.collider);
+  return output;
+}
+
+function normalizeDepthMapCollider(collider = {}) {
+  const x = Number(collider.x ?? collider.left ?? collider.minX ?? 0);
+  const y = Number(collider.y ?? collider.top ?? collider.minY ?? 0);
+  const width = Number(collider.width ?? collider.w ?? ((collider.maxX ?? x) - x) ?? 1);
+  const height = Number(collider.height ?? collider.h ?? ((collider.maxY ?? y) - y) ?? 1);
+  return {
+    x,
+    y,
+    width,
+    height,
+    minX: Number(collider.minX ?? x),
+    maxX: Number(collider.maxX ?? x + width),
+    minY: Number(collider.minY ?? y),
+    maxY: Number(collider.maxY ?? y + height)
   };
 }
 

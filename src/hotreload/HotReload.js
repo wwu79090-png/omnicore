@@ -14,7 +14,11 @@ export class HotReload {
     assetLoader = null,
     database = null,
     onChange = null,
-    logger = null
+    logger = null,
+    runtime = globalThis,
+    loop = null,
+    moduleImporter = (moduleUrl) => import(/* @vite-ignore */ moduleUrl),
+    onCoreSwap = null
   } = {}) {
     this.url = url;
     this.socketFactory = socketFactory;
@@ -22,6 +26,10 @@ export class HotReload {
     this.database = database;
     this.onChange = onChange;
     this.logger = logger;
+    this.runtime = runtime;
+    this.loop = loop;
+    this.moduleImporter = moduleImporter;
+    this.onCoreSwap = onCoreSwap;
     this.socket = null;
     this.assets = new Map();
   }
@@ -52,6 +60,7 @@ export class HotReload {
   async applyChange(change) {
     if (change.type === 'asset') return this._applyAsset(change);
     if (change.type === 'config') return this._applyConfig(change);
+    if (change.type === 'core-module') return this._applyCoreModule(change);
     throw createOmniError('HotReload', `不支持的热更新类型：${change.type}`);
   }
 
@@ -75,6 +84,27 @@ export class HotReload {
     this.onChange?.(result);
     return result;
   }
+
+  async _applyCoreModule(change) {
+    if (!change.url) throw createOmniError('HotReload', '核心模块热替换需要提供 url。');
+    this.loop?.pause?.();
+    const url = addCacheBust(change.url, change.version || Date.now());
+    const module = await this.moduleImporter(url);
+    const core = module.default || module.OmniCore || module;
+    this.runtime.OmniCore = core;
+    const result = { type: 'core-module', url, core };
+    this.onCoreSwap?.(result);
+    this.onChange?.(result);
+    const resume = () => this.loop?.resume?.();
+    if (typeof this.runtime.requestAnimationFrame === 'function') this.runtime.requestAnimationFrame(resume);
+    else Promise.resolve().then(resume);
+    return result;
+  }
+}
+
+function addCacheBust(url, version) {
+  const joiner = String(url).includes('?') ? '&' : '?';
+  return `${url}${joiner}omnicore_hmr=${encodeURIComponent(version)}`;
 }
 
 export default HotReload;

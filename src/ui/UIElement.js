@@ -21,6 +21,9 @@ export class UIElement {
     this.zIndex = zIndex;
     this.visible = visible;
     this.events = new EventBus();
+    this.dirty = true;
+    this.renderCache = null;
+    this.uiRenderManager = null;
   }
 
   get bounds() {
@@ -33,6 +36,28 @@ export class UIElement {
 
   on(event, handler) {
     return this.events.on(event, handler);
+  }
+
+  markDirty(reason = 'state') {
+    this.dirty = true;
+    if (this.renderCache) this.renderCache.dirty = true;
+    return this.uiRenderManager?.markDirty?.(this, reason) || this.bounds;
+  }
+
+  setBounds({ x = this.x, y = this.y, width = this.width, height = this.height } = {}) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    this.markDirty('bounds');
+    return this;
+  }
+
+  setVisible(visible) {
+    if (this.visible === visible) return this;
+    this.visible = visible;
+    this.markDirty('visibility');
+    return this;
   }
 
   dispatch(event, payload = {}) {

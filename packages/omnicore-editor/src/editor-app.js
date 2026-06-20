@@ -41,6 +41,68 @@ const TOOLBAR_ACTIONS = [
   { id: 'dock-reset', label: 'Reset Dock' }
 ];
 
+export function createInputFocusManager({ root = null } = {}) {
+  let gizmoShortcutsEnabled = true;
+
+  const api = {
+    enableGizmoShortcuts() {
+      gizmoShortcutsEnabled = true;
+      return gizmoShortcutsEnabled;
+    },
+    disableGizmoShortcuts() {
+      gizmoShortcutsEnabled = false;
+      return gizmoShortcutsEnabled;
+    },
+    areGizmoShortcutsEnabled() {
+      return gizmoShortcutsEnabled;
+    },
+    isTextInputTarget: isTextEditingTarget,
+    destroy() {
+      root?.removeEventListener?.('mousedown', onPointerDown, true);
+      root?.removeEventListener?.('focusin', onFocusIn, true);
+    }
+  };
+
+  function onPointerDown(event) {
+    if (isTextEditingTarget(event.target)) {
+      api.disableGizmoShortcuts();
+      return;
+    }
+    if (isSceneCanvasTarget(event.target)) api.enableGizmoShortcuts();
+  }
+
+  function onFocusIn(event) {
+    if (isTextEditingTarget(event.target)) api.disableGizmoShortcuts();
+  }
+
+  root?.addEventListener?.('mousedown', onPointerDown, true);
+  root?.addEventListener?.('focusin', onFocusIn, true);
+  return api;
+}
+
+function asElement(target) {
+  if (!target) return null;
+  if (target.nodeType === 1) return target;
+  return target.parentElement || null;
+}
+
+function isTextEditingTarget(target) {
+  let element = asElement(target);
+  while (element) {
+    const tagName = String(element.tagName || '').toLowerCase();
+    if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') return true;
+    const editable = element.getAttribute?.('contenteditable');
+    if (editable != null && String(editable).toLowerCase() !== 'false') return true;
+    element = element.parentElement;
+  }
+  return false;
+}
+
+function isSceneCanvasTarget(target) {
+  const element = asElement(target);
+  return Boolean(element?.closest?.('.scene-canvas, [data-scene-drop-zone]'));
+}
+
 export function createEditorApp(root = document.querySelector('#app'), {
   state = createEditorState(),
   syncUrl = null,
@@ -84,6 +146,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
   const shell = root.querySelector('.editor-shell');
   const statusbar = root.querySelector('[data-editor-statusbar]');
   const client = syncUrl ? new LiveSyncClient({ url: syncUrl, onState: (next) => update(next) }).connect() : null;
+  const inputFocusManager = createInputFocusManager({ root });
 
   const api = {
     update,
@@ -96,6 +159,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     runAutoSave,
     setAutoSaveInterval,
     getAutoSaveIntervalMs: () => current.autoSave.intervalMs,
+    InputFocusManager: inputFocusManager,
     EditorAPI: createEditorAPI(),
     undo,
     redo,
@@ -429,6 +493,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
 
   function destroy() {
     if (autoSaveTimer != null) ownerWindow?.clearInterval?.(autoSaveTimer);
+    inputFocusManager.destroy();
     ownerWindow?.removeEventListener?.('mousemove', onPointerMove);
     ownerWindow?.removeEventListener?.('mouseup', onPointerUp);
     ownerWindow?.removeEventListener?.('keydown', onKeyDown);
@@ -1186,7 +1251,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const path = slash(tab.path || tab.id || '');
     if (!path) return null;
     const scene = normalizeScene(tab.scene || { name: path.split('/').pop(), entities: [] });
-    const sceneTabs = upsertSceneTab(current.sceneTabs, { path, scene, dirty: Boolean(tab.dirty) });
+    const sceneTabs = upsertSceneTab({ path, scene, dirty: Boolean(tab.dirty) }, current.sceneTabs);
     current = {
       ...current,
       sceneTabs,
@@ -1356,7 +1421,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     };
   }
 
-  function upsertSceneTab(tabs = [], tab) {
+  function upsertSceneTab(tab, tabs = []) {
     const next = (Array.isArray(tabs) ? tabs : []).filter((item) => item.path !== tab.path);
     next.push({
       path: tab.path,
@@ -2012,9 +2077,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       path: 'config/data.json',
       tables: cloneState(tables)
     };
-    const bridge = ownerWindow?.omnicoreEditor;
-    if (typeof bridge?.saveDatabaseConfig === 'function') {
-      bridge.saveDatabaseConfig(payload);
+    const editorBridge = ownerWindow?.omnicoreEditor;
+    if (typeof editorBridge?.saveDatabaseConfig === 'function') {
+      editorBridge.saveDatabaseConfig(payload);
     } else {
       emit('editor:save-database-config', payload);
     }
@@ -2058,7 +2123,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     };
     emit('editor:ai-generate-scene', { prompt, tilemap, entities });
     emit('editor:update-tilemap', { tilemap });
-    pushHistory(current, `Generate scene from AI prompt`);
+    pushHistory(current, 'Generate scene from AI prompt');
     update(current);
     return { prompt, tilemap, entities };
   }
@@ -2411,6 +2476,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
 
   function onKeyDown(event) {
     const key = String(event.key || '').toLowerCase();
+    const textEditingTarget = inputFocusManager.isTextInputTarget(event.target);
     const modes = {
       q: 'select',
       w: 'translate',
@@ -2418,11 +2484,13 @@ export function createEditorApp(root = document.querySelector('#app'), {
       r: 'scale'
     };
     if (!event.ctrlKey && !event.metaKey && modes[key]) {
+      if (textEditingTarget || !inputFocusManager.areGizmoShortcutsEnabled()) return;
       event.preventDefault?.();
       setGizmoMode(modes[key]);
       return;
     }
     if (key === 'delete' || key === 'backspace') {
+      if (textEditingTarget) return;
       event.preventDefault?.();
       deleteSelection();
       return;
@@ -3553,19 +3621,19 @@ export function createEditorApp(root = document.querySelector('#app'), {
   }
 
   function renderGlobalSearch() {
-    const state = normalizeGlobalSearchState(current.globalSearch);
+    const searchState = normalizeGlobalSearchState(current.globalSearch);
     const wrap = document.createElement('div');
     wrap.className = 'global-search-wrap';
     const query = document.createElement('input');
     query.type = 'search';
     query.dataset.globalSearchQuery = 'true';
     query.placeholder = 'Search scripts, JSON, scenes';
-    query.value = state.query;
+    query.value = searchState.query;
     query.addEventListener('input', () => searchProject(query.value));
     const replacement = document.createElement('input');
     replacement.dataset.globalReplaceValue = 'true';
     replacement.placeholder = 'Replace with';
-    replacement.value = state.replacement;
+    replacement.value = searchState.replacement;
     const replace = document.createElement('button');
     replace.type = 'button';
     replace.dataset.globalReplaceRun = 'true';
@@ -3573,7 +3641,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     replace.addEventListener('click', () => replaceProject(query.value, replacement.value));
     const list = document.createElement('div');
     list.className = 'global-search-results';
-    for (const result of state.results) {
+    for (const result of searchState.results) {
       const row = document.createElement('button');
       row.type = 'button';
       row.dataset.globalSearchResult = result.path;
@@ -3671,16 +3739,16 @@ export function createEditorApp(root = document.querySelector('#app'), {
     drawCalls.textContent = `Draw Calls ${Number(frame?.drawCalls || 0)}`;
     streams.append(memory, drawCalls);
     wrap.appendChild(streams);
-    const history = document.createElement('div');
-    history.className = 'profiler-history';
-    history.dataset.profilerHistory = 'true';
+    const profilerHistory = document.createElement('div');
+    profilerHistory.className = 'profiler-history';
+    profilerHistory.dataset.profilerHistory = 'true';
     for (const sample of (current.profilerHistory || []).slice(-24)) {
       const row = document.createElement('span');
       row.dataset.profilerHistoryFrame = String(sample.frame);
       row.textContent = `F${sample.frame} ${Number(sample.memoryMB || 0)}MB ${Number(sample.drawCalls || 0)} calls`;
-      history.appendChild(row);
+      profilerHistory.appendChild(row);
     }
-    wrap.appendChild(history);
+    wrap.appendChild(profilerHistory);
     return wrap;
   }
 }
@@ -4328,7 +4396,7 @@ function normalizeDockLayout(layout = {}) {
   return normalized;
 }
 
-function ensurePanelInDock(layout = {}, panelName, preferredRegion = 'bottom') {
+function ensurePanelInDock(layout, panelName, preferredRegion = 'bottom') {
   const normalized = normalizeDockLayout(layout);
   if (Object.values(normalized).some((panels) => panels.includes(panelName))) return normalized;
   const region = DOCK_REGIONS.includes(preferredRegion) ? preferredRegion : 'bottom';

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="Edit jump speed in src/main.js">
+  <rect width="960" height="540" fill="#f8fafc"/>
+  <rect x="92" y="70" width="776" height="400" rx="12" fill="#0f172a"/>
+  <text x="128" y="130" fill="#93c5fd" font-family="Consolas, monospace" font-size="22">const jump = -620;</text>
+  <text x="128" y="188" fill="#e5e7eb" font-family="Consolas, monospace" font-size="22">if (event.code === 'Space')</text>
+  <text x="128" y="236" fill="#e5e7eb" font-family="Consolas, monospace" font-size="22">  velocity.y = jump;</text>
+  <rect x="118" y="102" width="260" height="44" fill="none" stroke="#facc15" stroke-width="3"/>
+  <text x="128" y="330" fill="#a7f3d0" font-family="system-ui, sans-serif" font-size="24">Change -620 to tune jump height, save, and watch hot reload.</text>
+</svg>

@@ -59,4 +59,35 @@ describe('standalone desktop-grade OmniCore Editor', () => {
 
     app.destroy();
   });
+
+  it('keeps QWER gizmo shortcuts disabled while an editor text field has input focus', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const app = createEditorApp(root, {
+      state: {
+        scene: {
+          entities: [{ id: 'hero', name: 'Hero', x: 10, y: 10 }]
+        }
+      }
+    });
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', bubbles: true }));
+    expect(app.getState().gizmoMode).toBe('rotate');
+
+    const scriptInput = document.createElement('textarea');
+    root.appendChild(scriptInput);
+    scriptInput.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    expect(app.InputFocusManager.areGizmoShortcutsEnabled()).toBe(false);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', bubbles: true, cancelable: true }));
+    expect(app.getState().gizmoMode).toBe('rotate');
+
+    root.querySelector('.scene-canvas').dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    expect(app.InputFocusManager.areGizmoShortcutsEnabled()).toBe(true);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', bubbles: true, cancelable: true }));
+    expect(app.getState().gizmoMode).toBe('translate');
+
+    app.destroy();
+  });
 });

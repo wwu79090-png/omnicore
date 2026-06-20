@@ -31,6 +31,7 @@ import FrameProfiler from '../debug/FrameProfiler.js';
 import PerformanceMonitor from '../debug/PerformanceMonitor.js';
 import PerformanceMetrics from '../debug/PerformanceMetrics.js';
 import ProfilerWaterfallPanel from '../debug/ProfilerWaterfallPanel.js';
+import ProfilerSnapshot from '../debug/ProfilerSnapshot.js';
 import RemoteDevTools from '../debug/RemoteDevTools.js';
 import CrashReporter from '../debug/CrashReporter.js';
 import EmergencyOverlay from '../debug/EmergencyOverlay.js';
@@ -326,6 +327,8 @@ export class Game {
     this.performanceMonitor = null;
     this.frameProfiler = null;
     this.profilerWaterfallPanel = null;
+    this.profilerSnapshot = null;
+    this.profilerSnapshotBinding = null;
     this.playSession = null;
     this.metrics = new PerformanceMetrics({ enabled: true });
     this.analytics = new Analytics({
@@ -412,7 +415,8 @@ export class Game {
         return null;
       }, this.logger);
       if (this.dimension3D) {
-        this.dimension3DUnsubscribe = this.loop.subscribe((delta) => this.dimension3D?.render?.(delta));
+        this.dimension3D.startRenderLoop?.({ fps: 30 });
+        this.dimension3DUnsubscribe = () => this.dimension3D?.stopRenderLoop?.();
       }
     } else if (this.config.dimension3D && this.environment.skipThree) {
       this.logger.warn('platform', '检测到小游戏运行环境，已跳过 Three.js Dimension3D 初始化。');
@@ -440,6 +444,13 @@ export class Game {
           this.logger
         );
       }
+      this.profilerSnapshot = { latest: null };
+      this.profilerSnapshotBinding = safeInitialize(
+        'ProfilerSnapshot',
+        () => ProfilerSnapshot.installDebugShortcut(this),
+        null,
+        this.logger
+      );
       this.inspector = safeInitialize('Inspector', () => new Inspector(this), null, this.logger);
       this.inspector?.attach?.();
       this.remoteDevTools = safeInitialize(
@@ -569,6 +580,7 @@ export class Game {
     this.audio?.stopAll?.();
     this.performanceMonitor?.destroy?.();
     this.profilerWaterfallPanel?.detach?.();
+    this.profilerSnapshotBinding?.destroy?.();
     this.frameProfiler?.clear?.();
     this.remoteDevTools?.detach?.();
     this.emergencyOverlay?.detach?.();
@@ -591,6 +603,8 @@ export class Game {
     this.dimension3D = null;
     this.performanceMonitor = null;
     this.profilerWaterfallPanel = null;
+    this.profilerSnapshot = null;
+    this.profilerSnapshotBinding = null;
     this.frameProfiler = null;
     this.playSession = null;
     this.remoteDevTools = null;

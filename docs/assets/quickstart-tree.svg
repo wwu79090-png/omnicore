@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="OmniCore project directory tree">
+  <rect width="960" height="540" fill="#eef2f7"/>
+  <rect x="96" y="64" width="320" height="412" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="128" y="116" fill="#111827" font-family="Consolas, monospace" font-size="24">my-first-game/</text>
+  <text x="152" y="166" fill="#0f766e" font-family="Consolas, monospace" font-size="21">package.json</text>
+  <text x="152" y="208" fill="#0f766e" font-family="Consolas, monospace" font-size="21">index.html</text>
+  <text x="152" y="250" fill="#0f766e" font-family="Consolas, monospace" font-size="21">src/main.js</text>
+  <text x="152" y="292" fill="#0f766e" font-family="Consolas, monospace" font-size="21">assets/</text>
+  <rect x="480" y="112" width="312" height="236" rx="10" fill="#111827"/>
+  <text x="512" y="164" fill="#facc15" font-family="Consolas, monospace" font-size="22">src/main.js</text>
+  <text x="512" y="214" fill="#e5e7eb" font-family="Consolas, monospace" font-size="19">Scene + Sprite</text>
+  <text x="512" y="254" fill="#e5e7eb" font-family="Consolas, monospace" font-size="19">Input + jump</text>
+  <text x="512" y="294" fill="#e5e7eb" font-family="Consolas, monospace" font-size="19">Vite hot reload</text>
+</svg>

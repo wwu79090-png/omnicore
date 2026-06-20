@@ -19,16 +19,24 @@ export class Button extends UIElement {
       font: '14px system-ui, sans-serif',
       ...options.style
     };
+    this.hovered = false;
   }
 
   onClick(handler) {
     return this.on('click', handler);
   }
 
+  setHover(hovered) {
+    if (this.hovered === hovered) return this;
+    this.hovered = hovered;
+    this.markDirty('hover');
+    return this;
+  }
+
   render(ctx) {
     if (!this.visible || !ctx) return;
     ctx.save();
-    ctx.fillStyle = this.style.background;
+    ctx.fillStyle = this.hovered ? (this.style.hoverBackground || this.style.border) : this.style.background;
     ctx.strokeStyle = this.style.border;
     ctx.lineWidth = 1;
     ctx.fillRect(this.x, this.y, this.width, this.height);

@@ -1,5 +1,6 @@
 import { errorMessage } from '../core/OmniError.js';
 import { DEFAULT_LOOP_FPS } from '../config/defaults.js';
+import MemoryGuardian from '../debug/MemoryGuardian.js';
 
 /**
  * Fixed-step requestAnimationFrame loop.
@@ -27,7 +28,9 @@ export class Loop {
     onFrameError = null,
     timeGuard = null,
     warnTimeJumps = true,
-    onTimeJump = null
+    onTimeJump = null,
+    memoryGuardian = null,
+    debug = false
   } = {}) {
     this.fps = resolveFrameRate(framerateCap, fps, displayHz);
     this.frameMs = 1000 / this.fps;
@@ -43,6 +46,10 @@ export class Loop {
     this.timeGuard = timeGuard;
     this.warnTimeJumps = warnTimeJumps;
     this.onTimeJump = onTimeJump;
+    this.memoryGuardian = memoryGuardian === true
+      ? new MemoryGuardian({ debug })
+      : memoryGuardian;
+    this.memoryGuardian?.start?.();
     this.timeJumpWarningIssued = false;
     this.slowFrameCount = 0;
     this.subscribers = new Set();
@@ -91,6 +98,7 @@ export class Loop {
     if (this.autoPause && typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', this.visibilityHandler);
     }
+    this.memoryGuardian?.stop?.();
     this.frameHandle = null;
   }
 
@@ -142,7 +150,15 @@ export class Loop {
           }
         }
 
-        this._detectStall(this._now() - tickStartedAt);
+        const frameEndedAt = this._now();
+        const updateMs = frameEndedAt - tickStartedAt;
+        this.memoryGuardian?.watchFrame?.({
+          ...frameContext,
+          updateMs,
+          startedAt: tickStartedAt,
+          endedAt: frameEndedAt
+        });
+        this._detectStall(updateMs);
         const endResult = this._safeCall(
           this.onFrameEnd,
           'frameEnd',

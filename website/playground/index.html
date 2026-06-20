@@ -1,98 +1,141 @@
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OmniCore 在线 IDE</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniCore Cloud IDE</title>
     <style>
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
       body {
         margin: 0;
         min-height: 100vh;
         color: #e2e8f0;
         background: #0f172a;
-        font: 14px system-ui, sans-serif;
+        font: 14px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
       header {
-        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 12px 16px;
         border-bottom: 1px solid #1e293b;
         background: #020617;
       }
+      header strong {
+        font-size: 16px;
+      }
+      header span {
+        color: #94a3b8;
+      }
       main {
         display: grid;
-        grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1.1fr);
-        min-height: calc(100vh - 60px);
+        grid-template-columns: 190px minmax(320px, 0.9fr) minmax(360px, 1.1fr);
+        min-height: calc(100vh - 58px);
+      }
+      aside {
+        padding: 14px;
+        border-right: 1px solid #1e293b;
+        background: #08111f;
+      }
+      .file {
+        display: block;
+        width: 100%;
+        margin-top: 10px;
+        padding: 8px 10px;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        background: #0f172a;
+        color: #dbeafe;
+        text-align: left;
       }
       textarea {
         width: 100%;
         height: 100%;
-        min-height: 520px;
+        min-height: 560px;
         padding: 16px;
         color: #dbeafe;
         background: #020617;
         border: 0;
         border-right: 1px solid #1e293b;
-        font: 13px/1.5 Consolas, monospace;
+        font: 13px/1.5 Consolas, "SFMono-Regular", monospace;
         resize: none;
         outline: none;
       }
       iframe {
         width: 100%;
         height: 100%;
-        min-height: 520px;
+        min-height: 560px;
         border: 0;
-        background: #fff;
-      }
-      .bar {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+        background: #020617;
       }
       button {
+        min-height: 34px;
         padding: 7px 10px;
-        color: #e2e8f0;
-        background: #0f172a;
         border: 1px solid #38bdf8;
+        border-radius: 6px;
+        background: #0f172a;
+        color: #e2e8f0;
         cursor: pointer;
       }
-      @media (max-width: 760px) {
+      @media (max-width: 900px) {
         main {
           grid-template-columns: 1fr;
         }
+        aside,
         textarea,
         iframe {
-          min-height: 360px;
+          min-height: 260px;
           border-right: 0;
           border-bottom: 1px solid #1e293b;
         }
       }
     </style>
   </head>
-  <body>
-    <header class="bar">
-      <strong>OmniCore 在线 IDE</strong>
-      <span>修改代码后实时预览</span>
+  <body data-cloud-ide>
+    <header>
+      <div>
+        <strong>OmniCore Cloud IDE</strong>
+        <span>零门槛，点开即写</span>
+      </div>
       <button type="button" id="run">运行</button>
     </header>
     <main>
+      <aside data-file-tree>
+        <strong>Files</strong>
+        <button class="file" type="button">green-square.js</button>
+        <p>新建 .js 文件即可启动 OmniCore.Game 并看到绿色方块。</p>
+      </aside>
       <textarea id="code" spellcheck="false"></textarea>
       <iframe id="preview" title="实时预览"></iframe>
     </main>
     <script type="module">
-      const starter = `const canvas = document.createElement('canvas');
-canvas.width = 480;
-canvas.height = 270;
-document.body.style.margin = '0';
-document.body.style.background = '#020617';
-document.body.appendChild(canvas);
-const ctx = canvas.getContext('2d');
-ctx.fillStyle = '#38bdf8';
-ctx.fillRect(80, 80, 96, 64);
-ctx.fillStyle = '#e2e8f0';
-ctx.font = '18px system-ui';
-ctx.fillText('Hello OmniCore', 80, 168);`;
+      const starter = `import OmniCore from '/src/index.js';
+
+const game = await new OmniCore.Game({
+  parent: '#app',
+  width: 480,
+  height: 270,
+  renderer: 'canvas',
+  autoStart: false,
+  autoAttach: true
+}).init();
+
+const scene = new OmniCore.Scene('green-square.js');
+scene.add(new OmniCore.Sprite('green-square', {
+  x: 176,
+  y: 88,
+  width: 128,
+  height: 92,
+  tint: '#16a34a',
+  color: '#16a34a',
+  zIndex: 1
+}));
+
+game.scene.register(scene);
+await game.scene.push('green-square.js');
+game.renderer.renderScene(scene);`;
+
       const code = document.querySelector('#code');
       const preview = document.querySelector('#preview');
       const runButton = document.querySelector('#run');
@@ -100,8 +143,13 @@ ctx.fillText('Hello OmniCore', 80, 168);`;
       code.value = starter;
 
       function run() {
-        const html = `<!doctype html><html><body><script type="module">${code.value.replace(/<\/script>/g, '<\\/script>')}<\/script></body></html>`;
-        preview.srcdoc = html;
+        const escaped = code.value.replace(/<\/script>/g, '<\\/script>');
+        preview.srcdoc = [
+          '<!doctype html><html><body style="margin:0;background:#020617;display:grid;place-items:center;min-height:100vh">',
+          '<div id="app"></div>',
+          `<script type="module">${escaped}<\\/script>`,
+          '</body></html>'
+        ].join('');
       }
 
       code.addEventListener('input', () => {

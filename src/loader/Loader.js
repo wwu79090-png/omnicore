@@ -37,7 +37,11 @@ export class Loader {
     pathResolver = defaultPathResolver,
     onFriendlyError,
     webpSupport = null,
-    preferWebp = true
+    preferWebp = true,
+    caches = globalThis.caches,
+    cacheName = 'omnicore-assets-v1',
+    scheduleIdle = defaultIdleScheduler,
+    imageFactory = defaultImageFactory
   } = {}) {
     this.timeout = timeout;
     this.retries = retries;
@@ -46,6 +50,10 @@ export class Loader {
     this.onFriendlyError = onFriendlyError;
     this.webpSupport = webpSupport;
     this.preferWebp = preferWebp;
+    this.caches = caches;
+    this.cacheName = cacheName;
+    this.scheduleIdle = scheduleIdle;
+    this.imageFactory = imageFactory;
     this.cache = new Map();
     this.inflight = new Map();
   }
@@ -67,6 +75,58 @@ export class Loader {
       })
     );
     return output;
+  }
+
+  async cacheAssets(items, options = {}) {
+    const cacheName = options.cacheName || this.cacheName;
+    const list = normalizeAssetList(items).filter(isCacheableImage);
+    const report = { cacheName, cached: [], fetched: [], failed: [] };
+    if (!this.caches?.open) return report;
+    const cache = await this.caches.open(cacheName);
+    await Promise.all(list.map(async (item) => {
+      const { url } = item;
+      const request = createRequest(url);
+      try {
+        const existing = await cache.match?.(request);
+        if (existing) {
+          report.cached.push(url);
+          return;
+        }
+        const response = await this.fetcher(url, { cache: 'reload' });
+        if (!response?.ok) throw createOmniError('Loader', `预缓存失败：${url}`);
+        await cache.put?.(request, response.clone ? response.clone() : response);
+        report.fetched.push(url);
+      } catch (error) {
+        report.failed.push({ url, message: error?.message || String(error) });
+      }
+    }));
+    return report;
+  }
+
+  async predecodeTextures(items, options = {}) {
+    const list = normalizeAssetList(items).filter(isCacheableImage);
+    const scheduleIdle = options.scheduleIdle || this.scheduleIdle || defaultIdleScheduler;
+    const imageFactory = options.imageFactory || this.imageFactory || defaultImageFactory;
+    const report = { decoded: [], failed: [] };
+
+    await new Promise((resolve) => {
+      scheduleIdle(async () => {
+        await Promise.all(list.map(async (item) => {
+          try {
+            const image = imageFactory();
+            image.decoding = 'async';
+            image.src = item.url;
+            if (typeof image.decode === 'function') await image.decode();
+            report.decoded.push(item.url);
+          } catch (error) {
+            report.failed.push({ url: item.url, message: error?.message || String(error) });
+          }
+        }));
+        resolve();
+      });
+    });
+
+    return report;
   }
 
   async _loadItem(item, retriesLeft) {
@@ -230,6 +290,41 @@ function defaultPathResolver(item = {}) {
 
 function isPngUrl(url = '') {
   return /\.png(?:$|[?#])/i.test(url);
+}
+
+function normalizeAssetList(items) {
+  return Array.isArray(items) ? items : items?.assets || [];
+}
+
+function isCacheableImage(item = {}) {
+  return Boolean(item?.url) && (
+    item.type === 'image'
+    || item.type === 'texture'
+    || /\.(png|webp|jpg|jpeg|avif)(?:$|[?#])/i.test(item.url)
+  );
+}
+
+function createRequest(url) {
+  if (typeof Request === 'function') {
+    try {
+      return new Request(url);
+    } catch {
+      return { url };
+    }
+  }
+  return { url };
+}
+
+function defaultIdleScheduler(callback) {
+  if (typeof globalThis.requestIdleCallback === 'function') {
+    return globalThis.requestIdleCallback(callback, { timeout: 1000 });
+  }
+  return setTimeout(callback, 0);
+}
+
+function defaultImageFactory() {
+  if (typeof Image === 'function') return new Image();
+  return { decode: async () => undefined };
 }
 
 let detectedWebpSupport = null;

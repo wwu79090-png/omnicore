@@ -1,0 +1,39 @@
+name: Contributor Preview
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contributor-preview-dist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:contract
+      - run: npm run test:backends
+      - run: npm run benchmark:memory
+      - run: npm run quality:gate
+      - run: npm run dist:full
+      - run: npm run production-ready
+      - uses: actions/upload-artifact@v4
+        with:
+          name: contributor-preview-dist
+          path: |
+            dist/**
+            OmniCore-v*-Offline.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: contributor-preview-reports
+          path: |
+            docs/release-notes/production-ready-report.json
+            docs/release-notes/maintenance-health-report.json
+            performance-regression-report.md

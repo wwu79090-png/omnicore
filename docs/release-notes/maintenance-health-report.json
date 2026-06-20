@@ -1,17 +1,8 @@
 {
-  "generatedAt": "2026-06-19T16:23:17.123Z",
+  "generatedAt": "2026-06-19T20:23:36.397Z",
   "full": false,
   "status": "pass",
   "checks": [
-    {
-      "name": "memory",
-      "durationMs": 750,
-      "baseline": 65363840,
-      "current": 47020712,
-      "growthRatio": -0.28063112571109655,
-      "status": "pass",
-      "threshold": 0.2
-    },
     {
       "name": "backends",
       "status": "pass",
@@ -37,44 +28,39 @@
       ]
     },
     {
-      "name": "playwright",
+      "name": "network",
       "status": "pass",
       "results": [
         {
-          "browser": "Chrome",
+          "profile": "3g",
           "status": "pass",
-          "pageStatus": "当前后端：canvas",
+          "degraded": true,
+          "reason": "slow-network",
+          "durationMs": 320,
+          "pageStatus": "当前后端: canvas",
           "canvasCount": 1,
-          "fallbackBackend": null,
-          "consoleIssueCount": 0,
-          "reason": null
+          "consoleIssues": []
         },
         {
-          "browser": "Firefox",
+          "profile": "4g",
           "status": "pass",
-          "pageStatus": "当前后端：canvas",
+          "degraded": false,
+          "reason": null,
+          "durationMs": 80,
+          "pageStatus": "当前后端: canvas",
           "canvasCount": 1,
-          "fallbackBackend": null,
-          "consoleIssueCount": 0,
-          "reason": null
+          "consoleIssues": []
         },
         {
-          "browser": "Safari(WebKit)",
+          "profile": "offline",
           "status": "pass",
-          "pageStatus": "当前后端：canvas",
-          "canvasCount": 1,
-          "fallbackBackend": null,
-          "consoleIssueCount": 0,
-          "reason": null
-        },
-        {
-          "browser": "Edge",
-          "status": "pass",
-          "pageStatus": "当前后端：canvas",
-          "canvasCount": 1,
-          "fallbackBackend": null,
-          "consoleIssueCount": 0,
-          "reason": null
+          "degraded": true,
+          "reason": "offline-fallback",
+          "error": "page.goto: net::ERR_INTERNET_DISCONNECTED at http://127.0.0.1:5173/tests/network-health.html?backend=canvas",
+          "durationMs": 0,
+          "pageStatus": "",
+          "canvasCount": 0,
+          "consoleIssues": []
         }
       ]
     }

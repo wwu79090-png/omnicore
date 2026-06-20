@@ -55,6 +55,7 @@
     <button id="addBox">添加方块</button>
     <button id="saveScene">保存场景</button>
     <button id="exportJson">导出为 JSON</button>
+    <button id="exportHtml">导出为独立 HTML</button>
   </div>
   <aside class="panel">
     <h1>editor.omnicore.dev</h1>
@@ -167,7 +168,10 @@
       updateOutput('已保存到 localStorage: omnicore:editor:lastScene');
     });
     document.getElementById('exportJson').addEventListener('click', downloadScene);
+    document.getElementById('exportHtml').addEventListener('click', downloadStandaloneHtml);
     window.downloadScene = downloadScene;
+    window.exportStandaloneHtml = buildStandaloneHtml;
+    window.downloadStandaloneHtml = downloadStandaloneHtml;
 
     function pointerPoint(event) {
       const rect = game.core.canvas.getBoundingClientRect();
@@ -258,6 +262,75 @@
       link.download = 'Scene.json';
       link.click();
       URL.revokeObjectURL(url);
+    }
+
+    function buildStandaloneHtml(sceneJson = toSceneJson()) {
+      const safeScene = JSON.stringify(sceneJson).replace(/</g, '\\u003c');
+      const closeScript = '</' + 'script>';
+      return `<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OmniCore Scene Preview</title>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; background: #10151f; color: #e5e7eb; font-family: system-ui, sans-serif; }
+    main { display: grid; place-items: center; min-height: 100%; padding: 20px; }
+    canvas { width: min(960px, 100%); aspect-ratio: 16 / 9; border: 1px solid #334155; background: #0f172a; image-rendering: pixelated; }
+  </style>
+</head>
+<body>
+  <main>
+    <canvas id="preview" width="960" height="540" aria-label="OmniCore exported scene preview"></canvas>
+  </main>
+  <script>
+    window.__OMNICORE_SCENE__ = ${safeScene};
+    ${standalonePreviewRuntime()}
+  ${closeScript}
+</body>
+</html>`;
+    }
+
+    function standalonePreviewRuntime() {
+      return `
+const canvas = document.getElementById('preview');
+const ctx = canvas.getContext('2d');
+const scene = window.__OMNICORE_SCENE__ || { entities: [] };
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '18px system-ui, sans-serif';
+  ctx.fillText(scene.name || 'OmniCore Scene', 24, 34);
+  for (const entity of scene.entities || []) {
+    const props = entity.props || {};
+    const scale = entity.scale || 1;
+    const width = (props.width || 48) * scale;
+    const height = (props.height || 48) * scale;
+    ctx.save();
+    ctx.translate(entity.x || 0, entity.y || 0);
+    ctx.rotate(entity.rotation || 0);
+    ctx.fillStyle = props.color || '#38bdf8';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#0f172a';
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.fillText(entity.id || entity.texture || 'entity', 6, Math.min(28, height - 8));
+    ctx.restore();
+  }
+}
+draw();`;
+    }
+
+    function downloadStandaloneHtml() {
+      const blob = new Blob([buildStandaloneHtml()], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'OmniCoreScenePreview.html';
+      link.click();
+      URL.revokeObjectURL(url);
+      updateOutput('已导出独立 HTML 预览文件');
     }
   </script>
 </body>

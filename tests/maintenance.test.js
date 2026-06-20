@@ -92,7 +92,7 @@ describe('OmniCore maintenance system', () => {
     expect(packageJson.scripts['audit:deprecated']).toBe('node scripts/audit-deprecated.js');
     expect(packageJson.scripts['security-check']).toBe('node scripts/security-check.js');
     expect(packageJson.scripts['test:mem']).toBe('node scripts/health-check.js --memory');
-    expect(packageJson.scripts['test:backends']).toBe('node scripts/health-check.js --backends');
+    expect(packageJson.scripts['test:backends']).toBe('node scripts/health-check.js --backends --network');
     expect(packageJson.scripts['browsers:install']).toBe('playwright install chromium firefox webkit');
     expect(packageJson.scripts['pretest:e2e']).toBe('playwright install chromium firefox webkit');
   });

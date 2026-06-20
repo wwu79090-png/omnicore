@@ -7,9 +7,31 @@ npm install
 npm test
 npm run lint
 npm run build:prod
+npm link
 ```
 
 For a no-friction desktop start, double-click `OmniCore_Dev_Launcher.bat` on Windows or `OmniCore_Dev_Launcher.command` on macOS.
+
+## Contributor Sandbox Preview
+
+Use `npm link` for fast local addon/app checks:
+
+```bash
+npm ci
+npm link
+cd ../your-omnicore-game
+npm link omnicore
+npm test
+```
+
+Use `Dockerfile.contributor` when you need a clean preview that mirrors CI without touching your local Node installation:
+
+```bash
+docker build -f Dockerfile.contributor -t omnicore-contributor .
+docker run --rm omnicore-contributor
+```
+
+The image installs dependencies, runs `npm run quality:gate`, and keeps the generated environment disposable. Pull requests also run the Contributor Preview workflow, which produces a runnable `dist` package plus reports for contract tests, backend/network checks, low-memory benchmark, and production readiness.
 
 ## Development Rules
 

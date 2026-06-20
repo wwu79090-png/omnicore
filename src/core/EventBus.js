@@ -15,7 +15,9 @@ export class EventBus {
     overflowThreshold = 100,
     microbatchSize = 10,
     maxRecursionDepth = 50,
-    recursionGuard = true
+    recursionGuard = true,
+    debug = false,
+    enforceHandlerReuse = debug
   } = {}) {
     this.listeners = new Map();
     this.frameEventLimit = frameEventLimit;
@@ -26,6 +28,8 @@ export class EventBus {
     this.eventQueue = [];
     this.maxRecursionDepth = maxRecursionDepth;
     this.recursionGuard = recursionGuard;
+    this.debug = debug;
+    this.enforceHandlerReuse = enforceHandlerReuse;
     this.recursionStack = [];
     this.recursionDiagnostics = {
       lastCycle: [],
@@ -39,7 +43,8 @@ export class EventBus {
    * @param {Function} handler Event handler.
    * @returns {Function} Unsubscribe callback.
    */
-  on(event, handler) {
+  on(event, handler, { internal = false } = {}) {
+    this._assertReusableHandler(handler, internal);
     if (!this.listeners.has(event)) this.listeners.set(event, new Set());
     this.listeners.get(event).add(handler);
     return () => this.off(event, handler);
@@ -51,10 +56,13 @@ export class EventBus {
    * @returns {Function} Unsubscribe callback.
    */
   once(event, handler) {
-    const off = this.on(event, (...args) => {
+    this._assertReusableHandler(handler, false);
+    let off = () => {};
+    const onceEventBusHandler = (...args) => {
       off();
       handler(...args);
-    });
+    };
+    off = this.on(event, onceEventBusHandler, { internal: true });
     return off;
   }
 
@@ -178,6 +186,16 @@ export class EventBus {
       }
     } finally {
       this.recursionStack.pop();
+    }
+  }
+
+  _assertReusableHandler(handler, internal) {
+    if (internal || !this.enforceHandlerReuse) return;
+    if (typeof handler !== 'function') {
+      throw createOmniError('EventBus', '事件回调必须是函数。');
+    }
+    if (!handler.name && handler.__omnicoreReusable !== true) {
+      throw createOmniError('EventBus', '[OmniCore] 内存警告：请在 EventBus 中复用函数句柄。');
     }
   }
 

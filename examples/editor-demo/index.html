@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>OmniCore Editor Demo</title>
+    <style>
+      body { margin: 0; font: 14px system-ui, sans-serif; background: #f8fafc; color: #111827; }
+      main { display: grid; grid-template-columns: 220px minmax(320px, 1fr) 280px; min-height: 100vh; }
+      aside, section { padding: 16px; border-right: 1px solid #d1d5db; }
+      .canvas { position: relative; background: #dbeafe; overflow: hidden; }
+      .entity { position: absolute; display: grid; place-items: center; color: #fff; font-size: 12px; }
+      .player { left: 96px; top: 176px; width: 32px; height: 48px; background: #2563eb; }
+      .platform { left: 0; top: 360px; width: 640px; height: 32px; background: #334155; }
+      .coin { left: 360px; top: 220px; width: 24px; height: 24px; border-radius: 999px; background: #f59e0b; }
+      button { display: block; width: 100%; margin: 0 0 8px; padding: 8px; text-align: left; }
+      label { display: grid; gap: 4px; margin: 0 0 10px; }
+      input { padding: 6px; }
+      .toolbar { display: flex; gap: 8px; margin-bottom: 12px; }
+      .toolbar button { width: auto; }
+    </style>
+  </head>
+  <body>
+    <main data-editor-demo>
+      <aside aria-label="Scene tree">
+        <h1>Scene Tree</h1>
+        <button>▾ editor-demo</button>
+        <button>Player</button>
+        <button>Ground Platform</button>
+        <button>Coin Pickup</button>
+      </aside>
+      <section class="canvas" aria-label="Scene canvas">
+        <div class="toolbar">
+          <button>W Move</button>
+          <button>E Rotate</button>
+          <button>R Scale</button>
+          <button>Run</button>
+          <button>Pause</button>
+          <button>Step</button>
+        </div>
+        <div class="entity player">Player</div>
+        <div class="entity platform">Ground</div>
+        <div class="entity coin">Coin</div>
+      </section>
+      <aside aria-label="Inspector">
+        <h2>Inspector</h2>
+        <label>x <input value="96"></label>
+        <label>y <input value="176"></label>
+        <label>scale <input value="1"></label>
+        <label>rotation <input value="0"></label>
+        <p>Components: KeyboardController, PlatformerBody</p>
+        <p>Tilemap: collision layer visible</p>
+      </aside>
+    </main>
+  </body>
+</html>

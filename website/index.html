@@ -252,8 +252,12 @@
       </div>
       <nav aria-label="Primary">
         <a href="/website/playground/">Playground</a>
+        <a href="/website/news/">News</a>
         <a href="/website/plugins/">Plugins</a>
         <a href="/website/migration/">Migration</a>
+        <a href="/website/roadmap.html">Roadmap</a>
+        <a href="/website/quickstart-video.html">Quickstart Video</a>
+        <a href="/website/story.html">Story</a>
         <a href="https://www.npmjs.com/package/omnicore">NPM</a>
       </nav>
     </header>
@@ -262,11 +266,31 @@
       <section class="hero">
         <div class="hero-content">
           <h1>OmniCore</h1>
+          <p class="lead" data-positioning-anchor>OmniCore: 33KB WebGPU 轻量引擎，跑 1000 个 Sprite 还能稳 144 FPS。</p>
           <p class="lead">A 2D-first web game engine with PixiJS rendering, visual event sheets, plugin workflows, editor tooling, and industrial asset pipelines for shipping browser games.</p>
           <div class="actions">
             <a class="button" href="https://www.npmjs.com/package/omnicore">Install from NPM</a>
             <a class="button secondary" href="/website/playground/">Open Playground</a>
+            <a class="button secondary" href="/examples/full-game-demo/">30 分钟 Demo</a>
           </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="flagship-case" data-flagship-case="code-awakener">
+        <h2 id="flagship-case">先发案例：代码觉醒者</h2>
+        <div class="grid">
+          <article class="panel">
+            <h3>能点开、能玩、能看到画面</h3>
+            <p>《代码觉醒者》保留为 OmniCore 的旗舰可玩案例，用于展示 2D Runtime、调试工具、插件流和发布流程的真实组合。</p>
+          </article>
+          <article class="panel">
+            <h3>Play Now</h3>
+            <p><a href="/examples/game-demo/">立即试玩</a>当前 RPG Mini Demo；完整先发案例会持续把问题回流到引擎质量门禁。</p>
+          </article>
+          <article class="panel">
+            <h3>30 分钟完整游戏</h3>
+            <p><a href="/examples/full-game-demo/">examples/full-game-demo/</a> 提供一个只使用 OmniCore 核心功能的可玩微型游戏。</p>
+          </article>
         </div>
       </section>
 
@@ -274,7 +298,7 @@
         <h2 id="release-data">Release Data</h2>
         <div class="metrics">
           <div class="metric"><strong>521/521</strong><span>Vitest checks passed before release.</span></div>
-          <div class="metric"><strong>654.11 kB</strong><span>Generated <code>dist/omnicore.esm.js</code> artifact.</span></div>
+          <div class="metric"><strong>692.83 kB</strong><span>Generated <code>dist/omnicore.esm.js</code> artifact.</span></div>
           <div class="metric"><strong>33.36 kB</strong><span>Lean core ESM output after production build.</span></div>
           <div class="metric"><strong>0</strong><span>High-risk dependency and deprecated API findings.</span></div>
         </div>
@@ -294,6 +318,24 @@
           <article class="panel">
             <h3>Production Pipeline</h3>
             <p>Dependency forensics, build output verification, benchmark gates, WeChat export helpers, and plugin marketplace scaffolding.</p>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="community-loop">
+        <h2 id="community-loop">Community Feedback Loop</h2>
+        <div class="grid">
+          <article class="panel">
+            <h3>Benchmark Showroom</h3>
+            <p><a href="/tests/benchmark/benchmark.html">Open visual benchmark</a> to watch the 1000 Sprite showroom with 144 FPS and 1 Draw Call indicators.</p>
+          </article>
+          <article class="panel">
+            <h3>公开路线图</h3>
+            <p><a href="/website/roadmap.html">查看 Roadmap</a>：已完成、开发中、规划中和社区反馈入口全部公开。</p>
+          </article>
+          <article class="panel">
+            <h3>Opt-in Telemetry</h3>
+            <p>运行时健康遥测默认关闭，仅在开发者开启后生成匿名聚合摘要；<a href="/website/news/">News</a> 持续公开隐私说明、版本发布和社区案例。</p>
           </article>
         </div>
       </section>

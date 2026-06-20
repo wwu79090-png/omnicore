@@ -1,65 +1,65 @@
 {
-  "generatedAt": "2026-06-19T16:22:34.321Z",
-  "threshold": 0.001,
+  "generatedAt": "2026-06-19T20:28:40.975Z",
+  "threshold": 0.005,
   "results": [
     {
       "name": "template-2d-platformer",
       "diffRatio": 0,
-      "threshold": 0.001,
+      "threshold": 0.005,
       "pass": true
     },
     {
       "name": "template-2d-rpg",
       "diffRatio": 0,
-      "threshold": 0.001,
+      "threshold": 0.005,
       "pass": true
     },
     {
       "name": "template-rpg",
       "diffRatio": 0,
-      "threshold": 0.001,
+      "threshold": 0.005,
       "pass": true
     },
     {
       "name": "template-interactive",
       "diffRatio": 0,
-      "threshold": 0.001,
+      "threshold": 0.005,
       "pass": true
     },
     {
       "name": "template-tilemap",
       "diffRatio": 0,
-      "threshold": 0.001,
+      "threshold": 0.005,
       "pass": true
     },
     {
       "name": "game-demo",
       "diffRatio": 0,
-      "threshold": 0.001,
+      "threshold": 0.005,
       "pass": true
     },
     {
       "name": "playground",
       "diffRatio": 0,
-      "threshold": 0.001,
+      "threshold": 0.005,
       "pass": true
     },
     {
       "name": "core-runtime-systems",
       "diffRatio": 0,
-      "threshold": 0.001,
+      "threshold": 0.005,
       "pass": true
     },
     {
       "name": "offscreen-transfer",
       "diffRatio": 0,
-      "threshold": 0.001,
+      "threshold": 0.005,
       "pass": true
     },
     {
       "name": "synth-audio",
       "diffRatio": 0,
-      "threshold": 0.001,
+      "threshold": 0.005,
       "pass": true
     }
   ],

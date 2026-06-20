@@ -27,6 +27,9 @@
       .asset-packs { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 12px; }
       .asset-packs article { border: 1px solid #334155; border-radius: 8px; padding: 10px; background: #020617; }
       .asset-packs h3 { margin: 0 0 6px; font-size: 14px; }
+      .publishing-examples { margin: 0 0 28px; padding: 16px; border: 1px solid #334155; border-radius: 8px; background: #111827; }
+      .publishing-examples h2 { margin: 0 0 8px; font-size: 18px; }
+      .publishing-examples p { color: #cbd5e1; }
     </style>
   </head>
   <body>
@@ -38,6 +41,37 @@
         </div>
         <a class="submit" href="../../.github/ISSUE_TEMPLATE/plugin_submission.yml">Submit Plugin</a>
       </header>
+
+      <section class="publishing-examples" data-plugin-publishing-examples aria-label="Published plugin examples">
+        <h2>已上架插件示例</h2>
+        <p>外部开发者可参考这些官方上架卡片准备截图、安装命令、版本号、付费字段和分账信息。发布流程见 <a href="../../docs/plugin-publishing-guide.md">Plugin Publishing Guide</a>。</p>
+        <div class="market-grid">
+          <article class="plugin-card" data-listed-plugin="ai-pathfinding">
+            <img src="./assets/pathfinding.svg" alt="A* Pathfinding actual plugin screenshot">
+            <div>
+              <h2>A* Pathfinding</h2>
+              <p>Version 1.0.0 · Free · Web / WeChat</p>
+              <code>npm install @omnicore/plugin-ai-pathfinding</code>
+            </div>
+          </article>
+          <article class="plugin-card" data-listed-plugin="save-cloud">
+            <img src="./assets/cloud-save.svg" alt="Cloud Save actual plugin screenshot">
+            <div>
+              <h2>Cloud Save</h2>
+              <p>Version 1.1.0 · Paid 80/20 · Web / Electron</p>
+              <code>npm install @omnicore/plugin-save-cloud</code>
+            </div>
+          </article>
+          <article class="plugin-card" data-listed-plugin="wechat-monetization">
+            <img src="./assets/wechat-monetization.svg" alt="WeChat monetization actual plugin screenshot">
+            <div>
+              <h2>WeChat Mini Game Monetization</h2>
+              <p>Version 1.0.0 · Paid 70/30 · WeChat</p>
+              <code>npm install @omnicore/plugin-wechat-monetization</code>
+            </div>
+          </article>
+        </div>
+      </section>
 
       <section class="market-grid" aria-label="Featured official plugins">
         <article class="plugin-card">

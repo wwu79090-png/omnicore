@@ -13,6 +13,8 @@ vi.mock('../src/dimension3d/Dimension3D.js', () => ({
       this.config = config;
       this.init = vi.fn(async () => this);
       this.render = vi.fn();
+      this.startRenderLoop = vi.fn();
+      this.stopRenderLoop = vi.fn();
       this.destroy = vi.fn();
       dimensionState.instances.push(this);
     }
@@ -27,7 +29,7 @@ describe('Dimension3D Game loop binding', () => {
     document.body.innerHTML = '';
   });
 
-  it('renders the decorative 3D background from the main Game loop', async () => {
+  it('runs the decorative 3D background through its own throttled render loop', async () => {
     const game = new OmniCore.Game({
       renderer: 'canvas',
       autoStart: false,
@@ -42,10 +44,12 @@ describe('Dimension3D Game loop binding', () => {
 
     expect(dimensionState.instances).toHaveLength(1);
     expect(dimensionState.instances[0].init).toHaveBeenCalledTimes(1);
-    expect(dimensionState.instances[0].render).toHaveBeenCalledWith(1 / 60);
+    expect(dimensionState.instances[0].startRenderLoop).toHaveBeenCalledWith({ fps: 30 });
+    expect(dimensionState.instances[0].render).not.toHaveBeenCalled();
 
     game.destroy();
 
+    expect(dimensionState.instances[0].stopRenderLoop).toHaveBeenCalledTimes(1);
     expect(dimensionState.instances[0].destroy).toHaveBeenCalledTimes(1);
   });
 });

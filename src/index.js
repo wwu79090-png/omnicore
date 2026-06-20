@@ -37,6 +37,7 @@ import StaticBatchCompiler from './renderer/StaticBatchCompiler.js';
 import Loop from './loop/Loop.js';
 import Button from './ui/Button.js';
 import UIElement from './ui/UIElement.js';
+import UIRenderManager from './ui/UIRenderManager.js';
 import UIButton from './ui/UIButton.js';
 import UITextInput from './ui/UITextInput.js';
 import UIScrollView from './ui/UIScrollView.js';
@@ -77,6 +78,7 @@ import FrameProfiler from './debug/FrameProfiler.js';
 import PerformanceMonitor from './debug/PerformanceMonitor.js';
 import PerformanceMetrics from './debug/PerformanceMetrics.js';
 import ProfilerWaterfallPanel from './debug/ProfilerWaterfallPanel.js';
+import ProfilerSnapshot from './debug/ProfilerSnapshot.js';
 import RemoteDevTools from './debug/RemoteDevTools.js';
 import CrashReporter from './debug/CrashReporter.js';
 import EmergencyOverlay from './debug/EmergencyOverlay.js';
@@ -113,6 +115,7 @@ import HotfixManager from './hotfix/HotfixManager.js';
 import AICommandService from './ai/AICommandService.js';
 import AIImporter from './importer/AIImporter.js';
 import WorkerManager from './worker/WorkerManager.js';
+import LogicWorker from './worker/LogicWorker.js';
 import SkeletalAnimation, { DragonBonesAdapter, SpineAdapter, SpinePixiRuntimeAdapter } from './animation/SkeletalAnimation.js';
 import AnimationStateMachine from './animations/AnimationStateMachine.js';
 import Light2D from './lighting/Light2D.js';
@@ -144,6 +147,7 @@ import WasmLoader from './wasm/WasmLoader.js';
 import RenderLayerManager from './renderer/RenderLayerManager.js';
 import PixiBatchAdapter, { CommandBuffer } from './renderer/PixiBatchAdapter.js';
 import { PixiFrameworkBridge, createPixiFrameworkAdoptionPlan } from './renderer/PixiFrameworkBridge.js';
+import { PixiTextureLifecycle } from './renderer/PixiTextureLifecycle.js';
 import { PhaserCompatScene, createPhaserCompatScene } from './compat/phaser/PhaserCompat.js';
 import Kernel from './microkernel/Kernel.js';
 import RendererAdapter from './microkernel/RendererAdapter.js';
@@ -160,6 +164,7 @@ import LeanOmniCore, {
   createLeanRuntime
 } from './lean/index.js';
 import DebugRenderer, { createDebugAPI, isDebugBuildEnabled } from './debug/DebugRenderer.js';
+import MemoryGuardian from './debug/MemoryGuardian.js';
 import EngineQualityHarness, {
   runBudgetCheck,
   runDeterminismCheck,
@@ -222,6 +227,55 @@ function resolveRuntimeConfig(config = {}) {
     ...config,
     platform: environment.platform
   };
+}
+
+const TELEMETRY_INSTRUMENTED_GAMES = new WeakSet();
+
+function normalizeTelemetryConfig(config = {}) {
+  if (config.telemetry === true) return { enabled: true, anonymous: true };
+  if (typeof config.telemetry === 'object' && config.telemetry) return config.telemetry;
+  return {};
+}
+
+function attachRuntimeTelemetry(game) {
+  const telemetryConfig = normalizeTelemetryConfig(game.config);
+  const runtimeEnabled = telemetryConfig.enabled === true || game.config.telemetry === true;
+  if (!runtimeEnabled) return;
+  game.telemetryCollector = game.telemetryCollector || new TelemetryCollector({
+    debug: Boolean(game.config.debug),
+    anonymous: telemetryConfig.anonymous !== false,
+    engineVersion: telemetryConfig.engineVersion || game.config.engineVersion || game.config.version || '1.0.0',
+    runtime: true,
+    intervalMs: telemetryConfig.intervalMs ?? 15000,
+    endpoint: telemetryConfig.endpoint || null,
+    fetcher: telemetryConfig.fetcher || globalThis.fetch?.bind(globalThis),
+    transport: telemetryConfig.transport || null
+  });
+  const recordRuntimeIssue = (scope, payload = {}) => {
+    const source = payload?.error || payload?.reason || payload?.cause || payload;
+    const error = source && typeof source === 'object'
+      ? source
+      : { name: 'RuntimeIssue', message: String(source || scope) };
+    game.telemetryCollector?.recordError?.(scope, error);
+  };
+  game.telemetryUnpatches.push(game.events.on('error', (payload) => recordRuntimeIssue('Engine.error', payload)));
+  game.telemetryUnpatches.push(game.events.on('warning', (payload) => recordRuntimeIssue('Engine.warning', payload)));
+  if (typeof window !== 'undefined') {
+    const onError = (event) => recordRuntimeIssue('Window.error', event?.error || {
+      name: 'WindowError',
+      message: event?.message || 'window error'
+    });
+    const onRejection = (event) => recordRuntimeIssue('Window.unhandledrejection', event?.reason || {
+      name: 'UnhandledRejection',
+      message: 'unhandled rejection'
+    });
+    window.addEventListener('error', onError);
+    window.addEventListener('unhandledrejection', onRejection);
+    game.telemetryUnpatches.push(() => window.removeEventListener('error', onError));
+    game.telemetryUnpatches.push(() => window.removeEventListener('unhandledrejection', onRejection));
+  }
+  game.telemetryCollector.startRuntime(game);
+  game.telemetryUnpatches.push(() => game.telemetryCollector?.stopRuntime?.());
 }
 
 /**
@@ -311,6 +365,7 @@ class Game extends CoreGame {
   }
 
   _attachRuntimeExtensions() {
+    attachRuntimeTelemetry(this);
     if (this.config.debug) {
       Debug.configure({ debug: true, mode: this.config.mode || 'development' });
       this.debugRenderer = Debug.renderer;
@@ -352,6 +407,8 @@ class Game extends CoreGame {
         this.editorPanel = this.editorPanel || new EditorPanel(this, options);
         this.editorPanel.attach();
       }
+    } else if (this.config.telemetry === true || this.config.telemetry?.anonymous === true) {
+      this._attachTelemetryInstrumentation();
     }
 
     if (this.config.feedback) {
@@ -381,9 +438,16 @@ class Game extends CoreGame {
   }
 
   _attachTelemetryInstrumentation() {
-    if (!this.config.debug) return;
-    this.telemetryCollector = this.telemetryCollector || new TelemetryCollector({ debug: true });
-    if (this.telemetryUnpatches.length) return;
+    const telemetryConfig = normalizeTelemetryConfig(this.config);
+    if (!this.config.debug && telemetryConfig.anonymous !== true) return;
+    this.telemetryCollector = this.telemetryCollector || new TelemetryCollector({
+      debug: true,
+      anonymous: telemetryConfig.anonymous === true,
+      engineVersion: this.config.engineVersion || this.config.version || '1.0.0'
+    });
+    this.telemetryCollector.debug = true;
+    if (telemetryConfig.anonymous === true) this.telemetryCollector.anonymous = true;
+    if (TELEMETRY_INSTRUMENTED_GAMES.has(this)) return;
     const wrap = (target, method, api, options) => {
       const unpatch = this.telemetryCollector.wrapMethod(target, method, api, options);
       this.telemetryUnpatches.push(unpatch);
@@ -395,6 +459,7 @@ class Game extends CoreGame {
     wrap(this.net, 'request', 'Net.request', { configPath: (url) => `net.${url}` });
     wrap(this.worker, 'run', 'Worker.run', { configPath: (task) => `worker.${task}` });
     if (this.renderer) wrap(this.renderer, 'renderScene', 'Renderer.renderScene', { configPath: () => 'renderer.scene' });
+    TELEMETRY_INSTRUMENTED_GAMES.add(this);
   }
 
   async _runAdaptiveQuality() {
@@ -469,6 +534,7 @@ class Game extends CoreGame {
     this.developerReport = null;
     this.telemetryCollector = null;
     this.telemetryDashboard = null;
+    TELEMETRY_INSTRUMENTED_GAMES.delete(this);
     this.emergencyOverlay = null;
     this.deviceProfiler = null;
     this.deviceProfile = null;
@@ -620,7 +686,7 @@ const OmniCore = {
   Timer,
   TimeGuard,
   Animation,
-  UI: { Button, UIElement, UIButton, UITextInput, UIScrollView },
+  UI: { Button, UIElement, UIRenderManager, UIButton, UITextInput, UIScrollView },
   Prefab,
   PrefabRegistry,
   PrefabManager,
@@ -673,6 +739,7 @@ const OmniCore = {
   PlatformVariantResolver,
   Worker: WorkerManager,
   WorkerManager,
+  LogicWorker,
   ComputeRuntime,
   WasmLoader,
   findPath,
@@ -732,6 +799,7 @@ const OmniCore = {
   Debug,
   Assert,
   DebugRenderer,
+  MemoryGuardian,
   isDebugBuildEnabled,
   DebugConsole,
   DevProfile,
@@ -754,6 +822,7 @@ const OmniCore = {
   PerformanceMonitor,
   PerformanceMetrics,
   ProfilerWaterfallPanel,
+  ProfilerSnapshot,
   RemoteDevTools,
   CrashReporter,
   VersionDialog,
@@ -809,6 +878,7 @@ export {
   Debug,
   DebugConsole,
   DebugRenderer,
+  MemoryGuardian,
   DevProfile,
   DeveloperUsageReport,
   DeviceProfiler,
@@ -856,6 +926,7 @@ export {
   LiveInspector,
   Loader,
   LogForwarder,
+  LogicWorker,
   Loop,
   Light2D,
   MarketplaceServer,
@@ -881,6 +952,7 @@ export {
   PixiRenderer,
   PixiBatchAdapter,
   PixiFrameworkBridge,
+  PixiTextureLifecycle,
   PixiRendererAddon,
   PluginRecommendationEngine,
   PlaySession,
@@ -892,6 +964,7 @@ export {
   PrefabManager,
   PrefabRegistry,
   ProfilerWaterfallPanel,
+  ProfilerSnapshot,
   Query,
   Rect,
   runBudgetCheck,
@@ -939,6 +1012,7 @@ export {
   TutorialGuide,
   Tween,
   UIElement,
+  UIRenderManager,
   UIButton,
   UIScrollView,
   UITextInput,

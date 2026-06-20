@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="npm create omnicore-app command result">
+  <rect width="960" height="540" fill="#f8fafc"/>
+  <rect x="80" y="72" width="800" height="396" rx="12" fill="#111827"/>
+  <text x="112" y="124" fill="#a7f3d0" font-family="Consolas, monospace" font-size="24">$ npx create-omnicore-app my-first-game --template platformer</text>
+  <text x="112" y="178" fill="#e5e7eb" font-family="Consolas, monospace" font-size="22">created package.json</text>
+  <text x="112" y="222" fill="#e5e7eb" font-family="Consolas, monospace" font-size="22">created index.html</text>
+  <text x="112" y="266" fill="#e5e7eb" font-family="Consolas, monospace" font-size="22">created src/main.js</text>
+  <text x="112" y="330" fill="#93c5fd" font-family="Consolas, monospace" font-size="22">Next: cd my-first-game</text>
+  <text x="112" y="374" fill="#93c5fd" font-family="Consolas, monospace" font-size="22">Next: npm install && npm run dev</text>
+</svg>

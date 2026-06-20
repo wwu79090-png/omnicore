@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/assets/icons/web/favicon.png" />
     <title>OmniCore Backend Switch</title>
-    <style>
+    <style id="omnicore-critical-css">
       html,
       body {
         margin: 0;
@@ -27,6 +27,16 @@
       #game-container {
         width: 100vw;
         height: 100vh;
+      }
+
+      #omnicore-boot-skeleton {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 1;
+        pointer-events: none;
+        background: #101820;
       }
 
       .hud {
@@ -79,11 +89,38 @@
     </style>
   </head>
   <body>
+    <svg id="omnicore-boot-skeleton" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+      <rect width="960" height="540" fill="#101820"></rect>
+      <rect x="72" y="92" width="150" height="150" fill="#64d2ff"></rect>
+      <rect x="72" y="270" width="220" height="28" fill="#f8fafc" opacity="0.9"></rect>
+    </svg>
+    <script id="omnicore-precompile-core">
+      (() => {
+        const marks = window.__OMNICORE_BOOT_METRICS__ || (window.__OMNICORE_BOOT_METRICS__ = []);
+        const mark = (name) => {
+          marks.push({ name, time: performance.now() });
+          performance.mark?.(name);
+        };
+        mark('omnicore:first-frame-start');
+        requestAnimationFrame(() => mark('omnicore:skeleton-visible'));
+        window.__OMNICORE_PRECOMPILE_GAME__ = function precompileOmniCoreGame(OmniCore) {
+          if (!OmniCore?.Game) return false;
+          try {
+            new OmniCore.Game({ width: 1, height: 1, autoAttach: false, autoStart: false, renderer: 'canvas' });
+            mark('omnicore:game-constructor-precompiled');
+            return true;
+          } catch {
+            return false;
+          }
+        };
+      })();
+    </script>
     <div id="game-container"></div>
     <div class="hud">
       <button data-backend="pixi">Pixi</button>
       <button data-backend="canvas">Canvas</button>
       <button data-backend="webgl">WebGL</button>
+      <a href="examples/full-game-demo/" style="color:#f8fafc;border:1px solid #64d2ff;padding:5px 10px;text-decoration:none">Full Game Demo</a>
     </div>
     <a id="feedback-link" class="feedback-link" target="_blank" rel="noreferrer">反馈</a>
     <div id="status">OmniCore booting...</div>
@@ -170,6 +207,7 @@
       }
 
       async function switchEngine(backend) {
+        window.__OMNICORE_PRECOMPILE_GAME__?.(OmniCore);
         status.textContent = `切换到 ${backend} 中...`;
         console.log(`[OmniCore example] switchStart -> ${backend}`);
 
@@ -200,6 +238,7 @@
         currentGame.scene.register(new DemoScene(backend));
         await currentGame.scene.push('backend-demo');
         currentGame.renderer.renderScene(currentGame.scene.current);
+        document.querySelector('#omnicore-boot-skeleton')?.remove();
         currentGame.hooks.switchComplete?.(backend, currentGame);
         currentGame.start();
 

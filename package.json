@@ -1,7 +1,7 @@
 {
   "name": "omnicore",
   "version": "1.0.0",
-  "description": "OmniCore 2D-first Web game engine core with native WebGPU rendering, event sheets, component prefabs, and industrial asset pipelines.",
+  "description": "OmniCore: 33KB WebGPU 轻量引擎，跑 1000 个 Sprite 还能稳 144 FPS。",
   "author": "杀戮 (Shalu) (QQ 3424636983, WeChat lookkiitylou)",
   "type": "module",
   "main": "src/index.js",
@@ -39,10 +39,11 @@
     "CONTRIBUTING.md"
   ],
   "scripts": {
+    "preinstall": "node scripts/pre-install-check.js",
     "dev": "vite --host 0.0.0.0",
     "editor": "node packages/omnicore-editor/bin/omnicore-editor.cjs",
     "prebuild": "npm run dependency:forensics && npm run audit:deprecated && node scripts/build-static-batches.js --optional && node scripts/optimize-source.js && node scripts/bake-tilemap-collisions.js --optional",
-    "build": "vite build",
+    "build": "node scripts/build.js",
     "postbuild": "node scripts/verify-build-output.js",
     "build:prod": "vite build --mode production",
     "build:workspace": "node tools/build/index.js",
@@ -113,7 +114,8 @@
     "security-check": "node scripts/security-check.js",
     "dependency:forensics": "node scripts/dependency-forensics.js",
     "test:mem": "node scripts/health-check.js --memory",
-    "test:backends": "node scripts/health-check.js --backends"
+    "test:backends": "node scripts/health-check.js --backends --network",
+    "benchmark:memory": "node scripts/benchmark.js memory-limit"
   },
   "dependencies": {
     "@esotericsoftware/spine-pixi": "^4.1.56",

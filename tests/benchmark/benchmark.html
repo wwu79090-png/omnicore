@@ -1,21 +1,113 @@
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>OmniCore Benchmark</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OmniCore Benchmark Showroom</title>
     <style>
-      body { margin: 0; background: #0f172a; color: #e2e8f0; font-family: system-ui, sans-serif; }
-      main { padding: 20px; }
-      canvas { border: 1px solid #334155; background: #020617; }
-      pre { background: #111827; padding: 12px; overflow: auto; }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background: #06111f;
+        color: #e5eefb;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      body {
+        overflow: hidden;
+      }
+      main {
+        position: relative;
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: minmax(320px, 0.72fr) minmax(360px, 1fr);
+        gap: 24px;
+        align-items: center;
+        padding: clamp(18px, 4vw, 56px);
+      }
+      .copy h1 {
+        margin: 0;
+        max-width: 620px;
+        font-size: clamp(38px, 7vw, 78px);
+        line-height: 0.98;
+        letter-spacing: 0;
+      }
+      .copy p {
+        max-width: 560px;
+        color: #b8c7d9;
+        font-size: 18px;
+      }
+      .indicators {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 24px;
+      }
+      .indicator {
+        min-height: 92px;
+        padding: 14px;
+        border: 1px solid #244d6f;
+        border-radius: 8px;
+        background: rgba(9, 25, 44, 0.86);
+      }
+      .indicator strong {
+        display: block;
+        color: #67e8f9;
+        font-size: 26px;
+      }
+      .indicator span {
+        color: #b8c7d9;
+      }
+      .stage {
+        position: relative;
+        min-height: min(72vh, 620px);
+      }
+      canvas {
+        width: 100%;
+        height: 100%;
+        min-height: 460px;
+        border: 1px solid #1d4d72;
+        border-radius: 8px;
+        background: radial-gradient(circle at 50% 50%, #102a42, #020617 72%);
+      }
+      pre {
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        max-height: 130px;
+        margin: 0;
+        padding: 12px;
+        overflow: auto;
+        border: 1px solid rgba(103, 232, 249, 0.28);
+        border-radius: 8px;
+        background: rgba(2, 6, 23, 0.82);
+        color: #bfdbfe;
+        font-size: 12px;
+      }
+      @media (max-width: 880px) {
+        body { overflow: auto; }
+        main { grid-template-columns: 1fr; }
+        canvas { min-height: 360px; }
+        .indicators { grid-template-columns: 1fr; }
+      }
     </style>
   </head>
   <body>
-    <main>
-      <h1>OmniCore Benchmark</h1>
-      <canvas id="bench" width="640" height="360"></canvas>
-      <pre id="output">Running...</pre>
+    <main data-benchmark-showroom>
+      <section class="copy">
+        <h1>1000 Sprite Visual Benchmark</h1>
+        <p>滚动式动态演示展厅：观察 1000 个 Sprite 同屏飞行，并把 144 FPS 和 1 Draw Call 作为持续可见的性能记忆锚点。</p>
+        <div class="indicators" aria-label="Benchmark indicators">
+          <div class="indicator" data-fps-indicator><strong>144 FPS</strong><span>target display budget</span></div>
+          <div class="indicator"><strong>1000 Sprite</strong><span>live sprite cloud</span></div>
+          <div class="indicator"><strong>1 Draw Call</strong><span>Pixi batching target</span></div>
+        </div>
+      </section>
+      <section class="stage">
+        <canvas id="bench" width="960" height="540" aria-label="1000 Sprite benchmark showroom"></canvas>
+        <pre id="output">Running visual benchmark...</pre>
+      </section>
     </main>
     <script type="module" src="./benchmark.js"></script>
   </body>

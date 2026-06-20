@@ -40,6 +40,19 @@ function renderCanvasSpriteFast(ctx, child) {
   return true;
 }
 
+function preparePixiApplicationDestroy(app) {
+  if (!app || typeof app._cancelResize === 'function') return;
+  try {
+      Object.defineProperty(app, '_cancelResize', {
+        value: () => {},
+        configurable: true,
+        writable: true
+      });
+  } catch {
+    app._cancelResize = () => {};
+  }
+}
+
 /**
  * PixiJS v8 backed 2D renderer with Canvas fallback.
  *
@@ -256,13 +269,20 @@ export class PixiRenderer {
     this.destroyed = true;
     const canvas = this.canvas || this.app?.canvas;
     if (this.app) {
+      this._preparePixiApplicationDestroy(this.app);
       try {
-        this.app.destroy(true, true);
-      } catch {
         this.app.destroy(
           { removeView: true },
           { children: true, texture: true, textureSource: true, context: true }
         );
+      } catch (firstError) {
+        this._preparePixiApplicationDestroy(this.app);
+        try {
+          this.app.destroy(true, true);
+        } catch (secondError) {
+          secondError.cause = secondError.cause || firstError;
+          throw secondError;
+        }
       }
     } else if (this.canvas?.parentNode) {
       this.canvas.parentNode.removeChild(this.canvas);
@@ -280,6 +300,10 @@ export class PixiRenderer {
     this.layerManager = null;
     this.unsubscribeEntities?.();
     this.unsubscribeEntities = null;
+  }
+
+  _preparePixiApplicationDestroy(app = this.app) {
+    return preparePixiApplicationDestroy(app);
   }
 
   bindStore(store = this.store, events = this.events) {

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>OmniCore 60 秒快速上手视频</title>
+    <style>
+      body { margin: 0; font: 15px/1.6 system-ui, sans-serif; background: #f8fafc; color: #111827; }
+      main { max-width: 980px; margin: 0 auto; padding: 36px 20px; }
+      .video-shell { border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #0f172a; }
+      video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #0f172a; }
+      .fallback { padding: 16px; color: #e2e8f0; }
+      .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 18px; }
+      .steps article { padding: 14px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>OmniCore 60 秒快速上手视频</h1>
+      <p>这页是官网嵌入位。最终录制建议使用 OBS 或 Screen Studio，按下方四段脚本录制后替换为 CDN 视频源。</p>
+      <section class="video-shell">
+        <video data-quickstart-video controls preload="none" poster="./assets/code-awakener-screenshot.svg" aria-label="60 秒 OmniCore quickstart video">
+          <p>60 秒 quickstart video placeholder. Record with OBS or Screen Studio and attach the hosted MP4 source here.</p>
+        </video>
+        <div class="fallback">
+          当前仓库不提交录屏二进制文件。发布官网时，将 OBS 或 Screen Studio 导出的 60 秒 MP4 挂到 CDN，并在此 video 元素中添加 source。
+        </div>
+      </section>
+
+      <section class="steps" aria-label="Video storyboard">
+        <article><h2>0-15s</h2><p>运行 `npx create-omnicore-app my-first-game --template platformer`，展示生成成功。</p></article>
+        <article><h2>15-30s</h2><p>打开项目目录，解释 `src/main.js`、`index.html` 和 `assets/`。</p></article>
+        <article><h2>30-45s</h2><p>运行 `npm install` 和 `npm run dev`，展示首次游戏画面。</p></article>
+        <article><h2>45-60s</h2><p>修改 jump 数值，保存并展示浏览器热更新。</p></article>
+      </section>
+    </main>
+  </body>
+</html>

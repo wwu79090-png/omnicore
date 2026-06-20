@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OmniCore Roadmap</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: #f8fafc;
+        color: #111827;
+        font: 15px/1.6 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      header, main {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 32px 20px;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(34px, 5vw, 58px);
+        line-height: 1;
+        letter-spacing: 0;
+      }
+      .lead {
+        max-width: 720px;
+        color: #4b5563;
+        font-size: 18px;
+      }
+      .board {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .lane {
+        min-height: 360px;
+        padding: 18px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        background: #ffffff;
+      }
+      .lane h2 {
+        margin: 0 0 12px;
+        font-size: 20px;
+      }
+      .lane ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+      .feedback {
+        margin-top: 18px;
+        padding: 18px;
+        border: 1px solid #93c5fd;
+        border-radius: 8px;
+        background: #eff6ff;
+      }
+      a {
+        color: #1d4ed8;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      @media (max-width: 860px) {
+        .board { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>OmniCore 公开路线图</h1>
+      <p class="lead">社区可以看到已完成、开发中、规划中的工作，并通过 GitHub Issues 提交需求、复现工程和案例。</p>
+    </header>
+    <main data-roadmap-board>
+      <section class="board" aria-label="Roadmap board">
+        <article class="lane" data-roadmap-lane="done">
+          <h2>已完成</h2>
+          <ul>
+            <li>Lean Core、WebGPU/Pixi/Canvas 门禁。</li>
+            <li>Marketplace、WeChat 发布包、桌面编辑器基础流程。</li>
+            <li>《代码觉醒者》入口和 30 分钟完整游戏 Demo。</li>
+          </ul>
+        </article>
+        <article class="lane" data-roadmap-lane="doing">
+          <h2>开发中</h2>
+          <ul>
+            <li>《代码觉醒者》完整 Demo 场景。</li>
+            <li>1000 Sprite Benchmark 视觉演示展厅。</li>
+            <li>编辑器场景树、Gizmo、Tilemap 和播放控制。</li>
+          </ul>
+        </article>
+        <article class="lane" data-roadmap-lane="planned">
+          <h2>规划中</h2>
+          <ul>
+            <li>抖音小游戏和更多平台构建模板。</li>
+            <li>支付、广告、资源管线和平台服务插件。</li>
+            <li>社区案例、教程和性能报告收集。</li>
+          </ul>
+        </article>
+      </section>
+      <section class="feedback">
+        <h2>社区反馈</h2>
+        <p>使用 <a href="https://github.com/omnicorejs/omnicore/issues">GitHub Issues</a> 提交路线图建议、Bug 复现和游戏案例。</p>
+      </section>
+    </main>
+  </body>
+</html>

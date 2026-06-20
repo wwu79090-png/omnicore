@@ -94,6 +94,27 @@ describe('performance refactor coverage', () => {
     expect(renderer.displayPools.get('marker-a')).toContain(firstDisplay);
   });
 
+  it('destroys Pixi applications even when the resize plugin hook is missing', () => {
+    const renderer = new PixiRenderer();
+    const parentNode = { removeChild: vi.fn() };
+    const canvas = { parentNode };
+    const app = {
+      canvas,
+      destroy: vi.fn(function destroy() {
+        this._cancelResize();
+      })
+    };
+    renderer.app = app;
+    renderer.canvas = canvas;
+
+    expect(() => renderer.destroy()).not.toThrow();
+    expect(app.destroy).toHaveBeenCalledWith(
+      { removeView: true },
+      { children: true, texture: true, textureSource: true, context: true }
+    );
+    expect(parentNode.removeChild).toHaveBeenCalledWith(canvas);
+  });
+
   it('runs registered pure functions through worker protocol and rejects stalled tasks', async () => {
     class FakeWorker {
       constructor() {

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OmniCore Network Health</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #101318;
+        color: #f5f7fb;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      #game {
+        width: 320px;
+        height: 180px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status">OmniCore booting...</div>
+    <div id="game"></div>
+    <script type="module">
+      import OmniCore from '/src/lean/index.js';
+
+      const params = new URLSearchParams(window.location.search);
+      const requestedBackend = params.get('backend') || 'canvas';
+      const status = document.querySelector('#status');
+      const runtime = await OmniCore.createLeanRuntime({
+        renderer: {
+          backend: requestedBackend,
+          parent: '#game',
+          width: 320,
+          height: 180
+        }
+      });
+      runtime.addons.renderer.drawRect({
+        x: 8,
+        y: 8,
+        width: 48,
+        height: 32,
+        color: '#4cc9f0'
+      });
+      const activeBackend = runtime.addons.renderer?.backend || requestedBackend;
+      window.__OMNICORE_NETWORK_HEALTH__ = {
+        status: 'ready',
+        requestedBackend,
+        activeBackend,
+        canvasCount: document.querySelectorAll('canvas').length
+      };
+      status.textContent = `当前后端: ${activeBackend}`;
+    </script>
+  </body>
+</html>

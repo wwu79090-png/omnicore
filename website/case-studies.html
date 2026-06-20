@@ -7,52 +7,115 @@
     <style>
       body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, sans-serif; }
       main { max-width: 1120px; margin: 0 auto; padding: 40px 20px; }
-      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-      .case { border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; padding: 18px; }
-      .case img { width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; background: #f1f5f9; }
-      .status { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #dcfce7; color: #166534; }
-      .evidence { color: #334155; font-size: 14px; }
+      header { display: grid; gap: 10px; margin-bottom: 24px; }
+      h1, h2, h3 { margin: 0; letter-spacing: 0; }
+      p { color: #334155; }
+      .case { border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; padding: 20px; }
+      .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 16px 0; }
+      .meta div { padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; }
+      .screenshots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+      .screenshots img { width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; background: #f1f5f9; }
+      .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+      .button { display: inline-flex; align-items: center; min-height: 38px; padding: 8px 12px; border-radius: 6px; background: #111827; color: #fff; text-decoration: none; font-weight: 700; }
+      .button.secondary { background: #fff; color: #111827; border: 1px solid #111827; }
+      .submit { margin-top: 24px; border: 1px dashed #94a3b8; border-radius: 8px; padding: 18px; background: #fff; }
       li { margin: 8px 0; }
+      @media (max-width: 760px) {
+        .screenshots { grid-template-columns: 1fr; }
+      }
     </style>
   </head>
   <body>
-    <main>
-      <h1>OmniCore 市场案例与发布证明</h1>
-      <p>这些案例覆盖微信小游戏、Web 模板和桌面编辑器工作流，用来证明 OmniCore 不只停留在 API 演示，而是能支撑可运行模板、性能门禁和发布检查。</p>
-      <section class="grid">
-        <article class="case" data-case-study="code-awakener" data-publish-evidence="wechat">
-          <h2>代码觉醒者</h2>
-          <p><span class="status">微信小游戏发布链路验证</span></p>
-          <img src="./assets/code-awakener-screenshot.svg" alt="代码觉醒者开发中截图" />
-          <p>2D RPG/解谜混合项目，用于验证 SceneManager、Store、EventSheet、Tilemap Chunk、移动端输入和微信小游戏 4MB 包体门禁。</p>
-          <ul>
-            <li>发布证据：`npm run build:wechat`、`npm run test:wechat`、真机调试手册。</li>
-            <li>质量门禁：lint、全量测试、benchmark、production-ready。</li>
-            <li>3D 边界：单 glTF/GLB 只做装饰背景，不进入全 3D 物理。</li>
-          </ul>
-        </article>
-        <article class="case" data-case-study="starter-platformer" data-publish-evidence="web">
-          <h2>Starter Platformer</h2>
-          <p><span class="status">可运行模板</span></p>
-          <img src="./assets/code-awakener-progress.svg" alt="平台跳跃模板运行画面" />
-          <p>面向新手的 10 分钟 Web 模板，验证角色移动、jump、碰撞、资源加载和 Vite 发布产物。</p>
-          <ul>
-            <li>发布证据：`examples/template-platformer`、`npm run dev`、postbuild 浏览器白屏检查。</li>
-            <li>质量门禁：模板调试手册、资源 404 检查、全量 Vitest 回归。</li>
-            <li>商业价值：降低 Phaser/GDevelop 用户迁移到 OmniCore 的入门成本。</li>
-          </ul>
-        </article>
-        <article class="case" data-case-study="desktop-lowcode-suite" data-publish-evidence="desktop">
-          <h2>Desktop Low-Code Suite</h2>
-          <p><span class="status">编辑器生产流</span></p>
-          <img src="./assets/code-awakener-screenshot.svg" alt="桌面低代码编辑器界面" />
-          <p>Electron 桌面编辑器案例，覆盖工作区扫描、资产预览、Prefab 变体、可视化事件图、UI_Layout 和 config/data.json 数据表编辑。</p>
-          <ul>
-            <li>发布证据：Windows exe、macOS dmg、Linux AppImage 打包目标。</li>
-            <li>质量门禁：desktop-editor-workflow、lowcode-editor-suite、editor-industrial-authoring。</li>
-            <li>市场价值：补齐 Unity/Godot/Cocos 对比中最弱的编辑器深度。</li>
-          </ul>
-        </article>
+    <main data-case-template>
+      <header>
+        <h1>OmniCore 商业案例模板</h1>
+        <p>每个案例必须展示游戏名、开发者/团队名、引擎版本、运行环境（Web / 微信 / Electron）、截图、核心玩法和可体验入口。</p>
+      </header>
+
+      <article class="case" data-case-study="code-awakener" data-publish-evidence="wechat">
+        <h2>代码觉醒者</h2>
+        <div class="meta" aria-label="Case metadata">
+          <div><strong>开发者/团队</strong><br>Shalu Studio</div>
+          <div><strong>引擎版本</strong><br>OmniCore v1.0.0</div>
+          <div><strong>运行环境</strong><br>Web / 微信 / Electron</div>
+          <div><strong>状态</strong><br>Prototype to publishing pipeline</div>
+        </div>
+
+        <section aria-label="Code Awakener screenshots" class="screenshots">
+          <img data-code-awakener-screenshot src="./assets/code-awakener-screenshot.svg" alt="代码觉醒者 Web 运行画面">
+          <img data-code-awakener-screenshot src="./assets/code-awakener-progress.svg" alt="代码觉醒者开发进度画面">
+          <img data-code-awakener-screenshot src="./assets/code-awakener-editor.svg" alt="代码觉醒者编辑器工作流画面">
+        </section>
+
+        <h3>核心玩法</h3>
+        <p>《代码觉醒者》是 2D RPG / 解谜混合案例：玩家探索终端实验室，通过事件表触发门禁、NPC 对话、道具检查和关卡状态变化。项目用于验证 SceneManager、Store、EventSheet、Tilemap Chunk、移动端输入和微信小游戏 4MB 包体门禁。</p>
+
+        <ul>
+          <li>发布证据：`npm run build:wechat`、`npm run test:wechat`、微信真机调试手册。</li>
+          <li>质量门禁：lint、Vitest、benchmark、production-ready。</li>
+          <li>编辑器证据：场景树、Inspector、Prefab、Tilemap 和预览模式可复用。</li>
+        </ul>
+
+        <div class="actions">
+          <a class="button" href="./playground/">Play Now</a>
+          <a class="button secondary" href="../OmniCore-v1.0.0-Offline.zip">Download Offline Build</a>
+        </div>
+      </article>
+
+      <article class="case" data-case-study="starter-platformer" data-publish-evidence="web">
+        <h2>Starter Platformer</h2>
+        <div class="meta" aria-label="Starter Platformer metadata">
+          <div><strong>开发者/团队</strong><br>OmniCore Examples</div>
+          <div><strong>引擎版本</strong><br>OmniCore v1.0.0</div>
+          <div><strong>运行环境</strong><br>Web</div>
+          <div><strong>状态</strong><br>可运行模板</div>
+        </div>
+
+        <h3>核心玩法</h3>
+        <p>Starter Platformer 用最小工程展示角色移动、跳跃、碰撞、资源加载和浏览器预览，帮助 Phaser / Cocos 用户在 10 分钟内理解 OmniCore 的核心循环。</p>
+
+        <ul>
+          <li>发布证据：`examples/template-platformer`、快速开始文档和浏览器烟测。</li>
+          <li>质量门禁：模板调试手册要求检查 `npm test`、控制台 error/warn 和资源 404。</li>
+          <li>引擎特性：Scene、Sprite、Input、PhysicsWorld、AssetLoader、Store。</li>
+          <li>性能门禁：示例必须保持稳定帧率并通过 benchmark CI。</li>
+        </ul>
+
+        <div class="actions">
+          <a class="button" href="../examples/template-platformer/">Open Template</a>
+          <a class="button secondary" href="../docs/getting-started.md">Read Guide</a>
+        </div>
+      </article>
+
+      <article class="case" data-case-study="desktop-low-code-suite" data-publish-evidence="desktop">
+        <h2>Desktop Low-Code Suite</h2>
+        <div class="meta" aria-label="Desktop Low-Code Suite metadata">
+          <div><strong>开发者/团队</strong><br>OmniCore Editor</div>
+          <div><strong>引擎版本</strong><br>OmniCore v1.0.0</div>
+          <div><strong>运行环境</strong><br>Electron / Desktop</div>
+          <div><strong>状态</strong><br>Editor packaging proof</div>
+        </div>
+
+        <h3>核心玩法</h3>
+        <p>Desktop Low-Code Suite 覆盖场景树、Inspector、Prefab 变体、Tilemap、可视化事件图和桌面打包，证明 OmniCore 能支撑创作者工作流。</p>
+
+        <ul>
+          <li>发布证据：`omnicore-editor.exe`、`OmniCore Editor.dmg`、`OmniCore Editor.AppImage` 打包目标。</li>
+          <li>质量门禁：desktop-editor-workflow、lowcode-editor-suite 和 marketplace-platform 测试。</li>
+          <li>引擎特性：低代码事件图、行为树导出、UI 编辑、规则瓦片和自动保存恢复。</li>
+          <li>可运行模板：桌面编辑器可以直接打开示例工程并预览场景。</li>
+        </ul>
+
+        <div class="actions">
+          <a class="button" href="../packages/omnicore-editor/">Open Editor Package</a>
+          <a class="button secondary" href="../docs/editor-features.md">Editor Features</a>
+        </div>
+      </article>
+
+      <section class="submit" aria-label="Submit your case study">
+        <h2>提交你的案例</h2>
+        <p>如果你使用 OmniCore 发布了 Web、微信小游戏或 Electron 项目，请提交游戏名、开发者/团队名、引擎版本、运行环境、3 张截图、核心玩法简介和 Play Now / Download 链接。</p>
+        <a class="button secondary" href="https://github.com/omnicore/omnicore/issues/new?labels=case-study">Submit Case Study</a>
       </section>
     </main>
   </body>

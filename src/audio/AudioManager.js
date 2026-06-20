@@ -7,8 +7,19 @@
  * audio.play('click', { volume: 0.5 });
  */
 export class AudioManager {
-  constructor({ context } = {}) {
+  constructor({ context, limiter = true, limiterSettings = {} } = {}) {
     this.context = context || null;
+    this.limiterEnabled = limiter !== false;
+    this.limiterSettings = {
+      threshold: -12,
+      knee: 18,
+      ratio: 12,
+      attack: 0.003,
+      release: 0.18,
+      ...limiterSettings
+    };
+    this.outputNode = null;
+    this.compressor = null;
     this.buffers = new Map();
     this.active = new Set();
     this.buses = new Map();
@@ -23,6 +34,26 @@ export class AudioManager {
   _ensureContext() {
     if (!this.context && typeof AudioContext !== 'undefined') this.context = new AudioContext();
     return this.context;
+  }
+
+  _ensureOutputNode() {
+    const context = this._ensureContext();
+    if (!context) return null;
+    if (this.outputNode) return this.outputNode;
+    if (!this.limiterEnabled || typeof context.createDynamicsCompressor !== 'function') {
+      this.outputNode = context.destination;
+      return this.outputNode;
+    }
+    const compressor = context.createDynamicsCompressor();
+    compressor.threshold.value = this.limiterSettings.threshold;
+    compressor.knee.value = this.limiterSettings.knee;
+    compressor.ratio.value = this.limiterSettings.ratio;
+    compressor.attack.value = this.limiterSettings.attack;
+    compressor.release.value = this.limiterSettings.release;
+    compressor.connect(context.destination);
+    this.compressor = compressor;
+    this.outputNode = compressor;
+    return this.outputNode;
   }
 
   createBus(name, { volume = 1, parent = 'master' } = {}) {
@@ -40,7 +71,7 @@ export class AudioManager {
       effectiveVolume: Number(volume)
     };
     if (gain?.gain) gain.gain.value = bus.effectiveVolume;
-    const target = parent ? this.buses.get(parent)?.gain || context?.destination : context?.destination;
+    const target = parent ? this.buses.get(parent)?.gain || this._ensureOutputNode() : this._ensureOutputNode();
     gain?.connect?.(target);
     this.buses.set(name, bus);
     return bus;
@@ -122,7 +153,7 @@ export class AudioManager {
     gain.gain.setValueAtTime(volume, start + (preset.attack || 0));
     gain.gain.exponentialRampToValueAtTime(0.0001, releaseAt);
     oscillator.connect(gain);
-    gain.connect(context.destination);
+    gain.connect(this._ensureOutputNode());
     oscillator.start(start);
     oscillator.stop(releaseAt + (preset.release || 0));
     this.active.add(oscillator);
@@ -136,9 +167,9 @@ export class AudioManager {
   }
 
   _resolveOutput(busName) {
-    if (!busName) return this.context.destination;
+    if (!busName) return this._ensureOutputNode();
     const bus = this.buses.get(busName) || this.createBus(busName);
-    return bus?.gain || this.context.destination;
+    return bus?.gain || this._ensureOutputNode();
   }
 
   _applyBusVolume(name) {

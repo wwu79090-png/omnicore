@@ -1,18 +1,42 @@
 # OmniCore v1.0.0
 
+OmniCore: 33KB WebGPU 轻量引擎，跑 1000 个 Sprite 还能稳 144 FPS。
+
 ![Tests](https://img.shields.io/badge/tests-521%2F521%20passed-16a34a)
 ![Build](https://img.shields.io/badge/build-passing-0f766e)
-![ESM](https://img.shields.io/badge/esm-654.11%20kB-2563eb)
+![ESM](https://img.shields.io/badge/esm-692.83%20kB-2563eb)
 ![Lean Core](https://img.shields.io/badge/lean%20core-33.36%20kB-7c3aed)
 ![Security](https://img.shields.io/badge/high--risk%20deps-0-16a34a)
+![Release](https://img.shields.io/github/v/release/omnicore/omnicore?label=release)
 
 OmniCore 是一个 HTML5 2D/2.5D 优先游戏引擎骨架：默认使用 PixiJS v8 做 2D 渲染，提供 Phaser 风格场景栈和 Tween、Construct/GDevelop 风格 JSON Event Sheet、Cocos 风格 `addComponent()`，并把 Three.js 作为独立的装饰背景层延迟加载。
 
-OmniCore 专注于 2D 游戏开发和有限 2.5D 表现，明确不是全 3D 引擎。`Dimension3D` 只支持渲染一个静态 `.gltf` 或 `.glb` 模型，可做整体旋转的关卡背景；2.5D 层只提供 Z 轴到 2D Y 轴的遮挡排序与投影碰撞辅助，不提供全 3D 碰撞、glTF 动画播放、3D 摄像机控制或 3D 玩法框架。
+OmniCore 专注于 2D 游戏开发和有限 2.5D 表现，明确不是全 3D 引擎。`Dimension3D` 支持多个装饰性 `.gltf` / `.glb` 模型、基础遮罩排序、预设动画播放和点击事件，用来增强 2D 场景表现；2.5D 层只提供 Z 轴到 2D Y 轴的遮挡排序与投影碰撞辅助，不提供全 3D 物理、自由 3D 摄像机控制或 3D 玩法框架。
 
 它有意不内置物理系统；物理只通过 `loadPhysics()` 延迟加载适配器。OmniCore 不暴露 Pixi ticker，不生成 UI 源码，不依赖大型编辑器。输入、Camera、Timer、Animation 是轻量基础模块，随 `Game` 和 `Scene` 生命周期更新。
 
+官网首页提供《代码觉醒者》先发案例入口、`examples/full-game-demo/` 30 分钟微型完整游戏和公开路线图。匿名遥测默认关闭；只有开发者显式传入 `telemetry: { anonymous: true }` 时才会在本地生成引擎版本、错误类型和 API 使用频率的聚合摘要，不会自动上传网络。
+
+## 最新动态
+
+- [每月开发进度总结](website/news/)：运行时健康遥测、弱网与低内存模拟、版本发布说明和社区案例展示。
+
 ## 快速开始
+
+### 安装
+
+```bash
+npm install omnicore
+```
+
+中国大陆网络环境如果 `npm install` 卡在 `registry.npmjs.org` 超时，先执行国内镜像源一键配置命令：
+
+```bash
+npm config set registry https://registry.npmmirror.com/
+npm install omnicore
+```
+
+OmniCore 的 `preinstall` 检查也会在官方源连接超时时打印同样的处理指引，不会静默失败。
 
 ```js
 import OmniCore, { Scene, Sprite, Tween } from 'omnicore';
@@ -95,6 +119,23 @@ await OmniCore.install('plugin-name');
 - `website/playground/index.html`：在线 IDE，编辑代码并实时预览。
 - `npm run deploy -- --target vercel`：构建、压缩资源并执行 CDN 部署流程。
 - `omni-migrate --root src --report docs/release-notes/migration-report.json`：扫描并重写 v1.x 到 v2.x 的旧 API。
+
+## 运行时健康遥测与隐私
+
+运行时健康遥测默认关闭。只有开发者显式传入 `telemetry: { enabled: true }`，OmniCore 才会在用户设备上生成匿名聚合摘要；如果没有配置 `endpoint` 或 `transport`，数据不会离开本机。
+
+```js
+const game = await new OmniCore.Game({
+  telemetry: {
+    enabled: true,
+    anonymous: true,
+    intervalMs: 15000,
+    endpoint: '/api/telemetry'
+  }
+}).init();
+```
+
+采集内容仅限 FPS、JS heap 内存估算、渲染后端、WebGL 丢失/恢复状态、场景名、错误类型计数和引擎版本。默认接收端 `api/telemetry.js` 写入 JSONL，可通过 `OMNICORE_TELEMETRY_FILE` 指定本地文件。不会采集用户身份、IP、输入内容、资源 URL、本地路径、存档数据或业务表数据；线上开启前应在游戏自己的隐私政策中说明用途和保留周期。
 
 ```js
 const game = await new OmniCore.Game({
@@ -405,10 +446,26 @@ const dimension = await new OmniCore.Dimension3D({
   decorativeModel: { url: '/models/cyberpunk-city.gltf', rotationSpeed: { y: 0.08 } }
 }).init();
 
+const hero = await dimension.addModel(
+  'hero',
+  '/models/hero.glb',
+  { x: 1.2, y: -0.4, z: -3 },
+  { x: 1, y: 1, z: 1 }
+);
+
+hero.playAnimation('Idle');
+hero.rotateY(0.2);
+hero.on('click', ({ model }) => {
+  console.log(`${model.name} clicked`);
+});
+dimension.sortModelsForMasking({ zToYScale: 1, startRenderOrder: 10 });
+
 dimension.render(1 / 60);
 ```
 
-`Dimension3D` 拥有单独 canvas、scene 和 renderer；销毁或切换 2D 后端不会影响 3D 背景。该层是纯装饰能力，`capabilities.decorativeOnly === true`，最多加载一个静态 glTF/GLB 模型。模型可做整体位移、缩放和旋转，但不会创建 `AnimationMixer`、碰撞体、物理世界、OrbitControls 或 PointerLockControls。
+`Dimension3D` 拥有单独 canvas、scene 和 renderer；销毁或切换 2D 后端不会影响 3D 背景。该层是纯装饰能力，`capabilities.decorativeOnly === true`，可通过 `addModel(name, glbPath, position, scale)` 同时加载多个 glTF/GLB 模型。返回的模型对象提供 `playAnimation(name)`、`rotateY(speed)` 和 `on('click', callback)`，用于预设动画播放、简单旋转和把 3D 点击转回 2D 游戏交互。`sortModelsForMasking()` 会按模型 `y + z * zToYScale` 写入稳定 `renderOrder`，服务于 2D/2.5D 混排时的基础遮罩排序。
+
+2.5D 能力边界是固定的：只提供装饰性多模型渲染、基础遮罩排序、预设 `AnimationMixer` 动画播放和 `Raycaster` 点击事件。它拒绝提供全 3D 物理、自由 3D 摄像机控制、OrbitControls、PointerLockControls 或 3D 玩法框架；需要这些能力时应接入专门 3D 引擎，而不是把 OmniCore 的 2.5D 层扩展成完整 3D 运行时。
 
 ## 跨平台
 
@@ -714,6 +771,12 @@ npx create-omnicore-app web-game --deploy netlify
 3. 不得默认修改全局对象；确需修改时必须提供 `destroy()` 回滚。
 4. 新插件示例放入 `examples/plugins/<plugin-name>/`。
 
+官方发布指引：
+
+- `docs/plugin-publishing-guide.md`：说明如何构建 OmniCore 标准插件、制定版本、使用 `npm pack` 或 `build:addon` 打包、通过 GitHub Issue 或 Web 表单提交市场审核，以及如何设置 80/20 或 70/30 付费分账。
+- `src/addons/examples/plugin-payment/`：支付接口参考插件。
+- `src/addons/examples/plugin-ad/`：广告接口参考插件。
+
 官方插件示例：
 
 - `examples/plugins/fps-monitor/`
@@ -821,6 +884,14 @@ npm run dist:full
 
 该命令会运行生产构建，并输出 `OmniCore-v1.0.0-Offline.zip`，包含源码、构建产物、官方示例、文档、默认素材和开箱即用的 HTML 入口。
 
+### 离线运行
+
+1. 解压 `OmniCore-v1.0.0-Offline.zip` 到本地文件夹。
+2. 双击离线包根目录内的 `start.html` 直接运行，无需 Node 环境。
+3. 如果团队需要统一入口，可以把解压后的离线包放到内网服务器，用静态文件方式访问。
+4. 教室、展会或无网络环境可以通过 USB 分发整个离线文件夹；分发前建议附带 checksum 方便校验。
+5. 企业内部或教育机构部署细节见 `docs/offline-deployment.md`。
+
 自动发布流水线位于 `.github/workflows/release.yml`：
 
 - GitHub Release 发布时触发。
@@ -833,6 +904,15 @@ npm run dist:full
 
 - `GOVERNANCE.md`：贡献者晋级、主维护者后备方案和决策原则。
 - `LTS.md`：v1.x LTS 时间线、支持范围和升级承诺。
+- `MAINTAINERS.md`：Triage、Committer、Maintainer 晋升标准和投票规则。
+
+### 贡献与晋升
+
+外部开发者可以从 Bug 复现、文档 PR、示例修复和插件提交开始参与治理。累计提交 5 个有效的 Bug 复现或文档 PR 后可申请 Triage；累计合并 10 个 PR 且至少 1 个来自自己后可申请 Committer；Maintainer 由当前 Maintainer 提名并投票通过。完整规则见 `MAINTAINERS.md`。
+
+### 开发故事
+
+OmniCore 的开发过程使用 AI 加速 API 设计、测试编写、迁移清单整理和文档草稿生成。AI 建议不会直接成为发布内容，必须先转化为实际代码、示例、脚本或测试，再通过 focused verification、构建或质量门禁确认。更完整的个人叙述见 `website/story.html`。
 
 ## Lean Microkernel Runtime
 

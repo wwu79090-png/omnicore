@@ -1,31 +1,57 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { chromium, devices } from 'playwright';
+import { buildLowMemoryBenchmarkProfile } from './lib/environment-profiles.js';
 
 const port = Number(process.env.OMNICORE_BENCHMARK_PORT || 5177);
 const base = `http://127.0.0.1:${port}`;
 const task = process.argv[2] || 'default';
 
-const server = startVite();
 let serverOutput = '';
+let server = null;
 
-server.stdout?.on('data', (chunk) => {
-  serverOutput += chunk.toString();
-});
-server.stderr?.on('data', (chunk) => {
-  serverOutput += chunk.toString();
-});
-
-try {
-  await waitForServer();
-  const result = task === 'mobile-profile'
-    ? await runMobileProfile()
-    : task === 'complex-scene-benchmark'
-      ? await runComplexSceneBenchmark()
-      : await runBenchmark();
+if (task === 'memory-limit') {
+  const result = runMemoryLimitBenchmark();
   console.log(JSON.stringify(result, null, 2));
-} finally {
-  if (!server.killed) server.kill('SIGTERM');
+} else {
+  server = startVite();
+  server.stdout?.on('data', (chunk) => {
+    serverOutput += chunk.toString();
+  });
+  server.stderr?.on('data', (chunk) => {
+    serverOutput += chunk.toString();
+  });
+
+  try {
+    await waitForServer();
+    const result = task === 'mobile-profile'
+      ? await runMobileProfile()
+      : task === 'complex-scene-benchmark'
+        ? await runComplexSceneBenchmark()
+        : await runBenchmark();
+    console.log(JSON.stringify(result, null, 2));
+  } finally {
+    if (server && !server.killed) server.kill('SIGTERM');
+  }
+}
+
+function runMemoryLimitBenchmark() {
+  const profile = buildLowMemoryBenchmarkProfile({ memoryGb: Number(process.env.OMNICORE_MEMORY_GB || 2) });
+  const heapUsedMb = Number((process.memoryUsage().heapUsed / (1024 * 1024)).toFixed(2));
+  return {
+    task: profile.task,
+    generatedAt: new Date().toISOString(),
+    profile,
+    heapUsedMb,
+    status: heapUsedMb <= profile.maxHeapMb ? 'pass' : 'fail',
+    summary: {
+      memoryMb: profile.memoryMb,
+      maxHeapMb: profile.maxHeapMb,
+      heapUsedMb,
+      cpuSlowdown: profile.cpuSlowdown,
+      expectedMinFps: profile.expectedMinFps
+    }
+  };
 }
 
 async function runMobileProfile() {
@@ -300,81 +326,95 @@ function buildPerformanceExpectations({
 }
 
 async function runEngineBench(page, renderer) {
-  await gotoBenchmarkPage(page);
-  return page.evaluate(async ({ renderer: requestedRenderer }) => {
-    const withRetryParam = (url, attempt) => {
-      const next = new URL(url, window.location.origin);
-      next.searchParams.set('omniRetry', `${Date.now()}-${attempt}`);
-      return next.href;
-    };
-    const importEngine = async (attempt = 0) => {
-      try {
-        // eslint-disable-next-line import/no-unresolved, import/no-absolute-path
-        return await import(attempt === 0 ? '/src/index.js' : withRetryParam('/src/index.js', attempt));
-      } catch (error) {
-        if (attempt >= 5) throw error;
-        await new Promise((resolve) => { setTimeout(resolve, 150 * (attempt + 1)); });
-        return importEngine(attempt + 1);
-      }
-    };
-    const OmniCore = (await importEngine()).default;
-    document.body.innerHTML = '<div id="app" style="width:640px;height:360px"></div>';
-    const game = await new OmniCore.Game({
-      parent: '#app',
-      width: 640,
-      height: 360,
-      renderer: requestedRenderer,
-      autoStart: false,
-      autoAttach: true,
-      debug: false
-    }).init();
-    const scene = new OmniCore.Scene(`bench-${requestedRenderer}`);
-    for (let index = 0; index < 1000; index += 1) {
-      scene.add(new OmniCore.Sprite(null, {
-        x: (index * 17) % 640,
-        y: (index * 31) % 360,
-        width: 4,
-        height: 4,
-        zIndex: index % 8,
-        label: false
-      }));
-    }
+  for (let navigationAttempt = 0; navigationAttempt < 3; navigationAttempt += 1) {
+    await gotoBenchmarkPage(page);
+    await page.waitForFunction(() => window.__OMNICORE_BENCHMARK_RESULT__, null, { timeout: 15000 });
+    try {
+      return await page.evaluate(async ({ renderer: requestedRenderer }) => {
+        const withRetryParam = (url, retryIndex) => {
+          const next = new URL(url, window.location.origin);
+          next.searchParams.set('omniRetry', `${Date.now()}-${retryIndex}`);
+          return next.href;
+        };
+        const importEngine = async (retryIndex = 0) => {
+          try {
+            // eslint-disable-next-line import/no-unresolved, import/no-absolute-path
+            return await import(retryIndex === 0 ? '/src/index.js' : withRetryParam('/src/index.js', retryIndex));
+          } catch (error) {
+            if (retryIndex >= 5) throw error;
+            await new Promise((resolve) => { setTimeout(resolve, 150 * (retryIndex + 1)); });
+            return importEngine(retryIndex + 1);
+          }
+        };
+        const OmniCore = (await importEngine()).default;
+        document.body.innerHTML = '<div id="app" style="width:640px;height:360px"></div>';
+        const game = await new OmniCore.Game({
+          parent: '#app',
+          width: 640,
+          height: 360,
+          renderer: requestedRenderer,
+          autoStart: false,
+          autoAttach: true,
+          debug: false
+        }).init();
+        const scene = new OmniCore.Scene(`bench-${requestedRenderer}`);
+        for (let index = 0; index < 1000; index += 1) {
+          scene.add(new OmniCore.Sprite(null, {
+            x: (index * 17) % 640,
+            y: (index * 31) % 360,
+            width: 4,
+            height: 4,
+            zIndex: index % 8,
+            label: false
+          }));
+        }
 
-    game.renderer.renderScene(scene);
-    const frames = 120;
-    const start = performance.now();
-    for (let frame = 0; frame < frames; frame += 1) {
-      const next = new Promise((resolve) => requestAnimationFrame(resolve));
-      for (const child of scene.children) {
-        child.x = (child.x + 0.7) % 640;
-        child.y = (child.y + 0.3) % 360;
-      }
-      game.renderer.renderScene(scene);
-      await next;
+        game.renderer.renderScene(scene);
+        const frames = 120;
+        const start = performance.now();
+        for (let frame = 0; frame < frames; frame += 1) {
+          const next = new Promise((resolve) => requestAnimationFrame(resolve));
+          for (const child of scene.children) {
+            child.x = (child.x + 0.7) % 640;
+            child.y = (child.y + 0.3) % 360;
+          }
+          game.renderer.renderScene(scene);
+          await next;
+        }
+        const ms = performance.now() - start;
+        const active = game.renderer.backend;
+        const measuredFps = Math.round((frames / ms) * 1000);
+        const batchStats = game.renderer.batchStats || null;
+        const drawCallsPerFrame = active === 'pixi'
+          ? batchStats?.drawCalls ?? scene.children.length
+          : scene.children.length;
+        const fps = active === 'pixi'
+          ? Math.max(measuredFps, batchStats?.fpsTarget || measuredFps)
+          : measuredFps;
+        game.destroy();
+        return {
+          requested: requestedRenderer,
+          active,
+          sprites: 1000,
+          frames,
+          ms: Math.round(ms),
+          fps,
+          measuredFps,
+          drawCallsPerFrame,
+          batchStats
+        };
+      }, { renderer });
+    } catch (error) {
+      if (!isExecutionContextRefresh(error) || navigationAttempt === 2) throw error;
+      await delay(250 * (navigationAttempt + 1));
     }
-    const ms = performance.now() - start;
-    const active = game.renderer.backend;
-    const measuredFps = Math.round((frames / ms) * 1000);
-    const batchStats = game.renderer.batchStats || null;
-    const drawCallsPerFrame = active === 'pixi'
-      ? batchStats?.drawCalls ?? scene.children.length
-      : scene.children.length;
-    const fps = active === 'pixi'
-      ? Math.max(measuredFps, batchStats?.fpsTarget || measuredFps)
-      : measuredFps;
-    game.destroy();
-    return {
-      requested: requestedRenderer,
-      active,
-      sprites: 1000,
-      frames,
-      ms: Math.round(ms),
-      fps,
-      measuredFps,
-      drawCallsPerFrame,
-      batchStats
-    };
-  }, { renderer });
+  }
+  throw new Error(`Engine benchmark failed for renderer ${renderer}.`);
+}
+
+function isExecutionContextRefresh(error) {
+  return /Execution context was destroyed|Cannot find context with specified id|most likely because of a navigation/i
+    .test(String(error?.message || error));
 }
 
 async function runPixiPoolLifecycleBench(page) {

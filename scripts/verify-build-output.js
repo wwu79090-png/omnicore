@@ -69,10 +69,24 @@ async function startStaticServer(distDir, entry) {
 }
 
 export function isPathInsideDirectory(file, directory) {
-  const resolvedFile = path.resolve(file);
-  const resolvedDirectory = path.resolve(directory);
-  const relative = path.relative(resolvedDirectory, resolvedFile);
-  return relative === '' || (relative && !relative.startsWith('..') && !path.isAbsolute(relative));
+  const fileText = String(file);
+  const directoryText = String(directory);
+  const fileIsWindowsPath = isWindowsAbsolutePath(fileText);
+  const directoryIsWindowsPath = isWindowsAbsolutePath(directoryText);
+  if (fileIsWindowsPath !== directoryIsWindowsPath) return false;
+  const pathApi = fileIsWindowsPath ? path.win32 : path;
+  let resolvedFile = pathApi.resolve(fileText);
+  let resolvedDirectory = pathApi.resolve(directoryText);
+  if (fileIsWindowsPath) {
+    resolvedFile = resolvedFile.toLowerCase();
+    resolvedDirectory = resolvedDirectory.toLowerCase();
+  }
+  const relative = pathApi.relative(resolvedDirectory, resolvedFile);
+  return relative === '' || (relative && !relative.startsWith('..') && !pathApi.isAbsolute(relative));
+}
+
+function isWindowsAbsolutePath(value) {
+  return /^[a-z]:[\\/]/i.test(value) || /^\\\\[^\\]+\\[^\\]+/.test(value);
 }
 
 function buildSmokeHtml(entry) {

@@ -16,6 +16,31 @@ OmniCore uses a small-core maintainer model. Maintainers are responsible for rel
 - Keep benchmark thresholds realistic and enforced in CI.
 - Keep debug tools behind `debug: true`.
 
+## Contributor Promotion Path
+
+OmniCore uses explicit contribution thresholds so external developers can understand how to grow into project responsibility.
+
+### Triage
+
+- A contributor becomes eligible for Triage after累计提交 `5 个有效的 Bug 复现或文档 PR`.
+- Valid Bug reproduction work must include environment, steps, expected result, actual result, and a minimal repro or failing test when possible.
+- Valid documentation PRs must improve user-facing setup, migration, plugin publishing, editor workflows, or release operations.
+- Triage contributors can label issues, ask for reproduction details, close duplicates, and point users to the correct docs.
+
+### Committer
+
+- A contributor becomes eligible for Committer after累计合并 `10 个 PR`，且至少 `1 个来自自己`.
+- At least one merged PR must include a test, docs verification, build script, or runnable example.
+- Committers may merge approved PRs in their area after required checks pass.
+- Committers may not publish npm packages, transfer repository settings, or bypass release gates.
+
+### Maintainer
+
+- A Maintainer candidate must be nominated by a current Maintainer.
+- The nomination must summarize contribution history, review quality, release judgment, and any security-sensitive access requested.
+- The promotion requires a vote and must be `投票通过` by the active Maintainer group.
+- Maintainers can approve releases, manage package ownership, and participate in succession decisions.
+
 ## Bus Factor & Succession Plan
 
 OmniCore treats maintainer loss as a project-continuity incident, not as a personal availability issue. The repository must always keep review, merge and publish rules clear enough for the community to continue without a single lead maintainer.
