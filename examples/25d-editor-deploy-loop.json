@@ -1,0 +1,41 @@
+{
+  "format": "OmniCore.Example.25D.EditorDeployLoop",
+  "version": 1,
+  "name": "2.5D editor deploy loop",
+  "description": "Official lightweight evidence path for planning, applying, saving, exporting, and production-gating a 2.5D co-created scene.",
+  "workflow": [
+    "plan",
+    "apply",
+    "save",
+    "export",
+    "readiness"
+  ],
+  "prompt": "在树林后建一个高塔，塔顶有一把剑",
+  "scene": {
+    "name": "forest-demo",
+    "entities": [
+      {
+        "id": "forest",
+        "type": "forest",
+        "x": 80,
+        "y": 120,
+        "bounds": {
+          "width": 120,
+          "height": 80
+        }
+      }
+    ]
+  },
+  "targets": [
+    "web"
+  ],
+  "budget": {
+    "profile": "2.5d-editor-lite",
+    "maxFiles": 12,
+    "maxCoreBytes": 35000
+  },
+  "snapshot": {
+    "name": "forest-demo-production",
+    "required": true
+  }
+}

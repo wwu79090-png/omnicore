@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const ROOT = process.cwd();
+const SCRIPT_PATH = path.resolve(process.argv[1] || 'scripts/docs.js');
 const DEFAULT_GENERATED_AT = '2026-06-20T00:00:00.000Z';
 const CORE_FILES = [
   'src/core/Bootstrap.js',
@@ -80,6 +81,17 @@ async function loadTelemetryInsights() {
   }
 }
 
+async function mtimeMs(file) {
+  return (await stat(file).catch(() => null))?.mtimeMs || 0;
+}
+
+async function reportsAreFresh(outputs, inputs) {
+  const outputTimes = await Promise.all(outputs.map(mtimeMs));
+  if (outputTimes.some((time) => time <= 0)) return false;
+  const newestInput = Math.max(...await Promise.all(inputs.map(mtimeMs)));
+  return Math.min(...outputTimes) >= newestInput;
+}
+
 function telemetryEntries(insights) {
   return Object.entries(insights?.apiUsage || {})
     .map(([api, value]) => ({
@@ -116,6 +128,19 @@ function tutorialGapDocument(entries, apiOutput) {
 }
 
 async function main() {
+  const apiPath = path.join(ROOT, 'docs', 'api.md');
+  const tutorialPath = path.join(ROOT, 'docs', 'tutorial-gaps.md');
+  const telemetryPath = path.join(ROOT, 'docs', 'release-notes', 'telemetry-insights.json');
+  const inputs = [
+    SCRIPT_PATH,
+    telemetryPath,
+    ...CORE_FILES.map((relative) => path.join(ROOT, relative))
+  ];
+  if (await reportsAreFresh([apiPath, tutorialPath], inputs)) {
+    console.log('API docs generated without unknown types');
+    return;
+  }
+
   const allFindings = [];
   const sections = ['# OmniCore API Reference', '', `Generated: ${resolveGeneratedAt()}`, ''];
   const telemetry = telemetryEntries(await loadTelemetryInsights());

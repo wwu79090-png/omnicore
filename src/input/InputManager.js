@@ -14,24 +14,50 @@ import { createOmniError } from '../core/OmniError.js';
  * if (input.keyboard.isDown('Space')) player.jump();
  */
 class KeyboardState {
-  constructor() {
+  constructor({
+    ignoreTags = ['INPUT', 'TEXTAREA'],
+    ignoreContentEditable = true
+  } = {}) {
     this.keys = new Set();
+    this.normalizedKeys = new Set();
+    this.ignoreTags = new Set(ignoreTags.map((tag) => String(tag).toUpperCase()));
+    this.ignoreContentEditable = ignoreContentEditable !== false;
   }
 
   isDown(code) {
-    return this.keys.has(code);
+    return this.keys.has(code) || this.normalizedKeys.has(normalizeKeyToken(code));
+  }
+
+  isCombo(keys = []) {
+    const list = Array.isArray(keys) ? keys : String(keys).split('+');
+    return list
+      .map((key) => normalizeKeyToken(key))
+      .filter(Boolean)
+      .every((key) => this.normalizedKeys.has(key));
   }
 
   press(code) {
     this.keys.add(code);
+    this.normalizedKeys.add(normalizeKeyToken(code));
   }
 
   release(code) {
     this.keys.delete(code);
+    this.normalizedKeys.delete(normalizeKeyToken(code));
   }
 
   clear() {
     this.keys.clear();
+    this.normalizedKeys.clear();
+  }
+
+  shouldIgnoreEvent({ target } = {}) {
+    if (!target) return false;
+    const { tagName = '', isContentEditable = false } = target;
+    const tag = String(tagName).toUpperCase();
+    if (this.ignoreTags.has(tag)) return true;
+    if (this.ignoreContentEditable && isContentEditable === true) return true;
+    return false;
   }
 }
 
@@ -40,6 +66,7 @@ class PointerState {
     this.events = new EventBus();
     this.position = { x: 0, y: 0 };
     this.down = false;
+    this.propagationDisposers = [];
   }
 
   on(event, handler) {
@@ -50,7 +77,35 @@ class PointerState {
     this.events.emit(event, payload);
   }
 
+  enableEventPropagation(domElement, {
+    pointerEvents = 'auto',
+    events = ['pointerdown', 'pointerup', 'pointermove', 'click', 'wheel', 'touchstart', 'touchend', 'touchmove']
+  } = {}) {
+    if (!domElement?.addEventListener) {
+      throw createOmniError('Input', 'pointer.enableEventPropagation(domElement) requires a DOM element.');
+    }
+    const previousPointerEvents = domElement.style?.pointerEvents || '';
+    if (domElement.style) domElement.style.pointerEvents = pointerEvents;
+    const stop = (event) => {
+      event.stopPropagation?.();
+    };
+    for (const event of events) {
+      domElement.addEventListener(event, stop, { capture: true });
+    }
+    const cleanup = () => {
+      for (const event of events) {
+        domElement.removeEventListener(event, stop, { capture: true });
+      }
+      if (domElement.style) domElement.style.pointerEvents = previousPointerEvents;
+      this.propagationDisposers = this.propagationDisposers.filter((item) => item !== cleanup);
+    };
+    this.propagationDisposers.push(cleanup);
+    return cleanup;
+  }
+
   clear() {
+    for (const dispose of [...this.propagationDisposers]) dispose();
+    this.propagationDisposers.length = 0;
     this.events.clear();
     this.position = { x: 0, y: 0 };
     this.down = false;
@@ -58,18 +113,33 @@ class PointerState {
 }
 
 export class InputManager {
-  constructor({ target = null, preventDefault = true, resolution = null, events = null } = {}) {
+  constructor({
+    target = null,
+    preventDefault = true,
+    resolution = null,
+    events = null,
+    keyboard = {},
+    ignoreTags = undefined
+  } = {}) {
     this.target = target;
     this.preventDefault = preventDefault;
     this.resolutionOverride = resolution;
     this.resolution = resolution || 1;
     this.events = events || new EventBus();
-    this.keyboard = new KeyboardState();
+    this.keyboard = new KeyboardState({
+      ...keyboard,
+      ignoreTags: ignoreTags ?? keyboard.ignoreTags
+    });
     this.pointer = new PointerState();
+    this.mouse = this.pointer;
     this.actionBindings = new Map();
     this.comboActions = new Map();
     this.listeners = [];
     this.enabled = true;
+    this.dragThreshold = 4;
+    this.doubleClickMs = 300;
+    this.pointerDownPayload = null;
+    this.lastClickPayload = null;
     this.bind(target);
   }
 
@@ -115,24 +185,42 @@ export class InputManager {
     this._listen(target, 'pointermove', (event) => {
       this._prevent(event);
       this._move(event);
-      this.pointer.emit('move', this._payload(event));
+      const payload = this._payload(event);
+      this.pointer.emit('move', payload);
+      this._emitDrag(event, payload);
     }, { passive: false });
     this._listen(target, 'pointerdown', (event) => {
       this._prevent(event);
       this.pointer.down = true;
       this._move(event);
-      this.pointer.emit('down', this._payload(event));
+      const payload = this._payload(event);
+      this.pointerDownPayload = payload;
+      this.pointer.emit('down', payload);
     }, { passive: false });
     this._listen(target, 'pointerup', (event) => {
       this._prevent(event);
       this.pointer.down = false;
       this._move(event);
       this.pointer.emit('up', this._payload(event));
+      this.pointerDownPayload = null;
     }, { passive: false });
     this._listen(target, 'click', (event) => {
       this._prevent(event);
       this._move(event);
-      this.pointer.emit('click', this._payload(event));
+      const payload = this._payload(event);
+      this.pointer.emit('click', payload);
+      this._emitDoubleClick(payload);
+    }, { passive: false });
+    this._listen(target, 'wheel', (event) => {
+      this._prevent(event);
+      this._move(event);
+      this.pointer.emit('wheel', {
+        ...this._payload(event),
+        deltaX: Number(event.deltaX || 0),
+        deltaY: Number(event.deltaY || 0),
+        deltaZ: Number(event.deltaZ || 0),
+        deltaMode: Number(event.deltaMode || 0)
+      });
     }, { passive: false });
     this.resizeTarget();
   }
@@ -174,6 +262,8 @@ export class InputManager {
       target.removeEventListener?.(event, handler, options);
     }
     this.listeners.length = 0;
+    this.pointerDownPayload = null;
+    this.lastClickPayload = null;
   }
 
   _listen(target, event, handler, options = false) {
@@ -182,11 +272,16 @@ export class InputManager {
   }
 
   _handleKeyDown(event) {
+    if (this.keyboard.shouldIgnoreEvent(event)) return;
     this.keyboard.press(event.code || event.key);
     this._emitAction(event, true);
   }
 
   _handleKeyUp(event) {
+    if (this.keyboard.shouldIgnoreEvent(event)) {
+      this.keyboard.release(event.code || event.key);
+      return;
+    }
     this.keyboard.release(event.code || event.key);
     this._emitAction(event, false);
   }
@@ -220,6 +315,9 @@ export class InputManager {
     return {
       x: this.pointer.position.x,
       y: this.pointer.position.y,
+      clientX: Number(event.clientX ?? this.pointer.position.x),
+      clientY: Number(event.clientY ?? this.pointer.position.y),
+      timeStamp: Number(event.timeStamp || performanceNow()),
       originalEvent: event
     };
   }
@@ -227,6 +325,43 @@ export class InputManager {
   _prevent(event) {
     if (this.preventDefault && event.cancelable) event.preventDefault();
   }
+
+  _emitDrag(event, payload) {
+    if (!this.pointer.down || !this.pointerDownPayload) return;
+    const dx = payload.x - this.pointerDownPayload.x;
+    const dy = payload.y - this.pointerDownPayload.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance < this.dragThreshold) return;
+    this.pointer.emit('drag', {
+      ...payload,
+      startX: this.pointerDownPayload.x,
+      startY: this.pointerDownPayload.y,
+      dx,
+      dy,
+      distance,
+      originalEvent: event
+    });
+  }
+
+  _emitDoubleClick(payload) {
+    const previousClick = this.lastClickPayload;
+    this.lastClickPayload = payload;
+    if (!previousClick) return;
+    const intervalMs = payload.timeStamp - previousClick.timeStamp;
+    const distance = Math.hypot(payload.x - previousClick.x, payload.y - previousClick.y);
+    if (intervalMs <= this.doubleClickMs && distance <= this.dragThreshold) {
+      this.pointer.emit('doubleClick', {
+        ...payload,
+        previousClick,
+        intervalMs,
+        distance
+      });
+    }
+  }
+}
+
+function performanceNow() {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
 }
 
 function normalizeCombos(keys) {

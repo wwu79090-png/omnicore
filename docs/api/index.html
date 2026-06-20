@@ -76,6 +76,11 @@
       <code>Animation</code>
     </article>
     <article>
+      <h2>animation/AnimationManager.js</h2>
+      <p>Small frame-animation manager for data-driven sprites and UI elements.</p>
+      <code>AnimationManager</code>
+    </article>
+    <article>
       <h2>animation/SkeletalAnimation.js</h2>
       <p>Shared MVP skeleton animation facade for Spine and DragonBones assets.</p>
       <code>SkeletalAnimation, SpineAdapter, SpinePixiRuntimeAdapter, DragonBonesAdapter</code>
@@ -89,6 +94,11 @@
       <h2>assets/AssetPatchManager.js</h2>
       <p>Runtime resource patch applier for OTA asset overlays. @example const patches = new AssetPatchManager(); await patches.apply('/patches/v2.patch'); patches.resolve('hero.png');</p>
       <code>AssetPatchManager</code>
+    </article>
+    <article>
+      <h2>assets/Font.js</h2>
+      <p></p>
+      <code>Font</code>
     </article>
     <article>
       <h2>assets/OBundle.js</h2>
@@ -149,6 +159,11 @@
       <h2>camera/Camera.js</h2>
       <p>2D camera utility with follow, zoom, and shake. The camera is available as `game.camera` and injected into scenes as `scene.camera`. @example scene.camera.follow(player, { lerp: 0.2 }); scene.camera.zoom(1.5); scene.camera.shake(180, 8);</p>
       <code>Camera</code>
+    </article>
+    <article>
+      <h2>color/Color.js</h2>
+      <p></p>
+      <code>from</code>
     </article>
     <article>
       <h2>commercial/ExportPaywall.js</h2>
@@ -311,6 +326,11 @@
       <code>TransitionLayer</code>
     </article>
     <article>
+      <h2>data/DataAdapter.js</h2>
+      <p>Translates legacy JSON/config shapes into OmniCore-friendly data.</p>
+      <code>DataAdapter</code>
+    </article>
+    <article>
       <h2>data/DataTable.js</h2>
       <p>CSV data parser for small gameplay tables. @example const table = DataTable.fromCSV('id,hp\nhero,10'); table.find('id', 'hero').hp; // &quot;10&quot;</p>
       <code>DataTable</code>
@@ -334,6 +354,11 @@
       <h2>data/Localization.js</h2>
       <p>JSON-backed localization suite loaded from /assets/locale. @example const localization = await Localization.load('zh-CN'); localization.t('ui.start');</p>
       <code>Localization</code>
+    </article>
+    <article>
+      <h2>data/SafeParse.js</h2>
+      <p></p>
+      <code>safeParse</code>
     </article>
     <article>
       <h2>database/Database.js</h2>
@@ -384,6 +409,11 @@
       <h2>debug/FrameProfiler.js</h2>
       <p></p>
       <code>FrameProfiler</code>
+    </article>
+    <article>
+      <h2>debug/Grid.js</h2>
+      <p></p>
+      <code>Grid</code>
     </article>
     <article>
       <h2>debug/Inspector.js</h2>
@@ -546,6 +576,26 @@
       <code>FeedbackWidget</code>
     </article>
     <article>
+      <h2>graphics/Geom.js</h2>
+      <p></p>
+      <code>Geom</code>
+    </article>
+    <article>
+      <h2>graphics/Graphics.js</h2>
+      <p></p>
+      <code>Graphics</code>
+    </article>
+    <article>
+      <h2>graphics/Shape.js</h2>
+      <p></p>
+      <code>ShapeBuilder, Shape</code>
+    </article>
+    <article>
+      <h2>graphics/Transform2D.js</h2>
+      <p></p>
+      <code>Transform2D</code>
+    </article>
+    <article>
       <h2>help/HelpRegistry.js</h2>
       <p>@param {string} apiName API name. @returns {object} Help descriptor.</p>
       <code>help, listHelp</code>
@@ -646,6 +696,11 @@
       <code>EditorCoCreator25D</code>
     </article>
     <article>
+      <h2>livingworld/EditorDeployBenchmark25D.js</h2>
+      <p></p>
+      <code>createEditorDeployBenchmark25D</code>
+    </article>
+    <article>
       <h2>livingworld/EmotionalPalette25D.js</h2>
       <p></p>
       <code>EmotionalPalette25D</code>
@@ -689,6 +744,11 @@
       <h2>math/Easing.js</h2>
       <p>OmniCore Easing library. Provides Phaser-style named easing functions for Tweens while staying framework independent. @example import { Easing } from 'omnicore'; const half = Easing.inOutCubic(0.5); const fn = Easing.get('outBounce');</p>
       <code>Easing</code>
+    </article>
+    <article>
+      <h2>math/MathUtils.js</h2>
+      <p></p>
+      <code>distance, isInRadius</code>
     </article>
     <article>
       <h2>math/Rect.js</h2>
@@ -779,6 +839,11 @@
       <h2>package/PluginInstaller.js</h2>
       <p></p>
       <code>PluginInstaller</code>
+    </article>
+    <article>
+      <h2>particles/ParticleSystem.js</h2>
+      <p>Small pooled particle runtime for translucent code layers and glow effects.</p>
+      <code>ParticleSystem</code>
     </article>
     <article>
       <h2>particles/ParticleTerrainCollider25D.js</h2>
@@ -936,6 +1001,11 @@
       <code>StaticBatchCompiler</code>
     </article>
     <article>
+      <h2>renderer/VectorPrimitives.js</h2>
+      <p></p>
+      <code>createHousePrimitive, createRingPrimitive, createSectorPrimitive, createBezierPrimitive, createPolygonPrimitive, createRichTextPrimitive, linearGradientFill, radialGradientFill, conicGradientFill, textureFill, createCapsulePrimitive, createCodeLayerPrimitive, expandVectorPrimitive, vectorPrimitiveToSvg</code>
+    </article>
+    <article>
       <h2>renderer/WebGLContextManager.js</h2>
       <p>WebGL context loss/restoration manager. The manager listens to browser `webglcontextlost` and `webglcontextrestored` events, prevents the default hard failure path, and calls a canvas fallback hook when the context cannot be restored quickly. @example const manager = new WebGLContextManager({ canvas, onFallback: () =&gt; OmniCore.Backend.switch('canvas') });</p>
       <code>WebGLContextManager</code>
@@ -956,9 +1026,19 @@
       <code>SceneManager</code>
     </article>
     <article>
+      <h2>scene/TileSprite.js</h2>
+      <p></p>
+      <code>TileSprite</code>
+    </article>
+    <article>
       <h2>store/Store.js</h2>
       <p>Nano Stores based global state registry. Renderer backends inject their current identity here so cross-backend state is retained during experimental renderer switching. @example const store = new Store({ score: 0 }); store.subscribe('score', (score) =&gt; uiScore.text = String(score)); store.injectBackend('pixi');</p>
       <code>Store</code>
+    </article>
+    <article>
+      <h2>text/Text.js</h2>
+      <p>Rich canvas text primitive for Phaser-style migration.</p>
+      <code>Text</code>
     </article>
     <article>
       <h2>tilemap/AITilemapGenerator.js</h2>
@@ -1003,12 +1083,22 @@
     <article>
       <h2>tween/Tween.js</h2>
       <p>Lightweight Phaser-inspired Tween. Supports numeric target properties, `{ from, to, start }` descriptors, `yoyo`, `repeat`, callbacks, and manual updates from OmniCore.Loop. @example const tween = new Tween(sprite, { x: { from: 0, to: 320 }, alpha: 0.5, duration: 600, ease: 'outCubic', yoyo: true, repeat: 1 }); loop.subscribe((dt) =&gt; tween.update(dt * 1000));</p>
-      <code>Tween</code>
+      <code>Tween, TweenSequence</code>
     </article>
     <article>
       <h2>ui/Button.js</h2>
       <p>Canvas-rendered button. @example const button = new Button('Switch', { x: 16, y: 16, width: 120, height: 36 }); button.onClick(() =&gt; OmniCore.Backend.switch('canvas'));</p>
       <code>Button</code>
+    </article>
+    <article>
+      <h2>ui/HtmlOverlay.js</h2>
+      <p>DOM overlay layer that coexists with Canvas-rendered UI.</p>
+      <code>HtmlOverlay</code>
+    </article>
+    <article>
+      <h2>ui/RichText.js</h2>
+      <p></p>
+      <code>layoutRichText</code>
     </article>
     <article>
       <h2>ui/UIButton.js</h2>
@@ -1029,6 +1119,11 @@
       <h2>ui/UIScrollView.js</h2>
       <p></p>
       <code>UIScrollView</code>
+    </article>
+    <article>
+      <h2>ui/UIStateMachine.js</h2>
+      <p>UI state transition coordinator for menus, panels, and unlock flows.</p>
+      <code>UIStateMachine</code>
     </article>
     <article>
       <h2>ui/UITextInput.js</h2>

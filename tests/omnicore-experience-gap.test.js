@@ -9,20 +9,13 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { createEditorApp } from 'omnicore-editor/src/editor-app.js';
+import { createEditorState } from 'omnicore-editor/src/live-sync-protocol.js';
 import Dimension3D from '../src/dimension3d/Dimension3D.js';
-
-let createEditorApp;
-let createEditorState;
 
 describe('OmniCore experience gap closure', () => {
   let temp = null;
-
-  beforeAll(async () => {
-    ({ createEditorApp } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/editor-app.js')).href));
-    ({ createEditorState } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/live-sync-protocol.js')).href));
-  });
 
   afterEach(() => {
     document.body.innerHTML = '';

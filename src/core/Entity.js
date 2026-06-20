@@ -264,6 +264,18 @@ function attachEntityErgonomics(entity, props = {}) {
       return off;
     };
   }
+  if (typeof entity.localToWorld !== 'function') {
+    entity.localToWorld = (point = {}) => worldPointForEntity(entity, point);
+  }
+  if (typeof entity.worldToLocal !== 'function') {
+    entity.worldToLocal = (point = {}) => localPointForEntity(entity, point);
+  }
+  if (typeof entity.toLocalPosition !== 'function') {
+    entity.toLocalPosition = (point = {}) => entity.worldToLocal(point);
+  }
+  if (typeof entity.getWorldPosition !== 'function') {
+    entity.getWorldPosition = () => entity.localToWorld({ x: 0, y: 0 });
+  }
 
   const { store } = props;
   const storeKey = entity.storeKey || props.storeKey;
@@ -326,6 +338,77 @@ function serializeEntityForStore(entity) {
     sprite: entity.sprite,
     texture: entity.texture
   };
+}
+
+function worldPointForEntity(entity, point = {}) {
+  const chain = [];
+  let current = entity;
+  while (current) {
+    chain.unshift(current);
+    current = current.parent || null;
+  }
+  return roundPoint(chain.reduce((acc, item) => transformPoint(acc, item), {
+    x: Number(point.x || 0),
+    y: Number(point.y || 0)
+  }));
+}
+
+function localPointForEntity(entity, point = {}) {
+  const chain = [];
+  let current = entity;
+  while (current) {
+    chain.push(current);
+    current = current.parent || null;
+  }
+  return roundPoint(chain.reduce((acc, item) => inverseTransformPoint(acc, item), {
+    x: Number(point.x || 0),
+    y: Number(point.y || 0)
+  }));
+}
+
+function transformPoint(point, entity) {
+  const scale = Number(entity.scale ?? 1);
+  const scaleX = Number(entity.scaleX ?? scale);
+  const scaleY = Number(entity.scaleY ?? scale);
+  const rotation = Number(entity.rotation || 0);
+  const scaled = {
+    x: point.x * scaleX,
+    y: point.y * scaleY
+  };
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  return {
+    x: Number(entity.x || 0) + scaled.x * cos - scaled.y * sin,
+    y: Number(entity.y || 0) + scaled.x * sin + scaled.y * cos
+  };
+}
+
+function inverseTransformPoint(point, entity) {
+  const scale = Number(entity.scale ?? 1);
+  const scaleX = Number(entity.scaleX ?? scale) || 1;
+  const scaleY = Number(entity.scaleY ?? scale) || 1;
+  const rotation = -Number(entity.rotation || 0);
+  const translated = {
+    x: point.x - Number(entity.x || 0),
+    y: point.y - Number(entity.y || 0)
+  };
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  return {
+    x: (translated.x * cos - translated.y * sin) / scaleX,
+    y: (translated.x * sin + translated.y * cos) / scaleY
+  };
+}
+
+function roundPoint(point) {
+  return {
+    x: roundNumber(point.x),
+    y: roundNumber(point.y)
+  };
+}
+
+function roundNumber(value) {
+  return Number(Number(value).toFixed(6));
 }
 
 const Entity = {

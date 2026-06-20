@@ -24,6 +24,7 @@ export class AudioManager {
     this.active = new Set();
     this.buses = new Map();
     this.ducking = new Map();
+    this.pools = new Map();
     this.presets = {
       uiClick: { type: 'square', frequency: 880, duration: 0.045, attack: 0.002, release: 0.04 },
       compileSuccess: { type: 'sine', frequency: 660, duration: 0.16, attack: 0.01, release: 0.12 },
@@ -81,6 +82,10 @@ export class AudioManager {
     return this.buses.get(name) || null;
   }
 
+  setMasterVolume(volume = 1) {
+    return this.setBusVolume('master', volume);
+  }
+
   setBusVolume(name, volume = 1) {
     const bus = this.buses.get(name) || this.createBus(name);
     bus.volume = Number(volume);
@@ -128,11 +133,106 @@ export class AudioManager {
     source.buffer = buffer;
     source.loop = loop;
     source.omniBus = bus || 'destination';
+    source.omniGain = gain;
+    source.omniVolume = Number(volume);
     source.connect(gain);
     gain.connect(this._resolveOutput(bus));
     source.start();
     this.active.add(source);
     source.onended = () => this.active.delete(source);
+    return source;
+  }
+
+  createPool(key, {
+    size = 4,
+    bus = null,
+    volume = 1,
+    loop = false
+  } = {}) {
+    const pool = {
+      key,
+      size: Math.max(1, Number(size) || 1),
+      bus,
+      volume: Number(volume),
+      loop: Boolean(loop),
+      cursor: 0,
+      voices: []
+    };
+    pool.voices = Array.from({ length: pool.size }, () => null);
+    this.pools.set(key, pool);
+    return pool;
+  }
+
+  playFromPool(key, options = {}) {
+    const pool = this.pools.get(key) || this.createPool(key);
+    const index = pool.cursor;
+    const previous = pool.voices[index];
+    previous?.stop?.();
+    const targetVolume = Number(options.volume ?? pool.volume);
+    const source = this.play(key, {
+      ...options,
+      volume: options.fadeIn ? 0.0001 : targetVolume,
+      loop: options.loop ?? pool.loop,
+      bus: options.bus ?? pool.bus
+    });
+    if (!source) {
+      return null;
+    }
+    source.omniPool = { key, index };
+    pool.voices[index] = source;
+    pool.cursor = (pool.cursor + 1) % pool.size;
+    if (options.fadeIn) {
+      this.fadeSource(source, {
+        from: 0.0001,
+        to: targetVolume,
+        duration: options.fadeIn
+      });
+    }
+    return source;
+  }
+
+  fadeIn(key, {
+    duration = 0.25,
+    volume = 1,
+    ...options
+  } = {}) {
+    const source = this.play(key, {
+      ...options,
+      volume: 0.0001
+    });
+    if (!source) return null;
+    this.fadeSource(source, { from: 0.0001, to: volume, duration });
+    return source;
+  }
+
+  fadeOut(source, {
+    duration = 0.25,
+    stop = true
+  } = {}) {
+    if (!source) return null;
+    this.fadeSource(source, {
+      from: source.omniGain?.gain?.value ?? source.omniVolume ?? 1,
+      to: 0.0001,
+      duration
+    });
+    if (stop) source.stop?.((this.context?.currentTime || 0) + Number(duration || 0));
+    return source;
+  }
+
+  fadeSource(source, {
+    from = source?.omniGain?.gain?.value ?? 1,
+    to = 1,
+    duration = 0.25
+  } = {}) {
+    const gain = source?.omniGain?.gain;
+    if (!gain) return source || null;
+    const start = this.context?.currentTime || 0;
+    const end = start + Math.max(0, Number(duration) || 0);
+    gain.cancelScheduledValues?.(start);
+    gain.setValueAtTime?.(Math.max(0.0001, Number(from)), start);
+    gain.linearRampToValueAtTime?.(Math.max(0.0001, Number(to)), end);
+    gain.value = Math.max(0.0001, Number(to));
+    source.omniVolume = Number(to);
     return source;
   }
 

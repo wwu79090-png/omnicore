@@ -35,9 +35,12 @@ export const STANDARD_DIRECTORIES = [
  * @returns {typeof DEFAULT_GAME_CONFIG & Record<string, *>} Normalized runtime config.
  */
 export function normalizeConfig(config = {}) {
+  const background = config.background ?? config.backgroundColor ?? DEFAULT_GAME_CONFIG.background;
   return {
     ...DEFAULT_GAME_CONFIG,
-    ...config
+    ...config,
+    background,
+    backgroundColor: background
   };
 }
 

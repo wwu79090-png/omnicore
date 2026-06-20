@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const EXPORT_PATTERN = /export\s+(?:class|function|const|let|var)\s+([A-Za-z0-9_]+)/g;
@@ -28,9 +28,9 @@ export function generateApiDocs({
     .filter((module) => module.exports.length > 0);
   mkdirSync(outDir, { recursive: true });
   const manifest = { generatedAt, modules };
-  writeFileSync(path.join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
-  writeFileSync(path.join(outDir, 'index.html'), renderHtml(manifest));
-  if (siteDomain) writeFileSync(path.join(outDir, 'CNAME'), `${siteDomain}\n`);
+  writeStableFile(path.join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+  writeStableFile(path.join(outDir, 'index.html'), renderHtml(manifest));
+  if (siteDomain) writeStableFile(path.join(outDir, 'CNAME'), `${siteDomain}\n`);
   return manifest;
 }
 
@@ -106,6 +106,39 @@ function escapeHtml(value) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function writeStableFile(file, contents) {
+  let lastError;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const tempFile = `${file}.${process.pid}.${attempt}.tmp`;
+    try {
+      writeFileSync(tempFile, contents);
+      renameSync(tempFile, file);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (existsSync(tempFile)) rmSync(tempFile, { force: true });
+      if (!isRetryableWriteError(error)) break;
+      sleepSync(10 * (attempt + 1));
+    }
+  }
+  throw lastError;
+}
+
+function isRetryableWriteError(error) {
+  return ['EBUSY', 'EPERM', 'EACCES', 'UNKNOWN'].includes(error?.code);
+}
+
+function sleepSync(ms) {
+  if (typeof Atomics !== 'undefined' && typeof SharedArrayBuffer !== 'undefined') {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+    return;
+  }
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    // Best-effort fallback for non-Node runtimes without Atomics.wait.
+  }
 }
 
 export default generateApiDocs;

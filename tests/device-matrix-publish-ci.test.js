@@ -42,4 +42,17 @@ describe('real-device matrix benchmark, publish guidance, and screenshot CI', ()
     expect(script).toContain('threshold');
     expect(existsSync('tests/e2e/__screenshots__/editor-baseline.png')).toBe(true);
   });
+
+  it('ships a dedicated 2.5D production certification workflow with bundle preview evidence', () => {
+    const workflow = readFileSync('.github/workflows/25d-production.yml', 'utf8');
+
+    expect(workflow).toContain('name: 2.5D Production Certification');
+    expect(workflow).toContain('npm run certify:25d -- --bundle examples/25d-editor-deploy-loop.production-bundle.json');
+    expect(workflow).toContain('npm run capture:25d -- --bundle examples/25d-editor-deploy-loop.production-bundle.json');
+    expect(workflow).toContain('npx playwright install --with-deps chromium');
+    expect(workflow).toContain('actions/upload-artifact@v4');
+    expect(workflow).toContain('docs/release-notes/25d-production-certification.json');
+    expect(workflow).toContain('docs/release-notes/25d-preview-screenshot-evidence.json');
+    expect(existsSync('examples/25d-editor-deploy-loop.production-bundle.json')).toBe(true);
+  });
 });

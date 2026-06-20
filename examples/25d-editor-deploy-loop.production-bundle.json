@@ -1,0 +1,225 @@
+{
+  "format": "OmniCore.ProductionDeploymentBundle",
+  "version": 1,
+  "generatedAt": "2026-06-20T00:00:00.000Z",
+  "productionReady": true,
+  "readiness": {
+    "format": "OmniCore.Editor25DProductionReadiness",
+    "version": 1,
+    "generatedAt": "2026-06-20T00:00:00.000Z",
+    "ready": true,
+    "score": 100,
+    "blockers": [],
+    "warnings": [],
+    "evidence": {
+      "scene": "forest-demo",
+      "entities": 2,
+      "appliedCoCreationPlans": 1,
+      "saved": true,
+      "deploymentBundle": "2.5d-editor-lite",
+      "entryScene": "scenes/forest-demo.scene.json",
+      "targets": [
+        "web"
+      ],
+      "files": 3,
+      "authoringIssues": 0
+    },
+    "nextActions": []
+  },
+  "visualEvidence": {
+    "format": "OmniCore.Editor25DVisualEvidence",
+    "version": 1,
+    "generatedAt": "2026-06-20T00:00:00.000Z",
+    "ready": true,
+    "scene": "forest-demo",
+    "summary": {
+      "coCreatedEntities": 1,
+      "occlusionLayers": 1,
+      "shadowLayers": 1,
+      "eventLayers": 1
+    },
+    "layers": [
+      {
+        "type": "entity",
+        "entityId": "forest-tower",
+        "label": "Forest Tower",
+        "bounds": {
+          "x": 96,
+          "y": 72,
+          "z": 0,
+          "width": 48,
+          "height": 112,
+          "baselineY": 184
+        },
+        "placement": {
+          "relation": "behind",
+          "anchor": "forest",
+          "baselineY": 184
+        }
+      },
+      {
+        "type": "occlusion",
+        "entityId": "forest-tower",
+        "baselineY": 184,
+        "anchor": "forest"
+      },
+      {
+        "type": "shadow",
+        "entityId": "forest-tower",
+        "shadow": {
+          "entityId": "forest-tower",
+          "type": "ellipse",
+          "opacity": 0.32
+        }
+      },
+      {
+        "type": "event",
+        "entityId": "forest-tower",
+        "eventId": "inspect-sword",
+        "label": "Inspect Sword",
+        "action": {
+          "op": "show-dialogue",
+          "text": "The sword waits at the top of the tower."
+        }
+      }
+    ],
+    "preview": {
+      "mode": "2.5d-editor-proof",
+      "screenshotHint": "forest-demo-25d-production-preview.png",
+      "viewport": {
+        "width": 960,
+        "height": 540
+      }
+    }
+  },
+  "deployment": {
+    "format": "OmniCore.LightweightDeploymentBundle",
+    "version": 1,
+    "generatedAt": "2026-06-20T00:00:00.000Z",
+    "manifest": {
+      "profile": "2.5d-editor-lite",
+      "targets": [
+        "web"
+      ],
+      "entryScene": "scenes/forest-demo.scene.json",
+      "scenes": 1,
+      "assets": 2,
+      "coCreationPlans": 1
+    },
+    "files": [
+      {
+        "path": "scenes/forest-demo.scene.json",
+        "data": {
+          "name": "forest-demo",
+          "entities": [
+            {
+              "id": "forest",
+              "type": "forest",
+              "x": 80,
+              "y": 120,
+              "width": 120,
+              "height": 80,
+              "bounds": {
+                "width": 120,
+                "height": 80
+              }
+            },
+            {
+              "id": "forest-tower",
+              "name": "Forest Tower",
+              "type": "dimension3d-model",
+              "x": 96,
+              "y": 72,
+              "z": 0,
+              "width": 48,
+              "height": 112,
+              "position": {
+                "x": 96,
+                "y": 72,
+                "z": 0
+              },
+              "placement": {
+                "relation": "behind",
+                "anchor": "forest",
+                "baselineY": 184
+              },
+              "fakeShadow": {
+                "entityId": "forest-tower",
+                "type": "ellipse",
+                "opacity": 0.32
+              },
+              "coCreated": true,
+              "coCreationPrompt": "在树林后建一个高塔，塔顶有一把剑",
+              "coCreationPlan": {
+                "protocol": "omnicore-editor-25d-cocreation/v1",
+                "prompt": "在树林后建一个高塔，塔顶有一把剑",
+                "intent": {
+                  "structure": "tower",
+                  "placement": {
+                    "relation": "behind",
+                    "anchor": "forest"
+                  },
+                  "prop": {
+                    "type": "sword",
+                    "relation": "on-top"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "path": "manifests/deploy-lite.json",
+        "data": {
+          "format": "OmniCore.DeployLiteManifest",
+          "version": 1,
+          "profile": "2.5d-editor-lite",
+          "generatedAt": "2026-06-20T00:00:00.000Z",
+          "entryScene": "scenes/forest-demo.scene.json",
+          "scenes": [
+            "scenes/forest-demo.scene.json"
+          ],
+          "assets": [
+            "assets/models/sword.glb",
+            "assets/models/tower.glb"
+          ],
+          "targets": [
+            "web"
+          ],
+          "coCreationPlans": [
+            "plans/25d-cocreation/forest-tower.json"
+          ]
+        }
+      },
+      {
+        "path": "plans/25d-cocreation/forest-tower.json",
+        "data": {
+          "protocol": "omnicore-editor-25d-cocreation/v1",
+          "prompt": "在树林后建一个高塔，塔顶有一把剑"
+        }
+      }
+    ]
+  },
+  "files": [
+    {
+      "path": "reports/25d-production-readiness.json",
+      "data": {
+        "ready": true,
+        "score": 100
+      }
+    },
+    {
+      "path": "reports/25d-visual-evidence.json",
+      "data": {
+        "ready": true,
+        "summary": {
+          "coCreatedEntities": 1,
+          "occlusionLayers": 1,
+          "shadowLayers": 1,
+          "eventLayers": 1
+        }
+      }
+    }
+  ]
+}

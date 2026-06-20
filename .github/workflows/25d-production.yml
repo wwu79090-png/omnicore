@@ -1,0 +1,32 @@
+name: 2.5D Production Certification
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  certify-25d:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run certify:25d -- --bundle examples/25d-editor-deploy-loop.production-bundle.json
+      - run: npm run capture:25d -- --bundle examples/25d-editor-deploy-loop.production-bundle.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: omnicore-25d-production-certification
+          path: |
+            examples/25d-editor-deploy-loop.production-bundle.json
+            docs/release-notes/25d-production-certification.json
+            docs/release-notes/25d-production-certification.md
+            docs/release-notes/25d-preview.png
+            docs/release-notes/25d-preview-screenshot-evidence.json

@@ -1,0 +1,74 @@
+{
+  "format": "OmniCore.25DProductionCertification",
+  "version": 1,
+  "generatedAt": "2026-06-20T00:00:00.000Z",
+  "ready": true,
+  "score": 100,
+  "workflow": [
+    "plan",
+    "apply",
+    "save",
+    "export",
+    "readiness"
+  ],
+  "releaseGate": {
+    "name": "certify:25d",
+    "command": "npm run certify:25d"
+  },
+  "source": {
+    "type": "bundle",
+    "bundle": "examples/25d-editor-deploy-loop.production-bundle.json",
+    "helper": "createEditorDeployBenchmark25D"
+  },
+  "evidence": {
+    "format": "OmniCore.EditorDeployBenchmark25D",
+    "version": 1,
+    "ready": true,
+    "score": 100,
+    "stages": [
+      {
+        "id": "plan",
+        "status": "pass",
+        "evidence": "在树林后建一个高塔，塔顶有一把剑"
+      },
+      {
+        "id": "apply",
+        "status": "pass",
+        "evidence": 1
+      },
+      {
+        "id": "save",
+        "status": "pass",
+        "evidence": {
+          "source": "bundle-readiness",
+          "required": true
+        }
+      },
+      {
+        "id": "export",
+        "status": "pass",
+        "evidence": "2.5d-editor-lite"
+      },
+      {
+        "id": "readiness",
+        "status": "pass",
+        "evidence": 100
+      }
+    ],
+    "budget": {
+      "profile": "2.5d-editor-lite",
+      "maxFiles": 12,
+      "fileCount": 3,
+      "overBudget": false
+    },
+    "evidence": {
+      "targets": [
+        "web"
+      ],
+      "scenes": 1,
+      "assets": 2,
+      "coCreationPlans": 1
+    }
+  },
+  "nextActions": []
+}

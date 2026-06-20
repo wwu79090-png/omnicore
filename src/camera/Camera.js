@@ -26,6 +26,8 @@ export class Camera {
     this.bounds = null;
     this.viewport = { width: 0, height: 0 };
     this.parallaxLayers = [];
+    this.screenTarget = null;
+    this.screenRect = null;
   }
 
   follow(target, { lerp = 1 } = {}) {
@@ -54,12 +56,30 @@ export class Camera {
     return this;
   }
 
-  setBounds(bounds = null) {
-    this.bounds = bounds ? {
-      x: Number(bounds.x || 0),
-      y: Number(bounds.y || 0),
-      width: Math.max(0, Number(bounds.width || 0)),
-      height: Math.max(0, Number(bounds.height || 0))
+  setScreenTarget(target = null) {
+    this.screenTarget = target;
+    this.screenRect = null;
+    return this;
+  }
+
+  setScreenRect(rect = null) {
+    this.screenTarget = null;
+    this.screenRect = rect ? {
+      left: Number(rect.left || 0),
+      top: Number(rect.top || 0)
+    } : null;
+    return this;
+  }
+
+  setBounds(bounds = null, y = 0, width = 0, height = 0) {
+    const nextBounds = typeof bounds === 'number'
+      ? { x: bounds, y, width, height }
+      : bounds;
+    this.bounds = nextBounds ? {
+      x: Number(nextBounds.x || 0),
+      y: Number(nextBounds.y || 0),
+      width: Math.max(0, Number(nextBounds.width ?? nextBounds.w ?? 0)),
+      height: Math.max(0, Number(nextBounds.height ?? nextBounds.h ?? 0))
     } : null;
     this._clampToBounds();
     return this;
@@ -154,6 +174,21 @@ export class Camera {
     };
   }
 
+  screenToWorld(clientX, clientY = undefined) {
+    const point = typeof clientX === 'object' && clientX !== null
+      ? clientX
+      : { clientX, clientY };
+    const rect = point.rect || this._screenRect();
+    const hasLocalPoint = point.x !== undefined || point.y !== undefined;
+    const screenX = Number(point.x ?? point.clientX ?? 0) - (hasLocalPoint ? 0 : Number(rect?.left || 0));
+    const screenY = Number(point.y ?? point.clientY ?? 0) - (hasLocalPoint ? 0 : Number(rect?.top || 0));
+    const zoom = this.zoomLevel || 1;
+    return {
+      x: this.x + (screenX - this.offsetX) / zoom,
+      y: this.y + (screenY - this.offsetY) / zoom
+    };
+  }
+
   reset() {
     this.x = 0;
     this.y = 0;
@@ -168,6 +203,13 @@ export class Camera {
     this.bounds = null;
     this.viewport = { width: 0, height: 0 };
     this.parallaxLayers = [];
+    this.screenTarget = null;
+    this.screenRect = null;
+  }
+
+  _screenRect() {
+    if (this.screenRect) return this.screenRect;
+    return this.screenTarget?.getBoundingClientRect?.() || null;
   }
 
   _clampToBounds() {

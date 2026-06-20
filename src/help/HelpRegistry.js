@@ -29,6 +29,15 @@ const HELP = {
     returns: 'Renderer backend draw command result',
     example: 'game.renderer.drawRect(16, 16, 64, 64, "#38bdf8");'
   },
+  'Renderer.drawPrimitive': {
+    name: 'Renderer.drawPrimitive',
+    signature: 'renderer.drawPrimitive(primitive)',
+    params: [
+      { name: 'primitive', type: 'VectorPrimitive', description: '由 createHousePrimitive/createRingPrimitive/createCapsulePrimitive/createCodeLayerPrimitive 创建的复合图元。' }
+    ],
+    returns: 'Renderer backend draw command result',
+    example: 'renderer.drawPrimitive(OmniCore.createHousePrimitive({ x: 16, y: 16, width: 96, height: 80 }));'
+  },
   'Entity.create': {
     name: 'Entity.createEntity',
     signature: 'Entity.createEntity(type, props)',

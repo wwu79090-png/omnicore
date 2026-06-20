@@ -216,6 +216,43 @@ export class StorageManager {
     }
   }
 
+  static importLegacy(localStorageKey, formatMap = {}, {
+    store = null,
+    removeLegacy = false,
+    fallback = null
+  } = {}) {
+    if (!localStorageKey) throw createOmniError('Storage', 'importLegacy(localStorageKey, formatMap) requires a localStorage key.');
+    const legacy = StorageManager.get(localStorageKey, fallback);
+    if (legacy == null) {
+      return {
+        imported: false,
+        key: localStorageKey,
+        reason: 'missing',
+        importedKeys: [],
+        values: {}
+      };
+    }
+
+    const values = {};
+    const importedKeys = [];
+    for (const [targetKey, mapping] of Object.entries(formatMap || {})) {
+      const value = resolveLegacyMapping(legacy, mapping, {
+        key: localStorageKey,
+        targetKey
+      });
+      values[targetKey] = value;
+      importedKeys.push(targetKey);
+      store?.set?.(targetKey, value);
+    }
+    if (removeLegacy) StorageManager.remove(localStorageKey);
+    return {
+      imported: true,
+      key: localStorageKey,
+      importedKeys,
+      values
+    };
+  }
+
   static saveEncrypted(key, value, secret = 'omnicore') {
     const payload = JSON.stringify(value);
     const encrypted = encodeBase64(xorCipher(payload, secret));
@@ -242,6 +279,35 @@ export class StorageManager {
     console.warn(warnMessage('Storage', '已废弃 API OmniCore.Storage.write，自 0.2.0 起废弃，将在 1.0.0 移除；请改用 OmniCore.Storage.set。'));
     return StorageManager.set(key, value);
   }
+}
+
+function resolveLegacyMapping(legacy, mapping, context) {
+  if (typeof mapping === 'function') {
+    return mapping({
+      ...context,
+      legacy,
+      get: (path, fallback = undefined) => readLegacyPath(legacy, path, fallback)
+    });
+  }
+  if (mapping && typeof mapping === 'object' && !Array.isArray(mapping)) {
+    const sourcePath = mapping.from ?? mapping.path ?? mapping.source ?? context.targetKey;
+    const raw = readLegacyPath(legacy, sourcePath, mapping.fallback);
+    return typeof mapping.transform === 'function'
+      ? mapping.transform(raw, { ...context, legacy, sourcePath })
+      : raw;
+  }
+  return readLegacyPath(legacy, mapping || context.targetKey);
+}
+
+function readLegacyPath(source, path, fallback = undefined) {
+  if (!path) return source ?? fallback;
+  const parts = String(path).split('.').filter(Boolean);
+  let current = source;
+  for (const part of parts) {
+    if (current == null) return fallback;
+    current = current[part];
+  }
+  return current === undefined ? fallback : current;
 }
 
 function xorCipher(input, secret) {

@@ -2,7 +2,7 @@ import {
   EditorCoCreator25D,
   SocialAwareness25D,
   WorldMemory25D
-} from 'omnicore';
+} from './living-world-25d.js';
 import { createEditorState, createLiveSyncMessage } from './live-sync-protocol.js';
 import LiveSyncClient from './live-sync-client.js';
 import AITilemapGenerator from './ai-tilemap-generator.js';
@@ -125,6 +125,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
   let clipboard = [];
   let copySerial = 1;
   let editorFeedback = null;
+  let lastSavedSnapshot = null;
+  let savedVersions = [];
+  let saveVersionSerial = 1;
   let debugTimeline = { events: [], frames: [] };
   let history = [cloneState(current)];
   let historyLabels = ['Initial scene'];
@@ -209,6 +212,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
     getPrefabHistory,
     toggleSceneOverlays,
     saveSnapshot,
+    listSaveVersions,
+    diffSaveVersions,
+    rollbackToSaveVersion,
     exportTiledJson,
     exportFlowGraphEventSheet,
     exportBehaviorTreeJson,
@@ -220,6 +226,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     drag25DNode,
     generateFakeShadows,
     plan25DCoCreation,
+    apply25DCoCreationPlan,
     previewLivingWorld25D,
     previewWorldMemory25D,
     buildAssetDependencyGraph,
@@ -231,6 +238,10 @@ export function createEditorApp(root = document.querySelector('#app'), {
     instantiateNestedScene,
     validateAuthoringAssets,
     exportAuthoringBundle,
+    exportLightweightDeploymentBundle,
+    create25DProductionReadinessReport,
+    create25DVisualEvidence,
+    exportProductionDeploymentBundle,
     createAssetWorkflowIndex,
     createCollaborationHandoff,
     createProjectGovernanceReport,
@@ -391,7 +402,10 @@ export function createEditorApp(root = document.querySelector('#app'), {
   }
 
   function saveSnapshot(name = 'scene') {
+    const id = `save-${String(saveVersionSerial).padStart(3, '0')}`;
+    saveVersionSerial += 1;
     const snapshot = {
+      id,
       name,
       version: 1,
       savedAt: new Date().toISOString(),
@@ -412,12 +426,127 @@ export function createEditorApp(root = document.querySelector('#app'), {
       profilerFrame: cloneState(current.profilerFrame),
       profilerHistory: cloneState(current.profilerHistory || []),
       sceneTabs: cloneState(current.sceneTabs || []),
-      activeSceneTabPath: current.activeSceneTabPath || null
+      activeSceneTabPath: current.activeSceneTabPath || null,
+      coCreation25D: cloneState(current.coCreation25D || null),
+      preview25D: cloneState(current.preview25D || null)
     };
+    lastSavedSnapshot = snapshot;
+    savedVersions = [...savedVersions, cloneState(snapshot)].slice(-50);
     emit('editor:save-snapshot', snapshot);
     showEditorFeedback(`Saved ${name}`, 'success');
     update(current);
     return snapshot;
+  }
+
+  function listSaveVersions() {
+    return savedVersions.map((snapshot) => ({
+      id: snapshot.id,
+      name: snapshot.name,
+      version: snapshot.version,
+      savedAt: snapshot.savedAt,
+      scene: snapshot.scene?.name || 'untitled',
+      entities: (snapshot.scene?.entities || []).length,
+      coCreatedEntities: (snapshot.scene?.entities || []).filter((entity) => entity.coCreated).length
+    }));
+  }
+
+  function diffSaveVersions(fromId, toId) {
+    const from = findSaveVersion(fromId);
+    const to = findSaveVersion(toId);
+    if (!from || !to) return null;
+    const fromEntities = new Map((from.scene?.entities || []).map((entity) => [String(entity.id), entity]));
+    const toEntities = new Map((to.scene?.entities || []).map((entity) => [String(entity.id), entity]));
+    const addedEntities = [];
+    const removedEntities = [];
+    const changedEntities = [];
+
+    for (const [id, entity] of toEntities) {
+      if (!fromEntities.has(id)) {
+        addedEntities.push(cloneState(entity));
+      } else if (entitySignature(fromEntities.get(id)) !== entitySignature(entity)) {
+        changedEntities.push({
+          id,
+          before: cloneState(fromEntities.get(id)),
+          after: cloneState(entity)
+        });
+      }
+    }
+    for (const [id, entity] of fromEntities) {
+      if (!toEntities.has(id)) removedEntities.push(cloneState(entity));
+    }
+
+    return {
+      format: 'OmniCore.EditorSaveVersionDiff',
+      from: from.id,
+      to: to.id,
+      scene: to.scene?.name || from.scene?.name || 'untitled',
+      addedEntities: addedEntities.sort((left, right) => String(left.id).localeCompare(String(right.id))),
+      removedEntities: removedEntities.sort((left, right) => String(left.id).localeCompare(String(right.id))),
+      changedEntities: changedEntities.sort((left, right) => left.id.localeCompare(right.id))
+    };
+  }
+
+  function rollbackToSaveVersion(id) {
+    const snapshot = findSaveVersion(id);
+    if (!snapshot) return null;
+    const scene = normalizeScene(snapshot.scene);
+    current = {
+      ...current,
+      scene,
+      workspace: cloneState(snapshot.workspace || current.workspace),
+      tilemap: cloneState(snapshot.tilemap || current.tilemap),
+      prefabs: cloneState(snapshot.prefabs || current.prefabs),
+      assets: cloneState(snapshot.assets || current.assets),
+      flowGraph: cloneState(snapshot.flowGraph || current.flowGraph),
+      behaviorTree: cloneState(snapshot.behaviorTree || current.behaviorTree),
+      uiLayout: cloneState(snapshot.uiLayout || current.uiLayout),
+      database: cloneState(snapshot.database || current.database),
+      playState: cloneState(snapshot.playState || current.playState),
+      animations: cloneState(snapshot.animations || current.animations),
+      selectedAnimationKeyframe: cloneState(snapshot.selectedAnimationKeyframe || current.selectedAnimationKeyframe),
+      particleEditor: cloneState(snapshot.particleEditor || current.particleEditor),
+      spriteEditor: cloneState(snapshot.spriteEditor || current.spriteEditor),
+      profilerFrame: cloneState(snapshot.profilerFrame || current.profilerFrame),
+      profilerHistory: cloneState(snapshot.profilerHistory || []),
+      sceneTabs: restoreSnapshotSceneTabs(snapshot, scene),
+      activeSceneTabPath: snapshot.activeSceneTabPath || current.activeSceneTabPath || null,
+      coCreation25D: cloneState(snapshot.coCreation25D || null),
+      preview25D: cloneState(snapshot.preview25D || null)
+    };
+    lastSavedSnapshot = null;
+    emit('editor:rollback-save-version', { id: snapshot.id, name: snapshot.name });
+    pushHistory(current, `Rollback to ${snapshot.name}`);
+    showEditorFeedback(`Rolled back to ${snapshot.name}`, 'success');
+    update(current);
+    return cloneState(snapshot);
+  }
+
+  function findSaveVersion(id) {
+    return savedVersions.find((snapshot) => snapshot.id === id || snapshot.name === id) || null;
+  }
+
+  function restoreSnapshotSceneTabs(snapshot, scene) {
+    const tabs = cloneState(snapshot.sceneTabs || current.sceneTabs || []);
+    const activePath = snapshot.activeSceneTabPath || current.activeSceneTabPath || null;
+    if (!activePath) return tabs;
+    let restored = false;
+    const nextTabs = tabs.map((tab) => {
+      if (tab.path !== activePath) return tab;
+      restored = true;
+      return {
+        ...tab,
+        scene: normalizeScene(scene),
+        dirty: true
+      };
+    });
+    if (!restored) {
+      nextTabs.push({
+        path: activePath,
+        scene: normalizeScene(scene),
+        dirty: true
+      });
+    }
+    return nextTabs;
   }
 
   async function openProjectWorkspace() {
@@ -1518,6 +1647,263 @@ export function createEditorApp(root = document.querySelector('#app'), {
     };
   }
 
+  function exportLightweightDeploymentBundle(options = {}) {
+    const generatedAt = options.generatedAt || new Date().toISOString();
+    const authoring = exportAuthoringBundle({ ...options, generatedAt });
+    const files = [...authoring.files.map((file) => ({ path: file.path, data: cloneState(file.data) }))];
+    if (!files.some((file) => file.path.startsWith('scenes/'))) {
+      files.push({ path: `scenes/${sceneFileStem(current.scene)}.scene.json`, data: cloneState(normalizeScene(current.scene)) });
+    }
+    const sceneFiles = files
+      .filter((file) => file.path.startsWith('scenes/'))
+      .sort((left, right) => left.path.localeCompare(right.path));
+    const coCreationFiles = appliedCoCreationPlans().map(({ entityId, plan }) => ({
+      path: `plans/25d-cocreation/${entityId}.json`,
+      data: cloneState(plan)
+    }));
+    const assetPaths = deploymentAssetPaths();
+    const targets = enabledBuildTargets();
+    const manifestData = {
+      format: 'OmniCore.DeployLiteManifest',
+      version: 1,
+      profile: '2.5d-editor-lite',
+      generatedAt,
+      entryScene: sceneFiles[0]?.path || null,
+      scenes: sceneFiles.map((file) => file.path),
+      assets: assetPaths,
+      targets,
+      coCreationPlans: coCreationFiles.map((file) => file.path)
+    };
+    const deployFiles = [
+      ...files,
+      ...coCreationFiles,
+      { path: 'manifests/deploy-lite.json', data: manifestData }
+    ].sort((left, right) => left.path.localeCompare(right.path));
+    return {
+      format: 'OmniCore.LightweightDeploymentBundle',
+      version: 1,
+      generatedAt,
+      manifest: {
+        profile: manifestData.profile,
+        targets,
+        entryScene: manifestData.entryScene,
+        scenes: manifestData.scenes.length,
+        assets: manifestData.assets.length,
+        coCreationPlans: manifestData.coCreationPlans.length
+      },
+      files: deployFiles
+    };
+  }
+
+  function create25DProductionReadinessReport(options = {}) {
+    const generatedAt = options.generatedAt || new Date().toISOString();
+    const deployment = options.deploymentBundle || exportLightweightDeploymentBundle({ ...options, generatedAt });
+    const readiness = collect25DProductionReadiness({ deployment });
+    const { blockers, warnings } = readiness;
+    const score = Math.max(0, 100 - blockers.length * 25 - warnings.length * 5);
+    return {
+      format: 'OmniCore.Editor25DProductionReadiness',
+      version: 1,
+      generatedAt,
+      ready: blockers.length === 0,
+      score,
+      blockers,
+      warnings,
+      evidence: readiness.evidence,
+      nextActions: next25DProductionActions(blockers, warnings)
+    };
+  }
+
+  function exportProductionDeploymentBundle(options = {}) {
+    const generatedAt = options.generatedAt || new Date().toISOString();
+    const deployment = exportLightweightDeploymentBundle({ ...options, generatedAt });
+    const readiness = create25DProductionReadinessReport({ ...options, generatedAt, deploymentBundle: deployment });
+    const visualEvidence = create25DVisualEvidence({ ...options, generatedAt });
+    const files = [
+      ...deployment.files.map((file) => ({ path: file.path, data: cloneState(file.data) })),
+      { path: 'reports/25d-production-readiness.json', data: cloneState(readiness) },
+      { path: 'reports/25d-visual-evidence.json', data: cloneState(visualEvidence) }
+    ].sort((left, right) => left.path.localeCompare(right.path));
+    return {
+      format: 'OmniCore.ProductionDeploymentBundle',
+      version: 1,
+      generatedAt,
+      productionReady: readiness.ready,
+      readiness,
+      visualEvidence,
+      deployment,
+      files
+    };
+  }
+
+  function create25DVisualEvidence(options = {}) {
+    const generatedAt = options.generatedAt || new Date().toISOString();
+    const coCreatedEntities = (current.scene?.entities || [])
+      .filter((entity) => entity?.coCreated || entity?.coCreationPlan)
+      .sort((left, right) => String(left.id).localeCompare(String(right.id)));
+    const layers = [];
+    for (const entity of coCreatedEntities) {
+      layers.push({
+        type: 'entity',
+        entityId: entity.id,
+        label: entity.name || entity.id,
+        bounds: entityBounds(entity),
+        placement: cloneState(entity.placement || {})
+      });
+      for (const occlusion of entity.occlusion || entity.coCreationPlan?.occlusion || []) {
+        layers.push({
+          type: 'occlusion',
+          entityId: entity.id,
+          baselineY: Number(occlusion.baselineY ?? entity.placement?.baselineY ?? entity.y ?? 0),
+          anchor: entity.placement?.anchor || entity.coCreationPlan?.intent?.placement?.anchor || null
+        });
+      }
+      const shadow = entity.fakeShadow || entity.coCreationPlan?.shadows?.[0] || null;
+      if (shadow) {
+        layers.push({
+          type: 'shadow',
+          entityId: entity.id,
+          shadow: cloneState(shadow)
+        });
+      }
+      const eventGraph = entity.eventGraph || entity.coCreationPlan?.eventGraph || null;
+      for (const node of eventGraph?.nodes || []) {
+        layers.push({
+          type: 'event',
+          entityId: entity.id,
+          eventId: node.id || node.label || 'event',
+          label: node.label || node.id || 'event',
+          action: cloneState(node.data || {})
+        });
+      }
+    }
+    const summary = {
+      coCreatedEntities: coCreatedEntities.length,
+      occlusionLayers: layers.filter((layer) => layer.type === 'occlusion').length,
+      shadowLayers: layers.filter((layer) => layer.type === 'shadow').length,
+      eventLayers: layers.filter((layer) => layer.type === 'event').length
+    };
+    return {
+      format: 'OmniCore.Editor25DVisualEvidence',
+      version: 1,
+      generatedAt,
+      ready: summary.coCreatedEntities > 0
+        && summary.occlusionLayers > 0
+        && summary.shadowLayers > 0
+        && summary.eventLayers > 0,
+      scene: current.scene?.name || 'untitled',
+      summary,
+      layers,
+      preview: {
+        mode: '2.5d-editor-proof',
+        screenshotHint: `${sceneFileStem(current.scene)}-25d-production-preview.png`,
+        viewport: {
+          width: Number(current.scene?.width || 960),
+          height: Number(current.scene?.height || 540)
+        }
+      }
+    };
+  }
+
+  function collect25DProductionReadiness({ deployment }) {
+    const blockers = [];
+    const warnings = [];
+    const appliedPlans = appliedCoCreationPlans();
+    const targets = enabledBuildTargets();
+    const authoring = buildAuthoringHealthReport({ open: false });
+    const deploymentManifest = deployment.files.find((file) => file.path === 'manifests/deploy-lite.json')?.data || {};
+    const saved = Boolean(lastSavedSnapshot && sceneSignature(lastSavedSnapshot.scene) === sceneSignature(current.scene));
+    const hasPendingPlan = Boolean(current.coCreation25D);
+    if (hasPendingPlan && appliedPlans.length === 0) {
+      blockers.push({
+        code: 'cocreation-not-applied',
+        severity: 'error',
+        message: 'A 2.5D co-creation plan exists but has not been applied to the scene.'
+      });
+    }
+    if (appliedPlans.length > 0 && !saved) {
+      blockers.push({
+        code: 'scene-not-saved',
+        severity: 'error',
+        message: 'Applied 2.5D scene changes must be saved before production export.'
+      });
+    }
+    if (!targets.length) {
+      blockers.push({
+        code: 'build-target-missing',
+        severity: 'error',
+        message: 'At least one lightweight deployment target must be enabled.'
+      });
+    }
+    if (!deploymentManifest.entryScene || !deploymentManifest.scenes?.length) {
+      blockers.push({
+        code: 'deploy-manifest-incomplete',
+        severity: 'error',
+        message: 'The deploy-lite manifest must include an entry scene.'
+      });
+    }
+    for (const issue of authoring.issues || []) {
+      if (issue.severity === 'critical' || issue.severity === 'error') {
+        blockers.push({
+          code: `authoring-${issue.code}`,
+          severity: issue.severity,
+          message: issue.message
+        });
+      } else {
+        warnings.push({
+          code: `authoring-${issue.code}`,
+          severity: issue.severity || 'warning',
+          message: issue.message
+        });
+      }
+    }
+    if (appliedPlans.length === 0 && !hasPendingPlan) {
+      warnings.push({
+        code: 'no-25d-cocreation',
+        severity: 'warning',
+        message: 'No applied 2.5D co-creation plan is present in the current scene.'
+      });
+    }
+    return {
+      blockers,
+      warnings,
+      evidence: {
+        scene: current.scene?.name || 'untitled',
+        entities: (current.scene?.entities || []).length,
+        appliedCoCreationPlans: appliedPlans.length,
+        saved,
+        deploymentBundle: deployment.manifest?.profile || null,
+        entryScene: deployment.manifest?.entryScene || null,
+        targets,
+        files: deployment.files.length,
+        authoringIssues: authoring.issues.length
+      }
+    };
+  }
+
+  function appliedCoCreationPlans() {
+    return (current.scene?.entities || [])
+      .filter((entity) => entity?.coCreated && entity.coCreationPlan)
+      .map((entity) => ({
+        entityId: entity.id,
+        plan: entity.coCreationPlan
+      }))
+      .sort((left, right) => left.entityId.localeCompare(right.entityId));
+  }
+
+  function deploymentAssetPaths() {
+    const paths = new Set(getWorkflowAssets().map((asset) => asset.path).filter(Boolean));
+    for (const reference of collectSceneAssetReferences()) {
+      if (reference.path) paths.add(reference.path);
+    }
+    for (const { plan } of appliedCoCreationPlans()) {
+      for (const asset of plan.assets || []) {
+        if (asset.reuseAssetId) paths.add(slash(asset.reuseAssetId));
+      }
+    }
+    return [...paths].sort((left, right) => left.localeCompare(right));
+  }
+
   function createAssetWorkflowIndex() {
     const assets = getWorkflowAssets();
     const assetPaths = new Set(assets.map((asset) => asset.path).filter(Boolean));
@@ -2484,6 +2870,32 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return plan;
   }
 
+  function apply25DCoCreationPlan(plan = current.coCreation25D) {
+    if (!plan || typeof plan !== 'object') return null;
+    const entity = create25DCoCreationEntity(plan);
+    const entities = upsertEntity(current.scene.entities || [], entity);
+    const scene = {
+      ...current.scene,
+      entities
+    };
+    current = createEditorState({
+      ...current,
+      scene,
+      sceneTabs: updateActiveSceneTab(scene),
+      selectedEntityId: entity.id,
+      selectedEntityIds: [entity.id],
+      coCreation25D: plan
+    });
+    emit('editor:25d-cocreation-apply', { entity, plan });
+    pushHistory(current, `Apply 2.5D co-creation ${entity.id}`);
+    update(current);
+    return {
+      protocol: 'omnicore-editor-25d-cocreation-apply/v1',
+      entity: cloneState(entity),
+      scene: cloneState(scene)
+    };
+  }
+
   function previewLivingWorld25D({
     npcs = current.scene?.entities || [],
     locations = current.scene?.locations || [],
@@ -2949,6 +3361,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     root.querySelector('[data-resource-picker]')?.remove();
     root.querySelector('[data-prefab-save-prompt]')?.remove();
     root.querySelector('[data-authoring-health]')?.remove();
+    root.querySelector('[data-25d-production-panel]')?.remove();
     const frame = root.querySelector('.editor-frame') || root;
     if (current.commandPaletteOpen) frame.appendChild(createCommandPalette());
     if (current.sceneValidation?.issues?.length) frame.appendChild(createSceneValidationPanel());
@@ -2957,6 +3370,102 @@ export function createEditorApp(root = document.querySelector('#app'), {
     if (current.resourcePicker?.open) frame.appendChild(createResourcePickerPanel());
     if (current.prefabHotEdit?.promptOpen) frame.appendChild(createPrefabHotEditPrompt());
     if (current.authoringHealth?.open) frame.appendChild(createAuthoringHealthPanel());
+    if (shouldShow25DProductionPanel()) frame.appendChild(create25DProductionPanel());
+  }
+
+  function shouldShow25DProductionPanel() {
+    return Boolean(current.coCreation25D || appliedCoCreationPlans().length > 0 || current.preview25D);
+  }
+
+  function create25DProductionPanel() {
+    const report = create25DProductionReadinessReport();
+    const visualEvidence = create25DVisualEvidence();
+    const appliedPlans = Number(report.evidence.appliedCoCreationPlans || 0);
+    const stages = [
+      { id: 'plan', label: 'Plan', status: current.coCreation25D || appliedPlans > 0 ? 'complete' : 'pending' },
+      { id: 'apply', label: 'Apply', status: appliedPlans > 0 ? 'complete' : current.coCreation25D ? 'blocked' : 'pending' },
+      { id: 'save', label: 'Save', status: report.evidence.saved ? 'complete' : appliedPlans > 0 ? 'blocked' : 'pending' },
+      { id: 'export', label: 'Export', status: report.evidence.entryScene && report.evidence.targets.length ? 'complete' : 'blocked' },
+      { id: 'readiness', label: 'Readiness', status: report.ready ? 'complete' : 'blocked' }
+    ];
+    const wrap = document.createElement('div');
+    wrap.className = 'production-25d-panel floating-editor-panel';
+    wrap.setAttribute('data-25d-production-panel', 'true');
+    wrap.dataset.ready = report.ready ? 'true' : 'false';
+    const title = document.createElement('h3');
+    title.textContent = '2.5D Production';
+    const score = document.createElement('strong');
+    score.className = 'production-25d-score';
+    score.setAttribute('data-25d-production-score', 'true');
+    score.textContent = `${report.score}`;
+    const list = document.createElement('div');
+    list.className = 'production-25d-stages';
+    for (const stage of stages) {
+      const item = document.createElement('div');
+      item.className = `production-25d-stage production-25d-stage-${stage.status}`;
+      item.setAttribute('data-25d-stage', stage.id);
+      item.dataset.status = stage.status;
+      item.textContent = stage.label;
+      list.appendChild(item);
+    }
+    const action = document.createElement('p');
+    action.className = 'production-25d-action';
+    action.textContent = report.nextActions[0] || 'Ready for lightweight deployment.';
+    const visual = document.createElement('div');
+    visual.className = 'production-25d-visual';
+    visual.setAttribute('data-25d-visual-evidence', 'true');
+    visual.textContent = `Visual Evidence ${visualEvidence.summary.coCreatedEntities}`;
+    const visualTypes = [...new Set(visualEvidence.layers.map((layer) => layer.type))]
+      .filter((type) => type !== 'entity');
+    for (const type of visualTypes) {
+      const chip = document.createElement('span');
+      chip.className = 'production-25d-visual-chip';
+      chip.setAttribute('data-25d-visual-layer', type);
+      chip.textContent = type;
+      visual.appendChild(chip);
+    }
+    wrap.append(title, score, list, action, visual);
+    const saveVersionPanel = createSaveVersionPanel();
+    if (saveVersionPanel) wrap.appendChild(saveVersionPanel);
+    return wrap;
+  }
+
+  function createSaveVersionPanel() {
+    const versions = listSaveVersions();
+    if (!versions.length) return null;
+    const wrap = document.createElement('div');
+    wrap.className = 'save-version-panel';
+    wrap.setAttribute('data-save-version-panel', 'true');
+    const title = document.createElement('h4');
+    title.textContent = 'Save Versions';
+    wrap.appendChild(title);
+
+    if (versions.length >= 2) {
+      const diff = diffSaveVersions(versions[versions.length - 2].id, versions[versions.length - 1].id);
+      const summary = document.createElement('p');
+      summary.className = 'save-version-diff';
+      summary.setAttribute('data-save-version-diff', 'true');
+      summary.textContent = formatSaveVersionDiff(diff);
+      wrap.appendChild(summary);
+    }
+
+    const list = document.createElement('ol');
+    list.className = 'save-version-list';
+    for (const version of versions.slice(-5)) {
+      const row = document.createElement('li');
+      row.setAttribute('data-save-version-row', version.id);
+      const label = document.createElement('span');
+      label.textContent = `${version.name} (${version.entities})`;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.setAttribute('data-save-version-rollback', version.id);
+      button.textContent = 'Rollback';
+      button.addEventListener('click', () => rollbackToSaveVersion(version.id));
+      row.append(label, button);
+      list.appendChild(row);
+    }
+    wrap.appendChild(list);
+    return wrap;
   }
 
   function createCommandPalette() {
@@ -4532,6 +5041,127 @@ function normalizeScene(scene = {}) {
   };
 }
 
+function create25DCoCreationEntity(plan = {}) {
+  const placement = plan.placement || {};
+  const intent = plan.intent || {};
+  const relation = intent.placement?.relation || placement.relation || 'near';
+  const anchor = intent.placement?.anchor || plan.occlusion?.[0]?.anchorId || null;
+  const id = String(placement.entityId || `${anchor || 'scene'}-${intent.structure || 'structure'}`);
+  const width = numberWithFallback(placement.width, intent.structure === 'tower' ? 48 : 64);
+  const height = numberWithFallback(placement.height, intent.structure === 'tower' ? 112 : 64);
+  const x = numberWithFallback(placement.x);
+  const y = numberWithFallback(placement.y);
+  const z = numberWithFallback(placement.z);
+  const baselineY = numberWithFallback(placement.baselineY, y + height);
+  return {
+    id,
+    name: labelFromId(id),
+    type: 'dimension3d-model',
+    x,
+    y,
+    z,
+    width,
+    height,
+    position: { x, y, z },
+    placement: {
+      relation,
+      anchor,
+      baselineY,
+      terrainSample: placement.terrainSample || null
+    },
+    assetTasks: cloneState(plan.assets || []),
+    occlusion: cloneState(plan.occlusion || []),
+    fakeShadow: cloneState(plan.shadows?.[0] || null),
+    eventGraph: cloneState(plan.eventGraph || null),
+    coCreated: true,
+    coCreationProtocol: plan.protocol || null,
+    coCreationPrompt: plan.prompt || '',
+    coCreationPlan: cloneState(plan)
+  };
+}
+
+function upsertEntity(entities = [], nextEntity = {}) {
+  const nextId = String(nextEntity.id || '');
+  let replaced = false;
+  const updated = entities.map((entity) => {
+    if (String(entity.id) !== nextId) return entity;
+    replaced = true;
+    return { ...entity, ...nextEntity };
+  });
+  return replaced ? updated : [...updated, nextEntity];
+}
+
+function sceneFileStem(scene = {}) {
+  return slug(scene.name || 'scene');
+}
+
+function sceneSignature(scene = {}) {
+  return JSON.stringify(normalizeScene(scene));
+}
+
+function entitySignature(entity = {}) {
+  return JSON.stringify(cloneState(entity));
+}
+
+function entityBounds(entity = {}) {
+  const width = Number(entity.width ?? entity.bounds?.width ?? 0);
+  const height = Number(entity.height ?? entity.bounds?.height ?? 0);
+  return {
+    x: Number(entity.x ?? entity.position?.x ?? 0),
+    y: Number(entity.y ?? entity.position?.y ?? 0),
+    z: Number(entity.z ?? entity.position?.z ?? 0),
+    width,
+    height,
+    baselineY: Number(entity.placement?.baselineY ?? (Number(entity.y ?? 0) + height))
+  };
+}
+
+function formatSaveVersionDiff(diff) {
+  if (!diff) return 'No save diff available.';
+  const parts = [];
+  if (diff.addedEntities.length) parts.push(`Added ${diff.addedEntities.map((entity) => entity.id).join(', ')}`);
+  if (diff.removedEntities.length) parts.push(`Removed ${diff.removedEntities.map((entity) => entity.id).join(', ')}`);
+  if (diff.changedEntities.length) parts.push(`Changed ${diff.changedEntities.map((entity) => entity.id).join(', ')}`);
+  return parts.length ? parts.join(' | ') : 'No entity changes.';
+}
+
+function next25DProductionActions(blockers = [], warnings = []) {
+  const actions = [];
+  const actionByCode = {
+    'cocreation-not-applied': 'Apply the 2.5D co-creation plan to the scene.',
+    'scene-not-saved': 'Save a scene snapshot after applying 2.5D changes.',
+    'build-target-missing': 'Enable at least one lightweight deployment target.',
+    'deploy-manifest-incomplete': 'Export a lightweight deployment bundle with an entry scene.',
+    'no-25d-cocreation': 'Create and apply a 2.5D co-creation plan before production review.'
+  };
+  for (const item of [...blockers, ...warnings]) {
+    actions.push(actionByCode[item.code] || `Resolve ${item.code}.`);
+  }
+  return [...new Set(actions)];
+}
+
+function slug(value) {
+  const text = String(value || 'scene')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/giu, '-')
+    .replace(/^-+|-+$/gu, '');
+  return text || 'scene';
+}
+
+function labelFromId(value) {
+  return String(value || 'Entity')
+    .split(/[-_\s]+/u)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+}
+
+function numberWithFallback(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
 function normalizeInspectorPatch(patch = {}) {
   const next = { ...patch };
   if (Object.prototype.hasOwnProperty.call(next, 'sprite')) next.texture = next.sprite;
@@ -5034,6 +5664,21 @@ const EDITOR_CSS = `
   .undo-history div.selected { color: #facc15; }
   .floating-editor-panel { position: absolute; right: 12px; z-index: 22; display: grid; gap: 8px; width: min(360px, calc(100% - 24px)); max-height: calc(100vh - 88px); overflow: auto; padding: 10px; border: 1px solid #38bdf8; background: #020617; box-shadow: 0 18px 44px rgba(2,6,23,.48); }
   .floating-editor-panel h3 { margin: 0; font-size: 12px; color: #bfdbfe; }
+  .production-25d-panel { top: 54px; }
+  .production-25d-score { font-size: 20px; color: #ecfeff; }
+  .production-25d-stages { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+  .production-25d-stage { min-height: 26px; display: grid; place-items: center; padding: 4px; border: 1px solid #334155; color: #cbd5e1; font-size: 10px; text-align: center; }
+  .production-25d-stage-complete { border-color: #22c55e; color: #bbf7d0; background: rgba(20,83,45,.38); }
+  .production-25d-stage-blocked { border-color: #f59e0b; color: #fde68a; background: rgba(120,53,15,.38); }
+  .production-25d-action { margin: 0; color: #94a3b8; }
+  .production-25d-visual { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; color: #bfdbfe; font-size: 11px; }
+  .production-25d-visual-chip { padding: 2px 5px; border: 1px solid #2563eb; background: rgba(30,64,175,.3); color: #dbeafe; }
+  .save-version-panel { display: grid; gap: 5px; padding-top: 6px; border-top: 1px solid #334155; }
+  .save-version-panel h4 { margin: 0; font-size: 12px; color: #ecfeff; }
+  .save-version-diff { margin: 0; color: #bfdbfe; font-size: 11px; }
+  .save-version-list { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+  .save-version-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px; align-items: center; min-height: 26px; color: #cbd5e1; font-size: 11px; }
+  .save-version-list button { min-height: 24px; padding: 2px 6px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; }
   .authoring-health-panel { top: 54px; left: 12px; right: auto; }
   .authoring-health-counts { color: #bfdbfe; }
   .authoring-health-issues, .authoring-health-hotspots { display: grid; gap: 4px; }

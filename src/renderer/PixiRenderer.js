@@ -487,23 +487,27 @@ export class PixiRenderer {
     commands.forEach((command) => {
       const { child } = command;
       if (!child) return;
-      const key = this._childKey(child);
-      const poolKey = this._poolKey(child);
+      const key = child.__omnicoreDisplayKey || this._childKey(child);
       const existing = this.sceneDisplayObjects.get(key);
-      const displayObject = existing?.displayObject && !existing.displayObject.destroyed
-        ? existing.displayObject
-        : this._ensurePixiDisplayObject(child, poolKey);
+      const poolKey = child.__omnicorePoolKey || this._poolKey(child);
+      let displayObject = child.displayObject && !child.displayObject.destroyed
+        ? child.displayObject
+        : existing?.displayObject;
+      if (!displayObject || displayObject.destroyed) displayObject = this._ensurePixiDisplayObject(child, poolKey);
       if (!displayObject) return;
 
-      child.displayObject = displayObject;
-      child.sprite = displayObject;
-      child.x = command.x;
-      child.y = command.y;
-      child.zIndex = command.zIndex;
-      child.alpha = command.alpha;
-      child.scaleX = command.scaleX;
-      child.scaleY = command.scaleY;
-      this._syncDisplayObject(child, displayObject);
+      if (child.displayObject !== displayObject) child.displayObject = displayObject;
+      if (child.sprite !== displayObject) child.sprite = displayObject;
+      if (child.type === 'sprite') this._syncCommandSprite(displayObject, command);
+      else {
+        child.x = command.x;
+        child.y = command.y;
+        child.zIndex = command.zIndex;
+        child.alpha = command.alpha;
+        child.scaleX = command.scaleX;
+        child.scaleY = command.scaleY;
+        this._syncDisplayObject(child, displayObject);
+      }
       if (!existing || existing.displayObject !== displayObject || existing.zIndex !== command.zIndex) {
         this.sceneDisplayObjects.set(key, {
           child,
@@ -513,10 +517,11 @@ export class PixiRenderer {
         });
       }
       nextKeys.add(key);
-      if (!this._stageContains(displayObject)) this.stage.addChild(displayObject);
-      if (this.stage.children?.[order] !== displayObject && typeof this.stage.setChildIndex === 'function') {
+      if (displayObject.parent !== this.stage) this.stage.addChild(displayObject);
+      if (displayObject.__omnicoreBatchOrder !== order && this.stage.children?.[order] !== displayObject && typeof this.stage.setChildIndex === 'function') {
         this.stage.setChildIndex(displayObject, Math.min(order, this.stage.children.length - 1));
       }
+      displayObject.__omnicoreBatchOrder = order;
       order += 1;
     });
   }
@@ -759,6 +764,24 @@ export class PixiRenderer {
   _syncDisplayObject(child, displayObject) {
     if (child.type === 'sprite') this._syncPixiSprite(displayObject, child);
     child.syncPixiObject?.(displayObject);
+  }
+
+  _syncCommandSprite(sprite, command) {
+    if (!sprite) return;
+    if (sprite.__omnicoreTextureKey !== command.textureKey && sprite.texture !== undefined) {
+      const texture = this._resolveTexture(command.texture);
+      sprite.texture = texture;
+      sprite.__omnicoreTextureKey = command.textureKey;
+      if (typeof command.texture === 'string') this.sceneTextures.set(command.texture, texture);
+      this.batchStatsDirty = true;
+    }
+    if (sprite.x !== command.x) sprite.x = command.x;
+    if (sprite.y !== command.y) sprite.y = command.y;
+    if (sprite.alpha !== command.alpha) sprite.alpha = command.alpha;
+    if (sprite.rotation !== command.rotation) sprite.rotation = command.rotation;
+    if (sprite.scale && (sprite.scale.x !== command.scaleX || sprite.scale.y !== command.scaleY)) {
+      sprite.scale.set(command.scaleX, command.scaleY);
+    }
   }
 
   _syncPixiSprite(sprite, child) {

@@ -35,6 +35,25 @@ const CONTROL_KEYS = new Set([
 ]);
 
 export class Tween {
+  static to(target, config = {}) {
+    return new Tween(target, { ...config, targets: target });
+  }
+
+  static fromTo(target, from = {}, to = {}, config = {}) {
+    const properties = {};
+    for (const key of new Set([...Object.keys(from), ...Object.keys(to)])) {
+      properties[key] = {
+        from: Number(from[key] ?? target?.[key] ?? 0),
+        to: Number(to[key] ?? target?.[key] ?? 0)
+      };
+    }
+    return new Tween(target, { ...properties, ...config, targets: target });
+  }
+
+  static sequence(target, keyframes = [], config = {}) {
+    return new TweenSequence(target, keyframes, config);
+  }
+
   constructor(target, config = {}) {
     this.target = config.targets || target;
     this.config = config;
@@ -58,6 +77,10 @@ export class Tween {
     }
 
     if (config.autoplay !== false) this.play();
+  }
+
+  get isPlaying() {
+    return this.playing && !this.completed;
   }
 
   _parseProperties(config) {
@@ -89,6 +112,11 @@ export class Tween {
 
   pause() {
     this.playing = false;
+    return this;
+  }
+
+  resume() {
+    if (!this.completed) this.playing = true;
     return this;
   }
 
@@ -154,6 +182,76 @@ export class Tween {
     for (const property of this.properties) {
       this.target[property.key] = property.from + (property.to - property.from) * t;
     }
+  }
+}
+
+export class TweenSequence {
+  constructor(target, keyframes = [], {
+    duration = null,
+    loop = false,
+    autoplay = true,
+    onUpdate = null,
+    onComplete = null
+  } = {}) {
+    this.target = target;
+    this.keyframes = [...keyframes]
+      .map((frame) => ({
+        time: Math.max(0, Number(frame.time || 0)),
+        props: { ...(frame.props || {}) }
+      }))
+      .sort((left, right) => left.time - right.time);
+    const lastTime = this.keyframes.at(-1)?.time || 0;
+    this.duration = Math.max(1, Number(duration ?? lastTime) || 1);
+    this.loop = Boolean(loop);
+    this.onUpdate = onUpdate;
+    this.onComplete = onComplete;
+    this.elapsed = 0;
+    this.playing = Boolean(autoplay);
+    this.completed = false;
+    this._applyAt(0);
+  }
+
+  play() {
+    this.playing = true;
+    return this;
+  }
+
+  pause() {
+    this.playing = false;
+    return this;
+  }
+
+  restart() {
+    this.elapsed = 0;
+    this.completed = false;
+    this._applyAt(0);
+    return this.play();
+  }
+
+  update(deltaMs = 0) {
+    if (!this.playing || this.completed) return this;
+    this.elapsed += Math.max(0, Number(deltaMs) || 0);
+    let time = this.elapsed;
+    if (this.loop) time %= this.duration;
+    else if (time >= this.duration) {
+      time = this.duration;
+      this.completed = true;
+      this.playing = false;
+    }
+    this._applyAt(time);
+    this.onUpdate?.(this);
+    if (this.completed) this.onComplete?.(this);
+    return this;
+  }
+
+  _applyAt(time) {
+    if (!this.target || !this.keyframes.length) return;
+    let active = this.keyframes[0];
+    for (const frame of this.keyframes) {
+      if (frame.time <= time) active = frame;
+      else break;
+    }
+    Object.assign(this.target, active.props);
   }
 }
 

@@ -46,7 +46,10 @@ export class Loader {
     this.timeout = timeout;
     this.retries = retries;
     this.fetcher = fetcher;
-    this.pathResolver = pathResolver;
+    this.pathResolverMap = pathResolver && typeof pathResolver === 'object' && typeof pathResolver !== 'function'
+      ? { ...pathResolver }
+      : {};
+    this.pathResolver = normalizePathResolver(pathResolver);
     this.onFriendlyError = onFriendlyError;
     this.webpSupport = webpSupport;
     this.preferWebp = preferWebp;
@@ -229,10 +232,12 @@ export class Loader {
   _createResourceMissing(item, error, candidates = []) {
     const width = Math.max(1, Number(item?.width) || 32);
     const height = Math.max(1, Number(item?.height) || 32);
+    const label = `资源丢失：${item?.url || item?.key || 'unknown'}`;
     return {
       type: 'ResourceMissing',
       kind: 'sprite',
       name: 'ResourceMissing',
+      label,
       key: this._cacheKey(item),
       url: item?.url,
       tried: candidates.map((candidate) => candidate.url),
@@ -250,6 +255,9 @@ export class Loader {
         ctx.globalAlpha = 0.5;
         ctx.fillStyle = 'rgba(255,0,0,1)';
         ctx.fillRect?.(this.x || 0, this.y || 0, width, height);
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.font = '12px sans-serif';
+        ctx.fillText?.(label, (this.x || 0) + 4, (this.y || 0) + Math.min(height - 6, 16));
         ctx.restore?.();
       }
     };
@@ -273,6 +281,14 @@ export class Loader {
           return response.arrayBuffer();
         case 'blob':
           return response.blob();
+        case 'image':
+          return {
+            type: 'ImageAsset',
+            key: this._cacheKey(item),
+            url: item.url,
+            resolvedFrom: item.resolvedFrom || null,
+            blob: response.blob ? await response.blob() : null
+          };
         case 'text':
         case 'csv':
         default:
@@ -286,6 +302,18 @@ export class Loader {
 
 function defaultPathResolver(item = {}) {
   return item.fallbackPaths || item.fallbackUrls || [...DEFAULT_FALLBACK_PATHS];
+}
+
+function normalizePathResolver(pathResolver) {
+  if (typeof pathResolver === 'function') return pathResolver;
+  if (pathResolver && typeof pathResolver === 'object') {
+    const map = { ...pathResolver };
+    return (item = {}) => {
+      const url = item.url || '';
+      return map[url] || map[`/${url}`] || item.fallbackPaths || item.fallbackUrls || [...DEFAULT_FALLBACK_PATHS];
+    };
+  }
+  return defaultPathResolver;
 }
 
 function isPngUrl(url = '') {

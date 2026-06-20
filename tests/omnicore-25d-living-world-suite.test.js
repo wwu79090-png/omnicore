@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
+  createEditorDeployBenchmark25D,
   EditorCoCreator25D,
   EmotionalPalette25D,
   WorldMemory25D
@@ -40,5 +41,48 @@ describe('OmniCore 2.5D living world integration suite', () => {
     expect(docs).toContain('RealitySensor25D');
     expect(docs).toContain('EditorCoCreator25D');
     expect(docs).toContain('权限');
+  });
+
+  it('ships official 2.5D editor deploy demo and benchmark evidence', () => {
+    expect(existsSync('examples/25d-editor-deploy-loop.json')).toBe(true);
+    const demo = JSON.parse(readFileSync('examples/25d-editor-deploy-loop.json', 'utf8'));
+    const evidence = createEditorDeployBenchmark25D({
+      demo,
+      deployment: {
+        manifest: {
+          profile: '2.5d-editor-lite',
+          targets: ['web'],
+          scenes: 1,
+          assets: 2,
+          coCreationPlans: 1
+        },
+        files: [
+          { path: 'scenes/forest-demo.scene.json', data: {} },
+          { path: 'manifests/deploy-lite.json', data: {} },
+          { path: 'plans/25d-cocreation/forest-tower.json', data: {} }
+        ]
+      },
+      readiness: { ready: true, score: 100 }
+    });
+
+    expect(demo.workflow).toEqual(['plan', 'apply', 'save', 'export', 'readiness']);
+    expect(evidence).toMatchObject({
+      format: 'OmniCore.EditorDeployBenchmark25D',
+      ready: true,
+      score: expect.any(Number),
+      stages: [
+        expect.objectContaining({ id: 'plan', status: 'pass' }),
+        expect.objectContaining({ id: 'apply', status: 'pass' }),
+        expect.objectContaining({ id: 'save', status: 'pass' }),
+        expect.objectContaining({ id: 'export', status: 'pass' }),
+        expect.objectContaining({ id: 'readiness', status: 'pass' })
+      ],
+      budget: {
+        profile: '2.5d-editor-lite',
+        maxFiles: 12,
+        fileCount: 3
+      }
+    });
+    expect(evidence.score).toBeGreaterThanOrEqual(95);
   });
 });

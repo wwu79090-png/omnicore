@@ -20,6 +20,8 @@ function queueMicrotaskSafe(callback) {
   Promise.resolve().then(callback);
 }
 
+const STORE_CHECKPOINTS = new WeakMap();
+
 /**
  * Nano Stores based global state registry.
  *
@@ -49,6 +51,11 @@ export class Store {
     this.dependencyGraph = new Map();
     this.derivedFlushScheduled = false;
     this.derivedFlushing = false;
+    STORE_CHECKPOINTS.set(this, {
+      enabled: Boolean(options.debug && options.checkpointStorage),
+      storage: options.checkpointStorage || null,
+      prefix: options.checkpointPrefix || 'omnicore:store:snapshot:'
+    });
     Object.entries(initialState).forEach(([key, value]) => this.atom(key, value));
   }
 
@@ -192,12 +199,31 @@ export class Store {
   }
 
   /**
+   * @param {?string} name Optional checkpoint name used when checkpoint storage is enabled.
    * @returns {Record<string, *>} Plain state snapshot.
    */
-  snapshot() {
+  snapshot(name = null) {
     const result = {};
     for (const [key, store] of this.stores) result[key] = store.get();
+    if (name) {
+      const checkpoint = STORE_CHECKPOINTS.get(this);
+      if (checkpoint?.enabled) checkpoint.storage.set(`${checkpoint.prefix}${name}`, result);
+    }
     return result;
+  }
+
+  /**
+   * @param {string} name Checkpoint name to restore from checkpoint storage.
+   * @returns {?Record<string, *>} Restored state snapshot, or null when unavailable.
+   */
+  loadSnapshot(name) {
+    if (!name) return null;
+    const checkpoint = STORE_CHECKPOINTS.get(this);
+    if (!checkpoint?.enabled) return null;
+    const snapshot = checkpoint.storage.get(`${checkpoint.prefix}${name}`, null);
+    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return null;
+    for (const [key, value] of Object.entries(snapshot)) this.setValue(key, value);
+    return snapshot;
   }
 
   _warnTypeDrift(key, value) {

@@ -208,7 +208,14 @@ Generated: 2026-06-20T00:00:00.000Z
 ### snapshot
 
 /**
+   * @param {?string} name Optional checkpoint name used when checkpoint storage is enabled.
    * @returns {Record<string, *>} Plain state snapshot.
+
+### loadSnapshot
+
+/**
+   * @param {string} name Checkpoint name to restore from checkpoint storage.
+   * @returns {?Record<string, *>} Restored state snapshot, or null when unavailable.
 
 ### configurePluginMarket
 

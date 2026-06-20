@@ -1,0 +1,22 @@
+{
+  "format": "OmniCore.25DPreviewScreenshotEvidence",
+  "version": 1,
+  "generatedAt": "2026-06-20T00:00:00.000Z",
+  "ready": true,
+  "url": "http://127.0.0.1:43210/",
+  "screenshot": {
+    "path": "docs/release-notes/25d-preview.png",
+    "bytes": 33695,
+    "minBytes": 1024,
+    "nonBlank": true
+  },
+  "source": {
+    "bundle": "examples/25d-editor-deploy-loop.production-bundle.json",
+    "certification": "docs/release-notes/25d-production-certification.json"
+  },
+  "console": {
+    "clean": true,
+    "errors": [],
+    "warnings": []
+  }
+}

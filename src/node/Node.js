@@ -100,6 +100,22 @@ export class Node {
     return removed;
   }
 
+  localToWorld(point = {}) {
+    return worldPointFor(this, point);
+  }
+
+  worldToLocal(point = {}) {
+    return localPointFor(this, point);
+  }
+
+  toLocalPosition(point = {}) {
+    return this.worldToLocal(point);
+  }
+
+  getWorldPosition() {
+    return this.localToWorld({ x: 0, y: 0 });
+  }
+
   clearListeners() {
     for (const handlers of this.__listeners.values()) {
       handlers.clear();
@@ -179,6 +195,77 @@ function createSignalTargetHandler(target, targetEventOrHandler) {
     return (...args) => target.emit(targetName, ...args);
   }
   throw createOmniError('Node', `connect 目标缺少处理函数或 emit：${targetName}。`);
+}
+
+function worldPointFor(node, point = {}) {
+  const chain = [];
+  let current = node;
+  while (current) {
+    chain.unshift(current);
+    current = current.parent || null;
+  }
+  return roundPoint(chain.reduce((acc, item) => transformPoint(acc, item), {
+    x: Number(point.x || 0),
+    y: Number(point.y || 0)
+  }));
+}
+
+function localPointFor(node, point = {}) {
+  const chain = [];
+  let current = node;
+  while (current) {
+    chain.push(current);
+    current = current.parent || null;
+  }
+  return roundPoint(chain.reduce((acc, item) => inverseTransformPoint(acc, item), {
+    x: Number(point.x || 0),
+    y: Number(point.y || 0)
+  }));
+}
+
+function transformPoint(point, node) {
+  const scale = Number(node.scale ?? 1);
+  const scaleX = Number(node.scaleX ?? scale);
+  const scaleY = Number(node.scaleY ?? scale);
+  const rotation = Number(node.rotation || 0);
+  const scaled = {
+    x: point.x * scaleX,
+    y: point.y * scaleY
+  };
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  return {
+    x: Number(node.x || 0) + scaled.x * cos - scaled.y * sin,
+    y: Number(node.y || 0) + scaled.x * sin + scaled.y * cos
+  };
+}
+
+function inverseTransformPoint(point, node) {
+  const scale = Number(node.scale ?? 1);
+  const scaleX = Number(node.scaleX ?? scale) || 1;
+  const scaleY = Number(node.scaleY ?? scale) || 1;
+  const rotation = -Number(node.rotation || 0);
+  const translated = {
+    x: point.x - Number(node.x || 0),
+    y: point.y - Number(node.y || 0)
+  };
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  return {
+    x: (translated.x * cos - translated.y * sin) / scaleX,
+    y: (translated.x * sin + translated.y * cos) / scaleY
+  };
+}
+
+function roundPoint(point) {
+  return {
+    x: roundNumber(point.x),
+    y: roundNumber(point.y)
+  };
+}
+
+function roundNumber(value) {
+  return Number(Number(value).toFixed(6));
 }
 
 export default Node;

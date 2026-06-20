@@ -756,6 +756,12 @@
           "arity": 2,
           "async": false,
           "kind": "method",
+          "name": "_syncCommandSprite"
+        },
+        {
+          "arity": 2,
+          "async": false,
+          "kind": "method",
           "name": "_syncDisplayObject"
         },
         {
@@ -1188,6 +1194,12 @@
         "name": "injectBackend"
       },
       {
+        "arity": 1,
+        "async": false,
+        "kind": "method",
+        "name": "loadSnapshot"
+      },
+      {
         "arity": 2,
         "async": false,
         "kind": "method",
@@ -1310,6 +1322,11 @@
         "name": "AnimationEditor"
       },
       {
+        "arity": 0,
+        "async": false,
+        "name": "AnimationManager"
+      },
+      {
         "arity": 1,
         "async": false,
         "name": "AnimationStateMachine"
@@ -1393,6 +1410,11 @@
         "arity": 0,
         "async": false,
         "name": "CrashReporter"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "DataAdapter"
       },
       {
         "arity": 0,
@@ -1557,6 +1579,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "Graphics"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "HeightfieldNavMesh25D"
       },
       {
@@ -1683,6 +1710,11 @@
         "arity": 0,
         "async": false,
         "name": "ParticleEditorPanel"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ParticleSystem"
       },
       {
         "arity": 0,
@@ -1825,6 +1857,11 @@
         "name": "Scene"
       },
       {
+        "arity": 1,
+        "async": false,
+        "name": "ShapeBuilder"
+      },
+      {
         "arity": 0,
         "async": false,
         "name": "SkeletalAnimation"
@@ -1912,6 +1949,16 @@
       {
         "arity": 0,
         "async": false,
+        "name": "Text"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "TileSprite"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "Tilemap"
       },
       {
@@ -1943,6 +1990,11 @@
         "arity": 1,
         "async": false,
         "name": "Tween"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "TweenSequence"
       },
       {
         "arity": 1,
@@ -2015,9 +2067,34 @@
         "name": "calculateDamage"
       },
       {
+        "arity": 0,
+        "async": false,
+        "name": "conicGradientFill"
+      },
+      {
         "arity": 1,
         "async": false,
         "name": "connectEditorSync"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createBezierPrimitive"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createCapsulePrimitive"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createCodeLayerPrimitive"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createEditorDeployBenchmark25D"
       },
       {
         "arity": 0,
@@ -2036,6 +2113,11 @@
       },
       {
         "arity": 0,
+        "async": false,
+        "name": "createHousePrimitive"
+      },
+      {
+        "arity": 0,
         "async": true,
         "name": "createLeanRuntime"
       },
@@ -2047,7 +2129,27 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createPolygonPrimitive"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createRendererPerformanceSandbox"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createRichTextPrimitive"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createRingPrimitive"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createSectorPrimitive"
       },
       {
         "arity": 0,
@@ -2072,6 +2174,11 @@
       {
         "arity": 1,
         "async": false,
+        "name": "expandVectorPrimitive"
+      },
+      {
+        "arity": 1,
+        "async": false,
         "name": "findPath"
       },
       {
@@ -2092,6 +2199,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "linearGradientFill"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "listHelp"
       },
       {
@@ -2100,9 +2212,19 @@
         "name": "loadPhysics"
       },
       {
+        "arity": 0,
+        "async": false,
+        "name": "radialGradientFill"
+      },
+      {
         "arity": 4,
         "async": false,
         "name": "safeInitialize"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "textureFill"
       },
       {
         "arity": 1,
@@ -2113,6 +2235,11 @@
         "arity": 1,
         "async": true,
         "name": "useAddon"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "vectorPrimitiveToSvg"
       }
     ],
     "keys": [
@@ -2125,6 +2252,7 @@
       "Analytics",
       "Animation",
       "AnimationEditor",
+      "AnimationManager",
       "AnimationStateMachine",
       "ApiQuickPanel",
       "AssetBrowser",
@@ -2142,12 +2270,15 @@
       "ChunkCache",
       "ChunkManager",
       "CollisionMask",
+      "Color",
       "CommandBuffer",
       "Components",
       "ComputeRuntime",
       "Console",
       "CrashReporter",
       "DB",
+      "Data",
+      "DataAdapter",
       "DataTable",
       "DataTableEditor",
       "Database",
@@ -2180,10 +2311,13 @@
       "ExportPaywall",
       "FeedbackWidget",
       "FixedMemoryPool",
+      "Font",
       "FrameBudgetScheduler",
       "FrameProfiler",
       "Game",
       "Genealogy",
+      "Geom",
+      "Graphics",
       "HeightfieldNavMesh25D",
       "HotReload",
       "HotfixManager",
@@ -2216,6 +2350,7 @@
       "OffscreenCanvasRenderer",
       "PackageManager",
       "ParticleEditorPanel",
+      "ParticleSystem",
       "ParticleTerrainCollider25D",
       "Payment",
       "PerformanceMetrics",
@@ -2252,6 +2387,8 @@
       "Sandbox",
       "SandboxBus",
       "Scene",
+      "Shape",
+      "ShapeBuilder",
       "SkeletalAnimation",
       "SkeletonAnimationEditor",
       "SleepWakeSystem",
@@ -2272,13 +2409,17 @@
       "TelemetryCollector",
       "TelemetryDashboard",
       "Templates",
+      "Text",
+      "TileSprite",
       "Tilemap",
       "TilemapLoader",
       "TimeGuard",
       "Timeline",
       "Timer",
+      "Transform2D",
       "TutorialGuide",
       "Tween",
+      "TweenSequence",
       "UI",
       "VersionDialog",
       "ViewportCulling",
@@ -2295,26 +2436,41 @@
       "assertRendererBackend",
       "benchmarkECSParticles",
       "calculateDamage",
+      "conicGradientFill",
       "connectEditorSync",
+      "createBezierPrimitive",
+      "createCapsulePrimitive",
+      "createCodeLayerPrimitive",
+      "createEditorDeployBenchmark25D",
       "createEntity",
       "createGame",
       "createHD2DFilter",
+      "createHousePrimitive",
       "createLeanRuntime",
       "createNormalLightShader",
+      "createPolygonPrimitive",
       "createRendererPerformanceSandbox",
+      "createRichTextPrimitive",
+      "createRingPrimitive",
+      "createSectorPrimitive",
       "createSpineFFDVertexShader",
       "createWebGPUComputeParticleDescriptor",
       "detectEnvironment",
       "disableAddon",
+      "expandVectorPrimitive",
       "findPath",
       "help",
       "install",
       "isDebugBuildEnabled",
+      "linearGradientFill",
       "listHelp",
       "loadPhysics",
+      "radialGradientFill",
       "safeInitialize",
+      "textureFill",
       "use",
-      "useAddon"
+      "useAddon",
+      "vectorPrimitiveToSvg"
     ]
   },
   "package": "omnicore",

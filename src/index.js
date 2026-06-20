@@ -11,16 +11,20 @@ import DualSpatialIndex from './core/DualSpatialIndex.js';
 import Entity from './core/Entity.js';
 import { FixedMemoryPool, Pool, PoolRegistry } from './core/MemoryPool.js';
 import Animation from './animation/Animation.js';
+import AnimationManager from './animation/AnimationManager.js';
 import Camera from './camera/Camera.js';
 import Node from './node/Node.js';
 import { Scene, Sprite } from './scene/Scene.js';
+import TileSprite from './scene/TileSprite.js';
+import Text from './text/Text.js';
 import SceneManager from './scene/SceneManager.js';
 import InputManager from './input/InputManager.js';
-import Tween from './tween/Tween.js';
+import Tween, { TweenSequence } from './tween/Tween.js';
 import Timer from './timer/Timer.js';
 import Vec2 from './math/Vec2.js';
 import Rect from './math/Rect.js';
 import Easing from './math/Easing.js';
+import { distance, isInRadius } from './math/MathUtils.js';
 import Store from './store/Store.js';
 import Loader from './loader/Loader.js';
 import AssetLoader from './loader/AssetLoader.js';
@@ -32,6 +36,22 @@ import OffscreenCanvasRenderer from './renderer/OffscreenCanvasRenderer.js';
 import RenderWorkerBridge from './renderer/RenderWorkerBridge.js';
 import RendererManager from './renderer/RendererManager.js';
 import WebGLContextManager from './renderer/WebGLContextManager.js';
+import {
+  createBezierPrimitive,
+  createCapsulePrimitive,
+  createCodeLayerPrimitive,
+  createHousePrimitive,
+  createPolygonPrimitive,
+  createRichTextPrimitive,
+  createRingPrimitive,
+  createSectorPrimitive,
+  conicGradientFill,
+  expandVectorPrimitive,
+  linearGradientFill,
+  radialGradientFill,
+  textureFill,
+  vectorPrimitiveToSvg
+} from './renderer/VectorPrimitives.js';
 import * as Filters from './renderer/Filters.js';
 import {
   createHD2DFilter,
@@ -46,6 +66,9 @@ import UIRenderManager from './ui/UIRenderManager.js';
 import UIButton from './ui/UIButton.js';
 import UITextInput from './ui/UITextInput.js';
 import UIScrollView from './ui/UIScrollView.js';
+import HtmlOverlay from './ui/HtmlOverlay.js';
+import UIStateMachine from './ui/UIStateMachine.js';
+import { layoutRichText } from './ui/RichText.js';
 import PrefabManager from './prefab/PrefabManager.js';
 import Prefab, { PrefabRegistry } from './core/PrefabRegistry.js';
 import ObjectPool from './pool/ObjectPool.js';
@@ -64,18 +87,23 @@ import ChunkManager from './tilemap/ChunkManager.js';
 import EventSheet from './data/EventSheet.js';
 import DataTable from './data/DataTable.js';
 import DataTableEditor from './data/DataTableEditor.js';
+import DataAdapter from './data/DataAdapter.js';
+import { safeParse } from './data/SafeParse.js';
 import I18n from './data/I18n.js';
 import Localization from './data/Localization.js';
+import Color from './color/Color.js';
 import { DB, Database } from './database/Database.js';
 import AudioManager from './audio/AudioManager.js';
 import AudioEditor from './audio/AudioEditor.js';
 import NetManager from './net/NetManager.js';
+import { fetchWithTimeout } from './net/fetchWithTimeout.js';
 import NetRoom from './net/Room.js';
 import RealtimeConnection from './net/RealtimeConnection.js';
 import WebTransportConnection from './net/WebTransportConnection.js';
 import NavigationAgent2D from './navigation/NavigationAgent2D.js';
 import HeightfieldNavMesh25D from './navigation/HeightfieldNavMesh25D.js';
 import {
+  createEditorDeployBenchmark25D,
   EditorCoCreator25D,
   EmotionalPalette25D,
   RealitySensor25D,
@@ -103,6 +131,7 @@ import ErrorDiagnostics from './debug/ErrorDiagnostics.js';
 import TelemetryCollector from './debug/TelemetryCollector.js';
 import TelemetryDashboard from './debug/TelemetryDashboard.js';
 import TutorialGuide from './debug/TutorialGuide.js';
+import { Grid as DebugGrid } from './debug/Grid.js';
 import { Assert } from './debug/Assert.js';
 import { help as describeHelp, listHelp } from './help/HelpRegistry.js';
 import FeedbackWidget from './feedback/FeedbackWidget.js';
@@ -133,7 +162,12 @@ import SkeletalAnimation, { DragonBonesAdapter, SpineAdapter, SpinePixiRuntimeAd
 import AnimationStateMachine from './animations/AnimationStateMachine.js';
 import Light2D from './lighting/Light2D.js';
 import ParticleEditorPanel from './editor/ParticleEditorPanel.js';
+import ParticleSystem from './particles/ParticleSystem.js';
 import ParticleTerrainCollider25D from './particles/ParticleTerrainCollider25D.js';
+import Geom from './graphics/Geom.js';
+import Graphics from './graphics/Graphics.js';
+import Shape, { ShapeBuilder } from './graphics/Shape.js';
+import Transform2D from './graphics/Transform2D.js';
 import AnimationEditor from './editor/AnimationEditor.js';
 import SkeletonAnimationEditor from './editor/SkeletonAnimationEditor.js';
 import InputSequence from './input/InputSequence.js';
@@ -141,6 +175,7 @@ import Analytics from './analytics/Analytics.js';
 import ABTest from './experiments/ABTest.js';
 import PackageManager from './package/PackageManager.js';
 import MarketplaceServer from './marketplace/MarketplaceServer.js';
+import Font from './assets/Font.js';
 import OBundle from './assets/OBundle.js';
 import AssetPatchManager from './assets/AssetPatchManager.js';
 import PlatformVariantResolver from './assets/PlatformVariantResolver.js';
@@ -194,6 +229,10 @@ import { buildEditorLongTermMaturity } from './editor/EditorLongTermMaturity.js'
 import { buildMarketEngineComparison, renderMarketEngineComparisonMarkdown } from './quality/MarketEngineComparison.js';
 import { buildMarketPositioningScorecard } from './quality/MarketPositioningScorecard.js';
 
+const Data = { safeParse };
+const MathTools = { Vec2, Rect, Easing, distance, isInRadius };
+const Net = Object.assign(NetManager, { fetchWithTimeout });
+
 let activeDebugAPI = createDebugAPI({ debug: false });
 const Debug = {
   get enabled() {
@@ -218,6 +257,9 @@ const Debug = {
   drawPhysicsWorld(...args) {
     return activeDebugAPI.drawPhysicsWorld(...args);
   },
+  grid(options = {}) {
+    return DebugGrid(options);
+  },
   flush(...args) {
     return activeDebugAPI.flush(...args);
   },
@@ -225,6 +267,13 @@ const Debug = {
     return activeDebugAPI.clear();
   }
 };
+
+Object.defineProperty(Debug, 'Grid', {
+  configurable: true,
+  enumerable: false,
+  writable: false,
+  value: Debug.grid
+});
 
 /**
  * OmniCore public module entry.
@@ -690,10 +739,13 @@ const OmniCore = {
   Node,
   Scene,
   Sprite,
+  TileSprite,
+  Text,
   Entity,
   createEntity,
   Snapshot,
   Tween,
+  TweenSequence,
   Input: InputManager,
   InputManager,
   InputSequence,
@@ -701,7 +753,18 @@ const OmniCore = {
   Timer,
   TimeGuard,
   Animation,
-  UI: { Button, UIElement, UIRenderManager, UIButton, UITextInput, UIScrollView },
+  AnimationManager,
+  UI: {
+    Button,
+    HtmlOverlay,
+    UIElement,
+    UIRenderManager,
+    UIButton,
+    UITextInput,
+    UIScrollView,
+    UIStateMachine,
+    layoutRichText
+  },
   Prefab,
   PrefabRegistry,
   PrefabManager,
@@ -713,7 +776,22 @@ const OmniCore = {
   install: (name, options) => Store.install(name, options),
   Loader,
   AssetLoader,
+  Font,
   Renderer: { PixiRenderer, WebGPURenderer, RendererBackend, OffscreenCanvasRenderer, RenderWorkerBridge, Filters, WebGLContextManager, RendererManager, RenderLayerManager, PixiBatchAdapter, CommandBuffer, StaticBatchCompiler },
+  createBezierPrimitive,
+  createCapsulePrimitive,
+  createCodeLayerPrimitive,
+  createHousePrimitive,
+  createPolygonPrimitive,
+  createRichTextPrimitive,
+  createRingPrimitive,
+  createSectorPrimitive,
+  conicGradientFill,
+  expandVectorPrimitive,
+  linearGradientFill,
+  radialGradientFill,
+  textureFill,
+  vectorPrimitiveToSvg,
   createHD2DFilter,
   createNormalLightShader,
   createSpineFFDVertexShader,
@@ -731,7 +809,7 @@ const OmniCore = {
   RendererManager,
   RenderLayerManager,
   Loop,
-  Math: { Vec2, Rect, Easing },
+  Math: MathTools,
   ECS,
   Components,
   World,
@@ -751,6 +829,7 @@ const OmniCore = {
   EmotionalPalette25D,
   RealitySensor25D,
   EditorCoCreator25D,
+  createEditorDeployBenchmark25D,
   Timeline,
   VisualEventGraph,
   HotReload,
@@ -780,7 +859,13 @@ const OmniCore = {
   AnimationStateMachine,
   Light2D,
   ParticleEditorPanel,
+  ParticleSystem,
   ParticleTerrainCollider25D,
+  Geom,
+  Graphics,
+  Shape,
+  ShapeBuilder,
+  Transform2D,
   AnimationEditor,
   SkeletonAnimationEditor,
   PhysicsWorld,
@@ -807,6 +892,9 @@ const OmniCore = {
   AudioEditor,
   DataTable,
   DataTableEditor,
+  DataAdapter,
+  Data,
+  Color,
   I18n,
   Localization,
   EventSheet,
@@ -815,7 +903,7 @@ const OmniCore = {
   PoolRegistry,
   FixedMemoryPool,
   Storage: StorageManager,
-  Net: NetManager,
+  Net,
   NetRoom,
   NavigationAgent2D,
   RealtimeConnection,
@@ -881,6 +969,7 @@ export {
   AITilemapGenerator,
   Analytics,
   Animation,
+  AnimationManager,
   AnimationEditor,
   AnimationStateMachine,
   ApiQuickPanel,
@@ -896,12 +985,15 @@ export {
   ChunkCache,
   ChunkManager,
   CollisionMask,
+  Color,
   ComputeRuntime,
   CommandBuffer,
   Components,
   CrashReporter,
+  DataAdapter,
   DataTable,
   DataTableEditor,
+  Data,
   Database,
   DB,
   Debug,
@@ -911,6 +1003,7 @@ export {
   DevProfile,
   DeveloperUsageReport,
   DeviceProfiler,
+  distance,
   Deprecation,
   Dimension3D,
   DragonBonesAdapter,
@@ -932,7 +1025,9 @@ export {
   PhaserCompatScene,
   ExportPaywall,
   FeedbackWidget,
+  fetchWithTimeout,
   FixedMemoryPool,
+  Font,
   FrameBudgetScheduler,
   FrameProfiler,
   Genealogy,
@@ -946,6 +1041,7 @@ export {
   InputManager,
   InputSequence,
   Inspector,
+  isInRadius,
   isDebugBuildEnabled,
   Kernel,
   LeanAddons,
@@ -970,8 +1066,10 @@ export {
   EmotionalPalette25D,
   RealitySensor25D,
   EditorCoCreator25D,
+  createEditorDeployBenchmark25D,
   RealtimeConnection,
   Node,
+  TileSprite,
   ObjectPool,
   OBundle,
   Entity,
@@ -983,7 +1081,13 @@ export {
   PerformanceMonitor,
   PerformanceMetrics,
   ParticleEditorPanel,
+  ParticleSystem,
   ParticleTerrainCollider25D,
+  Geom,
+  Graphics,
+  Shape,
+  ShapeBuilder,
+  Transform2D,
   PhysicsWorld,
   PhysicsQuery,
   PixiRenderer,
@@ -1027,6 +1131,7 @@ export {
   SceneManager,
   SleepWakeSystem,
   Sprite,
+  Text,
   SplashScreen,
   stableHash,
   stableStringify,
@@ -1052,11 +1157,14 @@ export {
   Templates,
   TutorialGuide,
   Tween,
+  TweenSequence,
+  HtmlOverlay,
   UIElement,
   UIRenderManager,
   UIButton,
   UIScrollView,
   UITextInput,
+  UIStateMachine,
   VersionDialog,
   VisualEventGraph,
   Vec2,
@@ -1079,7 +1187,22 @@ export {
   createPhaserCompatScene,
   createPixiFrameworkAdoptionPlan,
   createRendererPerformanceSandbox,
+  createBezierPrimitive,
+  createCapsulePrimitive,
+  createCodeLayerPrimitive,
+  createHousePrimitive,
+  createPolygonPrimitive,
+  createRichTextPrimitive,
+  createRingPrimitive,
+  createSectorPrimitive,
+  conicGradientFill,
   createWebGPUComputeParticleDescriptor,
+  expandVectorPrimitive,
+  layoutRichText,
+  linearGradientFill,
+  radialGradientFill,
+  textureFill,
+  vectorPrimitiveToSvg,
   renderMarketEngineComparisonMarkdown,
   addon,
   calculateDamage,

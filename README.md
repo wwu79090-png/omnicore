@@ -179,6 +179,41 @@ const game = await new OmniCore.Game({
 
 采集内容仅限 FPS、JS heap 内存估算、渲染后端、WebGL 丢失/恢复状态、场景名、错误类型计数和引擎版本。默认接收端 `api/telemetry.js` 写入 JSONL，可通过 `OMNICORE_TELEMETRY_FILE` 指定本地文件。不会采集用户身份、IP、输入内容、资源 URL、本地路径、存档数据或业务表数据；线上开启前应在游戏自己的隐私政策中说明用途和保留周期。
 
+## 旧游戏迁移痛点
+
+HTML 覆盖层放在 Canvas 上方时，先让覆盖层消费事件，避免按钮点击穿透到 Pixi 背景：
+
+```js
+const disposeOverlayInput = game.input.pointer.enableEventPropagation(document.querySelector('#hud'));
+```
+
+键盘默认忽略 `INPUT` 和 `TEXTAREA`，迁移表单时不会抢走玩家输入。需要扩展标签时可传入：
+
+```js
+const game = await new OmniCore.Game({
+  input: {
+    keyboard: { ignoreTags: ['INPUT', 'TEXTAREA', 'SELECT'] }
+  }
+}).init();
+```
+
+旧 Phaser/localStorage 存档可以直接映射进 OmniCore Store：
+
+```js
+OmniCore.Storage.importLegacy('phaser-save', {
+  'player.name': 'profile.name',
+  level: 'progress.level',
+  gold: ({ legacy }) => legacy.inventory.coins
+}, { store: game.store });
+```
+
+调试迁移节点时，`debug: true` 会启用命名检查点：
+
+```js
+game.store.snapshot('node-03');
+game.store.loadSnapshot('node-03');
+```
+
 ```js
 const game = await new OmniCore.Game({
   parent: '#game-container',

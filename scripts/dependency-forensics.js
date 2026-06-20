@@ -337,9 +337,45 @@ function writeReports(root, packages) {
   return highFindings;
 }
 
+function mtimeMs(file) {
+  try {
+    return statSync(file).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
+
+function outputsAreFresh(outputs, inputs) {
+  const outputTimes = outputs.map(mtimeMs);
+  if (outputTimes.some((time) => time <= 0)) return false;
+  const newestInput = Math.max(...inputs.map(mtimeMs));
+  return Math.min(...outputTimes) >= newestInput;
+}
+
+function cleanForensicsReport(root) {
+  const reportPath = path.join(root, 'docs', 'security', 'dependency-forensics-latest.md');
+  const report = existsSync(reportPath) ? readFileSync(reportPath, 'utf8') : '';
+  return report.includes('- High-risk findings: 0');
+}
+
 function run() {
   const options = parseArgs(process.argv.slice(2));
   const root = path.resolve(options.root);
+  const outputs = [
+    path.join(root, 'docs', 'security', 'dependency-forensics-latest.md'),
+    path.join(root, 'docs', 'security', 'dependency-forensics-lock.json')
+  ];
+  const inputs = [
+    path.resolve(process.argv[1] || 'scripts/dependency-forensics.js'),
+    path.join(root, 'package.json'),
+    path.join(root, 'package-lock.json'),
+    path.join(root, 'config', 'dependency-forensics.json')
+  ];
+  if (cleanForensicsReport(root) && outputsAreFresh(outputs, inputs)) {
+    console.log('[dependency-forensics] cached clean report; 0 high-risk findings.');
+    return;
+  }
+
   const { allowedHosts, deniedHosts } = readConfig(root);
   const packageDirs = listPackageDirs(path.join(root, 'node_modules'));
   const packages = packageDirs.map((packageRoot) => inspectPackage(

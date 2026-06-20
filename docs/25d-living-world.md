@@ -72,4 +72,28 @@ const plan = new EditorCoCreator25D().plan({
 });
 ```
 
-编辑器应用还提供 `plan25DCoCreation()`、`previewLivingWorld25D()` 和 `previewWorldMemory25D()`，用于在场景工具中预览共创计划、社交行为和世界记忆补丁。
+编辑器应用还提供 `plan25DCoCreation()`、`apply25DCoCreationPlan()`、`previewLivingWorld25D()`、`previewWorldMemory25D()`、`create25DVisualEvidence()` 和 `exportLightweightDeploymentBundle()`，用于把共创计划从预览推进到保存、可视化证据和轻量部署。
+
+```js
+const plan = app.plan25DCoCreation({ prompt: '在树林后建一个高塔，塔顶有一把剑' });
+const applied = app.apply25DCoCreationPlan(plan);
+const snapshot = app.saveSnapshot('forest-demo');
+const visualEvidence = app.create25DVisualEvidence();
+const deployBundle = app.exportLightweightDeploymentBundle();
+
+console.log(applied.entity.id, snapshot.scene.entities.length, visualEvidence.ready, deployBundle.manifest.entryScene);
+```
+
+这个闭环会把共创结果写入当前 scene，标记当前 scene tab 为 dirty，进入编辑器历史栈，并在轻量部署包中生成 `manifests/deploy-lite.json`。部署包只保存场景、引用资源、构建目标和已应用的共创计划，不会把营销页或无关报告塞进运行时路径。
+
+生产化路径可以继续调用 `create25DProductionReadinessReport()` 和 `exportProductionDeploymentBundle()`。前者检查共创计划是否已应用、场景是否已保存、轻量部署目标是否启用、部署 manifest 是否完整，以及 authoring health 是否存在阻塞项；后者把轻量部署包、`reports/25d-production-readiness.json` 和 `reports/25d-visual-evidence.json` 一起导出。生产面板会显示 `plan -> apply -> save -> export -> readiness` 状态，同时列出 occlusion、shadow 和 event visual evidence。
+
+编辑器保存链路提供 `listSaveVersions()`、`diffSaveVersions(fromId, toId)` 和 `rollbackToSaveVersion(id)`，用于比较共创前后的场景实体变化，并把工作区回滚到某个已保存版本。回滚会更新当前 scene 和活动 scene tab，并把 tab 标记为 dirty，便于发布前重新保存确认。
+
+仓库还提供 `examples/25d-editor-deploy-loop.json` 和 `createEditorDeployBenchmark25D()`，用于给官网、CI 或发布说明生成可复现的 2.5D 编辑器闭环证据：`plan -> apply -> save -> export -> readiness`。
+
+发布前可以运行 `npm run certify:25d` 生成 `docs/release-notes/25d-production-certification.json` 和对应 Markdown 报告。这个门禁会复用官方 demo、轻量部署 manifest、2.5D benchmark helper 和 readiness 结果，确认编辑器共创从计划、应用、保存、导出到生产检查全部通过，并阻断超出 `2.5d-editor-lite` 文件预算的发布。对真实项目导出的生产包，可以运行 `npm run certify:25d -- --bundle path/to/production-bundle.json`，认证会优先读取 bundle 里的 manifest、文件列表和 readiness 报告，不再只依赖官方 demo。
+
+本地预览可以运行 `npm run preview:25d -- --bundle path/to/production-bundle.json`，脚本会启动一个只读取 bundle 的轻量 HTTP 预览页，展示 scene entity、co-created 标记、occlusion baseline、shadow 和 readiness 分数。需要截图证据时运行 `npm run capture:25d -- --bundle path/to/production-bundle.json`，它会启动同一个预览服务、用 Playwright Chromium 截图，并写出 `docs/release-notes/25d-preview-screenshot-evidence.json`。
+
+CI 入口在 `.github/workflows/25d-production.yml`。它会安装 Chromium、执行 `certify:25d --bundle examples/25d-editor-deploy-loop.production-bundle.json`，再运行 `capture:25d --bundle examples/25d-editor-deploy-loop.production-bundle.json`，最后上传认证 JSON、Markdown、截图和截图证据报告。

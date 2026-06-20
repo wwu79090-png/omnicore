@@ -218,7 +218,8 @@ export class SceneManager {
     scene.game = this.game;
     scene.input = this.game?.input || null;
     scene.camera = this.game?.camera || null;
-    scene.timer = this.game?.timer || null;
+    if (typeof scene.bindTimer === 'function') scene.bindTimer(this.game?.timer || null);
+    else scene.timer = this.game?.timer || null;
     return scene;
   }
 

@@ -1,9 +1,11 @@
 #!/usr/bin/env node
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const ROOT = process.cwd();
 const SRC_ROOT = path.join(ROOT, 'src');
+const SCRIPT_PATH = path.resolve(process.argv[1] || 'scripts/audit-api-style.js');
+const REPORT_PATH = path.join(ROOT, 'docs', 'release-notes', 'api-style-polish.md');
 const DEFAULT_GENERATED_AT = '2026-06-20T00:00:00.000Z';
 const PUBLIC_NAMESPACE_EXPORTS = new Set([
   'Addons',
@@ -12,11 +14,15 @@ const PUBLIC_NAMESPACE_EXPORTS = new Set([
   'Core',
   'DB',
   'Easing',
+  'Font',
+  'Geom',
   'License',
   'Pool',
   'Query',
   'RendererContract',
-  'Task'
+  'Shape',
+  'Task',
+  'Transform2D'
 ]);
 
 function resolveGeneratedAt() {
@@ -74,8 +80,24 @@ function auditSource(relative, source) {
   return findings;
 }
 
+async function mtimeMs(file) {
+  return (await stat(file).catch(() => null))?.mtimeMs || 0;
+}
+
+async function reportIsFresh(reportPath, inputs) {
+  const reportTime = await mtimeMs(reportPath);
+  if (reportTime <= 0) return false;
+  const newestInput = Math.max(...await Promise.all(inputs.map(mtimeMs)));
+  return reportTime >= newestInput;
+}
+
 async function main() {
   const files = await walk(SRC_ROOT);
+  if (await reportIsFresh(REPORT_PATH, [SCRIPT_PATH, ...files])) {
+    console.log('API style audit passed');
+    return;
+  }
+
   const findings = [];
   for (const file of files) {
     const source = await readFile(file, 'utf8');
@@ -92,15 +114,15 @@ async function main() {
     '- Classes: PascalCase',
     '- Methods: camelCase',
     '- Constants: UPPER_SNAKE_CASE',
-    '- Public namespace objects retained for compatibility: Addons, Backend, Core, DB, Easing, License, Pool, Query, RendererContract, Task',
+    '- Public namespace objects retained for compatibility: Addons, Backend, Core, DB, Easing, Font, Geom, License, Pool, Query, RendererContract, Shape, Task, Transform2D',
     '',
     '## Findings',
     '',
     findings.length ? findings.map((item) => `- ${item}`).join('\n') : 'No naming changes required.'
   ].join('\n');
 
-  await mkdir(path.join(ROOT, 'docs', 'release-notes'), { recursive: true });
-  await writeFile(path.join(ROOT, 'docs', 'release-notes', 'api-style-polish.md'), `${report}\n`);
+  await mkdir(path.dirname(REPORT_PATH), { recursive: true });
+  await writeFile(REPORT_PATH, `${report}\n`);
 
   if (findings.length) {
     console.error(findings.join('\n'));

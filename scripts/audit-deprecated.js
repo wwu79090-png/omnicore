@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -41,9 +41,10 @@ export async function auditDeprecatedApis({
   ]);
   const files = [];
   for (const dir of scanDirs) files.push(...await walk(dir, { ignored, extensions }));
+  const scanRecords = files.map((file) => createScanRecord(root, file));
   const entries = definitions.map((definition) => ({
     ...definition,
-    locations: findCallSites({ root, files, definition }),
+    locations: findCallSites({ scanRecords, definition }),
   })).map((entry) => ({
     ...entry,
     callCount: entry.locations.length
@@ -171,18 +172,24 @@ async function walk(dir, { ignored, extensions }) {
   return files;
 }
 
-function findCallSites({ root, files, definition }) {
+function createScanRecord(root, file) {
+  const content = readFileSync(file, 'utf8');
+  return {
+    file: path.relative(root, file).replace(/\\/g, '/'),
+    isDeprecationRegistry: file.endsWith(path.join('src', 'core', 'Deprecation.js')),
+    lines: stripCommentsAndStrings(content).split(/\r?\n/)
+  };
+}
+
+function findCallSites({ scanRecords, definition }) {
   const locations = [];
-  for (const file of files) {
-    const content = readFileSync(file, 'utf8');
-    const relativeFile = path.relative(root, file).replace(/\\/g, '/');
-    const lines = stripCommentsAndStrings(content).split(/\r?\n/);
-    lines.forEach((line, index) => {
+  for (const record of scanRecords) {
+    if (record.isDeprecationRegistry) continue;
+    record.lines.forEach((line, index) => {
       if (!line.includes(definition.pattern)) return;
       if (isDefinitionLine(line, definition.api)) return;
-      if (file.endsWith(path.join('src', 'core', 'Deprecation.js'))) return;
       locations.push({
-        file: relativeFile,
+        file: record.file,
         line: index + 1
       });
     });
@@ -294,16 +301,48 @@ function parseArgs(argv) {
   return options;
 }
 
+function mtimeMs(file) {
+  try {
+    return statSync(file).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
+
+function outputsAreFresh(outputs, inputs) {
+  const outputTimes = outputs.map(mtimeMs);
+  if (outputTimes.some((time) => time <= 0)) return false;
+  const newestInput = Math.max(...inputs.map(mtimeMs));
+  return Math.min(...outputTimes) >= newestInput;
+}
+
 function isCli() {
   return process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 }
 
 if (isCli()) {
   const options = parseArgs(process.argv.slice(2));
-  const audit = await auditDeprecatedApis();
-  await writeDeprecatedReport({ reportPath: options.reportPath, audit });
-  await updateReadmeDeprecatedPlan({ readmePath: options.readmePath, entries: audit.entries });
-  const totalCalls = audit.entries.reduce((sum, entry) => sum + entry.callCount, 0);
-  console.log(`${totalCalls} deprecated API call(s) found. Report: ${options.reportPath}`);
-  if (totalCalls && options.strict) process.exitCode = 1;
+  let skipped = false;
+  if (!options.strict) {
+    const srcFiles = await walk(path.join(process.cwd(), 'src'), {
+      ignored: DEFAULT_IGNORED,
+      extensions: DEFAULT_EXTENSIONS
+    });
+    const inputs = [
+      path.resolve(process.argv[1] || 'scripts/audit-deprecated.js'),
+      ...srcFiles
+    ];
+    if (outputsAreFresh([options.reportPath, options.readmePath], inputs)) {
+      console.log(`Deprecated API report is current: ${options.reportPath}`);
+      skipped = true;
+    }
+  }
+  if (!skipped) {
+    const audit = await auditDeprecatedApis();
+    await writeDeprecatedReport({ reportPath: options.reportPath, audit });
+    await updateReadmeDeprecatedPlan({ readmePath: options.readmePath, entries: audit.entries });
+    const totalCalls = audit.entries.reduce((sum, entry) => sum + entry.callCount, 0);
+    console.log(`${totalCalls} deprecated API call(s) found. Report: ${options.reportPath}`);
+    if (totalCalls && options.strict) process.exitCode = 1;
+  }
 }

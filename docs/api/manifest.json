@@ -89,6 +89,13 @@
       ]
     },
     {
+      "path": "animation/AnimationManager.js",
+      "summary": "Small frame-animation manager for data-driven sprites and UI elements.",
+      "exports": [
+        "AnimationManager"
+      ]
+    },
+    {
       "path": "animation/SkeletalAnimation.js",
       "summary": "Shared MVP skeleton animation facade for Spine and DragonBones assets.",
       "exports": [
@@ -110,6 +117,13 @@
       "summary": "Runtime resource patch applier for OTA asset overlays. @example const patches = new AssetPatchManager(); await patches.apply('/patches/v2.patch'); patches.resolve('hero.png');",
       "exports": [
         "AssetPatchManager"
+      ]
+    },
+    {
+      "path": "assets/Font.js",
+      "summary": "",
+      "exports": [
+        "Font"
       ]
     },
     {
@@ -194,6 +208,13 @@
       "summary": "2D camera utility with follow, zoom, and shake. The camera is available as `game.camera` and injected into scenes as `scene.camera`. @example scene.camera.follow(player, { lerp: 0.2 }); scene.camera.zoom(1.5); scene.camera.shake(180, 8);",
       "exports": [
         "Camera"
+      ]
+    },
+    {
+      "path": "color/Color.js",
+      "summary": "",
+      "exports": [
+        "from"
       ]
     },
     {
@@ -466,6 +487,13 @@
       ]
     },
     {
+      "path": "data/DataAdapter.js",
+      "summary": "Translates legacy JSON/config shapes into OmniCore-friendly data.",
+      "exports": [
+        "DataAdapter"
+      ]
+    },
+    {
       "path": "data/DataTable.js",
       "summary": "CSV data parser for small gameplay tables. @example const table = DataTable.fromCSV('id,hp\\nhero,10'); table.find('id', 'hero').hp; // \"10\"",
       "exports": [
@@ -498,6 +526,13 @@
       "summary": "JSON-backed localization suite loaded from /assets/locale. @example const localization = await Localization.load('zh-CN'); localization.t('ui.start');",
       "exports": [
         "Localization"
+      ]
+    },
+    {
+      "path": "data/SafeParse.js",
+      "summary": "",
+      "exports": [
+        "safeParse"
       ]
     },
     {
@@ -573,6 +608,13 @@
       "summary": "",
       "exports": [
         "FrameProfiler"
+      ]
+    },
+    {
+      "path": "debug/Grid.js",
+      "summary": "",
+      "exports": [
+        "Grid"
       ]
     },
     {
@@ -805,6 +847,35 @@
       ]
     },
     {
+      "path": "graphics/Geom.js",
+      "summary": "",
+      "exports": [
+        "Geom"
+      ]
+    },
+    {
+      "path": "graphics/Graphics.js",
+      "summary": "",
+      "exports": [
+        "Graphics"
+      ]
+    },
+    {
+      "path": "graphics/Shape.js",
+      "summary": "",
+      "exports": [
+        "ShapeBuilder",
+        "Shape"
+      ]
+    },
+    {
+      "path": "graphics/Transform2D.js",
+      "summary": "",
+      "exports": [
+        "Transform2D"
+      ]
+    },
+    {
       "path": "help/HelpRegistry.js",
       "summary": "@param {string} apiName API name. @returns {object} Help descriptor.",
       "exports": [
@@ -948,6 +1019,13 @@
       ]
     },
     {
+      "path": "livingworld/EditorDeployBenchmark25D.js",
+      "summary": "",
+      "exports": [
+        "createEditorDeployBenchmark25D"
+      ]
+    },
+    {
       "path": "livingworld/EmotionalPalette25D.js",
       "summary": "",
       "exports": [
@@ -1010,6 +1088,14 @@
       "summary": "OmniCore Easing library. Provides Phaser-style named easing functions for Tweens while staying framework independent. @example import { Easing } from 'omnicore'; const half = Easing.inOutCubic(0.5); const fn = Easing.get('outBounce');",
       "exports": [
         "Easing"
+      ]
+    },
+    {
+      "path": "math/MathUtils.js",
+      "summary": "",
+      "exports": [
+        "distance",
+        "isInRadius"
       ]
     },
     {
@@ -1137,6 +1223,13 @@
       "summary": "",
       "exports": [
         "PluginInstaller"
+      ]
+    },
+    {
+      "path": "particles/ParticleSystem.js",
+      "summary": "Small pooled particle runtime for translucent code layers and glow effects.",
+      "exports": [
+        "ParticleSystem"
       ]
     },
     {
@@ -1387,6 +1480,26 @@
       ]
     },
     {
+      "path": "renderer/VectorPrimitives.js",
+      "summary": "",
+      "exports": [
+        "createHousePrimitive",
+        "createRingPrimitive",
+        "createSectorPrimitive",
+        "createBezierPrimitive",
+        "createPolygonPrimitive",
+        "createRichTextPrimitive",
+        "linearGradientFill",
+        "radialGradientFill",
+        "conicGradientFill",
+        "textureFill",
+        "createCapsulePrimitive",
+        "createCodeLayerPrimitive",
+        "expandVectorPrimitive",
+        "vectorPrimitiveToSvg"
+      ]
+    },
+    {
       "path": "renderer/WebGLContextManager.js",
       "summary": "WebGL context loss/restoration manager. The manager listens to browser `webglcontextlost` and `webglcontextrestored` events, prevents the default hard failure path, and calls a canvas fallback hook when the context cannot be restored quickly. @example const manager = new WebGLContextManager({ canvas, onFallback: () => OmniCore.Backend.switch('canvas') });",
       "exports": [
@@ -1419,10 +1532,24 @@
       ]
     },
     {
+      "path": "scene/TileSprite.js",
+      "summary": "",
+      "exports": [
+        "TileSprite"
+      ]
+    },
+    {
       "path": "store/Store.js",
       "summary": "Nano Stores based global state registry. Renderer backends inject their current identity here so cross-backend state is retained during experimental renderer switching. @example const store = new Store({ score: 0 }); store.subscribe('score', (score) => uiScore.text = String(score)); store.injectBackend('pixi');",
       "exports": [
         "Store"
+      ]
+    },
+    {
+      "path": "text/Text.js",
+      "summary": "Rich canvas text primitive for Phaser-style migration.",
+      "exports": [
+        "Text"
       ]
     },
     {
@@ -1485,7 +1612,8 @@
       "path": "tween/Tween.js",
       "summary": "Lightweight Phaser-inspired Tween. Supports numeric target properties, `{ from, to, start }` descriptors, `yoyo`, `repeat`, callbacks, and manual updates from OmniCore.Loop. @example const tween = new Tween(sprite, { x: { from: 0, to: 320 }, alpha: 0.5, duration: 600, ease: 'outCubic', yoyo: true, repeat: 1 }); loop.subscribe((dt) => tween.update(dt * 1000));",
       "exports": [
-        "Tween"
+        "Tween",
+        "TweenSequence"
       ]
     },
     {
@@ -1493,6 +1621,20 @@
       "summary": "Canvas-rendered button. @example const button = new Button('Switch', { x: 16, y: 16, width: 120, height: 36 }); button.onClick(() => OmniCore.Backend.switch('canvas'));",
       "exports": [
         "Button"
+      ]
+    },
+    {
+      "path": "ui/HtmlOverlay.js",
+      "summary": "DOM overlay layer that coexists with Canvas-rendered UI.",
+      "exports": [
+        "HtmlOverlay"
+      ]
+    },
+    {
+      "path": "ui/RichText.js",
+      "summary": "",
+      "exports": [
+        "layoutRichText"
       ]
     },
     {
@@ -1522,6 +1664,13 @@
       "summary": "",
       "exports": [
         "UIScrollView"
+      ]
+    },
+    {
+      "path": "ui/UIStateMachine.js",
+      "summary": "UI state transition coordinator for menus, panels, and unlock flows.",
+      "exports": [
+        "UIStateMachine"
       ]
     },
     {

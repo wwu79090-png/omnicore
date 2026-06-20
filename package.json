@@ -12,6 +12,9 @@
   ],
   "exports": {
     ".": "./src/index.js",
+    "./livingworld": "./src/livingworld/index.js",
+    "./livingworld.js": "./livingworld.js",
+    "./src/livingworld/index.js": "./src/livingworld/index.js",
     "./lean": "./src/lean/index.js",
     "./core": "./src/lean/index.js"
   },
@@ -24,6 +27,7 @@
   },
   "files": [
     "src",
+    "livingworld.js",
     "dist",
     "examples",
     "scripts",
@@ -78,6 +82,9 @@
     "audit:api": "node scripts/audit-api-style.js",
     "audit:asset-conventions": "node scripts/audit-asset-conventions.js",
     "production-ready": "node scripts/production-ready.js",
+    "certify:25d": "node scripts/certify-25d-production.js",
+    "preview:25d": "node scripts/preview-25d-bundle.js",
+    "capture:25d": "node scripts/capture-25d-preview.js",
     "quality:gate": "node scripts/production-ready.js --verify",
     "quality:engine": "node scripts/engine-quality-gate.js",
     "acceptance:core-experience": "node scripts/core-experience-acceptance.js",

@@ -111,6 +111,21 @@ export class RendererAddon {
     return null;
   }
 
+  drawPrimitive(primitive = {}) {
+    const start = now();
+    const commands = expandPrimitive(primitive);
+    if (this.backend === 'pixi' && this.PIXI?.Graphics && this.stage) {
+      const graphic = new this.PIXI.Graphics();
+      commands.forEach((command) => drawPixiVectorCommand(graphic, command));
+      this.stage.addChild?.(graphic);
+      this._recordRender(start);
+      return graphic;
+    }
+    commands.forEach((command) => drawCanvasVectorCommand(this.ctx, command));
+    this._recordRender(start);
+    return null;
+  }
+
   clear() {
     if (this.backend === 'pixi') {
       this.stage?.removeChildren?.();
@@ -179,6 +194,207 @@ function parseColor(value) {
   return 0xffffff;
 }
 
+function drawPixiVectorCommand(graphic, command) {
+  if (typeof graphic.beginFill === 'function') graphic.beginFill(parseColor(command.fill), command.alpha);
+  if (typeof graphic.lineStyle === 'function' && command.stroke) graphic.lineStyle(1, parseColor(command.stroke), command.alpha);
+  if (command.op === 'rect') graphic.drawRect?.(command.x, command.y, command.width, command.height);
+  else if (command.op === 'polygon') {
+    const points = (command.points || []).flatMap((point) => [point.x, point.y]);
+    graphic.drawPolygon?.(points);
+  } else if (command.op === 'sector') {
+    graphic.moveTo?.(command.x, command.y);
+    graphic.arc?.(command.x, command.y, command.radius, command.startAngle, command.endAngle);
+    graphic.closePath?.();
+  } else if (command.op === 'bezier') {
+    graphic.moveTo?.(command.start.x, command.start.y);
+    graphic.bezierCurveTo?.(command.cp1.x, command.cp1.y, command.cp2.x, command.cp2.y, command.end.x, command.end.y);
+  } else if (command.op === 'ring') {
+    graphic.drawCircle?.(command.x, command.y, command.outerRadius);
+    graphic.beginHole?.();
+    graphic.drawCircle?.(command.x, command.y, command.innerRadius);
+    graphic.endHole?.();
+  } else if (command.op === 'capsule') {
+    graphic.drawRoundedRect?.(command.x, command.y, command.width, command.height, command.radius);
+  }
+  graphic.endFill?.();
+}
+
+function expandPrimitive(primitive) {
+  if (!primitive) return [];
+  if (Array.isArray(primitive)) return primitive.flatMap((item) => expandPrimitive(item));
+  if (Array.isArray(primitive.commands)) return primitive.commands.flatMap((item) => expandPrimitive(item));
+  return primitive.op ? [primitive] : [];
+}
+
+function drawCanvasVectorCommand(ctx, command) {
+  if (!ctx) return;
+  if (command.op === 'rect' && isSimpleFill(command)) {
+    ctx.save?.();
+    ctx.globalAlpha = command.alpha;
+    ctx.fillStyle = command.fill;
+    ctx.fillRect?.(command.x, command.y, command.width, command.height);
+    ctx.restore?.();
+    return;
+  }
+  if (command.op === 'text') {
+    ctx.save?.();
+    ctx.globalAlpha = command.alpha;
+    ctx.fillStyle = command.fill;
+    ctx.font = command.font;
+    ctx.fillText?.(command.text, command.x, command.y);
+    ctx.restore?.();
+    return;
+  }
+  if (command.op === 'richText') {
+    drawCanvasRichTextCommand(ctx, command);
+    return;
+  }
+  ctx.save?.();
+  applyCanvasMask(ctx, command.mask);
+  ctx.globalAlpha = command.alpha;
+  if (command.blendMode) ctx.globalCompositeOperation = command.blendMode;
+  const fill = resolveCanvasFill(ctx, command.fill);
+  const stroke = resolveCanvasFill(ctx, command.stroke);
+  if (fill) ctx.fillStyle = fill;
+  if (stroke) ctx.strokeStyle = stroke;
+  if (command.lineWidth != null) ctx.lineWidth = command.lineWidth;
+  ctx.beginPath?.();
+  pathVectorCommand(ctx, command);
+  if (command.fill) ctx.fill?.(command.fillRule || undefined);
+  if (command.stroke) ctx.stroke?.();
+  ctx.restore?.();
+}
+
+function drawCanvasRichTextCommand(ctx, command) {
+  ctx.save?.();
+  applyCanvasMask(ctx, command.mask);
+  ctx.globalAlpha = command.alpha;
+  if (command.blendMode) ctx.globalCompositeOperation = command.blendMode;
+  for (const line of command.layout?.lines || []) {
+    for (const segment of line.segments || []) {
+      ctx.save?.();
+      ctx.font = segment.font;
+      ctx.fillStyle = segment.fill;
+      if (segment.stroke) ctx.strokeStyle = segment.stroke;
+      if (segment.lineWidth != null) ctx.lineWidth = segment.lineWidth;
+      if (segment.shadow) {
+        ctx.shadowColor = segment.shadow.color || 'transparent';
+        ctx.shadowBlur = Number(segment.shadow.blur || 0);
+        ctx.shadowOffsetX = Number(segment.shadow.offsetX || 0);
+        ctx.shadowOffsetY = Number(segment.shadow.offsetY || 0);
+      }
+      const x = command.x + segment.x;
+      const y = command.y + line.y;
+      if (segment.stroke) ctx.strokeText?.(segment.text, x, y);
+      ctx.fillText?.(segment.text, x, y);
+      ctx.restore?.();
+    }
+  }
+  ctx.restore?.();
+}
+
+function applyCanvasMask(ctx, mask) {
+  if (!mask) return;
+  const commands = expandPrimitive(mask);
+  if (!commands.length) return;
+  ctx.beginPath?.();
+  for (const command of commands) pathVectorCommand(ctx, command);
+  ctx.clip?.();
+}
+
+function pathVectorCommand(ctx, command) {
+  if (command.op === 'rect') pathRect(ctx, command);
+  if (command.op === 'polygon') pathPolygon(ctx, command);
+  if (command.op === 'ring') pathRing(ctx, command);
+  if (command.op === 'capsule') pathCapsule(ctx, command);
+  if (command.op === 'sector') pathSector(ctx, command);
+  if (command.op === 'bezier') pathBezier(ctx, command);
+}
+
+function pathRect(ctx, command) {
+  if (ctx.rect) {
+    ctx.rect(command.x, command.y, command.width, command.height);
+    return;
+  }
+  ctx.moveTo?.(command.x, command.y);
+  ctx.lineTo?.(command.x + command.width, command.y);
+  ctx.lineTo?.(command.x + command.width, command.y + command.height);
+  ctx.lineTo?.(command.x, command.y + command.height);
+  ctx.closePath?.();
+}
+
+function pathPolygon(ctx, command) {
+  const [first, ...rest] = command.points || [];
+  if (!first) return;
+  ctx.moveTo?.(first.x, first.y);
+  for (const point of rest) ctx.lineTo?.(point.x, point.y);
+  ctx.closePath?.();
+}
+
+function pathRing(ctx, command) {
+  ctx.arc?.(command.x, command.y, command.outerRadius, 0, Math.PI * 2, false);
+  ctx.arc?.(command.x, command.y, command.innerRadius, 0, Math.PI * 2, true);
+  ctx.closePath?.();
+}
+
+function pathCapsule(ctx, command) {
+  const { x, y, width, height, radius } = command;
+  const right = x + width;
+  const bottom = y + height;
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.moveTo?.(x + r, y);
+  ctx.lineTo?.(right - r, y);
+  ctx.quadraticCurveTo?.(right, y, right, y + r);
+  ctx.lineTo?.(right, bottom - r);
+  ctx.quadraticCurveTo?.(right, bottom, right - r, bottom);
+  ctx.lineTo?.(x + r, bottom);
+  ctx.quadraticCurveTo?.(x, bottom, x, bottom - r);
+  ctx.lineTo?.(x, y + r);
+  ctx.quadraticCurveTo?.(x, y, x + r, y);
+  ctx.closePath?.();
+}
+
+function pathSector(ctx, command) {
+  ctx.moveTo?.(command.x, command.y);
+  ctx.arc?.(command.x, command.y, command.radius, command.startAngle, command.endAngle, command.endAngle < command.startAngle);
+  ctx.closePath?.();
+}
+
+function pathBezier(ctx, command) {
+  ctx.moveTo?.(command.start.x, command.start.y);
+  ctx.bezierCurveTo?.(
+    command.cp1.x,
+    command.cp1.y,
+    command.cp2.x,
+    command.cp2.y,
+    command.end.x,
+    command.end.y
+  );
+}
+
+function resolveCanvasFill(ctx, fill) {
+  if (!fill || typeof fill !== 'object') return fill;
+  if (fill.type === 'linear-gradient') {
+    const gradient = ctx.createLinearGradient?.(fill.x0, fill.y0, fill.x1, fill.y1);
+    for (const stop of fill.stops || []) gradient?.addColorStop?.(stop.offset, stop.color);
+    return gradient || '#ffffff';
+  }
+  if (fill.type === 'radial-gradient') {
+    const gradient = ctx.createRadialGradient?.(fill.x0, fill.y0, fill.r0, fill.x1, fill.y1, fill.r1);
+    for (const stop of fill.stops || []) gradient?.addColorStop?.(stop.offset, stop.color);
+    return gradient || '#ffffff';
+  }
+  if (fill.type === 'texture') return ctx.createPattern?.(fill.source, fill.repetition) || '#ffffff';
+  return fill.color || '#ffffff';
+}
+
+function isSimpleFill(command) {
+  return !command.mask
+    && !command.blendMode
+    && (!command.fill || typeof command.fill !== 'object')
+    && !command.stroke;
+}
+
 function createNoopCanvas() {
   return { width: 0, height: 0, getContext: () => createNoopContext(), remove() {} };
 }
@@ -189,7 +405,18 @@ function createNoopContext() {
     save: noop,
     restore: noop,
     fillRect: noop,
-    fillText: noop
+    fillText: noop,
+    beginPath: noop,
+    moveTo: noop,
+    lineTo: noop,
+    quadraticCurveTo: noop,
+    bezierCurveTo: noop,
+    arc: noop,
+    rect: noop,
+    clip: noop,
+    closePath: noop,
+    fill: noop,
+    stroke: noop
   };
 }
 

@@ -264,7 +264,12 @@ export class Game {
       warn: (message, payload) => this.logger.warn('TimeGuard', message, payload)
     });
     this.core = new CoreContext(this.config);
-    this.store = new Store(this.config.state || {});
+    this.store = new Store(this.config.state || {}, {
+      debug: Boolean(this.config.debug),
+      emergencyPatch: this.config.emergencyPatch || {},
+      checkpointStorage: StorageManager,
+      checkpointPrefix: this.config.store?.checkpointPrefix || this.config.checkpointPrefix
+    });
     this.loader = new Loader({
       fetcher: this.environment.fetcher,
       onFriendlyError: (error) => this.events.emit('loader:error', error)
@@ -356,6 +361,8 @@ export class Game {
     await safeInitialize('CoreContext', () => this.core.init(), (error) => {
       throw error;
     }, this.logger);
+    this.camera.setScreenTarget?.(this.core.canvas);
+    this.camera.setViewport?.({ width: this.config.width, height: this.config.height });
     this.transitionLayer = safeInitialize(
       'TransitionLayer',
       () => new TransitionLayer({ container: this.core.container }),
@@ -383,7 +390,12 @@ export class Game {
       this.logger
     );
     this.core.autoResize(() => this.renderer);
-    this.input = safeInitialize('InputManager', () => new InputManager({ target: this.core.canvas, events: this.events }), null, this.logger);
+    const inputOptions = typeof this.config.input === 'object' ? this.config.input : {};
+    this.input = safeInitialize('InputManager', () => new InputManager({
+      ...inputOptions,
+      target: this.core.canvas,
+      events: this.events
+    }), null, this.logger);
     this.scene = safeInitialize('SceneManager', () => new SceneManager(this), null, this.logger);
     if (this.config.debug || this.config.editorLiveEdit || this.config.profiler) {
       this.frameProfiler = safeInitialize(
