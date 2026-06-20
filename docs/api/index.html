@@ -14,7 +14,7 @@
   <body>
     <main>
       <h1>OmniCore API</h1>
-      <p>Generated at 2026-06-19T19:34:03.466Z</p>
+      <p>Generated at 2026-06-20T04:45:57.553Z</p>
           <article>
       <h2>addons/Ad.js</h2>
       <p></p>
@@ -29,6 +29,16 @@
       <h2>addons/CanvasRenderer.js</h2>
       <p>Canvas renderer addon used by optional microkernel RendererAdapter. @example const renderer = new CanvasRendererAddon({ width: 800, height: 600 }); renderer.init({ canvas });</p>
       <code>CanvasRendererAddon</code>
+    </article>
+    <article>
+      <h2>addons/examples/plugin-ad/index.js</h2>
+      <p></p>
+      <code>createMockAdProvider, createPluginAdExample</code>
+    </article>
+    <article>
+      <h2>addons/examples/plugin-payment/index.js</h2>
+      <p></p>
+      <code>createMockPaymentProvider, createPluginPaymentExample</code>
     </article>
     <article>
       <h2>addons/Payment.js</h2>
@@ -396,6 +406,11 @@
       <code>LogForwarder</code>
     </article>
     <article>
+      <h2>debug/MemoryGuardian.js</h2>
+      <p>Browser GC and allocation-pressure diagnostics for the fixed-step loop.</p>
+      <code>MemoryGuardian</code>
+    </article>
+    <article>
       <h2>debug/PerformanceMetrics.js</h2>
       <p>Lightweight runtime performance metric collector. Core paths can call `measure(name, fn)` or `record(name, duration)` and the collected data can be exported as JSON for CI or remote debugging. @example const metrics = new PerformanceMetrics({ enabled: true }); metrics.measure('renderer.renderScene', () =&gt; renderer.renderScene(scene));</p>
       <code>PerformanceMetrics</code>
@@ -404,6 +419,11 @@
       <h2>debug/PerformanceMonitor.js</h2>
       <p>Debug-only runtime performance monitor. Shows FPS, render time, active GameObject count, and memory usage in the top-right corner when `debug: true`. It also warns when FPS remains below a threshold for several consecutive frames. @example const monitor = new PerformanceMonitor({ debug: true }); monitor.attach(); monitor.update({ fps: 58, renderMs: 2.4, gameObjects: 12 });</p>
       <code>PerformanceMonitor</code>
+    </article>
+    <article>
+      <h2>debug/ProfilerSnapshot.js</h2>
+      <p></p>
+      <code>ProfilerSnapshot</code>
     </article>
     <article>
       <h2>debug/ProfilerWaterfallPanel.js</h2>
@@ -437,7 +457,7 @@
     </article>
     <article>
       <h2>dimension3d/Dimension3D.js</h2>
-      <p>Independent decorative 3D background layer for Three.js. This layer owns a separate canvas and lifecycle, but intentionally exposes only a single static glTF/GLB model as a non-interactive visual background. No 3D collisions, glTF animation playback, or camera controls are provided. @example const dimension = new Dimension3D({ canvas, decorativeModel: { url: '/models/cyberpunk-city.glb', rotationSpeed: { y: 0.2 } } }); await dimension.init(); dimension.render(1 / 60);</p>
+      <p>Independent decorative 3D background layer for Three.js. This layer owns a separate canvas and lifecycle, but intentionally exposes decorative glTF/GLB models, preset animation playback, simple rotation, and raycast click events for bridging back into 2D gameplay. No 3D collisions, physics world, or free 3D camera controls are provided. @example const dimension = new Dimension3D({ canvas, decorativeModel: { url: '/models/cyberpunk-city.glb', rotationSpeed: { y: 0.2 } } }); await dimension.init(); const hero = await dimension.addModel('hero', '/models/hero.glb'); hero.playAnimation('Idle'); dimension.render(1 / 60);</p>
       <code>Dimension3D, Dimension3DScene, Character3D, PlaneLayer</code>
     </article>
     <article>
@@ -961,6 +981,11 @@
       <code>UIElement, sortByZIndex</code>
     </article>
     <article>
+      <h2>ui/UIRenderManager.js</h2>
+      <p>Dirty-rectangle renderer for Canvas UI surfaces.</p>
+      <code>UIRenderManager</code>
+    </article>
+    <article>
       <h2>ui/UIScrollView.js</h2>
       <p></p>
       <code>UIScrollView</code>
@@ -984,6 +1009,11 @@
       <h2>wasm/WasmLoader.js</h2>
       <p>Small WebAssembly.instantiate facade with fetch and byte-array support.</p>
       <code>WasmLoader</code>
+    </article>
+    <article>
+      <h2>worker/LogicWorker.js</h2>
+      <p>Worker-backed game logic frame runner. The shared render channel layout is: x, y, alpha, rotation, scaleX, scaleY per entity.</p>
+      <code>LOGIC_RENDER_STRIDE, LogicWorker</code>
     </article>
     <article>
       <h2>worker/WorkerManager.js</h2>

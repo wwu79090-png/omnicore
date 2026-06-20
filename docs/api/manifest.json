@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-19T19:34:03.466Z",
+  "generatedAt": "2026-06-20T04:45:57.553Z",
   "modules": [
     {
       "path": "addons/Ad.js",
@@ -20,6 +20,22 @@
       "summary": "Canvas renderer addon used by optional microkernel RendererAdapter. @example const renderer = new CanvasRendererAddon({ width: 800, height: 600 }); renderer.init({ canvas });",
       "exports": [
         "CanvasRendererAddon"
+      ]
+    },
+    {
+      "path": "addons/examples/plugin-ad/index.js",
+      "summary": "",
+      "exports": [
+        "createMockAdProvider",
+        "createPluginAdExample"
+      ]
+    },
+    {
+      "path": "addons/examples/plugin-payment/index.js",
+      "summary": "",
+      "exports": [
+        "createMockPaymentProvider",
+        "createPluginPaymentExample"
       ]
     },
     {
@@ -588,6 +604,13 @@
       ]
     },
     {
+      "path": "debug/MemoryGuardian.js",
+      "summary": "Browser GC and allocation-pressure diagnostics for the fixed-step loop.",
+      "exports": [
+        "MemoryGuardian"
+      ]
+    },
+    {
       "path": "debug/PerformanceMetrics.js",
       "summary": "Lightweight runtime performance metric collector. Core paths can call `measure(name, fn)` or `record(name, duration)` and the collected data can be exported as JSON for CI or remote debugging. @example const metrics = new PerformanceMetrics({ enabled: true }); metrics.measure('renderer.renderScene', () => renderer.renderScene(scene));",
       "exports": [
@@ -599,6 +622,13 @@
       "summary": "Debug-only runtime performance monitor. Shows FPS, render time, active GameObject count, and memory usage in the top-right corner when `debug: true`. It also warns when FPS remains below a threshold for several consecutive frames. @example const monitor = new PerformanceMonitor({ debug: true }); monitor.attach(); monitor.update({ fps: 58, renderMs: 2.4, gameObjects: 12 });",
       "exports": [
         "PerformanceMonitor"
+      ]
+    },
+    {
+      "path": "debug/ProfilerSnapshot.js",
+      "summary": "",
+      "exports": [
+        "ProfilerSnapshot"
       ]
     },
     {
@@ -645,7 +675,7 @@
     },
     {
       "path": "dimension3d/Dimension3D.js",
-      "summary": "Independent decorative 3D background layer for Three.js. This layer owns a separate canvas and lifecycle, but intentionally exposes only a single static glTF/GLB model as a non-interactive visual background. No 3D collisions, glTF animation playback, or camera controls are provided. @example const dimension = new Dimension3D({ canvas, decorativeModel: { url: '/models/cyberpunk-city.glb', rotationSpeed: { y: 0.2 } } }); await dimension.init(); dimension.render(1 / 60);",
+      "summary": "Independent decorative 3D background layer for Three.js. This layer owns a separate canvas and lifecycle, but intentionally exposes decorative glTF/GLB models, preset animation playback, simple rotation, and raycast click events for bridging back into 2D gameplay. No 3D collisions, physics world, or free 3D camera controls are provided. @example const dimension = new Dimension3D({ canvas, decorativeModel: { url: '/models/cyberpunk-city.glb', rotationSpeed: { y: 0.2 } } }); await dimension.init(); const hero = await dimension.addModel('hero', '/models/hero.glb'); hero.playAnimation('Idle'); dimension.render(1 / 60);",
       "exports": [
         "Dimension3D",
         "Dimension3DScene",
@@ -1419,6 +1449,13 @@
       ]
     },
     {
+      "path": "ui/UIRenderManager.js",
+      "summary": "Dirty-rectangle renderer for Canvas UI surfaces.",
+      "exports": [
+        "UIRenderManager"
+      ]
+    },
+    {
       "path": "ui/UIScrollView.js",
       "summary": "",
       "exports": [
@@ -1451,6 +1488,14 @@
       "summary": "Small WebAssembly.instantiate facade with fetch and byte-array support.",
       "exports": [
         "WasmLoader"
+      ]
+    },
+    {
+      "path": "worker/LogicWorker.js",
+      "summary": "Worker-backed game logic frame runner. The shared render channel layout is: x, y, alpha, rotation, scaleX, scaleY per entity.",
+      "exports": [
+        "LOGIC_RENDER_STRIDE",
+        "LogicWorker"
       ]
     },
     {
