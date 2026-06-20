@@ -338,7 +338,12 @@ function loadBenchmarkPayload(filePath) {
 function runBenchmark() {
   const result = spawnSync(process.execPath, ['scripts/benchmark.js'], {
     cwd: root,
+    env: {
+      ...process.env,
+      OMNICORE_BENCHMARK_PORT: resolveBenchmarkPort()
+    },
     encoding: 'utf8',
+    maxBuffer: 1024 * 1024 * 16,
     windowsHide: true
   });
 
@@ -347,6 +352,13 @@ function runBenchmark() {
   }
 
   return parseJsonPayload(result.stdout);
+}
+
+function resolveBenchmarkPort() {
+  if (Number.isFinite(Number(process.env.OMNICORE_BENCHMARK_PORT))) {
+    return String(process.env.OMNICORE_BENCHMARK_PORT);
+  }
+  return String(5177 + (process.pid % 1000));
 }
 
 function writeJson(filePath, payload) {
