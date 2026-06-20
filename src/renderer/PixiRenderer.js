@@ -43,14 +43,18 @@ function renderCanvasSpriteFast(ctx, child) {
 function preparePixiApplicationDestroy(app) {
   if (!app || typeof app._cancelResize === 'function') return;
   try {
-      Object.defineProperty(app, '_cancelResize', {
-        value: () => {},
-        configurable: true,
-        writable: true
-      });
+    Object.defineProperty(app, '_cancelResize', {
+      value: () => {},
+      configurable: true,
+      writable: true
+    });
   } catch {
     app._cancelResize = () => {};
   }
+}
+
+function isPixiNullDestroyError(error) {
+  return /Cannot read properties of null \(reading 'destroy'\)/.test(error?.message || '');
 }
 
 /**
@@ -276,12 +280,20 @@ export class PixiRenderer {
           { children: true, texture: true, textureSource: true, context: true }
         );
       } catch (firstError) {
-        this._preparePixiApplicationDestroy(this.app);
-        try {
-          this.app.destroy(true, true);
-        } catch (secondError) {
-          secondError.cause = secondError.cause || firstError;
-          throw secondError;
+        if (isPixiNullDestroyError(firstError)) {
+          this.app = null;
+        } else {
+          this._preparePixiApplicationDestroy(this.app);
+          try {
+            this.app.destroy(true, true);
+          } catch (secondError) {
+            if (isPixiNullDestroyError(secondError)) {
+              this.app = null;
+            } else {
+              secondError.cause = secondError.cause || firstError;
+              throw secondError;
+            }
+          }
         }
       }
     } else if (this.canvas?.parentNode) {

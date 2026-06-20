@@ -136,12 +136,15 @@ function leanCoreBuildPlugin(enabled) {
 
 export function startupBootstrapPlugin() {
   let outDir = path.resolve('dist');
+  let shouldEmitBootstrap = false;
   return {
     name: 'omnicore-startup-bootstrap',
     configResolved(config) {
       outDir = path.resolve(config.build?.outDir || 'dist');
+      shouldEmitBootstrap = config.command === 'build' && process.env.VITEST !== 'true';
     },
     closeBundle() {
+      if (!shouldEmitBootstrap) return;
       mkdirSync(outDir, { recursive: true });
       writeFileSync(
         path.join(outDir, 'omnicore-first-frame-bootstrap.js'),
