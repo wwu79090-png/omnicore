@@ -13,7 +13,8 @@ describe('release automation workflows', () => {
   it('publishes tagged releases to npm after tests, build, docs build, changelog, and GitHub Release creation', () => {
     const workflow = readFileSync('.github/workflows/release.yml', 'utf8');
 
-    expect(workflow).toContain('branches: [main]');
+    expect(workflow).toContain('branches: ["**"]');
+    expect(workflow).toContain("github.ref == 'refs/heads/main'");
     expect(workflow).toContain("tags: ['v*.*.*']");
     expect(workflow).toContain('npm test');
     expect(workflow).toContain('npm run build');
@@ -63,6 +64,18 @@ describe('release automation workflows', () => {
     expect(workflow).toContain('docs/api');
     expect(workflow).toContain('更新文档');
     expect(workflow).toContain('peter-evans/create-pull-request');
+  });
+
+  it('keeps branch pushes green for release-only workflows with explicit no-op guards', () => {
+    const docsSync = readFileSync('.github/workflows/docs-sync.yml', 'utf8');
+    const release = readFileSync('.github/workflows/release.yml', 'utf8');
+
+    expect(docsSync).toContain('branches: ["**"]');
+    expect(docsSync).toContain('branch-guard');
+    expect(docsSync).toContain('No docs sync work for this branch');
+    expect(release).toContain('branches: ["**"]');
+    expect(release).toContain('branch-guard');
+    expect(release).toContain('No release work for this branch');
   });
 });
 

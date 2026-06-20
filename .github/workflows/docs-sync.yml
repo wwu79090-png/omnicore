@@ -2,7 +2,7 @@ name: Docs Sync
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]
   workflow_dispatch:
 
 permissions:
@@ -10,7 +10,15 @@ permissions:
   pull-requests: write
 
 jobs:
+  branch-guard:
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: No docs sync work for this branch
+        run: echo "No docs sync work for this branch"
+
   docs-sync:
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 

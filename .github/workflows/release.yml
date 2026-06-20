@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]
     tags: ['v*.*.*']
   workflow_dispatch:
 
@@ -12,6 +12,13 @@ permissions:
   id-token: write
 
 jobs:
+  branch-guard:
+    if: github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: No release work for this branch
+        run: echo "No release work for this branch"
+
   security-patch-version:
     if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'deps(security): auto-merge dependabot patch')
     runs-on: ubuntu-latest
