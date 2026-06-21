@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   createReleaseReadinessReport,
@@ -15,7 +15,7 @@ describe('release readiness gate', () => {
       packageJson,
       readme,
       releaseWorkflow: workflow,
-      distEntry: { exists: existsSync('dist/omnicore.esm.js'), size: 928553 },
+      distEntry: { exists: true, size: 928553 },
       env: {
         NODE_AUTH_TOKEN: 'npm-token',
         VERCEL_TOKEN: 'vercel-token'

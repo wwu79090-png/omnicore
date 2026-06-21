@@ -158,7 +158,7 @@ function validatePluginSecurity(pkg, packagePath) {
         message: 'Plugin main file referenced by package metadata does not exist.'
       });
     } else {
-      actualSha256 = createHash('sha256').update(fs.readFileSync(mainPath)).digest('hex');
+      actualSha256 = hashMarketplacePluginMain(mainPath);
       matched = actualSha256 === expectedSha256;
       if (!matched) {
         errors.push({
@@ -186,6 +186,19 @@ function validatePluginSecurity(pkg, packagePath) {
     errors,
     warnings
   };
+}
+
+function hashMarketplacePluginMain(filePath) {
+  const input = fs.readFileSync(filePath);
+  if (isTextIntegrityFile(filePath)) {
+    return createHash('sha256').update(input.toString('utf8').replace(/\r\n/gu, '\n')).digest('hex');
+  }
+  return createHash('sha256').update(input).digest('hex');
+}
+
+function isTextIntegrityFile(filePath) {
+  return ['.cjs', '.css', '.html', '.js', '.json', '.md', '.mjs', '.ts', '.yaml', '.yml']
+    .includes(path.extname(filePath).toLowerCase());
 }
 
 function isOmniPluginPackage(pkg) {
