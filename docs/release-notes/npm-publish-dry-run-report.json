@@ -5,9 +5,9 @@
     "name": "omnicore",
     "version": "1.0.0",
     "filename": "omnicore-1.0.0.tgz",
-    "size": 2318488,
-    "unpackedSize": 17428816,
-    "entryCount": 996
+    "size": 2326173,
+    "unpackedSize": 17457194,
+    "entryCount": 1002
   },
   "limits": {
     "maxPackageBytes": 5242880,
@@ -43,11 +43,11 @@
   "largestFiles": [
     {
       "path": "dist/omnicore.iife.js",
-      "size": 1225488
+      "size": 1229067
     },
     {
       "path": "dist/omnicore.esm.js",
-      "size": 925116
+      "size": 928553
     },
     {
       "path": "docs/api-typedoc/variables/index.default.html",
@@ -58,7 +58,7 @@
       "size": 242690
     },
     {
-      "path": "dist/dist-D4ZWkW-c.js",
+      "path": "dist/dist-BQh4SLZ5.js",
       "size": 219836
     },
     {
