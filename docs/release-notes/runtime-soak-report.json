@@ -1,22 +1,38 @@
 {
   "schema": "omnicore.runtime-soak-report.v1",
-  "generatedAt": "2026-06-21T10:31:17.755Z",
+  "generatedAt": "2026-06-21T13:08:44.351Z",
   "ok": true,
-  "iterations": 40,
+  "iterations": 120,
   "totals": {
-    "scenesCreated": 40,
-    "scenesDestroyed": 40,
-    "spritesCreated": 240,
-    "resourcesCreated": 80,
-    "resourcesDestroyed": 80,
-    "tweensCreated": 80,
-    "timersCreated": 40
+    "scenesCreated": 120,
+    "scenesDestroyed": 120,
+    "spritesCreated": 960,
+    "resourcesCreated": 240,
+    "resourcesDestroyed": 240,
+    "tweensCreated": 240,
+    "timersCreated": 120
   },
   "peak": {
-    "entities": 6,
+    "entities": 8,
     "resources": 2,
     "listeners": 1
   },
   "leaks": [],
-  "warnings": []
+  "warnings": [],
+  "hotPaths": {
+    "format": "OmniCore.RuntimeSoakHotPaths",
+    "pooledTypes": [
+      "Sprite",
+      "Tween",
+      "Particle",
+      "Event"
+    ],
+    "dirtySync": "only-dirty-records",
+    "renderQueue": "state-compatible-batching",
+    "spriteChurn": 960,
+    "tweenChurn": 240,
+    "resourceChurn": 240,
+    "peakEntities": 8,
+    "peakResources": 2
+  }
 }

@@ -30,6 +30,8 @@ function parseArgs(argv) {
     } else if (arg === '--tweens') {
       index += 1;
       options.tweensPerScene = Number(argv[index]);
+    } else if (arg === '--hot-paths') {
+      options.includeHotPathMetrics = true;
     }
   }
   return options;

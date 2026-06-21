@@ -1,0 +1,364 @@
+{
+  "format": "OmniCore.PerformanceHotPathsGateReport",
+  "version": 1,
+  "generatedAt": "2026-06-21T13:04:45.051Z",
+  "ok": true,
+  "checks": [
+    {
+      "id": "render-queue-batching",
+      "ok": true,
+      "message": "Render queue groups safe commands by compatible render state.",
+      "evidence": {
+        "commands": [
+          {
+            "id": "hero-a",
+            "layer": "world",
+            "texture": "hero.png",
+            "material": "sprite"
+          },
+          {
+            "id": "hero-b",
+            "layer": "world",
+            "texture": "hero.png",
+            "material": "sprite"
+          },
+          {
+            "id": "prop",
+            "layer": "world",
+            "texture": "props.png",
+            "material": "sprite"
+          },
+          {
+            "id": "hud",
+            "layer": "ui",
+            "texture": "ui.png",
+            "material": "sprite"
+          }
+        ],
+        "groups": [
+          {
+            "batchKey": "world|hero.png|sprite|normal|default",
+            "layer": "world",
+            "texture": "hero.png",
+            "material": "sprite",
+            "blendMode": "normal",
+            "commandIds": [
+              "hero-a",
+              "hero-b"
+            ],
+            "spriteCount": 2
+          },
+          {
+            "batchKey": "world|props.png|sprite|normal|default",
+            "layer": "world",
+            "texture": "props.png",
+            "material": "sprite",
+            "blendMode": "normal",
+            "commandIds": [
+              "prop"
+            ],
+            "spriteCount": 1
+          },
+          {
+            "batchKey": "ui|ui.png|sprite|normal|default",
+            "layer": "ui",
+            "texture": "ui.png",
+            "material": "sprite",
+            "blendMode": "normal",
+            "commandIds": [
+              "hud"
+            ],
+            "spriteCount": 1
+          }
+        ],
+        "beforeDrawCalls": 4,
+        "afterDrawCalls": 3,
+        "savedDrawCalls": 1
+      }
+    },
+    {
+      "id": "runtime-object-pools",
+      "ok": true,
+      "message": "Runtime pools reuse Sprite, Tween, Particle, and Event objects.",
+      "evidence": {
+        "format": "OmniCore.RuntimeObjectPools",
+        "types": [
+          {
+            "name": "Sprite",
+            "acquired": 2,
+            "released": 1,
+            "reused": 1,
+            "created": 2,
+            "active": 1,
+            "available": 0
+          },
+          {
+            "name": "Tween",
+            "acquired": 0,
+            "released": 0,
+            "reused": 0,
+            "created": 1,
+            "active": 0,
+            "available": 1
+          },
+          {
+            "name": "Particle",
+            "acquired": 0,
+            "released": 0,
+            "reused": 0,
+            "created": 1,
+            "active": 0,
+            "available": 1
+          },
+          {
+            "name": "Event",
+            "acquired": 0,
+            "released": 0,
+            "reused": 0,
+            "created": 1,
+            "active": 0,
+            "available": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "dirty-flag-sync",
+      "ok": true,
+      "message": "Dirty sync patches only changed records in the current frame.",
+      "evidence": {
+        "format": "OmniCore.DirtyFlagSync",
+        "dirtyCount": 1,
+        "syncedProperties": 1,
+        "synced": [
+          {
+            "id": "hero",
+            "properties": [
+              "x"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "tilemap-streaming",
+      "ok": true,
+      "message": "Tilemap streaming loads visible/preloaded chunks and unloads distant chunks.",
+      "evidence": {
+        "format": "OmniCore.TilemapChunkStreamPlan",
+        "chunkSize": 32,
+        "visible": [
+          "0,0",
+          "1,0",
+          "0,1",
+          "1,1"
+        ],
+        "keep": [
+          "0,0"
+        ],
+        "load": [
+          "1,0",
+          "2,0",
+          "0,1",
+          "1,1",
+          "2,1",
+          "0,2",
+          "1,2",
+          "2,2"
+        ],
+        "unload": [
+          "5,5"
+        ],
+        "preloadRadius": 1,
+        "target": [
+          "0,0",
+          "1,0",
+          "2,0",
+          "0,1",
+          "1,1",
+          "2,1",
+          "0,2",
+          "1,2",
+          "2,2"
+        ]
+      }
+    },
+    {
+      "id": "animation-lod",
+      "ok": true,
+      "message": "Animation LOD keeps near FFD active and downgrades far/offscreen actors.",
+      "evidence": {
+        "format": "OmniCore.AnimationLODPlan",
+        "nearDistance": 128,
+        "farDistance": 512,
+        "items": [
+          {
+            "id": "hero",
+            "tier": "near",
+            "distance": 32,
+            "sampleRate": 1,
+            "ffd": true,
+            "paused": false
+          },
+          {
+            "id": "npc",
+            "tier": "mid",
+            "distance": 420,
+            "sampleRate": 0.5,
+            "ffd": false,
+            "paused": false
+          },
+          {
+            "id": "cloud",
+            "tier": "offscreen",
+            "distance": 80,
+            "sampleRate": 0,
+            "ffd": false,
+            "paused": true
+          }
+        ],
+        "paused": 1,
+        "ffdDisabled": 2
+      }
+    },
+    {
+      "id": "webgpu-descriptors",
+      "ok": true,
+      "message": "WebGPU descriptors expose instancing, texture-array batching, and compute dispatch plans.",
+      "evidence": {
+        "instancing": {
+          "format": "OmniCore.WebGPUInstancingDescriptor",
+          "stepMode": "instance",
+          "instanceCount": 3,
+          "vertexCount": 6,
+          "drawCalls": 1,
+          "strideFloats": 8,
+          "bufferBytes": 96,
+          "attributes": [
+            {
+              "shaderLocation": 0,
+              "offset": 0,
+              "format": "float32x2",
+              "field": "position"
+            },
+            {
+              "shaderLocation": 1,
+              "offset": 8,
+              "format": "float32x2",
+              "field": "size"
+            },
+            {
+              "shaderLocation": 2,
+              "offset": 16,
+              "format": "float32",
+              "field": "rotation"
+            },
+            {
+              "shaderLocation": 3,
+              "offset": 20,
+              "format": "float32",
+              "field": "alpha"
+            },
+            {
+              "shaderLocation": 4,
+              "offset": 24,
+              "format": "float32x2",
+              "field": "color"
+            }
+          ],
+          "data": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 16,
+              "height": 16,
+              "rotation": 0,
+              "alpha": 1,
+              "color": "#ffffff"
+            },
+            {
+              "x": 16,
+              "y": 0,
+              "width": 16,
+              "height": 16,
+              "rotation": 0,
+              "alpha": 1,
+              "color": "#ffffff"
+            },
+            {
+              "x": 32,
+              "y": 0,
+              "width": 16,
+              "height": 16,
+              "rotation": 0,
+              "alpha": 1,
+              "color": "#ffffff"
+            }
+          ]
+        },
+        "textureArray": {
+          "format": "OmniCore.WebGPUTextureArrayBatch",
+          "layers": [
+            {
+              "texture": "hero.png",
+              "layer": 0,
+              "commandIds": [
+                "a",
+                "c"
+              ]
+            },
+            {
+              "texture": "props.png",
+              "layer": 1,
+              "commandIds": [
+                "b"
+              ]
+            }
+          ],
+          "items": [
+            {
+              "id": "a",
+              "texture": "hero.png",
+              "layer": 0,
+              "material": "default",
+              "blendMode": "normal"
+            },
+            {
+              "id": "b",
+              "texture": "props.png",
+              "layer": 1,
+              "material": "default",
+              "blendMode": "normal"
+            },
+            {
+              "id": "c",
+              "texture": "hero.png",
+              "layer": 0,
+              "material": "default",
+              "blendMode": "normal"
+            }
+          ],
+          "drawCalls": 1,
+          "maxTextures": 16
+        },
+        "compute": {
+          "format": "OmniCore.WebGPUComputeDispatchPlan",
+          "task": "particles",
+          "items": 1000,
+          "workgroupSize": 64,
+          "workgroups": 16,
+          "main": "cs_main",
+          "dispatch": [
+            16,
+            1,
+            1
+          ]
+        }
+      }
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0
+  }
+}

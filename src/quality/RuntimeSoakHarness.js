@@ -12,12 +12,14 @@ export class RuntimeSoakHarness {
     spritesPerScene = 8,
     resourcesPerScene = 2,
     tweensPerScene = 2,
+    includeHotPathMetrics = false,
     generatedAt = new Date().toISOString()
   } = {}) {
     this.iterations = Math.max(1, Number(iterations) || 1);
     this.spritesPerScene = Math.max(0, Number(spritesPerScene) || 0);
     this.resourcesPerScene = Math.max(0, Number(resourcesPerScene) || 0);
     this.tweensPerScene = Math.max(0, Number(tweensPerScene) || 0);
+    this.includeHotPathMetrics = includeHotPathMetrics;
     this.generatedAt = generatedAt;
   }
 
@@ -27,6 +29,7 @@ export class RuntimeSoakHarness {
       spritesPerScene: this.spritesPerScene,
       resourcesPerScene: this.resourcesPerScene,
       tweensPerScene: this.tweensPerScene,
+      includeHotPathMetrics: this.includeHotPathMetrics,
       generatedAt: this.generatedAt
     });
   }
@@ -37,6 +40,7 @@ export function createRuntimeSoakReport({
   spritesPerScene = 8,
   resourcesPerScene = 2,
   tweensPerScene = 2,
+  includeHotPathMetrics = false,
   generatedAt = new Date().toISOString()
 } = {}) {
   const totals = {
@@ -139,7 +143,7 @@ export function createRuntimeSoakReport({
     });
   }
 
-  return {
+  const report = {
     schema: RUNTIME_SOAK_REPORT_SCHEMA,
     generatedAt,
     ok: leaks.length === 0,
@@ -149,6 +153,8 @@ export function createRuntimeSoakReport({
     leaks,
     warnings
   };
+  if (includeHotPathMetrics) report.hotPaths = createHotPathMetrics(totals, peak);
+  return report;
 }
 
 function createTrackedResource(id, onDestroy) {
@@ -161,6 +167,20 @@ function createTrackedResource(id, onDestroy) {
       this.destroyed = true;
       onDestroy();
     }
+  };
+}
+
+function createHotPathMetrics(totals, peak) {
+  return {
+    format: 'OmniCore.RuntimeSoakHotPaths',
+    pooledTypes: ['Sprite', 'Tween', 'Particle', 'Event'],
+    dirtySync: 'only-dirty-records',
+    renderQueue: 'state-compatible-batching',
+    spriteChurn: totals.spritesCreated,
+    tweenChurn: totals.tweensCreated,
+    resourceChurn: totals.resourcesCreated,
+    peakEntities: peak.entities,
+    peakResources: peak.resources
   };
 }
 

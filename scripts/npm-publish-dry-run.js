@@ -110,6 +110,7 @@ export function createPublishDryRunReport(packages = [], input = {}) {
   const largestFiles = [...files]
     .sort((left, right) => right.size - left.size || left.path.localeCompare(right.path))
     .slice(0, 10);
+  const packageQuality = createPackageQualityReport({ files, fileSet });
   const limits = extractLimits(options);
   const violations = [];
 
@@ -146,6 +147,13 @@ export function createPublishDryRunReport(packages = [], input = {}) {
       message: 'npm package contains more files than the configured entry count budget.'
     });
   }
+  for (const file of packageQuality.suspiciousFiles) {
+    violations.push({
+      code: 'suspicious-package-file',
+      path: file,
+      message: `npm package contains a suspicious file: ${file}`
+    });
+  }
 
   return {
     ok: violations.length === 0,
@@ -161,6 +169,7 @@ export function createPublishDryRunReport(packages = [], input = {}) {
     limits,
     requiredFiles,
     largestFiles,
+    packageQuality,
     violations
   };
 }
@@ -231,6 +240,27 @@ function extractLimits(options) {
 
 function normalizePath(filePath) {
   return String(filePath || '').replace(/\\/gu, '/');
+}
+
+function createPackageQualityReport({ files = [], fileSet = new Set() } = {}) {
+  const paths = files.map((file) => normalizePath(file.path));
+  const includedExamples = paths.filter((filePath) => filePath.startsWith('examples/')).sort();
+  const includedDocs = paths.filter((filePath) => filePath.startsWith('docs/')).sort();
+  const suspiciousFiles = paths.filter(isSuspiciousPackagePath).sort();
+  return {
+    provenanceReady: fileSet.has('package.json') && fileSet.has('README.md') && fileSet.has('LICENSE'),
+    sbomReady: fileSet.has('package.json') && fileSet.has('LICENSE'),
+    treeShakingReady: fileSet.has('dist/omnicore.esm.js'),
+    typeDeclarationsReady: fileSet.has('dist/omnicore.d.ts'),
+    includedExamples,
+    includedDocs,
+    suspiciousFiles
+  };
+}
+
+function isSuspiciousPackagePath(filePath) {
+  return /(^|\/)(\.env|id_rsa|npmrc|\.npmrc)(\.|$)/u.test(filePath)
+    || /\.(pem|key|p12|pfx|crt)$/iu.test(filePath);
 }
 
 function quoteCmdArg(value) {

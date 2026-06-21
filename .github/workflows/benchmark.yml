@@ -95,6 +95,10 @@ jobs:
             --output docs/release-notes/performance-regression-report-${{ matrix.artifact }}.md \
             --threshold 0.05
 
+      - name: Run hot-path performance gate
+        shell: bash
+        run: npm run performance:hot-paths-gate -- --out docs/release-notes/performance-hot-paths-report.json
+
       - name: Keep legacy benchmark report path
         if: always()
         shell: bash
@@ -134,6 +138,7 @@ jobs:
             docs/release-notes/benchmark-current-${{ matrix.artifact }}.log
             docs/release-notes/performance-regression-report-${{ matrix.artifact }}.md
             docs/release-notes/performance-regression-report.md
+            docs/release-notes/performance-hot-paths-report.json
 
       - name: Comment performance regression report
         if: github.event_name == 'pull_request' && steps.benchmark_gate.outcome == 'failure'

@@ -36,9 +36,16 @@ OmniCore 专注于 2D 游戏开发和有限 2.5D 表现，明确不是全 3D 引
 
 - 当前可验证体验路径：克隆仓库后运行 `npm install && npm run dev`，打开 `website/index.html`、`website/playground/`、`website/editor/` 或 `examples/market-showcase/`。
 - 市场展示 Demo：[`examples/market-showcase/`](examples/market-showcase/)
+- 性能热路径 Demo：[`examples/performance-hot-paths-demo`](examples/performance-hot-paths-demo/) 展示 batching、对象池、dirty sync 和 WebGPU descriptor 证据。
 - 在线官网部署状态：待重新绑定真实引擎站点；`https://omnicore.vercel.app/` 当前不是 OmniCore 引擎主页，暂不作为公开体验入口。
 - NPM 发布状态：待公开发布；`omnicore` 当前在 npm registry 查询不到，发布前请使用 GitHub 源或本地包验证。
 - 发布证据与待补项：[`docs/public-release-evidence.md`](docs/public-release-evidence.md)
+
+## 默认不限 FPS 与性能热路径证据
+
+OmniCore 默认不限 FPS，不在引擎层把渲染锁死到 60 FPS；实际帧率由浏览器、显示刷新率、设备负载和渲染后端共同决定。高刷新屏验证入口见 [`docs/performance/real-device-uncapped-fps.md`](docs/performance/real-device-uncapped-fps.md)，可运行 `npm run performance:uncapped-evidence` 生成 JSON 与 Markdown 证据。
+
+性能治理不只看单次截图：`npm run performance:hot-paths-gate` 会检查 render queue batching、runtime object pools、dirty sync、tilemap streaming、animation LOD 和 WebGPU descriptors；`npm run types:coverage` 会确认这些 hot-path API 已同步出现在 `dist/omnicore.d.ts`。可视化演示入口是 [`examples/performance-hot-paths-demo`](examples/performance-hot-paths-demo/)。
 
 ## AI 加速开发
 
