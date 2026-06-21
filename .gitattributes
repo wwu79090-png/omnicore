@@ -1,5 +1,6 @@
 * text=auto
 .gitattributes text eol=lf
+.gitignore text eol=lf
 **/CNAME text eol=lf
 
 *.js text eol=lf

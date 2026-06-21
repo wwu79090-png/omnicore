@@ -2,6 +2,8 @@ node_modules/
 dist/
 coverage/
 test-results/
+tests/e2e/__screenshots__/editor-current-*.json
+tests/e2e/__screenshots__/editor-current-*.png
 .vite/
 .superpowers/
 .tmp-editor-server/

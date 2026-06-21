@@ -30,6 +30,7 @@ describe('real-device matrix benchmark, publish guidance, and screenshot CI', ()
   it('ships screenshot comparison automation with a 5 percent CI threshold', () => {
     const workflow = readFileSync('.github/workflows/pr-quality.yml', 'utf8');
     const script = readFileSync('scripts/compare-screenshots.js', 'utf8');
+    const e2eSpec = readFileSync('tests/e2e/game-smoke.spec.js', 'utf8');
     const screenshotCompareCommand = workflow
       .split('\n')
       .map((line) => line.trim())
@@ -40,6 +41,10 @@ describe('real-device matrix benchmark, publish guidance, and screenshot CI', ()
     expect(screenshotCompareCommand).not.toContain('--threshold 0.001');
     expect(script).toContain('diffRatio');
     expect(script).toContain('threshold');
+    expect(e2eSpec).toContain("page.on('console'");
+    expect(e2eSpec).toContain('errorsAndWarnings');
+    expect(e2eSpec).toContain('editor-current-');
+    expect(e2eSpec).toContain('.json');
     expect(existsSync('tests/e2e/__screenshots__/editor-baseline.png')).toBe(true);
   });
 

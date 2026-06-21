@@ -3,6 +3,22 @@ import path from 'node:path';
 import { expect, test } from 'playwright/test';
 
 test('online scene editor supports drag, save, and visual baseline comparison', async ({ page }, testInfo) => {
+  const consoleMessages = [];
+  const pageErrors = [];
+  page.on('console', (message) => {
+    consoleMessages.push({
+      type: message.type(),
+      text: message.text(),
+      location: message.location()
+    });
+  });
+  page.on('pageerror', (error) => {
+    pageErrors.push({
+      type: 'pageerror',
+      text: error.message
+    });
+  });
+
   await page.goto('/website/editor/index.html');
   await expect(page.getByText('editor.omnicore.dev')).toBeVisible();
   const saveButton = page.locator('#saveScene');
@@ -26,8 +42,23 @@ test('online scene editor supports drag, save, and visual baseline comparison', 
   const snapshotDir = path.resolve('tests/e2e/__screenshots__');
   const projectName = testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
   const current = path.join(snapshotDir, `editor-current-${projectName}.png`);
+  const evidence = path.join(snapshotDir, `editor-current-${projectName}.json`);
+  const errorsAndWarnings = [
+    ...consoleMessages.filter((message) => ['error', 'warning', 'warn'].includes(message.type)),
+    ...pageErrors
+  ];
   mkdirSync(snapshotDir, { recursive: true });
   writeFileSync(current, screenshot);
+  writeFileSync(evidence, `${JSON.stringify({
+    project: testInfo.project.name,
+    url: page.url(),
+    title: await page.title(),
+    viewport: page.viewportSize(),
+    screenshot: slash(path.relative(process.cwd(), current)),
+    errorsAndWarnings,
+    consoleMessages
+  }, null, 2)}\n`, 'utf8');
+  expect(errorsAndWarnings).toEqual([]);
 
   if (testInfo.project.name === 'chromium') {
     await expect(page).toHaveScreenshot('editor-baseline.png', {
@@ -40,3 +71,7 @@ test('online scene editor supports drag, save, and visual baseline comparison', 
     expect(screenshot.length).toBeGreaterThan(1000);
   }
 });
+
+function slash(filePath) {
+  return String(filePath).replace(/\\/gu, '/');
+}
