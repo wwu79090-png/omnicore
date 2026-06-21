@@ -10,8 +10,9 @@ describe('product homepage and promotion materials', () => {
     const readme = read('README.md');
 
     expect(readme).toContain('./assets/branding/perf-demo.gif');
-    expect(readme).toContain('https://omnicore.vercel.app/');
-    expect(readme).toContain('https://omnicore.vercel.app/website/playground/');
+    expect(readme).toContain('NPM 发布状态');
+    expect(readme).toContain('当前不是 OmniCore 引擎主页');
+    expect(readme).toContain('docs/public-release-evidence.md');
     expect(readme).toContain('## AI 加速开发');
     expect(readme).toContain('三行画出第一个角色');
     expect(existsSync('assets/branding/perf-demo.gif')).toBe(true);

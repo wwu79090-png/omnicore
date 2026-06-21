@@ -48,8 +48,14 @@ describe('OmniCore engineering and ecosystem foundation', () => {
     const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
     const buildScript = readFileSync('scripts/build.js', 'utf8');
 
+    expect(pkg.main).toBe('dist/omnicore.esm.js');
+    expect(pkg.module).toBe('dist/omnicore.esm.js');
     expect(pkg.types).toBe('dist/omnicore.d.ts');
     expect(pkg.exports['.'].types).toBe('./dist/omnicore.d.ts');
+    expect(pkg.exports['.'].import).toBe('./dist/omnicore.esm.js');
+    expect(pkg.exports['./src']).toBe('./src/index.js');
+    expect(pkg.files).toContain('docs/public-release-evidence.md');
+    expect(pkg.files).not.toContain('docs');
     expect(buildScript).toContain('generateTypeDeclarations');
   });
 

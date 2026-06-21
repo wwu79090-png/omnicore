@@ -6,7 +6,9 @@ This handbook is the stable navigation layer for shipping games with OmniCore.
 
 - `README.md`: install, quick start, online demos, release badge, telemetry notice.
 - `docs/ten-minute-quickstart.md`: smallest runnable scene.
+- `docs/public-release-evidence.md`: public release evidence, external publication status, and hardware capture checklist.
 - `examples/full-game-demo/`: reference 30-minute playable sample.
+- `examples/market-showcase/`: market-facing 1000-sprite, 2.5D, and HTML overlay demo.
 
 ## Architecture
 
@@ -32,6 +34,21 @@ This handbook is the stable navigation layer for shipping games with OmniCore.
 - WeChat: `npm run build:wechat`.
 - Multi-platform assets: `npm run build:platform-assets`.
 - Release bundle: `npm run dist:full`.
+- Release readiness: `npm run release:readiness` writes `docs/release-notes/release-readiness-report.json` and separates local blockers from credential or external publication gaps.
+- Public evidence: run `npm run publish:dry-run`, `npm run publish:audit`, and the hardware checklist in `docs/public-release-evidence.md` before claiming npm, Vercel, WebGPU, or 144 FPS launch readiness.
+
+## WebGPU And 2.5D Evidence
+
+Automated tests cover renderer fallback planning, visual smoke tests, 2.5D sorting contracts, and market showcase loading. They do not replace real hardware evidence.
+
+Before community launch posts, capture one browser video that shows:
+
+- `examples/market-showcase/` running the 1000-sprite scene with the FPS counter visible.
+- 2.5D story mode with the city layer, transparent cockpit, and HTML overlay visible.
+- DevTools console open with no error or warning messages.
+- `createRendererFallbackMatrix({ probe: true })` output for the same device.
+
+Record the device model, GPU, browser version, OS, refresh rate, and capture date beside the video.
 
 ## Plugin Development
 

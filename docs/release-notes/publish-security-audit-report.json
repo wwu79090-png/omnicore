@@ -29,9 +29,9 @@
     {
       "id": "secret-scan",
       "pass": true,
-      "scannedFiles": 527
+      "scannedFiles": 530
     }
   ],
-  "scannedFiles": 527,
+  "scannedFiles": 530,
   "violations": []
 }

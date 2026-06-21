@@ -22,3 +22,12 @@ game.scene.register(scene); await game.scene.push('play');
 ```
 
 这个 demo 适合放进 README、社区帖子和短视频：打开页面后先展示性能云，再点击“2.5D 故事”展示混合 UI 和透明结构。
+
+## 发布取证
+
+正式社区推广前，按 [`docs/public-release-evidence.md`](../../docs/public-release-evidence.md) 的硬件证据清单录制一次真实浏览器视频：
+
+- 1000 Sprite 场景运行至少 15 秒，FPS 计数器可见。
+- 2.5D 故事模式展示城市层、透明舱体和 HTML 覆盖层。
+- DevTools console 无 error/warn。
+- 记录设备、GPU、浏览器版本、系统、刷新率和录制日期。

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const positioning = 'OmniCore: 33KB WebGPU 轻量引擎，跑 1000 个 Sprite 还能稳 144 FPS。';
+const positioning = 'OmniCore: 33KB Lean Core Web 游戏引擎，1000 Sprite 演示目标 144 FPS。';
 
 describe('showcase adoption and feedback loop', () => {
   it('uses one repeatable positioning anchor across public surfaces', () => {
@@ -11,7 +11,7 @@ describe('showcase adoption and feedback loop', () => {
 
     expect(readme).toContain(positioning);
     expect(homepage).toContain(positioning);
-    expect(pkg.description).toContain('33KB WebGPU 轻量引擎');
+    expect(pkg.description).toContain('33KB Lean Core Web 游戏引擎');
     expect(homepage).toContain('data-positioning-anchor');
     expect(homepage).toContain('data-flagship-case="code-awakener"');
     expect(homepage).toContain('代码觉醒者');

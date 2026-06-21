@@ -70,7 +70,7 @@
     let masterGain = null;
 
     const frames = [
-      { start: 0, end: 3000, label: 'npm install omnicore', sub: '33KB 级轻量 Web 游戏引擎' },
+      { start: 0, end: 3000, label: 'git clone + npm install', sub: '33KB 级 Lean Core Web 游戏引擎' },
       { start: 3000, end: 8000, label: '3 lines to first sprite', sub: '三行代码画出第一个角色' },
       { start: 8000, end: 15000, label: '1000 Sprites / 144 FPS', sub: '高帧率演示' },
       { start: 15000, end: 22000, label: 'Online Playground + Editor', sub: '浏览器里直接试' },
@@ -84,10 +84,11 @@
 
     function drawTerminal(x, y, elapsed) {
       const lines = [
-        '$ npm install omnicore',
+        '$ git clone github.com/wwu79090-png/omnicore',
+        '$ npm install',
         '$ npm run dev',
         'OmniCore ready at http://localhost:5173',
-        '590 tests passed | lean core 33KB'
+        '800+ checks passed | lean core 33KB'
       ];
       ctx.fillStyle = '#020617';
       roundRect(x, y, 510, 220, 12);

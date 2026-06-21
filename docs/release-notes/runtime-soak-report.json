@@ -1,6 +1,6 @@
 {
   "schema": "omnicore.runtime-soak-report.v1",
-  "generatedAt": "2026-06-21T08:36:54.230Z",
+  "generatedAt": "2026-06-21T10:31:17.755Z",
   "ok": true,
   "iterations": 40,
   "totals": {

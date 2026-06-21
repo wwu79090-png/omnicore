@@ -81,6 +81,12 @@ jobs:
       - name: Build docs
         run: npm run docs:build
 
+      - name: Release readiness
+        run: npm run release:readiness -- --strict-publication
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
       - name: Update changelog for tag
         shell: bash
         run: |

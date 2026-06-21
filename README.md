@@ -1,21 +1,21 @@
 # OmniCore v1.0.0
 
-OmniCore: 33KB WebGPU 轻量引擎，跑 1000 个 Sprite 还能稳 144 FPS。
+OmniCore: 33KB Lean Core Web 游戏引擎，1000 Sprite 演示目标 144 FPS。
 
 <p>
   <img src="./assets/branding/perf-demo.gif" alt="OmniCore 144 FPS demo with 1000 sprites" width="100%">
 </p>
 
 <p>
-  <a href="https://omnicore.vercel.app/"><img alt="在线体验" src="https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E4%BD%93%E9%AA%8C-OmniCore%20Demo-2563eb"></a>
-  <a href="https://omnicore.vercel.app/website/playground/"><img alt="在线 IDE" src="https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%20IDE-Playground-0f766e"></a>
-  <a href="https://www.npmjs.com/package/omnicore"><img alt="NPM" src="https://img.shields.io/npm/v/omnicore?label=npm"></a>
+  <a href="#快速开始"><img alt="本地体验" src="https://img.shields.io/badge/%E6%9C%AC%E5%9C%B0%E4%BD%93%E9%AA%8C-Quickstart-2563eb"></a>
+  <a href="./examples/market-showcase/"><img alt="市场展示 Demo" src="https://img.shields.io/badge/Demo-Market%20Showcase-0f766e"></a>
+  <a href="./docs/public-release-evidence.md"><img alt="发布状态" src="https://img.shields.io/badge/NPM-publish%20pending-f59e0b"></a>
   <a href="https://github.com/wwu79090-png/omnicore"><img alt="GitHub" src="https://img.shields.io/badge/GitHub-Star%20OmniCore-111827"></a>
 </p>
 
-![Tests](https://img.shields.io/badge/tests-590%2F590%20passed-16a34a)
+![Tests](https://img.shields.io/badge/tests-800%2B%20passed-16a34a)
 ![Build](https://img.shields.io/badge/build-passing-0f766e)
-![ESM](https://img.shields.io/badge/esm-730.71%20kB-2563eb)
+![ESM](https://img.shields.io/badge/esm-928.55%20kB-2563eb)
 ![Lean Core](https://img.shields.io/badge/lean%20core-33.36%20kB-7c3aed)
 ![Security](https://img.shields.io/badge/high--risk%20deps-0-16a34a)
 ![Release](https://img.shields.io/github/v/release/wwu79090-png/omnicore?label=release)
@@ -34,16 +34,17 @@ OmniCore 专注于 2D 游戏开发和有限 2.5D 表现，明确不是全 3D 引
 
 ## 在线体验
 
-- 官网与 144 FPS 演示：https://omnicore.vercel.app/
-- 在线 Playground：https://omnicore.vercel.app/website/playground/
-- 在线场景编辑器：https://omnicore.vercel.app/website/editor/
-- NPM 包：https://www.npmjs.com/package/omnicore
+- 当前可验证体验路径：克隆仓库后运行 `npm install && npm run dev`，打开 `website/index.html`、`website/playground/`、`website/editor/` 或 `examples/market-showcase/`。
+- 市场展示 Demo：[`examples/market-showcase/`](examples/market-showcase/)
+- 在线官网部署状态：待重新绑定真实引擎站点；`https://omnicore.vercel.app/` 当前不是 OmniCore 引擎主页，暂不作为公开体验入口。
+- NPM 发布状态：待公开发布；`omnicore` 当前在 npm registry 查询不到，发布前请使用 GitHub 源或本地包验证。
+- 发布证据与待补项：[`docs/public-release-evidence.md`](docs/public-release-evidence.md)
 
 ## AI 加速开发
 
 OmniCore 是一个学生/小团队风格的真实开源项目：资源有限，所以开发过程尽量把 AI 当成“加速器”而不是“替代者”。AI 主要参与重复性的脚手架、测试补全、文档草稿、发布检查清单和错误复盘；架构取舍、性能目标、API 边界、最终验收和社区反馈仍由作者手动把关。
 
-这个工作流让项目能在较短周期里持续补齐编辑器、资源流水线、测试门禁、微信小游戏构建和性能治理，但 README 里的数据只保留可验证结果：Lean Core ESM 约 33KB、`dist/omnicore.esm.js` 可构建、590 个测试用例全绿、依赖高风险项为 0。
+这个工作流让项目能在较短周期里持续补齐编辑器、资源流水线、测试门禁、微信小游戏构建和性能治理，但 README 里的数据只保留可验证结果：Lean Core ESM 约 33KB、`dist/omnicore.esm.js` 可构建、800+ 个自动化检查全绿、依赖高风险项为 0。公开 npm 包和在线官网需要完成真实发布后再切回正式链接。
 
 ## 快速开始
 
@@ -70,6 +71,8 @@ game.scene.register(scene); await game.scene.push('play');
 ```bash
 npm install omnicore
 ```
+
+> 公开 npm 包发布前，`npm install omnicore` 可能返回 404。当前可用验证方式是克隆 GitHub 仓库运行 `npm install && npm run build`，或在本机通过 `npm pack --dry-run` 检查将要发布的包内容。
 
 中国大陆网络环境如果 `npm install` 卡在 `registry.npmjs.org` 超时，先执行国内镜像源一键配置命令：
 

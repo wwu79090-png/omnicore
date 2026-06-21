@@ -1,0 +1,192 @@
+{
+  "schema": "omnicore.release-readiness.v1",
+  "generatedAt": "2026-06-21T10:30:51.826Z",
+  "ok": true,
+  "publicReleaseReady": false,
+  "gates": [
+    {
+      "id": "dist-entrypoint-main",
+      "pass": true,
+      "severity": "blocker",
+      "actual": "dist/omnicore.esm.js",
+      "expected": "dist/omnicore.esm.js"
+    },
+    {
+      "id": "dist-entrypoint-module",
+      "pass": true,
+      "severity": "blocker",
+      "actual": "dist/omnicore.esm.js",
+      "expected": "dist/omnicore.esm.js"
+    },
+    {
+      "id": "dist-entrypoint-export",
+      "pass": true,
+      "severity": "blocker",
+      "actual": "./dist/omnicore.esm.js",
+      "expected": "./dist/omnicore.esm.js"
+    },
+    {
+      "id": "dist-artifact-present",
+      "pass": true,
+      "severity": "blocker",
+      "path": "dist/omnicore.esm.js",
+      "size": 928553
+    },
+    {
+      "id": "readme-no-stale-metrics",
+      "pass": true,
+      "severity": "blocker"
+    },
+    {
+      "id": "readme-discloses-publication-state",
+      "pass": true,
+      "severity": "blocker"
+    },
+    {
+      "id": "readme-links-release-evidence",
+      "pass": true,
+      "severity": "blocker"
+    },
+    {
+      "id": "release-readiness-script",
+      "pass": true,
+      "severity": "blocker"
+    },
+    {
+      "id": "release-workflow-readiness-before-publish",
+      "pass": true,
+      "severity": "blocker"
+    },
+    {
+      "id": "npm-auth-token-present",
+      "pass": false,
+      "severity": "credential",
+      "env": [
+        "NODE_AUTH_TOKEN",
+        "NPM_TOKEN"
+      ]
+    },
+    {
+      "id": "vercel-token-present",
+      "pass": false,
+      "severity": "credential",
+      "env": [
+        "VERCEL_TOKEN"
+      ]
+    },
+    {
+      "id": "npm-registry-publication",
+      "pass": false,
+      "severity": "external",
+      "status": "not-published",
+      "url": "https://registry.npmjs.org/omnicore"
+    },
+    {
+      "id": "vercel-homepage-sane",
+      "pass": false,
+      "severity": "external",
+      "status": "wrong-site",
+      "title": "OmniCore Digital | Next-Gen Digital Banking &amp; Fintech Solutions",
+      "url": "https://omnicore.vercel.app/"
+    },
+    {
+      "id": "github-pages-enabled",
+      "pass": false,
+      "severity": "external",
+      "status": "http-404",
+      "url": "https://wwu79090-png.github.io/omnicore/"
+    },
+    {
+      "id": "latest-release-targets-head",
+      "pass": false,
+      "severity": "external",
+      "currentCommit": "32aa7cf37b93195275edcdf7ea7e3d9791f466f9",
+      "targetCommitish": "36987f66d89189b5752baedb8cda7ea7354a459f",
+      "url": "https://github.com/wwu79090-png/omnicore/releases/tag/v1.0.0-product-launch"
+    }
+  ],
+  "blockers": [],
+  "credentialGaps": [
+    {
+      "id": "npm-auth-token-present",
+      "pass": false,
+      "severity": "credential",
+      "env": [
+        "NODE_AUTH_TOKEN",
+        "NPM_TOKEN"
+      ]
+    },
+    {
+      "id": "vercel-token-present",
+      "pass": false,
+      "severity": "credential",
+      "env": [
+        "VERCEL_TOKEN"
+      ]
+    }
+  ],
+  "externalGaps": [
+    {
+      "id": "npm-registry-publication",
+      "pass": false,
+      "severity": "external",
+      "status": "not-published",
+      "url": "https://registry.npmjs.org/omnicore"
+    },
+    {
+      "id": "vercel-homepage-sane",
+      "pass": false,
+      "severity": "external",
+      "status": "wrong-site",
+      "title": "OmniCore Digital | Next-Gen Digital Banking &amp; Fintech Solutions",
+      "url": "https://omnicore.vercel.app/"
+    },
+    {
+      "id": "github-pages-enabled",
+      "pass": false,
+      "severity": "external",
+      "status": "http-404",
+      "url": "https://wwu79090-png.github.io/omnicore/"
+    },
+    {
+      "id": "latest-release-targets-head",
+      "pass": false,
+      "severity": "external",
+      "currentCommit": "32aa7cf37b93195275edcdf7ea7e3d9791f466f9",
+      "targetCommitish": "36987f66d89189b5752baedb8cda7ea7354a459f",
+      "url": "https://github.com/wwu79090-png/omnicore/releases/tag/v1.0.0-product-launch"
+    }
+  ],
+  "nextActions": [
+    {
+      "type": "provide-credential",
+      "gate": "npm-auth-token-present",
+      "message": "Provide required credential for npm-auth-token-present"
+    },
+    {
+      "type": "provide-credential",
+      "gate": "vercel-token-present",
+      "message": "Provide required credential for vercel-token-present"
+    },
+    {
+      "type": "publish-external",
+      "gate": "npm-registry-publication",
+      "message": "Complete external publication target: npm-registry-publication"
+    },
+    {
+      "type": "publish-external",
+      "gate": "vercel-homepage-sane",
+      "message": "Complete external publication target: vercel-homepage-sane"
+    },
+    {
+      "type": "publish-external",
+      "gate": "github-pages-enabled",
+      "message": "Complete external publication target: github-pages-enabled"
+    },
+    {
+      "type": "publish-external",
+      "gate": "latest-release-targets-head",
+      "message": "Complete external publication target: latest-release-targets-head"
+    }
+  ]
+}
