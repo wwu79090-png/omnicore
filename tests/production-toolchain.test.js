@@ -215,18 +215,29 @@ describe('production asset pipeline automation', () => {
     temp = mkdtempSync(path.join(tmpdir(), 'omnicore-pack-assets-'));
     const assets = path.join(temp, 'assets');
     const sprites = path.join(assets, 'sprites', 'characters');
+    const prefabs = path.join(assets, 'prefabs');
     const scenes = path.join(temp, 'scenes');
     const out = path.join(temp, 'dist');
     mkdirSync(sprites, { recursive: true });
+    mkdirSync(prefabs, { recursive: true });
     mkdirSync(scenes, { recursive: true });
     writeFileSync(path.join(sprites, 'hero.png'), 'hero-image');
     writeFileSync(path.join(sprites, 'slime.png'), 'slime-image');
     writeFileSync(path.join(sprites, 'unused.png'), 'unused-image');
+    writeFileSync(path.join(prefabs, 'crate.json'), JSON.stringify({
+      name: 'crate',
+      type: 'sprite',
+      texture: 'assets/sprites/characters/hero.png',
+      props: {
+        icon: 'assets/sprites/characters/slime.png'
+      }
+    }, null, 2));
     writeFileSync(path.join(scenes, 'level.json'), JSON.stringify({
       entities: [
         { id: 'hero', texture: 'assets/sprites/characters/hero.png' },
         { id: 'slime', texture: 'assets/sprites/characters/slime.png' }
-      ]
+      ],
+      prefabs: ['assets/prefabs/crate.json']
     }, null, 2));
 
     const args = [
@@ -261,6 +272,29 @@ describe('production asset pipeline automation', () => {
         dependencies: expect.arrayContaining(['assets/sprites/characters/hero.png'])
       })
     ]));
+    expect(graph.sceneDependencies).toEqual([
+      expect.objectContaining({
+        scene: 'level.json',
+        dependencies: expect.objectContaining({
+          images: expect.arrayContaining([
+            'assets/sprites/characters/hero.png',
+            'assets/sprites/characters/slime.png'
+          ]),
+          prefabs: ['assets/prefabs/crate.json']
+        })
+      })
+    ]);
+    expect(graph.prefabDependencies).toEqual([
+      expect.objectContaining({
+        prefab: 'assets/prefabs/crate.json',
+        dependencies: expect.objectContaining({
+          images: expect.arrayContaining([
+            'assets/sprites/characters/hero.png',
+            'assets/sprites/characters/slime.png'
+          ])
+        })
+      })
+    ]);
     expect(first.deadAssets).toEqual([
       expect.objectContaining({
         path: 'assets/sprites/characters/unused.png',

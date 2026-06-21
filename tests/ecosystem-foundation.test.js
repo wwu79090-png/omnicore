@@ -100,4 +100,56 @@ describe('OmniCore engineering and ecosystem foundation', () => {
     expect(report.context.phase).toBe('update');
     expect(report.runtime.userAgent).toBeDefined();
   });
+
+  it('exports a complete reproduction bundle from CrashHandler reports', () => {
+    const handler = new CrashHandler({
+      game: {
+        config: { debug: true, renderer: 'canvas' },
+        scene: {
+          current: {
+            name: 'battle',
+            children: [
+              { id: 'hero', type: 'sprite', texture: 'hero.png', x: 40, y: 96, zIndex: 1 },
+              { id: 'hud', type: 'node', layer: 'ui', x: 0, y: 0, zIndex: 10 }
+            ]
+          }
+        }
+      },
+      store: { snapshot: () => ({ player: { hp: 12 } }) },
+      metrics: { snapshot: () => ({ fps: 58 }) }
+    });
+
+    const bundle = handler.captureReproduction(new Error('render boom'), { phase: 'render' }, {
+      assetManifest: {
+        assets: [{ key: 'hero.png', type: 'image', hash: 'hero-hash' }]
+      },
+      inputs: [{ code: 'Space', time: 12 }]
+    });
+
+    expect(bundle).toMatchObject({
+      schema: 'omnicore.reproduction-bundle.v1',
+      crash: expect.objectContaining({
+        error: expect.objectContaining({ message: 'render boom' }),
+        context: { phase: 'render' }
+      }),
+      sceneDocument: expect.objectContaining({
+        schema: 'omnicore.scene-document.v1',
+        name: 'battle'
+      }),
+      dependencies: expect.objectContaining({
+        images: ['hero.png']
+      }),
+      assetManifest: expect.objectContaining({
+        assets: [expect.objectContaining({ key: 'hero.png' })]
+      }),
+      inputs: [{ code: 'Space', time: 12 }],
+      renderSnapshot: expect.objectContaining({
+        schema: 'omnicore.render-queue-snapshot.v1',
+        order: ['hero', 'hud']
+      }),
+      store: { player: { hp: 12 } },
+      metrics: { fps: 58 }
+    });
+    expect(handler.latestReproduction()).toEqual(bundle);
+  });
 });

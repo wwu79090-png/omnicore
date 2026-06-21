@@ -952,6 +952,8 @@ npm run production-ready
 - `snapshot`：导入/导出 Store 快照，快速跳转测试场景。
 - `launch:dev`：检查 Node/npm/node_modules，缺失依赖时尝试恢复并启动开发服务器。
 - `production-ready`：扫描 `src/` 下调试残留、版本号与 CHANGELOG 匹配情况，生成审计报告。
+- `SceneDocument` / `AssetPipelineGate` / `createDeterministicRenderQueue`：用于场景版本迁移、资源预算门禁、确定性渲染快照，策略见 [`docs/engine-foundation-hardening.md`](docs/engine-foundation-hardening.md)。
+- `foundation:gate` / `test:soak` / `test:visual`：发布前执行底层门禁、生命周期长跑和核心示例视觉快照校验。
 
 ## 离线打包与发布流水线
 

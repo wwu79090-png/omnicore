@@ -1,12 +1,17 @@
 import { createOmniError } from './OmniError.js';
+import { createReproductionBundle } from '../debug/ReproductionBundle.js';
 
 function readScene(game, scene) {
-  const target = scene || game?.scene;
-  const current = target?.current || target?.currentScene || target?.active || target;
+  const current = readCurrentScene(game, scene);
   return {
     name: current?.name || current?.id || null,
     entityCount: Array.isArray(current?.entities) ? current.entities.length : undefined
   };
+}
+
+function readCurrentScene(game, scene) {
+  const target = scene || game?.scene;
+  return target?.current || target?.currentScene || target?.active || target;
 }
 
 function snapshotStore(store) {
@@ -66,6 +71,7 @@ export class CrashHandler {
     this.onReport = onReport;
     this.target = target;
     this.reports = [];
+    this.reproductionBundles = [];
     this.installed = false;
     this.errorHandler = (event) => this.capture(event.error || event.message || 'window error', { source: 'error' });
     this.rejectionHandler = (event) => this.capture(event.reason || 'unhandled rejection', { source: 'unhandledrejection' });
@@ -115,8 +121,33 @@ export class CrashHandler {
     return report;
   }
 
+  captureReproduction(error, context = {}, options = {}) {
+    const report = this.capture(error, context);
+    return this.createReproductionBundle(report, options);
+  }
+
+  createReproductionBundle(report = this.latest(), options = {}) {
+    const scene = options.scene || readCurrentScene(this.game, this.scene);
+    const bundle = createReproductionBundle({
+      crash: report,
+      scene,
+      assetManifest: options.assetManifest || this.game?.assetManifest || this.game?.assets?.manifest || {},
+      inputs: options.inputs || this.game?.input?.history || this.game?.input?.sequence?.buffer || [],
+      renderQueue: options.renderQueue || null,
+      store: options.store || report?.store || snapshotStore(this.store),
+      metrics: options.metrics || report?.metrics || snapshotMetrics(this.metrics),
+      generatedAt: options.generatedAt
+    });
+    this.reproductionBundles.push(bundle);
+    return bundle;
+  }
+
   latest() {
     return this.reports.at(-1) || null;
+  }
+
+  latestReproduction() {
+    return this.reproductionBundles.at(-1) || null;
   }
 }
 

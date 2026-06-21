@@ -127,6 +127,15 @@
       ]
     },
     {
+      "path": "assets/AssetPipelineGate.js",
+      "summary": "Asset manifest release gate for budgets, hashes, missing references, and dependency cycles.",
+      "exports": [
+        "ASSET_PIPELINE_REPORT_SCHEMA",
+        "AssetPipelineGate",
+        "createAssetPipelineReport"
+      ]
+    },
+    {
       "path": "assets/Font.js",
       "summary": "",
       "exports": [
@@ -776,6 +785,14 @@
       "summary": "Remote debug snapshot broadcaster. The class is intentionally transport-light: production tools may pass a real WebSocket server, while tests can pass any object with `clients[].send()`. @example const tools = new RemoteDevTools(game, { debug: true, server }); tools.attach();",
       "exports": [
         "RemoteDevTools"
+      ]
+    },
+    {
+      "path": "debug/ReproductionBundle.js",
+      "summary": "Reproduction bundle exporter for crash reports, scene state, assets, inputs, and render order.",
+      "exports": [
+        "REPRODUCTION_BUNDLE_SCHEMA",
+        "createReproductionBundle"
       ]
     },
     {
@@ -1502,10 +1519,29 @@
       ]
     },
     {
+      "path": "quality/RuntimeSoakHarness.js",
+      "summary": "Runtime soak harness for repeated scene lifecycle and resource leak checks.",
+      "exports": [
+        "RUNTIME_SOAK_REPORT_SCHEMA",
+        "RuntimeSoakHarness",
+        "createRuntimeSoakReport"
+      ]
+    },
+    {
       "path": "renderer/BatchOptimizer.js",
       "summary": "Pixi sprite batch analyzer. Pixi's BatchRenderer can merge sprites when they share the same texture source and render state. This helper keeps OmniCore's scene sync aligned with those constraints and exposes deterministic draw-call telemetry for tests, debug panels, and benchmark thresholds.",
       "exports": [
         "BatchOptimizer"
+      ]
+    },
+    {
+      "path": "renderer/DeterministicRenderQueue.js",
+      "summary": "Deterministic render queue and snapshot helpers for visual regression and replay diagnostics.",
+      "exports": [
+        "RENDER_QUEUE_SNAPSHOT_SCHEMA",
+        "createDeterministicRenderQueue",
+        "snapshotRenderQueue",
+        "compareRenderSnapshots"
       ]
     },
     {
@@ -1653,6 +1689,19 @@
       "exports": [
         "Sprite",
         "Scene"
+      ]
+    },
+    {
+      "path": "scene/SceneDocument.js",
+      "summary": "Versioned scene document helpers for editor saves, migration imports, and dependency collection.",
+      "exports": [
+        "SCENE_DOCUMENT_SCHEMA",
+        "SCENE_DOCUMENT_VERSION",
+        "SceneDocument",
+        "normalizeSceneDocument",
+        "validateSceneDocument",
+        "collectSceneDependencies",
+        "assertValidSceneDocument"
       ]
     },
     {

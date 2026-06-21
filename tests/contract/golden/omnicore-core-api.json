@@ -1496,6 +1496,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "AssetPipelineGate"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "AudioAddon"
       },
       {
@@ -2056,6 +2061,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "RuntimeSoakHarness"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "Sandbox"
       },
       {
@@ -2067,6 +2077,11 @@
         "arity": 1,
         "async": false,
         "name": "Scene"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SceneDocument"
       },
       {
         "arity": 0,
@@ -2294,6 +2309,11 @@
         "name": "assertRendererBackend"
       },
       {
+        "arity": 1,
+        "async": false,
+        "name": "assertValidSceneDocument"
+      },
+      {
         "arity": 0,
         "async": false,
         "name": "benchmarkECSParticles"
@@ -2311,12 +2331,27 @@
       {
         "arity": 0,
         "async": false,
+        "name": "collectSceneDependencies"
+      },
+      {
+        "arity": 2,
+        "async": false,
+        "name": "compareRenderSnapshots"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "conicGradientFill"
       },
       {
         "arity": 1,
         "async": false,
         "name": "connectEditorSync"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createAssetPipelineReport"
       },
       {
         "arity": 0,
@@ -2332,6 +2367,11 @@
         "arity": 0,
         "async": false,
         "name": "createCodeLayerPrimitive"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createDeterministicRenderQueue"
       },
       {
         "arity": 0,
@@ -2386,12 +2426,22 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createReproductionBundle"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createRichTextPrimitive"
       },
       {
         "arity": 0,
         "async": false,
         "name": "createRingPrimitive"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createRuntimeSoakReport"
       },
       {
         "arity": 0,
@@ -2476,12 +2526,22 @@
       {
         "arity": 0,
         "async": false,
+        "name": "normalizeSceneDocument"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "radialGradientFill"
       },
       {
         "arity": 4,
         "async": false,
         "name": "safeInitialize"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "snapshotRenderQueue"
       },
       {
         "arity": 0,
@@ -2502,6 +2562,11 @@
         "arity": 1,
         "async": true,
         "name": "useAddon"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "validateSceneDocument"
       },
       {
         "arity": 1,
@@ -2530,6 +2595,7 @@
       "AssetLoader",
       "AssetManifestGraph",
       "AssetPatchManager",
+      "AssetPipelineGate",
       "AudioAddon",
       "AudioEditor",
       "AudioManager",
@@ -2664,6 +2730,7 @@
       "ProfilerWaterfallPanel",
       "Quality",
       "Query",
+      "REPRODUCTION_BUNDLE_SCHEMA",
       "RealitySensor25D",
       "RealtimeConnection",
       "RemoteDevTools",
@@ -2677,10 +2744,12 @@
       "RendererManager",
       "ResourceOwnershipGraph",
       "RuntimeLiveSyncBridge",
+      "RuntimeSoakHarness",
       "SCENE_LIFECYCLE_ORDER",
       "Sandbox",
       "SandboxBus",
       "Scene",
+      "SceneDocument",
       "SceneLifecycle",
       "SeededRandom",
       "Shape",
@@ -2733,14 +2802,19 @@
       "addon",
       "assertNoBreakingApiChanges",
       "assertRendererBackend",
+      "assertValidSceneDocument",
       "benchmarkECSParticles",
       "buildApiSurface",
       "calculateDamage",
+      "collectSceneDependencies",
+      "compareRenderSnapshots",
       "conicGradientFill",
       "connectEditorSync",
+      "createAssetPipelineReport",
       "createBezierPrimitive",
       "createCapsulePrimitive",
       "createCodeLayerPrimitive",
+      "createDeterministicRenderQueue",
       "createEditorDeployBenchmark25D",
       "createEntity",
       "createGame",
@@ -2751,8 +2825,10 @@
       "createOmniError",
       "createPolygonPrimitive",
       "createRendererPerformanceSandbox",
+      "createReproductionBundle",
       "createRichTextPrimitive",
       "createRingPrimitive",
+      "createRuntimeSoakReport",
       "createSectorPrimitive",
       "createSpineFFDVertexShader",
       "createWebGPUComputeParticleDescriptor",
@@ -2769,12 +2845,15 @@
       "linearGradientFill",
       "listHelp",
       "loadPhysics",
+      "normalizeSceneDocument",
       "radialGradientFill",
       "safeInitialize",
+      "snapshotRenderQueue",
       "textureFill",
       "toOmniError",
       "use",
       "useAddon",
+      "validateSceneDocument",
       "vectorPrimitiveToSvg"
     ]
   },

@@ -119,7 +119,10 @@ export class CrashHandler {
   install(target?: EventTarget): this;
   uninstall(): this;
   capture(error: unknown, context?: Record<string, unknown>): CrashReport;
+  captureReproduction(error: unknown, context?: Record<string, unknown>, options?: Record<string, unknown>): Record<string, unknown>;
+  createReproductionBundle(report?: CrashReport, options?: Record<string, unknown>): Record<string, unknown>;
   latest(): CrashReport | null;
+  latestReproduction(): Record<string, unknown> | null;
 }
 
 export class Game {
@@ -131,6 +134,27 @@ export class Game {
 export class Scene {
   constructor(name?: string);
 }
+
+export interface DependencyBuckets {
+  audio: string[];
+  data: string[];
+  fonts: string[];
+  images: string[];
+  models: string[];
+  prefabs: string[];
+}
+
+export class SceneDocument {
+  constructor(document?: Record<string, unknown>);
+  validate(): { ok: boolean; errors: unknown[]; warnings: unknown[] };
+  dependencies(): DependencyBuckets;
+  toJSON(): Record<string, unknown>;
+}
+
+export function normalizeSceneDocument(document?: Record<string, unknown>): Record<string, unknown>;
+export function validateSceneDocument(document?: Record<string, unknown>): { ok: boolean; errors: unknown[]; warnings: unknown[] };
+export function collectSceneDependencies(document?: Record<string, unknown>): DependencyBuckets;
+export function assertValidSceneDocument(document?: Record<string, unknown>): Record<string, unknown>;
 
 export class Sprite {
   constructor(texture?: string, options?: Record<string, unknown>);
@@ -188,6 +212,31 @@ export class Tween {
   update(deltaMs: number): this;
 }
 
+export class PrefabManager {
+  static instantiate(json: Record<string, unknown>, x?: number, y?: number, registry?: Record<string, unknown>, overrides?: Record<string, unknown>): unknown;
+  static validate(json: Record<string, unknown>): { ok: boolean; errors: unknown[]; warnings: unknown[] };
+  static collectDependencies(json: Record<string, unknown>): DependencyBuckets;
+}
+
+export class AssetPipelineGate {
+  constructor(options?: Record<string, unknown>);
+  run(overrides?: Record<string, unknown>): Record<string, unknown>;
+  assert(): Record<string, unknown>;
+}
+
+export function createAssetPipelineReport(options?: Record<string, unknown>): Record<string, unknown>;
+export function createDeterministicRenderQueue(nodes?: unknown[], options?: { layerOrder?: string[] }): Array<Record<string, unknown>>;
+export function snapshotRenderQueue(queue?: unknown[]): Record<string, unknown>;
+export function compareRenderSnapshots(left: unknown, right: unknown): { ok: boolean; firstMismatch: unknown };
+
+export class RuntimeSoakHarness {
+  constructor(options?: Record<string, unknown>);
+  run(): Record<string, unknown>;
+}
+
+export function createRuntimeSoakReport(options?: Record<string, unknown>): Record<string, unknown>;
+export function createReproductionBundle(options?: Record<string, unknown>): Record<string, unknown>;
+
 export class Store {
   static set(key: string, value: unknown): unknown;
 }
@@ -199,11 +248,15 @@ export class Entity {
 export interface OmniCoreNamespace {
   Game: typeof Game;
   Scene: typeof Scene;
+  SceneDocument: typeof SceneDocument;
   Sprite: typeof Sprite;
   Container: typeof Container;
   TileSprite: typeof TileSprite;
   Graphics: typeof Graphics;
   Tween: typeof Tween;
+  PrefabManager: typeof PrefabManager;
+  AssetPipelineGate: typeof AssetPipelineGate;
+  RuntimeSoakHarness: typeof RuntimeSoakHarness;
   Store: typeof Store;
   Entity: typeof Entity;
   Hook: Hook;

@@ -2,12 +2,15 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { PrefabManager } from '../src/prefab/PrefabManager.js';
+import { collectSceneDependencies, normalizeSceneDocument } from '../src/scene/SceneDocument.js';
 
 const args = parseArgs(process.argv.slice(2));
 const assetsDir = path.resolve(args.assets || 'assets');
 const spritesDir = path.join(assetsDir, 'sprites');
 const scenesDir = args.scenes ? path.resolve(args.scenes) : null;
-const referenceDirs = collectReferenceDirs(args.references, scenesDir);
+const prefabsDir = path.join(assetsDir, 'prefabs');
+const referenceDirs = collectReferenceDirs(args.references, scenesDir, prefabsDir);
 const outDir = path.resolve(args.out || path.join('dist', 'assets'));
 const atlasDir = path.join(outDir, 'atlases');
 const cachePath = path.join(outDir, '.pack-assets-cache.json');
@@ -17,7 +20,9 @@ const rewriteMap = new Map();
 const graph = {
   generatedAt: new Date().toISOString(),
   assets: [],
-  scenes: []
+  scenes: [],
+  sceneDependencies: [],
+  prefabDependencies: []
 };
 const report = {
   packed: 0,
@@ -66,16 +71,33 @@ if (scenesDir && fs.existsSync(scenesDir)) {
     const relative = slash(path.relative(scenesDir, sceneFile));
     const source = readJson(sceneFile, null);
     if (!source) continue;
+    const dependencies = collectSceneDependencies(normalizeSceneDocument(source));
     const rewritten = rewriteTextures(source, rewriteMap);
     const destination = path.join(outDir, 'scenes', relative);
     writeJson(destination, rewritten.payload);
     const sceneEntry = {
       scene: relative,
       output: slash(path.relative(outDir, destination)),
-      rewritten: rewritten.count
+      rewritten: rewritten.count,
+      dependencies
     };
     graph.scenes.push(sceneEntry);
+    graph.sceneDependencies.push({
+      scene: relative,
+      dependencies
+    });
     report.scenes.push(sceneEntry);
+  }
+}
+
+if (fs.existsSync(prefabsDir)) {
+  for (const prefabFile of listFiles(prefabsDir).filter((file) => file.endsWith('.json'))) {
+    const source = readJson(prefabFile, null);
+    if (!source) continue;
+    graph.prefabDependencies.push({
+      prefab: `assets/${slash(path.relative(assetsDir, prefabFile))}`,
+      dependencies: PrefabManager.collectDependencies(source)
+    });
   }
 }
 
@@ -178,9 +200,11 @@ function isTrimmableAsset(file) {
   return /\.(?:png|jpe?g|webp|svg|gif|mp3|ogg|wav|json)$/iu.test(file);
 }
 
-function collectReferenceDirs(value, fallbackDir) {
+function collectReferenceDirs(value, ...fallbackDirs) {
   const dirs = [];
-  if (fallbackDir) dirs.push(fallbackDir);
+  for (const fallbackDir of fallbackDirs) {
+    if (fallbackDir) dirs.push(fallbackDir);
+  }
   if (value) {
     for (const item of String(value).split(',')) {
       const trimmed = item.trim();

@@ -166,4 +166,38 @@ describe('visual regression heatmap reporting', () => {
     expect(fs.readFileSync(report.results[0].heatmap, 'utf8')).toContain('data-diff-pixel="1,2"');
     expect(buildHeatmapSvg({ width: 2, height: 2, diffPixels: [{ x: 0, y: 0 }] })).toContain('<svg');
   });
+
+  it('attaches deterministic render snapshots to core visual examples', () => {
+    const report = compareVisualResults({
+      examples: [{
+        name: 'core-runtime-systems',
+        width: 4,
+        height: 4,
+        core: true,
+        renderQueue: [
+          { id: 'hero-b', layer: 'world', zIndex: 1, x: 8, y: 16 },
+          { id: 'hero-a', layer: 'world', zIndex: 1, x: 4, y: 16 },
+          { id: 'hud', layer: 'ui', zIndex: 0 }
+        ],
+        layerOrder: ['world', 'ui']
+      }],
+      threshold: 0.01,
+      generatedAt: '2026-06-21T00:00:00.000Z'
+    });
+
+    expect(report.renderSnapshots).toMatchObject({
+      checked: 1,
+      stable: true,
+      failures: []
+    });
+    expect(report.coreExamples).toMatchObject({
+      checked: 1,
+      withRenderSnapshots: 1
+    });
+    expect(report.results[0].renderSnapshot).toMatchObject({
+      schema: 'omnicore.render-queue-snapshot.v1',
+      order: ['hero-a', 'hero-b', 'hud'],
+      hash: expect.any(String)
+    });
+  });
 });

@@ -102,6 +102,11 @@
       <code>AssetPatchManager</code>
     </article>
     <article>
+      <h2>assets/AssetPipelineGate.js</h2>
+      <p>Asset manifest release gate for budgets, hashes, missing references, and dependency cycles.</p>
+      <code>ASSET_PIPELINE_REPORT_SCHEMA, AssetPipelineGate, createAssetPipelineReport</code>
+    </article>
+    <article>
       <h2>assets/Font.js</h2>
       <p></p>
       <code>Font</code>
@@ -520,6 +525,11 @@
       <h2>debug/RemoteDevTools.js</h2>
       <p>Remote debug snapshot broadcaster. The class is intentionally transport-light: production tools may pass a real WebSocket server, while tests can pass any object with `clients[].send()`. @example const tools = new RemoteDevTools(game, { debug: true, server }); tools.attach();</p>
       <code>RemoteDevTools</code>
+    </article>
+    <article>
+      <h2>debug/ReproductionBundle.js</h2>
+      <p>Reproduction bundle exporter for crash reports, scene state, assets, inputs, and render order.</p>
+      <code>REPRODUCTION_BUNDLE_SCHEMA, createReproductionBundle</code>
     </article>
     <article>
       <h2>debug/TelemetryCollector.js</h2>
@@ -1017,9 +1027,19 @@
       <code>buildMarketPositioningScorecard</code>
     </article>
     <article>
+      <h2>quality/RuntimeSoakHarness.js</h2>
+      <p>Runtime soak harness for repeated scene lifecycle and resource leak checks.</p>
+      <code>RUNTIME_SOAK_REPORT_SCHEMA, RuntimeSoakHarness, createRuntimeSoakReport</code>
+    </article>
+    <article>
       <h2>renderer/BatchOptimizer.js</h2>
       <p>Pixi sprite batch analyzer. Pixi's BatchRenderer can merge sprites when they share the same texture source and render state. This helper keeps OmniCore's scene sync aligned with those constraints and exposes deterministic draw-call telemetry for tests, debug panels, and benchmark thresholds.</p>
       <code>BatchOptimizer</code>
+    </article>
+    <article>
+      <h2>renderer/DeterministicRenderQueue.js</h2>
+      <p>Deterministic render queue and snapshot helpers for visual regression and replay diagnostics.</p>
+      <code>RENDER_QUEUE_SNAPSHOT_SCHEMA, createDeterministicRenderQueue, snapshotRenderQueue, compareRenderSnapshots</code>
     </article>
     <article>
       <h2>renderer/Filters.js</h2>
@@ -1100,6 +1120,11 @@
       <h2>scene/Scene.js</h2>
       <p>Scene and Sprite primitives. Scene mirrors Phaser's small lifecycle surface while keeping plugins explicit. Sprite supports Cocos-style `addComponent()` without bringing an editor runtime. @example const scene = new Scene('play'); const hero = scene.add(new Sprite('hero.png')); hero.addComponent(class Health { constructor(owner) { this.owner = owner; } });</p>
       <code>Sprite, Scene</code>
+    </article>
+    <article>
+      <h2>scene/SceneDocument.js</h2>
+      <p>Versioned scene document helpers for editor saves, migration imports, and dependency collection.</p>
+      <code>SCENE_DOCUMENT_SCHEMA, SCENE_DOCUMENT_VERSION, SceneDocument, normalizeSceneDocument, validateSceneDocument, collectSceneDependencies, assertValidSceneDocument</code>
     </article>
     <article>
       <h2>scene/SceneLifecycle.js</h2>

@@ -1,0 +1,338 @@
+{
+  "schema": "omnicore.foundation-gate-report.v1",
+  "generatedAt": "2026-06-21T07:33:10.520Z",
+  "ok": true,
+  "sceneDocuments": {
+    "ok": true,
+    "checked": 6,
+    "failures": [],
+    "dependencies": [
+      {
+        "file": "examples/25d-enhancements/audio.scene.json",
+        "dependencies": {
+          "audio": [],
+          "data": [],
+          "fonts": [],
+          "images": [],
+          "models": [],
+          "prefabs": []
+        }
+      },
+      {
+        "file": "examples/25d-enhancements/fog.scene.json",
+        "dependencies": {
+          "audio": [],
+          "data": [],
+          "fonts": [],
+          "images": [],
+          "models": [],
+          "prefabs": []
+        }
+      },
+      {
+        "file": "examples/25d-enhancements/navigation.scene.json",
+        "dependencies": {
+          "audio": [],
+          "data": [],
+          "fonts": [],
+          "images": [],
+          "models": [],
+          "prefabs": []
+        }
+      },
+      {
+        "file": "examples/25d-enhancements/particles.scene.json",
+        "dependencies": {
+          "audio": [],
+          "data": [],
+          "fonts": [],
+          "images": [],
+          "models": [],
+          "prefabs": []
+        }
+      },
+      {
+        "file": "examples/25d-enhancements/procedural-level.scene.json",
+        "dependencies": {
+          "audio": [],
+          "data": [],
+          "fonts": [],
+          "images": [],
+          "models": [],
+          "prefabs": []
+        }
+      },
+      {
+        "file": "examples/editor-demo/scene.json",
+        "dependencies": {
+          "audio": [],
+          "data": [],
+          "fonts": [],
+          "images": [],
+          "models": [],
+          "prefabs": []
+        }
+      }
+    ]
+  },
+  "prefabs": {
+    "ok": true,
+    "checked": 2,
+    "failures": [],
+    "dependencies": [
+      {
+        "file": "assets/prefabs/enemy.json",
+        "dependencies": {
+          "audio": [],
+          "data": [],
+          "fonts": [],
+          "images": [
+            "enemy"
+          ],
+          "models": [],
+          "prefabs": []
+        }
+      },
+      {
+        "file": "assets/prefabs/slime.json",
+        "dependencies": {
+          "audio": [],
+          "data": [],
+          "fonts": [],
+          "images": [
+            "slime"
+          ],
+          "models": [],
+          "prefabs": []
+        }
+      }
+    ]
+  },
+  "assetPipeline": {
+    "schema": "omnicore.asset-pipeline-report.v1",
+    "generatedAt": "2026-06-21T00:00:00.000Z",
+    "ok": true,
+    "totals": {
+      "totalBytes": 7876478,
+      "assetCount": 21,
+      "byType": {
+        "image": 5937865,
+        "audio": 1936668,
+        "data": 1454,
+        "asset": 491
+      }
+    },
+    "budgets": {
+      "totalBytes": 67108864
+    },
+    "failures": [],
+    "topFiles": [
+      {
+        "key": "branding/perf-demo.gif",
+        "type": "image",
+        "size": 5880001,
+        "url": "branding/perf-demo.gif"
+      },
+      {
+        "key": "branding/omnicore-30s-demo.webm",
+        "type": "audio",
+        "size": 1936668,
+        "url": "branding/omnicore-30s-demo.webm"
+      },
+      {
+        "key": "icons/electron/icon-512.png",
+        "type": "image",
+        "size": 20775,
+        "url": "icons/electron/icon-512.png"
+      },
+      {
+        "key": "icons/web/icon-512.png",
+        "type": "image",
+        "size": 20775,
+        "url": "icons/web/icon-512.png"
+      },
+      {
+        "key": "icons/electron/icon-256.png",
+        "type": "image",
+        "size": 4804,
+        "url": "icons/electron/icon-256.png"
+      },
+      {
+        "key": "icons/web/icon-192.png",
+        "type": "image",
+        "size": 3077,
+        "url": "icons/web/icon-192.png"
+      },
+      {
+        "key": "icons/wechat/icon-192.png",
+        "type": "image",
+        "size": 3077,
+        "url": "icons/wechat/icon-192.png"
+      },
+      {
+        "key": "icons/wechat/icon.png",
+        "type": "image",
+        "size": 1897,
+        "url": "icons/wechat/icon.png"
+      },
+      {
+        "key": "sprites/default/default-tilesheet.svg",
+        "type": "image",
+        "size": 1266,
+        "url": "sprites/default/default-tilesheet.svg"
+      },
+      {
+        "key": "icons/icon-manifest.json",
+        "type": "data",
+        "size": 777,
+        "url": "icons/icon-manifest.json"
+      },
+      {
+        "key": "sprites/default/readme.md",
+        "type": "asset",
+        "size": 491,
+        "url": "sprites/default/readme.md"
+      },
+      {
+        "key": "sprites/default/default-atlas.json",
+        "type": "data",
+        "size": 414,
+        "url": "sprites/default/default-atlas.json"
+      },
+      {
+        "key": "sprites/default/cloud.svg",
+        "type": "image",
+        "size": 413,
+        "url": "sprites/default/cloud.svg"
+      },
+      {
+        "key": "sprites/default/hero.svg",
+        "type": "image",
+        "size": 410,
+        "url": "sprites/default/hero.svg"
+      },
+      {
+        "key": "sprites/default/tile.svg",
+        "type": "image",
+        "size": 349,
+        "url": "sprites/default/tile.svg"
+      },
+      {
+        "key": "icons/electron/icon-32.png",
+        "type": "image",
+        "size": 308,
+        "url": "icons/electron/icon-32.png"
+      },
+      {
+        "key": "icons/web/favicon.png",
+        "type": "image",
+        "size": 308,
+        "url": "icons/web/favicon.png"
+      },
+      {
+        "key": "branding/logo-highres.png",
+        "type": "image",
+        "size": 220,
+        "url": "branding/logo-highres.png"
+      },
+      {
+        "key": "icons/electron/icon-16.png",
+        "type": "image",
+        "size": 185,
+        "url": "icons/electron/icon-16.png"
+      },
+      {
+        "key": "prefabs/enemy.json",
+        "type": "data",
+        "size": 161,
+        "url": "prefabs/enemy.json"
+      },
+      {
+        "key": "prefabs/slime.json",
+        "type": "data",
+        "size": 102,
+        "url": "prefabs/slime.json"
+      }
+    ],
+    "topDirectories": [
+      {
+        "directory": "branding",
+        "size": 7816889,
+        "files": 3
+      },
+      {
+        "directory": "icons/electron",
+        "size": 26072,
+        "files": 4
+      },
+      {
+        "directory": "icons/web",
+        "size": 24160,
+        "files": 3
+      },
+      {
+        "directory": "icons/wechat",
+        "size": 4974,
+        "files": 2
+      },
+      {
+        "directory": "sprites/default",
+        "size": 3343,
+        "files": 6
+      },
+      {
+        "directory": "icons",
+        "size": 777,
+        "files": 1
+      },
+      {
+        "directory": "prefabs",
+        "size": 263,
+        "files": 2
+      }
+    ],
+    "deadResources": [],
+    "dependencies": {}
+  },
+  "renderSnapshots": {
+    "ok": true,
+    "checked": 6,
+    "snapshots": [
+      {
+        "file": "examples/25d-enhancements/audio.scene.json",
+        "hash": "6a772445",
+        "order": []
+      },
+      {
+        "file": "examples/25d-enhancements/fog.scene.json",
+        "hash": "6a772445",
+        "order": []
+      },
+      {
+        "file": "examples/25d-enhancements/navigation.scene.json",
+        "hash": "6a772445",
+        "order": []
+      },
+      {
+        "file": "examples/25d-enhancements/particles.scene.json",
+        "hash": "6a772445",
+        "order": []
+      },
+      {
+        "file": "examples/25d-enhancements/procedural-level.scene.json",
+        "hash": "6a772445",
+        "order": []
+      },
+      {
+        "file": "examples/editor-demo/scene.json",
+        "hash": "30709128",
+        "order": [
+          "coin",
+          "platform",
+          "player"
+        ]
+      }
+    ],
+    "failures": []
+  }
+}

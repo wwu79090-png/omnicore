@@ -3,43 +3,113 @@
   "examples": [
     {
       "name": "template-2d-platformer",
-      "snapshot": "tests/visual/golden/template-2d-platformer.png"
+      "snapshot": "tests/visual/golden/template-2d-platformer.png",
+      "core": true,
+      "layerOrder": ["background", "world", "ui"],
+      "renderQueue": [
+        { "id": "platform-bg", "layer": "background", "zIndex": 0, "x": 0, "y": 0 },
+        { "id": "player", "layer": "world", "zIndex": 1, "x": 96, "y": 176 },
+        { "id": "hud", "layer": "ui", "zIndex": 0, "x": 0, "y": 0 }
+      ]
     },
     {
       "name": "template-2d-rpg",
-      "snapshot": "tests/visual/golden/template-2d-rpg.png"
+      "snapshot": "tests/visual/golden/template-2d-rpg.png",
+      "core": true,
+      "layerOrder": ["background", "world", "ui"],
+      "renderQueue": [
+        { "id": "village", "layer": "background", "zIndex": 0, "x": 0, "y": 0 },
+        { "id": "npc", "layer": "world", "zIndex": 1, "x": 160, "y": 96 },
+        { "id": "dialogue", "layer": "ui", "zIndex": 2, "x": 24, "y": 220 }
+      ]
     },
     {
       "name": "template-rpg",
-      "snapshot": "tests/visual/golden/template-rpg.png"
+      "snapshot": "tests/visual/golden/template-rpg.png",
+      "core": true,
+      "layerOrder": ["background", "world", "ui"],
+      "renderQueue": [
+        { "id": "map", "layer": "background", "zIndex": 0, "x": 0, "y": 0 },
+        { "id": "hero", "layer": "world", "zIndex": 1, "x": 80, "y": 128 },
+        { "id": "inventory", "layer": "ui", "zIndex": 1, "x": 12, "y": 12 }
+      ]
     },
     {
       "name": "template-interactive",
-      "snapshot": "tests/visual/golden/template-interactive.png"
+      "snapshot": "tests/visual/golden/template-interactive.png",
+      "core": true,
+      "layerOrder": ["background", "world", "ui"],
+      "renderQueue": [
+        { "id": "stage", "layer": "background", "zIndex": 0, "x": 0, "y": 0 },
+        { "id": "button-target", "layer": "world", "zIndex": 1, "x": 120, "y": 80 },
+        { "id": "controls", "layer": "ui", "zIndex": 1, "x": 20, "y": 20 }
+      ]
     },
     {
       "name": "template-tilemap",
-      "snapshot": "tests/visual/golden/template-tilemap.png"
+      "snapshot": "tests/visual/golden/template-tilemap.png",
+      "core": true,
+      "layerOrder": ["background", "world", "ui"],
+      "renderQueue": [
+        { "id": "tiles", "layer": "background", "zIndex": 0, "x": 0, "y": 0 },
+        { "id": "collision-overlay", "layer": "world", "zIndex": 1, "x": 0, "y": 0 },
+        { "id": "tile-cursor", "layer": "ui", "zIndex": 2, "x": 64, "y": 64 }
+      ]
     },
     {
       "name": "game-demo",
-      "snapshot": "tests/visual/golden/game-demo.png"
+      "snapshot": "tests/visual/golden/game-demo.png",
+      "core": true,
+      "layerOrder": ["background", "world", "ui"],
+      "renderQueue": [
+        { "id": "arena", "layer": "background", "zIndex": 0, "x": 0, "y": 0 },
+        { "id": "hero", "layer": "world", "zIndex": 1, "x": 96, "y": 120 },
+        { "id": "score", "layer": "ui", "zIndex": 1, "x": 8, "y": 8 }
+      ]
     },
     {
       "name": "playground",
-      "snapshot": "tests/visual/golden/playground.png"
+      "snapshot": "tests/visual/golden/playground.png",
+      "core": true,
+      "layerOrder": ["background", "world", "ui"],
+      "renderQueue": [
+        { "id": "grid", "layer": "background", "zIndex": 0, "x": 0, "y": 0 },
+        { "id": "selected-sprite", "layer": "world", "zIndex": 2, "x": 140, "y": 100 },
+        { "id": "toolbar", "layer": "ui", "zIndex": 3, "x": 0, "y": 0 }
+      ]
     },
     {
       "name": "core-runtime-systems",
-      "snapshot": "tests/visual/golden/core-runtime-systems.png"
+      "snapshot": "tests/visual/golden/core-runtime-systems.png",
+      "core": true,
+      "layerOrder": ["background", "world", "ui"],
+      "renderQueue": [
+        { "id": "runtime-bg", "layer": "background", "zIndex": 0, "x": 0, "y": 0 },
+        { "id": "entity-b", "layer": "world", "zIndex": 1, "x": 80, "y": 96 },
+        { "id": "profiler", "layer": "ui", "zIndex": 2, "x": 12, "y": 12 }
+      ]
     },
     {
       "name": "offscreen-transfer",
-      "snapshot": "tests/visual/golden/offscreen-transfer.png"
+      "snapshot": "tests/visual/golden/offscreen-transfer.png",
+      "core": true,
+      "layerOrder": ["background", "world", "ui"],
+      "renderQueue": [
+        { "id": "worker-canvas", "layer": "background", "zIndex": 0, "x": 0, "y": 0 },
+        { "id": "sprite-batch", "layer": "world", "zIndex": 1, "x": 128, "y": 96 },
+        { "id": "worker-status", "layer": "ui", "zIndex": 1, "x": 16, "y": 16 }
+      ]
     },
     {
       "name": "synth-audio",
-      "snapshot": "tests/visual/golden/synth-audio.png"
+      "snapshot": "tests/visual/golden/synth-audio.png",
+      "core": true,
+      "layerOrder": ["background", "world", "ui"],
+      "renderQueue": [
+        { "id": "audio-bg", "layer": "background", "zIndex": 0, "x": 0, "y": 0 },
+        { "id": "waveform", "layer": "world", "zIndex": 1, "x": 48, "y": 120 },
+        { "id": "transport", "layer": "ui", "zIndex": 2, "x": 24, "y": 220 }
+      ]
     }
   ]
 }

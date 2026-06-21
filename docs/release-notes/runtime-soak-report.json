@@ -1,0 +1,22 @@
+{
+  "schema": "omnicore.runtime-soak-report.v1",
+  "generatedAt": "2026-06-21T07:34:02.673Z",
+  "ok": true,
+  "iterations": 40,
+  "totals": {
+    "scenesCreated": 40,
+    "scenesDestroyed": 40,
+    "spritesCreated": 240,
+    "resourcesCreated": 80,
+    "resourcesDestroyed": 80,
+    "tweensCreated": 80,
+    "timersCreated": 40
+  },
+  "peak": {
+    "entities": 6,
+    "resources": 2,
+    "listeners": 1
+  },
+  "leaks": [],
+  "warnings": []
+}

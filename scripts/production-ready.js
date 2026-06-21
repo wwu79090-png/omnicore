@@ -10,11 +10,13 @@ import {
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildMarketReadiness } from './generate-quality-report.js';
+import { createFoundationGateReport } from './foundation-gate.js';
 import { createNoWarningSummary, detectOutputRisks } from './lib/output-gate.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_VERIFY_TIMEOUT_MS = 120_000;
 export const DEFAULT_VERIFY_SCRIPTS = [
+  'foundation:gate',
   'lint',
   'test:contract',
   'benchmark:ci',
@@ -62,6 +64,24 @@ export function createProductionReadyReport({
       scripts: packageJson.scripts || {}
     }
   });
+
+  const foundationGates = createFoundationGateReport({
+    projectRoot,
+    generatedAt
+  });
+  if (!foundationGates.ok) {
+    findings.push({
+      level: 'error',
+      file: 'foundation',
+      message: 'foundation gate failed',
+      failures: [
+        ...foundationGates.sceneDocuments.failures,
+        ...foundationGates.prefabs.failures,
+        ...foundationGates.assetPipeline.failures,
+        ...foundationGates.renderSnapshots.failures
+      ]
+    });
+  }
 
   for (const missing of marketReadiness.releaseGates.missing) {
     findings.push({
@@ -115,6 +135,7 @@ export function createProductionReadyReport({
     ready: findings.filter((item) => item.level === 'error').length === 0,
     score: marketReadiness.score,
     marketReadiness,
+    foundationGates,
     verification,
     noWarningSummary: verification.noWarningSummary,
     findings

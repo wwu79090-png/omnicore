@@ -1,67 +1,506 @@
 {
-  "generatedAt": "2026-06-20T04:22:22.589Z",
+  "generatedAt": "2026-06-21T07:39:39.333Z",
   "threshold": 0.005,
   "results": [
     {
       "name": "template-2d-platformer",
       "diffRatio": 0,
       "threshold": 0.005,
-      "pass": true
+      "pass": true,
+      "renderSnapshot": {
+        "schema": "omnicore.render-queue-snapshot.v1",
+        "order": [
+          "platform-bg",
+          "player",
+          "hud"
+        ],
+        "entries": [
+          {
+            "id": "platform-bg",
+            "layer": "background",
+            "layerIndex": 0,
+            "zIndex": 0,
+            "y": 0,
+            "x": 0,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "player",
+            "layer": "world",
+            "layerIndex": 1,
+            "zIndex": 1,
+            "y": 176,
+            "x": 96,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "hud",
+            "layer": "ui",
+            "layerIndex": 2,
+            "zIndex": 0,
+            "y": 0,
+            "x": 0,
+            "texture": null,
+            "visible": true
+          }
+        ],
+        "hash": "40be6c18"
+      },
+      "renderSnapshotStable": true,
+      "renderSnapshotHashMatches": null
     },
     {
       "name": "template-2d-rpg",
       "diffRatio": 0,
       "threshold": 0.005,
-      "pass": true
+      "pass": true,
+      "renderSnapshot": {
+        "schema": "omnicore.render-queue-snapshot.v1",
+        "order": [
+          "village",
+          "npc",
+          "dialogue"
+        ],
+        "entries": [
+          {
+            "id": "village",
+            "layer": "background",
+            "layerIndex": 0,
+            "zIndex": 0,
+            "y": 0,
+            "x": 0,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "npc",
+            "layer": "world",
+            "layerIndex": 1,
+            "zIndex": 1,
+            "y": 96,
+            "x": 160,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "dialogue",
+            "layer": "ui",
+            "layerIndex": 2,
+            "zIndex": 2,
+            "y": 220,
+            "x": 24,
+            "texture": null,
+            "visible": true
+          }
+        ],
+        "hash": "3723f718"
+      },
+      "renderSnapshotStable": true,
+      "renderSnapshotHashMatches": null
     },
     {
       "name": "template-rpg",
       "diffRatio": 0,
       "threshold": 0.005,
-      "pass": true
+      "pass": true,
+      "renderSnapshot": {
+        "schema": "omnicore.render-queue-snapshot.v1",
+        "order": [
+          "map",
+          "hero",
+          "inventory"
+        ],
+        "entries": [
+          {
+            "id": "map",
+            "layer": "background",
+            "layerIndex": 0,
+            "zIndex": 0,
+            "y": 0,
+            "x": 0,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "hero",
+            "layer": "world",
+            "layerIndex": 1,
+            "zIndex": 1,
+            "y": 128,
+            "x": 80,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "inventory",
+            "layer": "ui",
+            "layerIndex": 2,
+            "zIndex": 1,
+            "y": 12,
+            "x": 12,
+            "texture": null,
+            "visible": true
+          }
+        ],
+        "hash": "fedc2320"
+      },
+      "renderSnapshotStable": true,
+      "renderSnapshotHashMatches": null
     },
     {
       "name": "template-interactive",
       "diffRatio": 0,
       "threshold": 0.005,
-      "pass": true
+      "pass": true,
+      "renderSnapshot": {
+        "schema": "omnicore.render-queue-snapshot.v1",
+        "order": [
+          "stage",
+          "button-target",
+          "controls"
+        ],
+        "entries": [
+          {
+            "id": "stage",
+            "layer": "background",
+            "layerIndex": 0,
+            "zIndex": 0,
+            "y": 0,
+            "x": 0,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "button-target",
+            "layer": "world",
+            "layerIndex": 1,
+            "zIndex": 1,
+            "y": 80,
+            "x": 120,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "controls",
+            "layer": "ui",
+            "layerIndex": 2,
+            "zIndex": 1,
+            "y": 20,
+            "x": 20,
+            "texture": null,
+            "visible": true
+          }
+        ],
+        "hash": "0f38fc9c"
+      },
+      "renderSnapshotStable": true,
+      "renderSnapshotHashMatches": null
     },
     {
       "name": "template-tilemap",
       "diffRatio": 0,
       "threshold": 0.005,
-      "pass": true
+      "pass": true,
+      "renderSnapshot": {
+        "schema": "omnicore.render-queue-snapshot.v1",
+        "order": [
+          "tiles",
+          "collision-overlay",
+          "tile-cursor"
+        ],
+        "entries": [
+          {
+            "id": "tiles",
+            "layer": "background",
+            "layerIndex": 0,
+            "zIndex": 0,
+            "y": 0,
+            "x": 0,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "collision-overlay",
+            "layer": "world",
+            "layerIndex": 1,
+            "zIndex": 1,
+            "y": 0,
+            "x": 0,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "tile-cursor",
+            "layer": "ui",
+            "layerIndex": 2,
+            "zIndex": 2,
+            "y": 64,
+            "x": 64,
+            "texture": null,
+            "visible": true
+          }
+        ],
+        "hash": "22ad7934"
+      },
+      "renderSnapshotStable": true,
+      "renderSnapshotHashMatches": null
     },
     {
       "name": "game-demo",
       "diffRatio": 0,
       "threshold": 0.005,
-      "pass": true
+      "pass": true,
+      "renderSnapshot": {
+        "schema": "omnicore.render-queue-snapshot.v1",
+        "order": [
+          "arena",
+          "hero",
+          "score"
+        ],
+        "entries": [
+          {
+            "id": "arena",
+            "layer": "background",
+            "layerIndex": 0,
+            "zIndex": 0,
+            "y": 0,
+            "x": 0,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "hero",
+            "layer": "world",
+            "layerIndex": 1,
+            "zIndex": 1,
+            "y": 120,
+            "x": 96,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "score",
+            "layer": "ui",
+            "layerIndex": 2,
+            "zIndex": 1,
+            "y": 8,
+            "x": 8,
+            "texture": null,
+            "visible": true
+          }
+        ],
+        "hash": "c7dcca90"
+      },
+      "renderSnapshotStable": true,
+      "renderSnapshotHashMatches": null
     },
     {
       "name": "playground",
       "diffRatio": 0,
       "threshold": 0.005,
-      "pass": true
+      "pass": true,
+      "renderSnapshot": {
+        "schema": "omnicore.render-queue-snapshot.v1",
+        "order": [
+          "grid",
+          "selected-sprite",
+          "toolbar"
+        ],
+        "entries": [
+          {
+            "id": "grid",
+            "layer": "background",
+            "layerIndex": 0,
+            "zIndex": 0,
+            "y": 0,
+            "x": 0,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "selected-sprite",
+            "layer": "world",
+            "layerIndex": 1,
+            "zIndex": 2,
+            "y": 100,
+            "x": 140,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "toolbar",
+            "layer": "ui",
+            "layerIndex": 2,
+            "zIndex": 3,
+            "y": 0,
+            "x": 0,
+            "texture": null,
+            "visible": true
+          }
+        ],
+        "hash": "c5064724"
+      },
+      "renderSnapshotStable": true,
+      "renderSnapshotHashMatches": null
     },
     {
       "name": "core-runtime-systems",
       "diffRatio": 0,
       "threshold": 0.005,
-      "pass": true
+      "pass": true,
+      "renderSnapshot": {
+        "schema": "omnicore.render-queue-snapshot.v1",
+        "order": [
+          "runtime-bg",
+          "entity-b",
+          "profiler"
+        ],
+        "entries": [
+          {
+            "id": "runtime-bg",
+            "layer": "background",
+            "layerIndex": 0,
+            "zIndex": 0,
+            "y": 0,
+            "x": 0,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "entity-b",
+            "layer": "world",
+            "layerIndex": 1,
+            "zIndex": 1,
+            "y": 96,
+            "x": 80,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "profiler",
+            "layer": "ui",
+            "layerIndex": 2,
+            "zIndex": 2,
+            "y": 12,
+            "x": 12,
+            "texture": null,
+            "visible": true
+          }
+        ],
+        "hash": "f17421e8"
+      },
+      "renderSnapshotStable": true,
+      "renderSnapshotHashMatches": null
     },
     {
       "name": "offscreen-transfer",
       "diffRatio": 0,
       "threshold": 0.005,
-      "pass": true
+      "pass": true,
+      "renderSnapshot": {
+        "schema": "omnicore.render-queue-snapshot.v1",
+        "order": [
+          "worker-canvas",
+          "sprite-batch",
+          "worker-status"
+        ],
+        "entries": [
+          {
+            "id": "worker-canvas",
+            "layer": "background",
+            "layerIndex": 0,
+            "zIndex": 0,
+            "y": 0,
+            "x": 0,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "sprite-batch",
+            "layer": "world",
+            "layerIndex": 1,
+            "zIndex": 1,
+            "y": 96,
+            "x": 128,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "worker-status",
+            "layer": "ui",
+            "layerIndex": 2,
+            "zIndex": 1,
+            "y": 16,
+            "x": 16,
+            "texture": null,
+            "visible": true
+          }
+        ],
+        "hash": "9ef29264"
+      },
+      "renderSnapshotStable": true,
+      "renderSnapshotHashMatches": null
     },
     {
       "name": "synth-audio",
       "diffRatio": 0,
       "threshold": 0.005,
-      "pass": true
+      "pass": true,
+      "renderSnapshot": {
+        "schema": "omnicore.render-queue-snapshot.v1",
+        "order": [
+          "audio-bg",
+          "waveform",
+          "transport"
+        ],
+        "entries": [
+          {
+            "id": "audio-bg",
+            "layer": "background",
+            "layerIndex": 0,
+            "zIndex": 0,
+            "y": 0,
+            "x": 0,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "waveform",
+            "layer": "world",
+            "layerIndex": 1,
+            "zIndex": 1,
+            "y": 120,
+            "x": 48,
+            "texture": null,
+            "visible": true
+          },
+          {
+            "id": "transport",
+            "layer": "ui",
+            "layerIndex": 2,
+            "zIndex": 2,
+            "y": 220,
+            "x": 24,
+            "texture": null,
+            "visible": true
+          }
+        ],
+        "hash": "c7e54190"
+      },
+      "renderSnapshotStable": true,
+      "renderSnapshotHashMatches": null
     }
   ],
+  "renderSnapshots": {
+    "checked": 10,
+    "stable": true,
+    "failures": []
+  },
+  "coreExamples": {
+    "checked": 10,
+    "withRenderSnapshots": 10
+  },
   "pass": true
 }

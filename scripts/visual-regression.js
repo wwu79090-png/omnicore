@@ -2,6 +2,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  compareRenderSnapshots,
+  createDeterministicRenderQueue,
+  snapshotRenderQueue
+} from '../src/renderer/DeterministicRenderQueue.js';
 
 const args = parseArgs(process.argv.slice(2));
 // legacy threshold = 0.005; 2D crown CI enforces a stricter 0.1% pixel gate.
@@ -15,18 +20,41 @@ export function compareVisualResults({
   generatedAt = new Date().toISOString()
 } = {}) {
   fs.mkdirSync(outDir, { recursive: true });
+  const renderFailures = [];
+  let renderSnapshotCount = 0;
+  let coreCount = 0;
+  let coreWithRenderSnapshots = 0;
   const results = examples.map((example) => {
     const width = Math.max(1, Number(example.width) || 1);
     const height = Math.max(1, Number(example.height) || 1);
     const diffPixels = Array.isArray(example.diffPixels) ? example.diffPixels : [];
     const diffRatio = diffPixels.length / (width * height);
-    const pass = diffRatio < pixelThreshold;
+    const render = buildRenderSnapshotResult(example);
+    if (example.core) coreCount += 1;
+    if (render) {
+      renderSnapshotCount += 1;
+      if (example.core) coreWithRenderSnapshots += 1;
+      if (!render.stable || render.hashMatches === false) {
+        renderFailures.push({
+          name: example.name,
+          stable: render.stable,
+          hashMatches: render.hashMatches,
+          firstMismatch: render.firstMismatch || null
+        });
+      }
+    }
+    const pass = diffRatio < pixelThreshold && (!render || (render.stable && render.hashMatches !== false));
     const result = {
       name: example.name,
       diffRatio,
       threshold: pixelThreshold,
       pass
     };
+    if (render) {
+      result.renderSnapshot = render.snapshot;
+      result.renderSnapshotStable = render.stable;
+      result.renderSnapshotHashMatches = render.hashMatches;
+    }
     if (!pass) {
       const heatmap = path.resolve(outDir, `${slugify(example.name)}-diff-heatmap.svg`);
       fs.writeFileSync(heatmap, buildHeatmapSvg({ width, height, diffPixels, name: example.name }), 'utf8');
@@ -43,7 +71,35 @@ export function compareVisualResults({
     generatedAt,
     threshold: pixelThreshold,
     results,
+    renderSnapshots: {
+      checked: renderSnapshotCount,
+      stable: renderFailures.length === 0,
+      failures: renderFailures
+    },
+    coreExamples: {
+      checked: coreCount,
+      withRenderSnapshots: coreWithRenderSnapshots
+    },
     pass: results.every((item) => item.pass)
+  };
+}
+
+function buildRenderSnapshotResult(example) {
+  if (!Array.isArray(example.renderQueue)) return null;
+  const queue = createDeterministicRenderQueue(example.renderQueue, {
+    layerOrder: Array.isArray(example.layerOrder) ? example.layerOrder : undefined
+  });
+  const snapshot = snapshotRenderQueue(queue);
+  const repeat = snapshotRenderQueue(createDeterministicRenderQueue([...example.renderQueue].reverse(), {
+    layerOrder: Array.isArray(example.layerOrder) ? example.layerOrder : undefined
+  }));
+  const comparison = compareRenderSnapshots(snapshot, repeat);
+  const expectedHash = example.renderSnapshotHash || example.expectedRenderHash || null;
+  return {
+    snapshot,
+    stable: comparison.ok,
+    firstMismatch: comparison.firstMismatch,
+    hashMatches: expectedHash ? snapshot.hash === expectedHash : null
   };
 }
 

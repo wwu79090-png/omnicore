@@ -37,6 +37,12 @@ import CharacterRig from './character/CharacterRig.js';
 import Node from './node/Node.js';
 import Container from './scene/Container.js';
 import { Scene, Sprite } from './scene/Scene.js';
+import SceneDocument, {
+  assertValidSceneDocument,
+  collectSceneDependencies,
+  normalizeSceneDocument,
+  validateSceneDocument
+} from './scene/SceneDocument.js';
 import SceneLifecycle, { SCENE_LIFECYCLE_ORDER } from './scene/SceneLifecycle.js';
 import TileSprite from './scene/TileSprite.js';
 import Text from './text/Text.js';
@@ -155,6 +161,7 @@ import ProfilerWaterfallPanel from './debug/ProfilerWaterfallPanel.js';
 import ProfilerSnapshot from './debug/ProfilerSnapshot.js';
 import RemoteDevTools from './debug/RemoteDevTools.js';
 import CrashReporter from './debug/CrashReporter.js';
+import createReproductionBundle, { REPRODUCTION_BUNDLE_SCHEMA } from './debug/ReproductionBundle.js';
 import EmergencyOverlay from './debug/EmergencyOverlay.js';
 import VersionDialog from './debug/VersionDialog.js';
 import DebugConsole from './debug/DebugConsole.js';
@@ -212,6 +219,7 @@ import MarketplaceServer from './marketplace/MarketplaceServer.js';
 import Font from './assets/Font.js';
 import OBundle from './assets/OBundle.js';
 import AssetPatchManager from './assets/AssetPatchManager.js';
+import AssetPipelineGate, { createAssetPipelineReport } from './assets/AssetPipelineGate.js';
 import PlatformVariantResolver from './assets/PlatformVariantResolver.js';
 import ResourceOwnershipGraph from './assets/ResourceOwnershipGraph.js';
 import AssetManifestGraph from './assets/AssetManifestGraph.js';
@@ -232,6 +240,11 @@ import calculateDamage from './compute/DamageFormula.js';
 import findPath from './compute/Pathfinding.js';
 import WasmLoader from './wasm/WasmLoader.js';
 import RenderLayerManager from './renderer/RenderLayerManager.js';
+import {
+  compareRenderSnapshots,
+  createDeterministicRenderQueue,
+  snapshotRenderQueue
+} from './renderer/DeterministicRenderQueue.js';
 import PixiBatchAdapter, { CommandBuffer } from './renderer/PixiBatchAdapter.js';
 import { PixiFrameworkBridge, createPixiFrameworkAdoptionPlan } from './renderer/PixiFrameworkBridge.js';
 import { PixiTextureLifecycle } from './renderer/PixiTextureLifecycle.js';
@@ -265,6 +278,7 @@ import { buildEditorMarketReadiness } from './editor/EditorMarketReadiness.js';
 import { buildEditorLongTermMaturity } from './editor/EditorLongTermMaturity.js';
 import { buildMarketEngineComparison, renderMarketEngineComparisonMarkdown } from './quality/MarketEngineComparison.js';
 import { buildMarketPositioningScorecard } from './quality/MarketPositioningScorecard.js';
+import RuntimeSoakHarness, { createRuntimeSoakReport } from './quality/RuntimeSoakHarness.js';
 
 const Data = { safeParse };
 const MathTools = { Vec2, Rect, Easing, distance, isInRadius, randomBetween, lerp, angle, random };
@@ -880,6 +894,11 @@ const OmniCore = {
   Scene,
   SceneLifecycle,
   SCENE_LIFECYCLE_ORDER,
+  SceneDocument,
+  assertValidSceneDocument,
+  collectSceneDependencies,
+  normalizeSceneDocument,
+  validateSceneDocument,
   Sprite,
   CharacterRig,
   TileSprite,
@@ -955,6 +974,9 @@ const OmniCore = {
   RenderWorkerBridge,
   RendererManager,
   RenderLayerManager,
+  compareRenderSnapshots,
+  createDeterministicRenderQueue,
+  snapshotRenderQueue,
   Loop,
   Math: OmniMath,
   ECS,
@@ -986,6 +1008,8 @@ const OmniCore = {
   Analytics,
   AssetPatchManager,
   AssetManifestGraph,
+  AssetPipelineGate,
+  createAssetPipelineReport,
   ResourceOwnershipGraph,
   ABTest,
   PackageManager,
@@ -1030,6 +1054,8 @@ const OmniCore = {
   FrameBudgetScheduler,
   Quality: EngineQualityHarness,
   EngineQualityHarness,
+  RuntimeSoakHarness,
+  createRuntimeSoakReport,
   Kernel,
   RendererAdapter,
   SplashScreen,
@@ -1095,6 +1121,8 @@ const OmniCore = {
   ProfilerSnapshot,
   RemoteDevTools,
   CrashReporter,
+  createReproductionBundle,
+  REPRODUCTION_BUNDLE_SCHEMA,
   VersionDialog,
   detectEnvironment,
   detectPlatformAndMergeDefaults,
@@ -1136,6 +1164,7 @@ export {
   AssetCache,
   AssetPatchManager,
   AssetManifestGraph,
+  AssetPipelineGate,
   AssetLoader,
   Backend,
   BackendManager,
@@ -1149,11 +1178,14 @@ export {
   ChunkManager,
   CollisionMask,
   Color,
+  compareRenderSnapshots,
   ComputeRuntime,
   CommandBuffer,
   Components,
   CrashHandler,
   CrashReporter,
+  createReproductionBundle,
+  REPRODUCTION_BUNDLE_SCHEMA,
   DataAdapter,
   DataTable,
   DataTableEditor,
@@ -1201,6 +1233,8 @@ export {
   Genealogy,
   help,
   createGame,
+  createAssetPipelineReport,
+  createDeterministicRenderQueue,
   Game,
   OmniCoreErrorTools as Error,
   OmniError,
@@ -1293,6 +1327,8 @@ export {
   runEngineQualityGate,
   runInvariantCheck,
   runTrendCheck,
+  RuntimeSoakHarness,
+  createRuntimeSoakReport,
   ResourceOwnershipGraph,
   RenderLayerManager,
   RenderWorkerBridge,
@@ -1308,15 +1344,20 @@ export {
   RuntimeLiveSyncBridge,
   SceneLifecycle,
   SCENE_LIFECYCLE_ORDER,
+  SceneDocument,
   Sandbox,
   SandboxBus,
   Scene,
   SceneManager,
+  collectSceneDependencies,
+  normalizeSceneDocument,
+  validateSceneDocument,
   SleepWakeSystem,
   Sprite,
   Text,
   BitmapText,
   SplashScreen,
+  snapshotRenderQueue,
   stableHash,
   stableStringify,
   StaticBatchCompiler,
@@ -1363,6 +1404,7 @@ export {
   WorkerManager,
   World,
   assertRendererBackend,
+  assertValidSceneDocument,
   Bus,
   benchmarkECSParticles,
   buildEditorLongTermMaturity,
