@@ -1612,6 +1612,15 @@
       ]
     },
     {
+      "path": "renderer/RendererFallbackMatrix.js",
+      "summary": "",
+      "exports": [
+        "RENDERER_FALLBACK_MATRIX_SCHEMA",
+        "createRendererFallbackMatrix",
+        "resolveRendererFallbackPlan"
+      ]
+    },
+    {
       "path": "renderer/RendererManager.js",
       "summary": "Multi-backend renderer manager with automatic fallback. @example const manager = new RendererManager({ createRenderer }); const renderer = await manager.create('auto'); // webgpu -> webgl -> canvas",
       "exports": [

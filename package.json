@@ -77,6 +77,7 @@
     "generate-icons": "node scripts/generate-icons.js",
     "publish:local": "node scripts/publish-local.js",
     "publish:dry-run": "node scripts/npm-publish-dry-run.js",
+    "publish:audit": "node scripts/publish-security-audit.js",
     "deploy": "node scripts/deploy.js",
     "export:platform": "node scripts/export-platform.js",
     "dist:full": "node scripts/dist-full.js",

@@ -112,6 +112,54 @@ describe('release build hardening', () => {
       args: ['/d', '/s', '/c', 'npm.cmd pack --dry-run --json']
     });
   });
+
+  it('declares a publish security and privacy audit gate before npm publishing', async () => {
+    const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+    const workflow = readFileSync('.github/workflows/release.yml', 'utf8');
+    const { createPublishSecurityAuditReport } = await import(pathToFileURL(path.resolve('scripts/publish-security-audit.js')).href);
+    const report = createPublishSecurityAuditReport({
+      packageJson: {
+        scripts: {
+          'publish:audit': 'node scripts/publish-security-audit.js',
+          'publish:dry-run': 'node scripts/npm-publish-dry-run.js',
+          'security-check': 'node scripts/security-check.js'
+        }
+      },
+      readme: '匿名遥测默认关闭 telemetry: false',
+      privacy: '默认不收集任何数据 telemetry: false 开发者自己决定是否导出或上传',
+      releaseWorkflow: 'npm run publish:audit\nnpm run publish:dry-run\nnpm publish --access public',
+      scannedFiles: [
+        { path: 'src/index.js', content: 'const telemetry = false;' },
+        { path: 'docs/example.md', content: 'Use NPM_TOKEN as a placeholder only.' }
+      ]
+    });
+    const badReport = createPublishSecurityAuditReport({
+      packageJson: { scripts: {} },
+      readme: '',
+      privacy: '',
+      releaseWorkflow: 'npm publish --access public',
+      scannedFiles: [{ path: 'src/secret.js', content: 'const token = "ghp_123456789012345678901234567890123456";' }]
+    });
+
+    expect(pkg.scripts['publish:audit']).toBe('node scripts/publish-security-audit.js');
+    expect(workflow).toContain('npm run publish:audit');
+    expect(workflow.indexOf('npm run publish:audit')).toBeLessThan(workflow.indexOf('npm publish --access public'));
+    expect(report.ok).toBe(true);
+    expect(report.gates.map((gate) => gate.id)).toEqual([
+      'publish-script',
+      'dry-run-script',
+      'security-script',
+      'privacy-default-off',
+      'readme-telemetry-notice',
+      'release-workflow-order',
+      'secret-scan'
+    ]);
+    expect(badReport.ok).toBe(false);
+    expect(badReport.violations).toContainEqual(expect.objectContaining({
+      code: 'hardcoded-secret',
+      path: 'src/secret.js'
+    }));
+  });
 });
 
 describe('runtime resize, audio recovery, and camera events', () => {

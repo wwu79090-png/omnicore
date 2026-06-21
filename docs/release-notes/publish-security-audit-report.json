@@ -1,0 +1,37 @@
+{
+  "ok": true,
+  "schema": "omnicore.publish-security-audit.v1",
+  "gates": [
+    {
+      "id": "publish-script",
+      "pass": true
+    },
+    {
+      "id": "dry-run-script",
+      "pass": true
+    },
+    {
+      "id": "security-script",
+      "pass": true
+    },
+    {
+      "id": "privacy-default-off",
+      "pass": true
+    },
+    {
+      "id": "readme-telemetry-notice",
+      "pass": true
+    },
+    {
+      "id": "release-workflow-order",
+      "pass": true
+    },
+    {
+      "id": "secret-scan",
+      "pass": true,
+      "scannedFiles": 527
+    }
+  ],
+  "scannedFiles": 527,
+  "violations": []
+}

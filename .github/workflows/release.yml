@@ -90,6 +90,9 @@ jobs:
       - name: NPM publish dry run
         run: npm run publish:dry-run
 
+      - name: Publish security and privacy audit
+        run: npm run publish:audit
+
       - name: Publish to npm
         run: npm publish --access public
         env:
