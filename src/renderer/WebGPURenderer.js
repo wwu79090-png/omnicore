@@ -41,6 +41,9 @@ export class WebGPURenderer {
     this.entityBufferCapacityBytes = 0;
     this.pipelineDescriptor = create2DPipelineDescriptor();
     this.computeParticleDescriptor = createWebGPUComputeParticleDescriptor();
+    this.textureAtlasDescriptor = createWebGPUTextureAtlasDescriptor();
+    this.shaderVariantRegistry = createWebGPUShaderVariantRegistry();
+    this.hardwareEvidence = null;
     this.pipeline = null;
     this.computeParticlePipeline = null;
     this.shaderCacheWarmed = false;
@@ -232,6 +235,19 @@ export class WebGPURenderer {
     };
   }
 
+  createHardwareEvidence(options = {}) {
+    this.hardwareEvidence = createWebGPUHardwareEvidencePayload({
+      renderer: this.backend,
+      preferredFormat: this.format,
+      adapter: this.adapter,
+      device: options.device || this.adapter?.info?.device || this.adapter?.name || null,
+      browser: options.browser,
+      gpu: options.gpu,
+      checks: options.checks
+    });
+    return this.hardwareEvidence;
+  }
+
   _createPipeline() {
     if (!this.device?.createShaderModule || !this.device?.createRenderPipeline) return null;
     const shaderModule = this.device.createShaderModule({
@@ -280,6 +296,160 @@ fn cs_main(@builtin(global_invocation_id) id: vec3u) {
   particles[index].lifetime = max(particles[index].lifetime - 0.016, 0.0);
 }
 `
+  };
+}
+
+export function createWebGPUTextureAtlasDescriptor({
+  maxTextures = 16,
+  atlasSize = 2048,
+  format = 'rgba8unorm',
+  mipLevelCount = 1,
+  sampler = {}
+} = {}) {
+  return {
+    format: 'OmniCore.WebGPUTextureAtlasDescriptor',
+    version: 1,
+    maxTextures,
+    atlasSize,
+    textureFormat: format,
+    mipLevelCount,
+    sampler: {
+      type: sampler.type || 'filtering',
+      addressModeU: sampler.addressModeU || 'clamp-to-edge',
+      addressModeV: sampler.addressModeV || 'clamp-to-edge',
+      magFilter: sampler.magFilter || 'linear',
+      minFilter: sampler.minFilter || 'linear'
+    },
+    texture: {
+      dimension: '2d',
+      sampleType: 'float',
+      viewDimension: '2d-array',
+      usage: ['TEXTURE_BINDING', 'COPY_DST', 'RENDER_ATTACHMENT']
+    },
+    bindGroupLayout: {
+      label: 'omnicore-webgpu-texture-atlas',
+      entries: [
+        {
+          binding: 0,
+          visibility: 'fragment',
+          sampler: { type: sampler.type || 'filtering' }
+        },
+        {
+          binding: 1,
+          visibility: 'fragment',
+          texture: {
+            sampleType: 'float',
+            viewDimension: '2d-array',
+            multisampled: false
+          }
+        }
+      ]
+    },
+    atlasUniformLayout: {
+      frame: 'xywh',
+      uv: 'uvxy',
+      layer: 'texture-array-layer',
+      paddingPixels: 2
+    }
+  };
+}
+
+export function createWebGPUShaderVariantRegistry({
+  colorFormat = 'bgra8unorm',
+  hdrFormat = 'rgba16float'
+} = {}) {
+  return {
+    format: 'OmniCore.WebGPUShaderVariantRegistry',
+    version: 1,
+    variants: {
+      instancedSprite: {
+        pipelineLabel: 'omnicore-webgpu-instanced-sprite',
+        vertexLayout: 'position.xy size.xy rotation alpha color.rg',
+        fragmentTargets: [colorFormat],
+        features: ['instance-buffer', 'texture-atlas', 'blend-normal']
+      },
+      texturedSprite: {
+        pipelineLabel: 'omnicore-webgpu-textured-sprite',
+        vertexLayout: 'quad.xy uv.xy',
+        fragmentTargets: [colorFormat],
+        features: ['sampler', 'texture-array', 'premultiplied-alpha']
+      },
+      hd2d: {
+        pipelineLabel: 'omnicore-webgpu-hd2d-filter',
+        vertexLayout: 'fullscreen-triangle',
+        fragmentTargets: [hdrFormat],
+        features: ['tone-separation', 'edge-soften', 'dynamic-chromatic-aberration']
+      },
+      particleCompute: {
+        pipelineLabel: 'omnicore-webgpu-compute-particles',
+        workgroupSize: 64,
+        storageLayout: 'position.xy velocity.xy lifetime',
+        features: ['compute', 'storage-buffer', 'indirect-friendly']
+      }
+    },
+    compatibility: {
+      fallback: 'pixi-webgl',
+      requires: ['navigator.gpu', 'GPUAdapter.requestDevice'],
+      optional: ['timestamp-query', 'texture-compression-bc']
+    }
+  };
+}
+
+export function createWebGPUHardwareEvidencePayload({
+  generatedAt = new Date().toISOString(),
+  device = null,
+  browser = null,
+  gpu = null,
+  renderer = 'webgpu',
+  preferredFormat = 'bgra8unorm',
+  adapter = null,
+  checks = [],
+  notes = []
+} = {}) {
+  const adapterInfo = normalizeAdapterInfo(adapter);
+  return {
+    format: 'OmniCore.WebGPUHardwareEvidence',
+    version: 1,
+    generatedAt,
+    renderer,
+    preferredFormat,
+    hardware: {
+      device: device || adapterInfo.device || null,
+      browser,
+      gpu: gpu || adapterInfo.gpu || {},
+      adapter: adapterInfo
+    },
+    checks: checks.map((check) => ({
+      name: String(check.name || 'unnamed-check'),
+      fps: Number(check.fps || 0),
+      frameMs: check.frameMs == null ? null : Number(check.frameMs),
+      sprites: check.sprites == null ? null : Number(check.sprites),
+      drawCalls: check.drawCalls == null ? null : Number(check.drawCalls),
+      pass: Boolean(check.pass),
+      notes: check.notes || ''
+    })),
+    captureInstructions: [
+      'Run npm run webgpu:evidence -- --out dist/webgpu-hardware-evidence.json on target hardware.',
+      'Attach browser version, GPU model, screenshot, FPS sample, and console error/warn status.',
+      'If navigator.gpu is unavailable, record Pixi/WebGL fallback as the expected runtime path.'
+    ],
+    notes
+  };
+}
+
+function normalizeAdapterInfo(adapter = null) {
+  if (!adapter) return {};
+  const info = adapter.info || adapter.adapterInfo || adapter;
+  return {
+    vendor: info.vendor || null,
+    architecture: info.architecture || null,
+    device: info.device || info.name || null,
+    description: info.description || null,
+    gpu: {
+      vendor: info.vendor || null,
+      architecture: info.architecture || null,
+      device: info.device || info.name || null
+    }
   };
 }
 

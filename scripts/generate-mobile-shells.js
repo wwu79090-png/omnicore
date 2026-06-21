@@ -29,6 +29,7 @@ export function generateMobileShells({
   const buildGradle = path.join(androidRoot, 'build.gradle.kts');
   const appGradle = path.join(androidRoot, 'app', 'build.gradle.kts');
   const assetReadme = path.join(androidAssetsDir, 'README.txt');
+  const evidenceChecklist = path.join(outDir, 'mobile-wechat-smoke-evidence.md');
 
   writeFileSync(appSwift, renderSwiftApp({ appName: safeAppName, webDist }), 'utf8');
   writeFileSync(infoPlist, renderInfoPlist({ bundleId, appName: safeAppName }), 'utf8');
@@ -38,11 +39,38 @@ export function generateMobileShells({
   writeFileSync(buildGradle, 'plugins {\n    id("com.android.application") version "8.7.3" apply false\n    id("org.jetbrains.kotlin.android") version "2.1.0" apply false\n}\n', 'utf8');
   writeFileSync(appGradle, renderAndroidGradle({ packageName }), 'utf8');
   writeFileSync(assetReadme, `Copy ${webDist}/index.html and generated assets into this directory before assembling Android.\n`, 'utf8');
+  writeFileSync(evidenceChecklist, renderSmokeEvidenceChecklist({ appName: safeAppName, webDist }), 'utf8');
 
   return {
     ios: { root: iosDir, appSwift, infoPlist },
-    android: { root: androidRoot, mainActivity, androidManifest, assets: androidAssetsDir }
+    android: { root: androidRoot, mainActivity, androidManifest, assets: androidAssetsDir },
+    evidence: { checklist: evidenceChecklist }
   };
+}
+
+function renderSmokeEvidenceChecklist({ appName, webDist }) {
+  return `# ${appName} Mobile and WeChat Smoke Evidence
+
+Use this checklist before publishing mobile shells or WeChat mini-game builds.
+
+## iOS WebView smoke
+
+- Open the generated Swift project.
+- Copy ${webDist}/index.html and assets into the app bundle.
+- Confirm the first scene renders, touch input works, audio unlocks after a tap, and no console error/warn is emitted through Safari Web Inspector.
+
+## Android WebView smoke
+
+- Copy ${webDist}/index.html and assets into app/src/main/assets.
+- Launch the Activity and confirm file:///android_asset/index.html renders.
+- Check logcat for console error/warn, unhandled Promise rejection, audio decode failure, and resource 404.
+
+## WeChat DevTools
+
+- Run npm run build:wechat before upload.
+- Confirm package size stays under 4MB.
+- Open WeChat DevTools and record FPS, memory, first scene render, touch input, audio fallback, and resource 404 status.
+`;
 }
 
 function renderSwiftApp({ appName, webDist }) {

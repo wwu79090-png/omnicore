@@ -1,0 +1,11 @@
+{
+  "name": "@omnicore/plugin-leaderboard",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Official OmniCore leaderboard plugin sample with local-first storage.",
+  "main": "src/index.js",
+  "keywords": ["omnicore-plugin", "leaderboard", "game-engine"],
+  "peerDependencies": {
+    "omnicore": "workspace:*"
+  }
+}

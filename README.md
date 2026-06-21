@@ -66,6 +66,12 @@ game.scene.register(scene); await game.scene.push('play');
 
 完整可复制版本见 [`docs/ten-minute-quickstart.md`](docs/ten-minute-quickstart.md)。
 
+常用 API 和迁移片段见 [`docs/api-cookbook.md`](docs/api-cookbook.md)。想直接从可玩工程开始，可以打开官方模板：
+
+- [`examples/official-templates/platformer`](examples/official-templates/platformer/)
+- [`examples/official-templates/rpg-dialogue`](examples/official-templates/rpg-dialogue/)
+- [`examples/official-templates/bullet-heaven`](examples/official-templates/bullet-heaven/)
+
 ### 安装
 
 ```bash

@@ -1,0 +1,8 @@
+{
+  "kind": "official-playable-template",
+  "id": "platformer",
+  "name": "Platformer Starter",
+  "entry": "src/main.js",
+  "features": ["gravity", "platforms", "collectible", "enemy-patrol"],
+  "validation": "npm install && npm run dev"
+}

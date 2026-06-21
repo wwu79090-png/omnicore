@@ -2488,6 +2488,21 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createWebGPUHardwareEvidencePayload"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createWebGPUShaderVariantRegistry"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createWebGPUTextureAtlasDescriptor"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "detectEnvironment"
       },
       {
@@ -2866,6 +2881,9 @@
       "createSectorPrimitive",
       "createSpineFFDVertexShader",
       "createWebGPUComputeParticleDescriptor",
+      "createWebGPUHardwareEvidencePayload",
+      "createWebGPUShaderVariantRegistry",
+      "createWebGPUTextureAtlasDescriptor",
       "detectEnvironment",
       "detectPlatformAndMergeDefaults",
       "diffApiSurface",

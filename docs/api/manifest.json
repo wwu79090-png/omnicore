@@ -1681,6 +1681,9 @@
       "exports": [
         "WebGPURenderer",
         "createWebGPUComputeParticleDescriptor",
+        "createWebGPUTextureAtlasDescriptor",
+        "createWebGPUShaderVariantRegistry",
+        "createWebGPUHardwareEvidencePayload",
         "collectDrawInstructions",
         "buildGPUBatches"
       ]

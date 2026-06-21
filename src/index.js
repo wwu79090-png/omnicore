@@ -66,7 +66,12 @@ import Store from './store/Store.js';
 import Loader from './loader/Loader.js';
 import AssetLoader from './loader/AssetLoader.js';
 import PixiRenderer from './renderer/PixiRenderer.js';
-import WebGPURenderer, { createWebGPUComputeParticleDescriptor } from './renderer/WebGPURenderer.js';
+import WebGPURenderer, {
+  createWebGPUComputeParticleDescriptor,
+  createWebGPUHardwareEvidencePayload,
+  createWebGPUShaderVariantRegistry,
+  createWebGPUTextureAtlasDescriptor
+} from './renderer/WebGPURenderer.js';
 import * as RendererBackend from './renderer/RendererBackend.js';
 import { RendererContract, assertRendererBackend, createRendererPerformanceSandbox } from './renderer/RendererBackend.js';
 import OffscreenCanvasRenderer from './renderer/OffscreenCanvasRenderer.js';
@@ -978,6 +983,9 @@ const OmniCore = {
   CommandBuffer,
   WebGPURenderer,
   createWebGPUComputeParticleDescriptor,
+  createWebGPUHardwareEvidencePayload,
+  createWebGPUShaderVariantRegistry,
+  createWebGPUTextureAtlasDescriptor,
   OffscreenCanvasRenderer,
   RenderWorkerBridge,
   RendererManager,
@@ -1438,6 +1446,9 @@ export {
   createSectorPrimitive,
   conicGradientFill,
   createWebGPUComputeParticleDescriptor,
+  createWebGPUHardwareEvidencePayload,
+  createWebGPUShaderVariantRegistry,
+  createWebGPUTextureAtlasDescriptor,
   expandVectorPrimitive,
   layoutRichText,
   linearGradientFill,

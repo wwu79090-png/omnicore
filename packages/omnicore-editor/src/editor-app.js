@@ -239,6 +239,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     validateAuthoringAssets,
     exportAuthoringBundle,
     exportLightweightDeploymentBundle,
+    exportRunnableProject,
     create25DProductionReadinessReport,
     create25DVisualEvidence,
     exportProductionDeploymentBundle,
@@ -751,6 +752,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       },
       exportBuildSettings() {
         return exportBuildSettings();
+      },
+      exportRunnableProject(options = {}) {
+        return exportRunnableProject(options);
       },
       generateWithAI(prompt, options = {}) {
         return generateWithAI(prompt, options);
@@ -1695,6 +1699,61 @@ export function createEditorApp(root = document.querySelector('#app'), {
     };
   }
 
+  function exportRunnableProject(options = {}) {
+    const generatedAt = options.generatedAt || new Date().toISOString();
+    const projectName = slug(options.projectName || current.workspace?.name || current.scene?.name || 'omnicore-game');
+    const scene = normalizeScene(current.scene);
+    const scenePath = `scenes/${sceneFileStem(scene)}.scene.json`;
+    const assets = deploymentAssetManifestEntries();
+    const targets = enabledBuildTargets();
+    const manifest = {
+      format: 'OmniCore.AssetManifest',
+      version: 1,
+      generatedAt,
+      entry: 'src/main.js',
+      entryScene: scenePath,
+      scenes: [scenePath],
+      assets,
+      targets
+    };
+    const packageJson = {
+      name: projectName,
+      private: true,
+      type: 'module',
+      scripts: {
+        dev: 'vite --host 0.0.0.0',
+        build: 'vite build',
+        preview: 'vite preview --host 0.0.0.0'
+      },
+      dependencies: {
+        omnicore: '^1.0.0',
+        vite: '^8.0.16'
+      }
+    };
+    const files = [
+      { path: 'package.json', data: packageJson },
+      { path: 'index.html', data: renderRunnableProjectHtml(projectName) },
+      { path: 'src/main.js', data: renderRunnableProjectMain({ scenePath }) },
+      { path: 'assets/manifest.json', data: manifest },
+      { path: scenePath, data: scene },
+      { path: 'README.md', data: renderRunnableProjectReadme({ projectName, targets }) }
+    ];
+    return {
+      format: 'OmniCore.RunnableProjectExport',
+      version: 1,
+      generatedAt,
+      projectName,
+      manifest: {
+        entry: manifest.entry,
+        entryScene: manifest.entryScene,
+        scenes: manifest.scenes,
+        assets: assets.length,
+        targets
+      },
+      files
+    };
+  }
+
   function create25DProductionReadinessReport(options = {}) {
     const generatedAt = options.generatedAt || new Date().toISOString();
     const deployment = options.deploymentBundle || exportLightweightDeploymentBundle({ ...options, generatedAt });
@@ -1902,6 +1961,31 @@ export function createEditorApp(root = document.querySelector('#app'), {
       }
     }
     return [...paths].sort((left, right) => left.localeCompare(right));
+  }
+
+  function deploymentAssetManifestEntries() {
+    const byPath = new Map();
+    for (const asset of getWorkflowAssets()) {
+      const normalized = normalizeAssetEntry(asset);
+      if (!normalized.path) continue;
+      byPath.set(normalized.path, {
+        type: normalized.type,
+        name: normalized.name,
+        path: normalized.path,
+        url: normalized.path
+      });
+    }
+    for (const path of deploymentAssetPaths()) {
+      if (!byPath.has(path)) {
+        byPath.set(path, {
+          type: inferAssetTypeFromPath(path),
+          name: path.split('/').pop() || path,
+          path,
+          url: path
+        });
+      }
+    }
+    return [...byPath.values()].sort((left, right) => left.path.localeCompare(right.path));
   }
 
   function createAssetWorkflowIndex() {
@@ -5128,6 +5212,89 @@ function upsertEntity(entities = [], nextEntity = {}) {
 
 function sceneFileStem(scene = {}) {
   return slug(scene.name || 'scene');
+}
+
+function renderRunnableProjectHtml(projectName = 'omnicore-game') {
+  return `<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>${escapeHtml(projectName)}</title>
+    <style>
+      html, body { margin: 0; min-height: 100%; background: #0b1020; color: #e5e7eb; font-family: Arial, sans-serif; }
+      #app { width: 100vw; height: 100vh; display: grid; place-items: center; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
+`;
+}
+
+function renderRunnableProjectMain({ scenePath = 'scenes/scene.scene.json' } = {}) {
+  return `import OmniCore from 'omnicore';
+import sceneData from '../${scenePath}' assert { type: 'json' };
+import manifest from '../assets/manifest.json' assert { type: 'json' };
+
+const game = await new OmniCore.Game({
+  parent: '#app',
+  width: 960,
+  height: 540,
+  renderer: 'auto',
+  roundPixels: true,
+  debug: true
+}).init();
+
+const scene = new OmniCore.Scene(sceneData.name || 'play');
+
+for (const entity of sceneData.entities || []) {
+  scene.add(new OmniCore.Sprite(entity.texture || entity.sprite || entity.id, {
+    ...entity,
+    color: entity.color || '#38bdf8'
+  }));
+}
+
+console.log('OmniCore runnable export loaded', manifest);
+game.scene.register(scene);
+await game.scene.push(scene.name);
+`;
+}
+
+function renderRunnableProjectReadme({ projectName = 'omnicore-game', targets = [] } = {}) {
+  return `# ${projectName}
+
+Generated by OmniCore.Editor \`exportRunnableProject()\`.
+
+## Run
+
+\`\`\`bash
+npm install
+npm run dev
+\`\`\`
+
+Targets: ${targets.length ? targets.join(', ') : 'web'}.
+`;
+}
+
+function inferAssetTypeFromPath(filePath = '') {
+  const lower = String(filePath).toLowerCase();
+  if (/\.(png|jpg|jpeg|webp|gif|svg)$/u.test(lower)) return 'image';
+  if (/\.(mp3|ogg|wav|m4a|aac)$/u.test(lower)) return 'audio';
+  if (/\.(json|scene)$/u.test(lower)) return 'metadata';
+  if (/\.(glb|gltf|fbx|blend)$/u.test(lower)) return 'model';
+  if (/\.(skel|atlas|spine)$/u.test(lower)) return 'spine';
+  return 'asset';
+}
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/gu, '&amp;')
+    .replace(/</gu, '&lt;')
+    .replace(/>/gu, '&gt;')
+    .replace(/"/gu, '&quot;');
 }
 
 function sceneSignature(scene = {}) {

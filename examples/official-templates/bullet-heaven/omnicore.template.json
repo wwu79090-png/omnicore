@@ -1,0 +1,8 @@
+{
+  "kind": "official-playable-template",
+  "id": "bullet-heaven",
+  "name": "Bullet Heaven Starter",
+  "entry": "src/main.js",
+  "features": ["spawnEnemyWave", "projectilePool", "levelUp", "enemy-overlap"],
+  "validation": "npm install && npm run dev"
+}
