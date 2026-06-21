@@ -15,9 +15,11 @@ jobs:
       - run: npm ci
       - run: npm run audit:api-surface
       - run: npm test
+      - run: npm run foundation:gate
+      - run: npm run test:visual
+      - run: npm run test:soak -- --iterations 40 --sprites 6 --resources 2 --tweens 2
       - run: npm test -- --coverage --coverage.include "src/core/**" --coverage.include "src/renderer/**" --coverage.include "src/store/**" --coverage.thresholds.lines 100 --coverage.thresholds.functions 100 --coverage.thresholds.branches 100 --coverage.thresholds.statements 100
       - run: npm run test:e2e
-      - run: node scripts/visual-regression.js --golden tests/visual/golden/examples.json --out docs/release-notes/visual-regression-report.json
       - run: node scripts/compare-screenshots.js --baseline tests/e2e/__screenshots__/editor-baseline.png --current "tests/e2e/__screenshots__/editor-current-*.png" --threshold 0.05 --out docs/release-notes/screenshot-diff-report.md
       - run: npm run benchmark:ci
       - run: npm run quality:engine -- --out docs/release-notes/engine-quality-report.json
@@ -28,3 +30,6 @@ jobs:
             tests/e2e/__screenshots__
             docs/release-notes/screenshot-diff-report.md
             docs/release-notes/engine-quality-report.json
+            docs/release-notes/foundation-gate-report.json
+            docs/release-notes/runtime-soak-report.json
+            docs/release-notes/visual-regression-report.json

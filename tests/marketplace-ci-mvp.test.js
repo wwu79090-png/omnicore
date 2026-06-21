@@ -32,10 +32,15 @@ describe('marketplace and CI MVP', () => {
 
     expect(workflow).toContain('pull_request');
     expect(workflow).toContain('npm test');
+    expect(workflow).toContain('npm run foundation:gate');
+    expect(workflow).toContain('npm run test:visual');
+    expect(workflow).toContain('npm run test:soak -- --iterations 40 --sprites 6 --resources 2 --tweens 2');
     expect(workflow).toContain('npm run test:e2e');
     expect(workflow).toContain('npm run benchmark:ci');
     expect(workflow).toContain('actions/upload-artifact');
     expect(workflow).toContain('visual-regression-report');
+    expect(workflow).toContain('foundation-gate-report.json');
+    expect(workflow).toContain('runtime-soak-report.json');
   });
 
   it('publishes marketplace validation artifacts from plugin review automation', () => {
