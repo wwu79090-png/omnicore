@@ -76,6 +76,7 @@
     "make": "node scripts/make.js",
     "generate-icons": "node scripts/generate-icons.js",
     "publish:local": "node scripts/publish-local.js",
+    "publish:dry-run": "node scripts/npm-publish-dry-run.js",
     "deploy": "node scripts/deploy.js",
     "export:platform": "node scripts/export-platform.js",
     "dist:full": "node scripts/dist-full.js",

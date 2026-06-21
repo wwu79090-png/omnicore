@@ -57,6 +57,61 @@ describe('release build hardening', () => {
     expect(pkg.scripts['omni-debug-server']).toBe('node scripts/log-server.js');
     expect(pkg.bin['omni-debug-server']).toBe('./scripts/log-server.js');
   });
+
+  it('declares an npm publish dry-run gate and validates package contents before release publishing', async () => {
+    const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+    const workflow = readFileSync('.github/workflows/release.yml', 'utf8');
+    const {
+      createPublishDryRunReport,
+      parseNpmPackJsonOutput,
+      resolveNpmPackCommand
+    } = await import(pathToFileURL(path.resolve('scripts/npm-publish-dry-run.js')).href);
+    const files = [
+      'package.json',
+      'README.md',
+      'LICENSE',
+      'src/index.js',
+      'dist/omnicore.esm.js',
+      'dist/omnicore.d.ts'
+    ].map((filePath) => ({ path: filePath, size: 128 }));
+
+    const report = createPublishDryRunReport([{
+      name: 'omnicore',
+      version: '1.0.0',
+      size: 2048,
+      unpackedSize: 4096,
+      entryCount: files.length,
+      files
+    }]);
+    const missingReport = createPublishDryRunReport([{
+      name: 'omnicore',
+      version: '1.0.0',
+      size: 2048,
+      unpackedSize: 4096,
+      entryCount: files.length - 1,
+      files: files.filter((file) => file.path !== 'dist/omnicore.esm.js')
+    }]);
+
+    expect(pkg.scripts['publish:dry-run']).toBe('node scripts/npm-publish-dry-run.js');
+    expect(workflow).toContain('npm run publish:dry-run');
+    expect(workflow.indexOf('npm run publish:dry-run')).toBeLessThan(workflow.indexOf('npm publish --access public'));
+    expect(report.ok).toBe(true);
+    expect(report.requiredFiles.every((file) => file.present)).toBe(true);
+    expect(missingReport.ok).toBe(false);
+    expect(missingReport.violations).toContainEqual(expect.objectContaining({
+      code: 'missing-required-file',
+      path: 'dist/omnicore.esm.js'
+    }));
+    expect(parseNpmPackJsonOutput([
+      '[OmniCore] API docs generated',
+      '[{"id":"omnicore@1.0.0","name":"omnicore","version":"1.0.0","files":[]}]',
+      '> omnicore@1.0.0 prepare'
+    ].join('\n'))[0].name).toBe('omnicore');
+    expect(resolveNpmPackCommand(['pack', '--dry-run', '--json'], 'win32')).toEqual({
+      command: 'cmd.exe',
+      args: ['/d', '/s', '/c', 'npm.cmd pack --dry-run --json']
+    });
+  });
 });
 
 describe('runtime resize, audio recovery, and camera events', () => {

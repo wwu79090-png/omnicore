@@ -1,0 +1,86 @@
+{
+  "ok": true,
+  "package": {
+    "id": "omnicore@1.0.0",
+    "name": "omnicore",
+    "version": "1.0.0",
+    "filename": "omnicore-1.0.0.tgz",
+    "size": 2318488,
+    "unpackedSize": 17428816,
+    "entryCount": 996
+  },
+  "limits": {
+    "maxPackageBytes": 5242880,
+    "maxUnpackedBytes": 26214400,
+    "maxEntryCount": 1200
+  },
+  "requiredFiles": [
+    {
+      "path": "package.json",
+      "present": true
+    },
+    {
+      "path": "README.md",
+      "present": true
+    },
+    {
+      "path": "LICENSE",
+      "present": true
+    },
+    {
+      "path": "src/index.js",
+      "present": true
+    },
+    {
+      "path": "dist/omnicore.esm.js",
+      "present": true
+    },
+    {
+      "path": "dist/omnicore.d.ts",
+      "present": true
+    }
+  ],
+  "largestFiles": [
+    {
+      "path": "dist/omnicore.iife.js",
+      "size": 1225488
+    },
+    {
+      "path": "dist/omnicore.esm.js",
+      "size": 925116
+    },
+    {
+      "path": "docs/api-typedoc/variables/index.default.html",
+      "size": 816070
+    },
+    {
+      "path": "docs/api-typedoc/classes/dimension3d_Dimension3D.PlaneLayer.html",
+      "size": 242690
+    },
+    {
+      "path": "dist/dist-D4ZWkW-c.js",
+      "size": 219836
+    },
+    {
+      "path": "docs/api-typedoc/classes/dimension3d_Dimension3D.Dimension3D.html",
+      "size": 216651
+    },
+    {
+      "path": "docs/api-typedoc/modules/index.html",
+      "size": 210891
+    },
+    {
+      "path": "docs/api-typedoc/assets/search.js",
+      "size": 177799
+    },
+    {
+      "path": "docs/api-typedoc/classes/index.PixiRenderer.html",
+      "size": 177034
+    },
+    {
+      "path": "docs/api-typedoc/classes/index.EditorPanel.html",
+      "size": 156498
+    }
+  ],
+  "violations": []
+}
