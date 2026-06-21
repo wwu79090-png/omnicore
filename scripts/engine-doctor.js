@@ -364,42 +364,48 @@ function createDoctorDiagnostics({ projectRoot, categories, packageSummary }) {
         severity: hasAssets ? 'info' : 'warning',
         symptom: '资源 404、首屏空白或贴图丢失。',
         cause: '资源 manifest、构建输出路径或 file:// 本地打开路径不一致。',
-        action: '先运行 npm run import 或 npm run build，再检查 assets.manifest.json 和浏览器 Network 面板。'
+        action: '先运行 npm run import 或 npm run build，再检查 assets.manifest.json 和浏览器 Network 面板。',
+        fixCommand: 'npm run import && npm run build'
       },
       {
         code: 'font-load-failed',
         severity: 'warning',
         symptom: '中文字体回退、方块字、文字首帧闪烁。',
         cause: '中文字体未在游戏渲染前预加载，或离线包缺少字体文件。',
-        action: '使用 OmniCore.Font.load(fontName, url) 预加载，并把字体加入资源 manifest。'
+        action: '使用 OmniCore.Font.load(fontName, url) 预加载，并把字体加入资源 manifest。',
+        fixCommand: 'npm run import -- --source source-assets --out assets'
       },
       {
         code: 'webgl-webgpu-unsupported',
         severity: 'warning',
         symptom: 'WebGL/WebGPU 初始化失败、Canvas 黑屏或渲染后端降级。',
         cause: '浏览器、显卡驱动、WebView 或微信运行时不支持目标后端。',
-        action: '记录 navigator.gpu/WebGL 探测结果，确认 Pixi/WebGL/Canvas fallback 是否能正常渲染。'
+        action: '记录 navigator.gpu/WebGL 探测结果，确认 Pixi/WebGL/Canvas fallback 是否能正常渲染。',
+        fixCommand: 'npm run webgpu:evidence -- --out docs/release-notes/webgpu-evidence.json'
       },
       {
         code: 'npm-publish-pending',
         severity: scripts['publish:dry-run'] ? 'info' : 'warning',
         symptom: '用户执行 npm install omnicore 返回 404 或版本不是最新。',
         cause: 'npm registry 还没有公开发布当前包。',
-        action: '先运行 npm run publish:dry-run，确认包内容后使用 NPM token 执行 npm publish。'
+        action: '先运行 npm run publish:dry-run，确认包内容后使用 NPM token 执行 npm publish。',
+        fixCommand: 'npm run publish:dry-run'
       },
       {
         code: 'vercel-wrong-site',
         severity: 'warning',
         symptom: '官网链接打开后不是 OmniCore 引擎主页。',
         cause: 'Vercel 项目绑定、生产域名或部署目录指向错误。',
-        action: '检查 vercel.json、项目绑定和生产域名，部署后抓取 title 验证。'
+        action: '检查 vercel.json、项目绑定和生产域名，部署后抓取 title 验证。',
+        fixCommand: 'npm run release:readiness'
       },
       {
         code: 'wechat-package-state',
         severity: categories?.wechatPackage?.ok ? 'info' : 'error',
         symptom: '微信开发者工具上传失败、包体超过 4MB 或资源缺失。',
         cause: 'build:wechat 输出缺少通过报告，或主包没有按红线拆分资源。',
-        action: '运行 npm run build:wechat，查看最大文件和目录明细，超过 4MB 立即拆分资源。'
+        action: '运行 npm run build:wechat，查看最大文件和目录明细，超过 4MB 立即拆分资源。',
+        fixCommand: 'npm run build:wechat && npm run size:audit'
       }
     ]
   };

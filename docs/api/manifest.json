@@ -644,6 +644,13 @@
       ]
     },
     {
+      "path": "debug/AllocationPressureReport.js",
+      "summary": "",
+      "exports": [
+        "createAllocationPressureReport"
+      ]
+    },
+    {
       "path": "debug/ApiQuickPanel.js",
       "summary": "",
       "exports": [
@@ -753,6 +760,14 @@
       ]
     },
     {
+      "path": "debug/PerformanceDashboard.js",
+      "summary": "",
+      "exports": [
+        "createPerformanceDashboardSnapshot",
+        "PerformanceDashboard"
+      ]
+    },
+    {
       "path": "debug/PerformanceMetrics.js",
       "summary": "Lightweight runtime performance metric collector. Core paths can call `measure(name, fn)` or `record(name, duration)` and the collected data can be exported as JSON for CI or remote debugging. @example const metrics = new PerformanceMetrics({ enabled: true }); metrics.measure('renderer.renderScene', () => renderer.renderScene(scene));",
       "exports": [
@@ -793,6 +808,14 @@
       "exports": [
         "REPRODUCTION_BUNDLE_SCHEMA",
         "createReproductionBundle"
+      ]
+    },
+    {
+      "path": "debug/ResourceWaterfall.js",
+      "summary": "",
+      "exports": [
+        "createResourceWaterfall",
+        "summarizeResourceWaterfall"
       ]
     },
     {
@@ -1374,6 +1397,13 @@
       ]
     },
     {
+      "path": "performance/StartupProfiler.js",
+      "summary": "",
+      "exports": [
+        "StartupProfiler"
+      ]
+    },
+    {
       "path": "physics/ArcadeAdapter.js",
       "summary": "Phaser Arcade Physics style contact adapter with AABB checks.",
       "exports": [
@@ -1525,6 +1555,13 @@
         "RUNTIME_SOAK_REPORT_SCHEMA",
         "RuntimeSoakHarness",
         "createRuntimeSoakReport"
+      ]
+    },
+    {
+      "path": "renderer/BatchDiagnostics.js",
+      "summary": "",
+      "exports": [
+        "diagnoseBatchBreaks"
       ]
     },
     {

@@ -166,6 +166,9 @@ import EditorOverlay from './debug/EditorOverlay.js';
 import LogForwarder from './debug/LogForwarder.js';
 import FrameProfiler from './debug/FrameProfiler.js';
 import PerformanceMonitor from './debug/PerformanceMonitor.js';
+import PerformanceDashboard, { createPerformanceDashboardSnapshot } from './debug/PerformanceDashboard.js';
+import createResourceWaterfall, { summarizeResourceWaterfall } from './debug/ResourceWaterfall.js';
+import createAllocationPressureReport from './debug/AllocationPressureReport.js';
 import PerformanceMetrics from './debug/PerformanceMetrics.js';
 import ProfilerWaterfallPanel from './debug/ProfilerWaterfallPanel.js';
 import ProfilerSnapshot from './debug/ProfilerSnapshot.js';
@@ -241,6 +244,7 @@ import ViewportCulling from './optimization/ViewportCulling.js';
 import AdaptiveQualityManager from './optimization/AdaptiveQualityManager.js';
 import DeviceProfiler from './optimization/DeviceProfiler.js';
 import FrameBudgetScheduler from './performance/FrameBudgetScheduler.js';
+import StartupProfiler from './performance/StartupProfiler.js';
 import CollisionMask from './physics/CollisionMask.js';
 import PhysicsQuery from './physics/PhysicsQuery.js';
 import PhysicsWorld from './physics/PhysicsWorld.js';
@@ -256,6 +260,7 @@ import {
   snapshotRenderQueue
 } from './renderer/DeterministicRenderQueue.js';
 import PixiBatchAdapter, { CommandBuffer } from './renderer/PixiBatchAdapter.js';
+import diagnoseBatchBreaks from './renderer/BatchDiagnostics.js';
 import { PixiFrameworkBridge, createPixiFrameworkAdoptionPlan } from './renderer/PixiFrameworkBridge.js';
 import { PixiTextureLifecycle } from './renderer/PixiTextureLifecycle.js';
 import { PhaserCompatScene, createPhaserCompatScene } from './compat/phaser/PhaserCompat.js';
@@ -954,6 +959,7 @@ const OmniCore = {
   AssetLoader,
   Font,
   Renderer: { PixiRenderer, WebGPURenderer, RendererBackend, OffscreenCanvasRenderer, RenderWorkerBridge, Filters, WebGLContextManager, RendererManager, RenderLayerManager, PixiBatchAdapter, CommandBuffer, StaticBatchCompiler, createRendererFallbackMatrix, resolveRendererFallbackPlan },
+  diagnoseBatchBreaks,
   createBezierPrimitive,
   createCapsulePrimitive,
   createCodeLayerPrimitive,
@@ -1068,6 +1074,7 @@ const OmniCore = {
   AdaptiveQualityManager,
   DeviceProfiler,
   FrameBudgetScheduler,
+  StartupProfiler,
   Quality: EngineQualityHarness,
   EngineQualityHarness,
   RuntimeSoakHarness,
@@ -1132,6 +1139,13 @@ const OmniCore = {
   LogForwarder,
   FrameProfiler,
   PerformanceMonitor,
+  PerformanceDashboard,
+  createPerformanceDashboardSnapshot,
+  ResourceWaterfall: createResourceWaterfall,
+  createResourceWaterfall,
+  summarizeResourceWaterfall,
+  AllocationPressureReport: createAllocationPressureReport,
+  createAllocationPressureReport,
   PerformanceMetrics,
   ProfilerWaterfallPanel,
   ProfilerSnapshot,
@@ -1302,6 +1316,11 @@ export {
   PoolRegistry,
   OffscreenCanvasRenderer,
   PerformanceMonitor,
+  PerformanceDashboard,
+  createPerformanceDashboardSnapshot,
+  createResourceWaterfall,
+  summarizeResourceWaterfall,
+  createAllocationPressureReport,
   PerformanceMetrics,
   ParticleEditorPanel,
   ParticleSystem,
@@ -1388,6 +1407,7 @@ export {
   StateBehaviorTree,
   StorageManager,
   Store,
+  StartupProfiler,
   System,
   Task,
   TaskManager,
@@ -1436,6 +1456,7 @@ export {
   createPhaserCompatScene,
   createPixiFrameworkAdoptionPlan,
   createRendererPerformanceSandbox,
+  diagnoseBatchBreaks,
   createBezierPrimitive,
   createCapsulePrimitive,
   createCodeLayerPrimitive,

@@ -1453,6 +1453,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "AllocationPressureReport"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "Analytics"
       },
       {
@@ -1948,6 +1953,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "PerformanceDashboard"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "PerformanceMetrics"
       },
       {
@@ -2078,6 +2088,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "ResourceWaterfall"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "RuntimeLiveSyncBridge"
       },
       {
@@ -2169,6 +2184,11 @@
         "arity": 1,
         "async": false,
         "name": "Sprite"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "StartupProfiler"
       },
       {
         "arity": 0,
@@ -2373,6 +2393,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createAllocationPressureReport"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createAssetPipelineReport"
       },
       {
@@ -2438,6 +2463,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createPerformanceDashboardSnapshot"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createPolygonPrimitive"
       },
       {
@@ -2454,6 +2484,11 @@
         "arity": 0,
         "async": false,
         "name": "createReproductionBundle"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createResourceWaterfall"
       },
       {
         "arity": 0,
@@ -2509,6 +2544,11 @@
         "arity": 0,
         "async": false,
         "name": "detectPlatformAndMergeDefaults"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "diagnoseBatchBreaks"
       },
       {
         "arity": 0,
@@ -2593,6 +2633,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "summarizeResourceWaterfall"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "textureFill"
       },
       {
@@ -2629,6 +2674,7 @@
       "API_TIERS",
       "Ad",
       "AdaptiveQualityManager",
+      "AllocationPressureReport",
       "Analytics",
       "Animation",
       "AnimationEditor",
@@ -2754,6 +2800,7 @@
       "ParticleSystem",
       "ParticleTerrainCollider25D",
       "Payment",
+      "PerformanceDashboard",
       "PerformanceMetrics",
       "PerformanceMonitor",
       "Physics",
@@ -2791,6 +2838,7 @@
       "RendererContract",
       "RendererManager",
       "ResourceOwnershipGraph",
+      "ResourceWaterfall",
       "RuntimeLiveSyncBridge",
       "RuntimeSoakHarness",
       "SCENE_LIFECYCLE_ORDER",
@@ -2812,6 +2860,7 @@
       "SpinePixiRuntimeAdapter",
       "SplashScreen",
       "Sprite",
+      "StartupProfiler",
       "StateBehaviorTree",
       "StaticBatchCompiler",
       "Storage",
@@ -2858,6 +2907,7 @@
       "compareRenderSnapshots",
       "conicGradientFill",
       "connectEditorSync",
+      "createAllocationPressureReport",
       "createAssetPipelineReport",
       "createBezierPrimitive",
       "createCapsulePrimitive",
@@ -2871,10 +2921,12 @@
       "createLeanRuntime",
       "createNormalLightShader",
       "createOmniError",
+      "createPerformanceDashboardSnapshot",
       "createPolygonPrimitive",
       "createRendererFallbackMatrix",
       "createRendererPerformanceSandbox",
       "createReproductionBundle",
+      "createResourceWaterfall",
       "createRichTextPrimitive",
       "createRingPrimitive",
       "createRuntimeSoakReport",
@@ -2886,6 +2938,7 @@
       "createWebGPUTextureAtlasDescriptor",
       "detectEnvironment",
       "detectPlatformAndMergeDefaults",
+      "diagnoseBatchBreaks",
       "diffApiSurface",
       "disableAddon",
       "expandVectorPrimitive",
@@ -2902,6 +2955,7 @@
       "resolveRendererFallbackPlan",
       "safeInitialize",
       "snapshotRenderQueue",
+      "summarizeResourceWaterfall",
       "textureFill",
       "toOmniError",
       "use",
