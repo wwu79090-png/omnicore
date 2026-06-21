@@ -96,11 +96,18 @@ jobs:
       - name: NPM publish dry run
         run: npm run publish:dry-run
 
+      - name: Generate dependency inventory
+        run: npm run release:deps
+
+      - name: Release checklist
+        run: npm run release:checklist -- --strict
+
       - name: Publish security and privacy audit
         run: npm run publish:audit
 
       - name: Publish to npm
-        run: npm publish --access public
+        # Provenance form: npm publish --provenance --access public
+        run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

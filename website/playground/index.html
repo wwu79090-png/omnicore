@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OmniCore Cloud IDE</title>
+    <title>OmniCore API Playground</title>
     <style>
       * { box-sizing: border-box; }
       body {
@@ -28,9 +28,14 @@
       header span {
         color: #94a3b8;
       }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
       main {
         display: grid;
-        grid-template-columns: 190px minmax(320px, 0.9fr) minmax(360px, 1.1fr);
+        grid-template-columns: 230px minmax(320px, 0.9fr) minmax(360px, 1.1fr);
         min-height: calc(100vh - 58px);
       }
       aside {
@@ -48,6 +53,27 @@
         background: #0f172a;
         color: #dbeafe;
         text-align: left;
+      }
+      .api-list {
+        margin-top: 18px;
+        display: grid;
+        gap: 8px;
+      }
+      .api-list button,
+      .api-list a {
+        display: block;
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        background: #111827;
+        color: #dbeafe;
+        text-align: left;
+        font-weight: 600;
+      }
+      .api-list a {
+        color: #93c5fd;
+        text-decoration: none;
       }
       textarea {
         width: 100%;
@@ -92,25 +118,38 @@
       }
     </style>
   </head>
-  <body data-cloud-ide>
+  <body data-cloud-ide data-api-playground>
     <header>
       <div>
-        <strong>OmniCore Cloud IDE</strong>
-        <span>零门槛，点开即写</span>
+        <strong>OmniCore API Playground</strong>
+        <span>零门槛，点开即写，API Reference 可直接运行</span>
       </div>
-      <button type="button" id="run">运行</button>
+      <div class="actions">
+        <button type="button" id="run">运行</button>
+        <button type="button" id="copy-code">Copy code</button>
+        <button type="button" id="crash-export">Crash export</button>
+      </div>
     </header>
     <main>
       <aside data-file-tree>
         <strong>Files</strong>
         <button class="file" type="button">green-square.js</button>
         <p>新建 .js 文件即可启动 OmniCore.Game 并看到绿色方块。</p>
+        <div class="api-list" aria-label="API Reference">
+          <strong>API Reference</strong>
+          <button type="button" data-snippet="sprite">Sprite quickstart</button>
+          <button type="button" data-snippet="tween">Tween motion</button>
+          <button type="button" data-snippet="input">Input scene</button>
+          <button type="button" data-snippet="crash">CrashHandler export</button>
+          <a data-compatibility-matrix href="/docs/platforms/compatibility-matrix.md">Compatibility Matrix</a>
+        </div>
       </aside>
       <textarea id="code" spellcheck="false"></textarea>
       <iframe id="preview" title="实时预览"></iframe>
     </main>
     <script type="module">
-      const starter = `import OmniCore from '/src/index.js';
+      const snippets = {
+        sprite: `import OmniCore from '/src/index.js';
 
 const game = await new OmniCore.Game({
   parent: '#app',
@@ -134,13 +173,45 @@ scene.add(new OmniCore.Sprite('green-square', {
 
 game.scene.register(scene);
 await game.scene.push('green-square.js');
-game.renderer.renderScene(scene);`;
+game.renderer.renderScene(scene);`,
+        tween: `import OmniCore from '/src/index.js';
+
+const game = await new OmniCore.Game({ parent: '#app', width: 480, height: 270, renderer: 'canvas', autoStart: false }).init();
+const scene = new OmniCore.Scene('tween-motion');
+const hero = scene.add(new OmniCore.Sprite('hero', { x: 48, y: 110, width: 48, height: 48, color: '#38bdf8' }));
+OmniCore.Tween.to(hero, { x: 360, duration: 900, yoyo: true, repeat: Infinity }).start();
+game.scene.register(scene);
+await game.scene.push('tween-motion');`,
+        input: `import OmniCore from '/src/index.js';
+
+const game = await new OmniCore.Game({ parent: '#app', width: 480, height: 270, renderer: 'canvas', autoStart: false }).init();
+const scene = new OmniCore.Scene('input-scene');
+const player = scene.add(new OmniCore.Sprite('player', { x: 216, y: 112, width: 48, height: 48, color: '#16a34a' }));
+scene.update = (delta = 1 / 60) => {
+  if (game.input.keyboard.isDown('ArrowLeft')) player.x -= 180 * delta;
+  if (game.input.keyboard.isDown('ArrowRight')) player.x += 180 * delta;
+};
+game.scene.register(scene);
+await game.scene.push('input-scene');`,
+        crash: `import OmniCore from '/src/index.js';
+
+const game = await new OmniCore.Game({ parent: '#app', width: 480, height: 270, renderer: 'canvas', autoStart: false }).init();
+const scene = new OmniCore.Scene('crash-export');
+scene.add(new OmniCore.Sprite('safe-box', { x: 196, y: 96, width: 88, height: 88, color: '#f59e0b' }));
+const crashHandler = new OmniCore.CrashHandler({ game, autoInstall: true });
+globalThis.__omnicoreCrashHandler = crashHandler;
+game.scene.register(scene);
+await game.scene.push('crash-export');`
+      };
 
       const code = document.querySelector('#code');
       const preview = document.querySelector('#preview');
       const runButton = document.querySelector('#run');
+      const copyButton = document.querySelector('#copy-code');
+      const crashButton = document.querySelector('#crash-export');
+      const snippetButtons = document.querySelectorAll('[data-snippet]');
       let timer = 0;
-      code.value = starter;
+      code.value = snippets.sprite;
 
       function run() {
         const escaped = code.value.replace(/<\/script>/g, '<\\/script>');
@@ -157,7 +228,51 @@ game.renderer.renderScene(scene);`;
         timer = setTimeout(run, 250);
       });
       runButton.addEventListener('click', run);
+      copyButton.addEventListener('click', copyCodeSnippet);
+      crashButton.addEventListener('click', downloadCrashBundle);
+      snippetButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          code.value = snippets[button.dataset.snippet] || snippets.sprite;
+          run();
+        });
+      });
       run();
+
+      function downloadCrashBundle() {
+        const bundle = {
+          format: 'OmniCore.PlaygroundCrashBundle',
+          generatedAt: new Date().toISOString(),
+          runtime: {
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            platform: navigator.platform,
+            href: location.href
+          },
+          code: code.value,
+          preview: preview.srcdoc,
+          reproduction: [
+            'Open website/playground/.',
+            'Select the API snippet that failed.',
+            'Click Run and attach this JSON file to the GitHub issue.'
+          ],
+          hint: 'CrashHandler can be enabled inside snippets through OmniCore.CrashHandler.'
+        };
+        const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'omnicore-playground-crash-bundle.json';
+        link.click();
+        URL.revokeObjectURL(link.href);
+      }
+
+      async function copyCodeSnippet() {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(code.value);
+          return;
+        }
+        code.select();
+        document.execCommand('copy');
+      }
     </script>
   </body>
 </html>

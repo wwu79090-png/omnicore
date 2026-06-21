@@ -5,9 +5,9 @@
     "name": "omnicore",
     "version": "1.0.0",
     "filename": "omnicore-1.0.0.tgz",
-    "size": 1337077,
-    "unpackedSize": 5245761,
-    "entryCount": 505
+    "size": 1344443,
+    "unpackedSize": 5272709,
+    "entryCount": 518
   },
   "limits": {
     "maxPackageBytes": 5242880,
@@ -54,12 +54,12 @@
       "size": 236961
     },
     {
-      "path": "dist/dist-B_Ce9kyU.js",
+      "path": "dist/dist-J0DB7fHi.js",
       "size": 219836
     },
     {
       "path": "dist/quality-report.json",
-      "size": 153855
+      "size": 154055
     },
     {
       "path": "src/dimension3d/Dimension3D.js",
@@ -75,7 +75,7 @@
     },
     {
       "path": "README.md",
-      "size": 48029
+      "size": 49151
     },
     {
       "path": "dist/omnicore-core.js",
@@ -95,6 +95,11 @@
       "examples/market-showcase/index.html",
       "examples/market-showcase/main.js",
       "examples/market-showcase/package.json",
+      "examples/official-templates/arcade-survivor/README.md",
+      "examples/official-templates/arcade-survivor/index.html",
+      "examples/official-templates/arcade-survivor/omnicore.template.json",
+      "examples/official-templates/arcade-survivor/package.json",
+      "examples/official-templates/arcade-survivor/src/main.js",
       "examples/official-templates/bullet-heaven/README.md",
       "examples/official-templates/bullet-heaven/benchmark.js",
       "examples/official-templates/bullet-heaven/index.html",
@@ -150,9 +155,11 @@
       "docs/performance-hot-paths.md",
       "docs/performance/long-run-stability.md",
       "docs/performance/npm-package-quality.md",
+      "docs/performance/real-device-capture-guide.md",
       "docs/performance/real-device-uncapped-fps.md",
       "docs/performance/types-coverage.md",
       "docs/performance/webgpu-hot-path-evidence.md",
+      "docs/platforms/compatibility-matrix.md",
       "docs/platforms/mobile-wechat-evidence.md",
       "docs/plugin-publishing-guide.md",
       "docs/public-release-evidence.md",

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Support and usage questions
+    url: https://github.com/wwu79090-png/omnicore/discussions
+    about: Ask usage questions or share early feedback.
+  - name: Security reports
+    url: https://github.com/wwu79090-png/omnicore/security/advisories/new
+    about: Report vulnerabilities privately instead of opening a public issue.

@@ -1,7 +1,7 @@
 {
   "format": "OmniCore.TypeCoverageReport",
   "version": 1,
-  "generatedAt": "2026-06-21T13:08:24.758Z",
+  "generatedAt": "2026-06-21T14:04:06.315Z",
   "ok": true,
   "declarationFile": "dist\\omnicore.d.ts",
   "requiredSymbols": [
