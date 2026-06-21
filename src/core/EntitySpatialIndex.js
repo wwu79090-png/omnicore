@@ -25,6 +25,13 @@ export class EntitySpatialIndex {
       hits: 0,
       estimatedSpeedup: 0
     };
+    this.stats = {
+      adds: 0,
+      removes: 0,
+      updates: 0,
+      incrementalUpdates: 0,
+      rebuilds: 0
+    };
   }
 
   add(entity) {
@@ -45,6 +52,7 @@ export class EntitySpatialIndex {
     this.records.set(entity, record);
     this._installPropertyHooks(entity, record);
     this._place(entity, record);
+    this.stats.adds += 1;
     return entity;
   }
 
@@ -54,6 +62,7 @@ export class EntitySpatialIndex {
     this._removeFromCell(entity, record.cellX, record.cellY);
     this._restorePropertyHooks(entity, record);
     this.records.delete(entity);
+    this.stats.removes += 1;
     return true;
   }
 
@@ -67,11 +76,19 @@ export class EntitySpatialIndex {
       hits: 0,
       estimatedSpeedup: 0
     };
+    this.stats = {
+      adds: 0,
+      removes: 0,
+      updates: 0,
+      incrementalUpdates: 0,
+      rebuilds: this.stats.rebuilds + 1
+    };
   }
 
   update(entity) {
     const record = this.records.get(entity);
     if (!record) return this.add(entity);
+    this.stats.updates += 1;
     this._place(entity, record);
     return entity;
   }
@@ -116,6 +133,7 @@ export class EntitySpatialIndex {
   _place(entity, record) {
     const { x, y } = this._cellFor(entity);
     if (record.cellX === x && record.cellY === y) return;
+    if (record.cellX !== null && record.cellY !== null) this.stats.incrementalUpdates += 1;
     this._removeFromCell(entity, record.cellX, record.cellY);
     const bucket = this._bucketFor(x, y, true);
     bucket.add(entity);

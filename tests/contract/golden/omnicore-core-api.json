@@ -1143,6 +1143,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "optimizeRenderQueueForBatching"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "resolveRendererFallbackPlan"
       }
     ],
@@ -1160,6 +1165,7 @@
       "WebGLContextManager",
       "WebGPURenderer",
       "createRendererFallbackMatrix",
+      "optimizeRenderQueueForBatching",
       "resolveRendererFallbackPlan"
     ]
   },
@@ -1664,6 +1670,11 @@
         "arity": 0,
         "async": false,
         "name": "Dimension3D"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "DirtyFlagTracker"
       },
       {
         "arity": 0,
@@ -2328,6 +2339,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "WorkerTaskScheduler"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "World"
       },
       {
@@ -2398,7 +2414,17 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createAnimationLODPlan"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createAssetPipelineReport"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createAsyncAssetPipeline"
       },
       {
         "arity": 0,
@@ -2444,6 +2470,11 @@
         "arity": 0,
         "async": false,
         "name": "createHousePrimitive"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "createIncrementalSpatialIndexReport"
       },
       {
         "arity": 0,
@@ -2503,6 +2534,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createRuntimeObjectPools"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createRuntimeSoakReport"
       },
       {
@@ -2518,6 +2554,21 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createTextureBudgetPlan"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createTilemapChunkStreamPlan"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createWebGPUComputeDispatchPlan"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createWebGPUComputeParticleDescriptor"
       },
       {
@@ -2528,7 +2579,17 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createWebGPUInstancingDescriptor"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createWebGPUShaderVariantRegistry"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createWebGPUTextureArrayBatch"
       },
       {
         "arity": 0,
@@ -2609,6 +2670,11 @@
         "arity": 0,
         "async": false,
         "name": "normalizeSceneDocument"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "optimizeRenderQueueForBatching"
       },
       {
         "arity": 0,
@@ -2727,6 +2793,7 @@
       "DeveloperUsageReport",
       "DeviceProfiler",
       "Dimension3D",
+      "DirtyFlagTracker",
       "DragonBonesAdapter",
       "DualSpatialIndex",
       "ECS",
@@ -2894,6 +2961,7 @@
       "WechatMiniGameMonetization",
       "Worker",
       "WorkerManager",
+      "WorkerTaskScheduler",
       "World",
       "WorldMemory25D",
       "addon",
@@ -2908,7 +2976,9 @@
       "conicGradientFill",
       "connectEditorSync",
       "createAllocationPressureReport",
+      "createAnimationLODPlan",
       "createAssetPipelineReport",
+      "createAsyncAssetPipeline",
       "createBezierPrimitive",
       "createCapsulePrimitive",
       "createCodeLayerPrimitive",
@@ -2918,6 +2988,7 @@
       "createGame",
       "createHD2DFilter",
       "createHousePrimitive",
+      "createIncrementalSpatialIndexReport",
       "createLeanRuntime",
       "createNormalLightShader",
       "createOmniError",
@@ -2929,12 +3000,18 @@
       "createResourceWaterfall",
       "createRichTextPrimitive",
       "createRingPrimitive",
+      "createRuntimeObjectPools",
       "createRuntimeSoakReport",
       "createSectorPrimitive",
       "createSpineFFDVertexShader",
+      "createTextureBudgetPlan",
+      "createTilemapChunkStreamPlan",
+      "createWebGPUComputeDispatchPlan",
       "createWebGPUComputeParticleDescriptor",
       "createWebGPUHardwareEvidencePayload",
+      "createWebGPUInstancingDescriptor",
       "createWebGPUShaderVariantRegistry",
+      "createWebGPUTextureArrayBatch",
       "createWebGPUTextureAtlasDescriptor",
       "detectEnvironment",
       "detectPlatformAndMergeDefaults",
@@ -2951,6 +3028,7 @@
       "listHelp",
       "loadPhysics",
       "normalizeSceneDocument",
+      "optimizeRenderQueueForBatching",
       "radialGradientFill",
       "resolveRendererFallbackPlan",
       "safeInitialize",

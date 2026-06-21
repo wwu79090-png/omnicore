@@ -5,9 +5,9 @@
     "name": "omnicore",
     "version": "1.0.0",
     "filename": "omnicore-1.0.0.tgz",
-    "size": 1308566,
-    "unpackedSize": 5139584,
-    "entryCount": 483
+    "size": 1327774,
+    "unpackedSize": 5207842,
+    "entryCount": 493
   },
   "limits": {
     "maxPackageBytes": 5242880,
@@ -43,18 +43,18 @@
   "largestFiles": [
     {
       "path": "dist/omnicore.iife.js",
-      "size": 1241477
+      "size": 1260346
     },
     {
       "path": "dist/omnicore.esm.js",
-      "size": 940587
+      "size": 958909
     },
     {
       "path": "packages/omnicore-editor/src/editor-app.js",
       "size": 236961
     },
     {
-      "path": "dist/dist-BrGHma54.js",
+      "path": "dist/dist-BY3GBG5W.js",
       "size": 219836
     },
     {
@@ -63,7 +63,7 @@
     },
     {
       "path": "src/dimension3d/Dimension3D.js",
-      "size": 71176
+      "size": 71661
     },
     {
       "path": "src/debug/knowledgePatterns.js",
@@ -71,7 +71,7 @@
     },
     {
       "path": "src/index.js",
-      "size": 48036
+      "size": 49582
     },
     {
       "path": "README.md",
@@ -79,7 +79,7 @@
     },
     {
       "path": "dist/omnicore-core.js",
-      "size": 40797
+      "size": 40782
     }
   ],
   "violations": []

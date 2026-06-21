@@ -77,6 +77,11 @@
       <code>Animation</code>
     </article>
     <article>
+      <h2>animation/AnimationLOD.js</h2>
+      <p>Creates per-animation sampling decisions for CPU skinning and FFD cost.</p>
+      <code>createAnimationLODPlan</code>
+    </article>
+    <article>
       <h2>animation/AnimationManager.js</h2>
       <p>Small frame-animation manager for data-driven sprites and UI elements.</p>
       <code>AnimationManager</code>
@@ -812,13 +817,18 @@
       <code>AssetLoader</code>
     </article>
     <article>
+      <h2>loader/AsyncAssetPipeline.js</h2>
+      <p>Small async asset pipeline that separates critical first-frame assets from lazy background decode and upload work.</p>
+      <code>createAsyncAssetPipeline</code>
+    </article>
+    <article>
       <h2>loader/Loader.js</h2>
       <p>Asset loader with manifest preflight, timeout, retry, and friendly errors. @example const loader = new Loader({ timeout: 5000, retries: 1 }); const assets = await loader.loadBundle([ { key: 'hero', url: '/assets/sprites/default/default-tilesheet.svg', type: 'blob' } ]);</p>
       <code>FriendlyLoadError, Loader</code>
     </article>
     <article>
       <h2>loop/Loop.js</h2>
-      <p>Fixed-step requestAnimationFrame loop. Locks updates to 60 FPS, reports delta/interpolation, and pauses/resumes on page visibility changes. The internal ticker is intentionally not exposed. @example const loop = new Loop(); loop.subscribe((dt, time, alpha) =&gt; scene.update(dt, time, alpha)); loop.start();</p>
+      <p>requestAnimationFrame loop with optional fixed-step cap. Runs uncapped by default, reports delta/interpolation, and pauses/resumes on page visibility changes. Pass fps/framerateCap to opt into a fixed step. @example const loop = new Loop(); loop.subscribe((dt, time, alpha) =&gt; scene.update(dt, time, alpha)); loop.start();</p>
       <code>Loop, resolveFrameRate</code>
     </article>
     <article>
@@ -917,6 +927,11 @@
       <code>SleepWakeSystem</code>
     </article>
     <article>
+      <h2>optimization/TextureBudget.js</h2>
+      <p>Produces a deterministic texture downgrade plan from runtime pressure.</p>
+      <code>createTextureBudgetPlan</code>
+    </article>
+    <article>
       <h2>optimization/ViewportCulling.js</h2>
       <p>Viewport culling helper for large RPG maps. The system keeps render and update decisions data-driven. Any entity with `cullable: false`, `alwaysUpdate`, or `alwaysRender` can opt out while Sprite and Tilemap-like chunks use shared rectangle intersection checks. @example const culling = new ViewportCulling({ viewport: { x: 0, y: 0, width: 960, height: 540 } }); if (culling.shouldRender(sprite)) sprite.render(ctx);</p>
       <code>ViewportCulling</code>
@@ -942,9 +957,19 @@
       <code>ParticleTerrainCollider25D</code>
     </article>
     <article>
+      <h2>performance/DirtyFlagTracker.js</h2>
+      <p>Tracks render-facing property changes and syncs only dirty records.</p>
+      <code>DirtyFlagTracker</code>
+    </article>
+    <article>
       <h2>performance/FrameBudgetScheduler.js</h2>
       <p>Runtime frame-budget scheduler for slicing non-critical work.</p>
       <code>FrameBudgetScheduler</code>
+    </article>
+    <article>
+      <h2>performance/SpatialIndexOptimizer.js</h2>
+      <p>Creates a serializable report for EntitySpatialIndex incremental behavior.</p>
+      <code>createIncrementalSpatialIndexReport</code>
     </article>
     <article>
       <h2>performance/StartupProfiler.js</h2>
@@ -1020,6 +1045,11 @@
       <h2>pool/ObjectPool.js</h2>
       <p>Generic object pool for bullets, particles, temporary vectors, and UI nodes. @example const bullets = new ObjectPool(() =&gt; new Sprite('bullet'), (bullet) =&gt; bullet.visible = false); const bullet = bullets.acquire(); bullets.release(bullet);</p>
       <code>ObjectPool</code>
+    </article>
+    <article>
+      <h2>pool/RuntimeObjectPools.js</h2>
+      <p>Runtime pool group covering the hot allocation classes used by gameplay.</p>
+      <code>createRuntimeObjectPools</code>
     </article>
     <article>
       <h2>prefab/PrefabManager.js</h2>
@@ -1117,6 +1147,11 @@
       <code>RenderLayerManager</code>
     </article>
     <article>
+      <h2>renderer/RenderQueueOptimizer.js</h2>
+      <p>Reorders safe render commands inside the same layer so identical render state becomes consecutive. Mask/filter/barrier commands keep their position.</p>
+      <code>optimizeRenderQueueForBatching</code>
+    </article>
+    <article>
       <h2>renderer/RenderWorkerBridge.js</h2>
       <p>Thin OffscreenCanvas worker bridge for renderer backends. The main thread still builds draw instructions, while the bridge owns the message boundary for texture upload and GPU command submission workers.</p>
       <code>RenderWorkerBridge</code>
@@ -1139,7 +1174,7 @@
     <article>
       <h2>renderer/WebGPURenderer.js</h2>
       <p>MVP WebGPU renderer abstraction. It detects WebGPU, configures the canvas context, and converts scene children into serializable draw instructions. A worker bridge can consume those instructions through OffscreenCanvas when the host provides a worker.</p>
-      <code>WebGPURenderer, createWebGPUComputeParticleDescriptor, createWebGPUTextureAtlasDescriptor, createWebGPUShaderVariantRegistry, createWebGPUHardwareEvidencePayload, collectDrawInstructions, buildGPUBatches</code>
+      <code>WebGPURenderer, createWebGPUComputeParticleDescriptor, createWebGPUTextureAtlasDescriptor, createWebGPUShaderVariantRegistry, createWebGPUHardwareEvidencePayload, createWebGPUInstancingDescriptor, createWebGPUTextureArrayBatch, createWebGPUComputeDispatchPlan, collectDrawInstructions, buildGPUBatches</code>
     </article>
     <article>
       <h2>scene/Container.js</h2>
@@ -1205,6 +1240,11 @@
       <h2>tilemap/Tilemap.js</h2>
       <p>Parser for Tiled-style JSON maps. Supports: - finite tile/object layers - grouped layers (flattened with `group/name` paths) - infinite tile layers with `chunks` - object collision shapes: rectangle / ellipse / polygon / polyline @example const map = Tilemap.parse(tiledJson); const ground = map.getTileLayer('Ground'); ground.tileAt(4, 2);</p>
       <code>Tilemap</code>
+    </article>
+    <article>
+      <h2>tilemap/TilemapChunkStreaming.js</h2>
+      <p>Computes tilemap chunks that should load, remain resident, or unload.</p>
+      <code>createTilemapChunkStreamPlan</code>
     </article>
     <article>
       <h2>tilemap/TilemapLoader.js</h2>
@@ -1305,6 +1345,11 @@
       <h2>worker/WorkerManager.js</h2>
       <p>Worker task facade with main-thread fallback. @example const worker = new WorkerManager(); worker.register('sum', ({ values }) =&gt; values.reduce((a, b) =&gt; a + b, 0)); await worker.run('sum', { values: [1, 2, 3] });</p>
       <code>WorkerManager</code>
+    </article>
+    <article>
+      <h2>worker/WorkerTaskScheduler.js</h2>
+      <p>Worker lane dispatcher for heavyweight runtime jobs.</p>
+      <code>WorkerTaskScheduler</code>
     </article>
     </main>
   </body>

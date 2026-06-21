@@ -13,7 +13,7 @@ export const DEFAULT_ENGINE_VERSION = '0.1.0';
 export const DEFAULT_DIMENSION3D_BACKEND = 'three';
 export const DEFAULT_LOADER_TIMEOUT_MS = 5000;
 export const DEFAULT_LOADER_RETRIES = 1;
-export const DEFAULT_LOOP_FPS = 60;
+export const DEFAULT_LOOP_FPS = null;
 export const DEFAULT_MICROKERNEL_RENDERER = 'auto';
 export const DEFAULT_ASSET_DIRECTORIES = Object.freeze([
   'sprites',

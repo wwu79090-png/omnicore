@@ -68,7 +68,7 @@ export function detectPlatformAndMergeDefaults(config = {}, environment = null) 
       platform: 'wechat',
       renderer: 'canvas',
       backend: 'canvas',
-      framerateCap: Math.min(Number(base.framerateCap || 30), 30),
+      framerateCap: base.framerateCap ?? null,
       vsync: false,
       pausedOnHidden: base.pausedOnHidden ?? true
     };
@@ -81,7 +81,7 @@ export function detectPlatformAndMergeDefaults(config = {}, environment = null) 
       platform: 'electron',
       renderer,
       backend: config.backend || renderer,
-      framerateCap: Number(config.framerateCap || base.framerateCap || 60),
+      framerateCap: config.framerateCap ?? base.framerateCap ?? null,
       pausedOnHidden: base.pausedOnHidden ?? true
     };
   }

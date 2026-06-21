@@ -71,7 +71,7 @@ describe('Phaser runtime foundation expectations', () => {
     expect(wechat).toMatchObject({
       platform: 'wechat',
       renderer: 'canvas',
-      framerateCap: 30,
+      framerateCap: null,
       pausedOnHidden: true
     });
     expect(electron).toMatchObject({

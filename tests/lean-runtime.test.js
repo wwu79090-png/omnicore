@@ -229,6 +229,15 @@ describe('lean microkernel runtime and developer tooling', () => {
     expect(added[0]).toBeInstanceOf(FakeGraphics);
   });
 
+  it('RendererAddon FPS telemetry is not capped at 60', async () => {
+    const { RendererAddon } = await import('../src/lean/addons/Renderer.js');
+    const renderer = new RendererAddon();
+
+    renderer._recordRender(globalThis.performance.now() - (1000 / 144));
+
+    expect(renderer.fps).toBeGreaterThan(60);
+  });
+
   it('OmniCore.Genealogy returns build watermark metadata', async () => {
     const OmniCore = (await import('../src/index.js')).default;
     const genealogy = OmniCore.Genealogy();

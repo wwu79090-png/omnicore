@@ -68,8 +68,11 @@ import AssetLoader from './loader/AssetLoader.js';
 import PixiRenderer from './renderer/PixiRenderer.js';
 import WebGPURenderer, {
   createWebGPUComputeParticleDescriptor,
+  createWebGPUComputeDispatchPlan,
   createWebGPUHardwareEvidencePayload,
+  createWebGPUInstancingDescriptor,
   createWebGPUShaderVariantRegistry,
+  createWebGPUTextureArrayBatch,
   createWebGPUTextureAtlasDescriptor
 } from './renderer/WebGPURenderer.js';
 import * as RendererBackend from './renderer/RendererBackend.js';
@@ -106,6 +109,7 @@ import {
   createSpineFFDVertexShader
 } from './renderer/Filters.js';
 import StaticBatchCompiler from './renderer/StaticBatchCompiler.js';
+import { optimizeRenderQueueForBatching } from './renderer/RenderQueueOptimizer.js';
 import Loop from './loop/Loop.js';
 import Button from './ui/Button.js';
 import UIElement from './ui/UIElement.js';
@@ -120,6 +124,7 @@ import { layoutRichText } from './ui/RichText.js';
 import PrefabManager from './prefab/PrefabManager.js';
 import Prefab, { PrefabRegistry } from './core/PrefabRegistry.js';
 import ObjectPool from './pool/ObjectPool.js';
+import { createRuntimeObjectPools } from './pool/RuntimeObjectPools.js';
 import ECS, {
   Components,
   MovementSystem,
@@ -130,6 +135,7 @@ import ECS, {
 import Tilemap from './tilemap/Tilemap.js';
 import AITilemapGenerator from './tilemap/AITilemapGenerator.js';
 import TilemapLoader from './tilemap/TilemapLoader.js';
+import { createTilemapChunkStreamPlan } from './tilemap/TilemapChunkStreaming.js';
 import ChunkCache from './tilemap/ChunkCache.js';
 import ChunkManager from './tilemap/ChunkManager.js';
 import EventSheet from './data/EventSheet.js';
@@ -211,13 +217,19 @@ import HotfixManager from './hotfix/HotfixManager.js';
 import AICommandService from './ai/AICommandService.js';
 import AIImporter from './importer/AIImporter.js';
 import WorkerManager from './worker/WorkerManager.js';
+import WorkerTaskScheduler from './worker/WorkerTaskScheduler.js';
 import LogicWorker from './worker/LogicWorker.js';
 import SkeletalAnimation, { DragonBonesAdapter, SpineAdapter, SpinePixiRuntimeAdapter } from './animation/SkeletalAnimation.js';
 import AnimationStateMachine from './animations/AnimationStateMachine.js';
+import { createAnimationLODPlan } from './animation/AnimationLOD.js';
 import Light2D from './lighting/Light2D.js';
 import ParticleEditorPanel from './editor/ParticleEditorPanel.js';
 import ParticleSystem from './particles/ParticleSystem.js';
 import ParticleTerrainCollider25D from './particles/ParticleTerrainCollider25D.js';
+import DirtyFlagTracker from './performance/DirtyFlagTracker.js';
+import { createIncrementalSpatialIndexReport } from './performance/SpatialIndexOptimizer.js';
+import { createAsyncAssetPipeline } from './loader/AsyncAssetPipeline.js';
+import { createTextureBudgetPlan } from './optimization/TextureBudget.js';
 import Geom from './graphics/Geom.js';
 import Graphics from './graphics/Graphics.js';
 import Shape, { ShapeBuilder } from './graphics/Shape.js';
@@ -932,6 +944,7 @@ const OmniCore = {
   TimeGuard,
   Animation,
   AnimationManager,
+  createAnimationLODPlan,
   UIFocusManager,
   UI: {
     Button,
@@ -957,9 +970,11 @@ const OmniCore = {
   Loader,
   AssetCache,
   AssetLoader,
+  createAsyncAssetPipeline,
   Font,
-  Renderer: { PixiRenderer, WebGPURenderer, RendererBackend, OffscreenCanvasRenderer, RenderWorkerBridge, Filters, WebGLContextManager, RendererManager, RenderLayerManager, PixiBatchAdapter, CommandBuffer, StaticBatchCompiler, createRendererFallbackMatrix, resolveRendererFallbackPlan },
+  Renderer: { PixiRenderer, WebGPURenderer, RendererBackend, OffscreenCanvasRenderer, RenderWorkerBridge, Filters, WebGLContextManager, RendererManager, RenderLayerManager, PixiBatchAdapter, CommandBuffer, StaticBatchCompiler, createRendererFallbackMatrix, resolveRendererFallbackPlan, optimizeRenderQueueForBatching },
   diagnoseBatchBreaks,
+  optimizeRenderQueueForBatching,
   createBezierPrimitive,
   createCapsulePrimitive,
   createCodeLayerPrimitive,
@@ -989,8 +1004,11 @@ const OmniCore = {
   CommandBuffer,
   WebGPURenderer,
   createWebGPUComputeParticleDescriptor,
+  createWebGPUComputeDispatchPlan,
   createWebGPUHardwareEvidencePayload,
+  createWebGPUInstancingDescriptor,
   createWebGPUShaderVariantRegistry,
+  createWebGPUTextureArrayBatch,
   createWebGPUTextureAtlasDescriptor,
   OffscreenCanvasRenderer,
   RenderWorkerBridge,
@@ -1012,6 +1030,7 @@ const OmniCore = {
   Tilemap,
   AITilemapGenerator,
   TilemapLoader,
+  createTilemapChunkStreamPlan,
   ChunkCache,
   ChunkManager,
   HeightfieldNavMesh25D,
@@ -1040,6 +1059,7 @@ const OmniCore = {
   PlatformVariantResolver,
   Worker: WorkerManager,
   WorkerManager,
+  WorkerTaskScheduler,
   LogicWorker,
   ComputeRuntime,
   WasmLoader,
@@ -1072,8 +1092,11 @@ const OmniCore = {
   SleepWakeSystem,
   ViewportCulling,
   AdaptiveQualityManager,
+  createTextureBudgetPlan,
   DeviceProfiler,
   FrameBudgetScheduler,
+  DirtyFlagTracker,
+  createIncrementalSpatialIndexReport,
   StartupProfiler,
   Quality: EngineQualityHarness,
   EngineQualityHarness,
@@ -1100,6 +1123,7 @@ const OmniCore = {
   Localization,
   EventSheet,
   ObjectPool,
+  createRuntimeObjectPools,
   Pool,
   PoolRegistry,
   FixedMemoryPool,
@@ -1188,6 +1212,7 @@ export {
   Analytics,
   Animation,
   AnimationManager,
+  createAnimationLODPlan,
   AnimationEditor,
   AnimationStateMachine,
   ApiQuickPanel,
@@ -1196,6 +1221,7 @@ export {
   AssetManifestGraph,
   AssetPipelineGate,
   AssetLoader,
+  createAsyncAssetPipeline,
   Backend,
   BackendManager,
   BehaviorTree,
@@ -1204,6 +1230,7 @@ export {
   CharacterRig,
   CanvasRendererAddon,
   AdaptiveQualityManager,
+  createTextureBudgetPlan,
   ChunkCache,
   ChunkManager,
   CollisionMask,
@@ -1249,6 +1276,7 @@ export {
   EventSheet,
   EventBus,
   EntitySpatialIndex,
+  createIncrementalSpatialIndexReport,
   DualSpatialIndex,
   EngineQualityHarness,
   PhaserCompatScene,
@@ -1259,6 +1287,7 @@ export {
   FixedMemoryPool,
   Font,
   FrameBudgetScheduler,
+  DirtyFlagTracker,
   FrameProfiler,
   Genealogy,
   help,
@@ -1308,6 +1337,7 @@ export {
   Container,
   TileSprite,
   ObjectPool,
+  createRuntimeObjectPools,
   OBundle,
   Entity,
   createEntity,
@@ -1375,6 +1405,7 @@ export {
   createRendererFallbackMatrix,
   resolveRendererFallbackPlan,
   RENDERER_FALLBACK_MATRIX_SCHEMA,
+  optimizeRenderQueueForBatching,
   RenderSystem,
   createHD2DFilter,
   createNormalLightShader,
@@ -1418,6 +1449,7 @@ export {
   Timer,
   Tilemap,
   TilemapLoader,
+  createTilemapChunkStreamPlan,
   Timeline,
   Templates,
   TutorialGuide,
@@ -1441,6 +1473,7 @@ export {
   WebTransportConnection,
   WechatMiniGameMonetization,
   WorkerManager,
+  WorkerTaskScheduler,
   World,
   assertRendererBackend,
   assertValidSceneDocument,
@@ -1467,8 +1500,11 @@ export {
   createSectorPrimitive,
   conicGradientFill,
   createWebGPUComputeParticleDescriptor,
+  createWebGPUComputeDispatchPlan,
   createWebGPUHardwareEvidencePayload,
+  createWebGPUInstancingDescriptor,
   createWebGPUShaderVariantRegistry,
+  createWebGPUTextureArrayBatch,
   createWebGPUTextureAtlasDescriptor,
   expandVectorPrimitive,
   layoutRichText,

@@ -10,9 +10,9 @@ export class AdaptiveQualityManager {
     particleScale = 0.5,
     maxVisibleTileChunks = 6,
     hardMaintain = false,
-    targetFps = 30,
+    targetFps = null,
     lowFpsFrames = 120,
-    lowPowerFps = 30,
+    lowPowerFps = null,
     lowPowerTextureQuality = 0.5,
     lowBatteryThreshold = 0.2
   } = {}) {
@@ -23,9 +23,9 @@ export class AdaptiveQualityManager {
     this.particleScale = particleScale;
     this.maxVisibleTileChunks = maxVisibleTileChunks;
     this.hardMaintain = Boolean(hardMaintain);
-    this.targetFps = normalizePositiveNumber(targetFps, 30);
+    this.targetFps = normalizeOptionalPositiveNumber(targetFps);
     this.lowFpsFrames = Math.max(1, Math.round(normalizePositiveNumber(lowFpsFrames, 120)));
-    this.lowPowerFps = normalizePositiveNumber(lowPowerFps, 30);
+    this.lowPowerFps = normalizeOptionalPositiveNumber(lowPowerFps);
     this.lowPowerTextureQuality = clampNumber(lowPowerTextureQuality, 0.1, 1, 0.5);
     this.lowBatteryThreshold = clampNumber(lowBatteryThreshold, 0, 1, 0.2);
     this.lastProfile = null;
@@ -80,10 +80,11 @@ export class AdaptiveQualityManager {
     this.store?.set?.('device:powerState', normalized);
     if (!lowPower) return { powerState: normalized, applied };
 
-    if (this.loop && this.loop.fps !== this.lowPowerFps) {
+    if (this.loop && this.lowPowerFps != null && this.loop.fps !== this.lowPowerFps) {
       this.loop.fps = this.lowPowerFps;
       this.loop.framerateCap = this.lowPowerFps;
       this.loop.frameMs = 1000 / this.lowPowerFps;
+      this.loop.uncapped = false;
       applied.push('reduceLoopFps');
     }
 
@@ -109,8 +110,11 @@ export class AdaptiveQualityManager {
 
   observeFrame(stats = {}) {
     const fps = normalizePositiveNumber(stats.fps, 0);
-    const targetFps = normalizePositiveNumber(stats.targetFps ?? this.targetFps, this.targetFps);
+    const targetFps = normalizeOptionalPositiveNumber(stats.targetFps ?? this.targetFps);
     if (!this.hardMaintain || fps <= 0) {
+      return this._frameResult({ triggered: false, fps, targetFps, applied: [] });
+    }
+    if (targetFps == null) {
       return this._frameResult({ triggered: false, fps, targetFps, applied: [] });
     }
 
@@ -222,6 +226,11 @@ const NON_CORE_KINDS = new Set([
 function normalizePositiveNumber(value, fallback) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : fallback;
+}
+
+function normalizeOptionalPositiveNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
 }
 
 function clampNumber(value, min, max, fallback) {

@@ -58,6 +58,7 @@
     "docs/api-cookbook.md",
     "docs/editor-export-workflow.md",
     "docs/optimization-governance.md",
+    "docs/performance-hot-paths.md",
     "docs/webgpu-hardware-evidence.md",
     "docs/platforms/mobile-wechat-evidence.md",
     "docs/engine-handbook.md",

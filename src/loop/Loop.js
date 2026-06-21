@@ -3,10 +3,10 @@ import { DEFAULT_LOOP_FPS } from '../config/defaults.js';
 import MemoryGuardian from '../debug/MemoryGuardian.js';
 
 /**
- * Fixed-step requestAnimationFrame loop.
+ * requestAnimationFrame loop with optional fixed-step cap.
  *
- * Locks updates to 60 FPS, reports delta/interpolation, and pauses/resumes on
- * page visibility changes. The internal ticker is intentionally not exposed.
+ * Runs uncapped by default, reports delta/interpolation, and pauses/resumes on
+ * page visibility changes. Pass fps/framerateCap to opt into a fixed step.
  *
  * @example
  * const loop = new Loop();
@@ -33,9 +33,10 @@ export class Loop {
     debug = false
   } = {}) {
     this.fps = resolveFrameRate(framerateCap, fps, displayHz);
-    this.frameMs = 1000 / this.fps;
+    this.uncapped = this.fps == null;
+    this.frameMs = this.uncapped ? 0 : 1000 / this.fps;
     this.vsync = vsync;
-    this.framerateCap = framerateCap;
+    this.framerateCap = this.uncapped ? null : framerateCap;
     this.autoPause = autoPause;
     this.stallMs = stallMs;
     this.stallFrameThreshold = stallFrameThreshold;
@@ -62,7 +63,7 @@ export class Loop {
     this.time = {
       delta: 0,
       deltaMs: 0,
-      fixedDelta: this.frameMs / 1000,
+      fixedDelta: this.uncapped ? 0 : this.frameMs / 1000,
       fixedDeltaMs: this.frameMs,
       renderDelta: 0,
       renderDeltaMs: 0,
@@ -128,80 +129,90 @@ export class Loop {
       this.accumulator += delta;
       this.time.renderDeltaMs = delta;
       this.time.renderDelta = delta / 1000;
-      while (this.accumulator >= this.frameMs) {
+      if (this.uncapped) {
+        if (delta > 0) this._runFrame(delta / 1000, time, 0, delta);
+        this.accumulator = 0;
+      }
+      while (!this.uncapped && this.accumulator >= this.frameMs) {
         this.frame += 1;
         const frameIndex = this.frame;
         const alpha = clamp01(this.accumulator / this.frameMs);
-        const frameContext = {
-          frame: frameIndex,
-          time,
-          frameMs: this.frameMs,
-          delta: this.frameMs / 1000,
-          alpha
-        };
-
-        const tickStartedAt = this._now();
-        let frameError = null;
-
-        const startResult = this._safeCall(this.onFrameStart, 'frameStart', frameContext);
-        if (startResult.error) {
-          frameError = startResult.error;
-        }
-
-        if (!frameError) {
-          const seconds = this.timeGuard?.clampSeconds?.(this.frameMs / 1000) ?? this.frameMs / 1000;
-          this._updateFixedTime(seconds, frameIndex, alpha);
-          for (const handler of this.subscribers) {
-            try {
-              handler(seconds, time, alpha, frameContext);
-            } catch (error) {
-              frameError = { error, phase: 'frameUpdate' };
-              break;
-            }
-          }
-        }
-
-        if (frameError) {
-          const recovered = this._safeCall(
-            this.onFrameError,
-            'frameError',
-            frameError.error || frameError,
-            { ...frameContext, phase: frameError.phase || 'frameError' }
-          );
-          if (recovered?.value && recovered?.value?.recovered !== undefined) {
-            frameContext.recovered = recovered.value.recovered;
-          }
-        }
-
-        const frameEndedAt = this._now();
-        const updateMs = frameEndedAt - tickStartedAt;
-        this.memoryGuardian?.watchFrame?.({
-          ...frameContext,
-          updateMs,
-          startedAt: tickStartedAt,
-          endedAt: frameEndedAt
-        });
-        this._detectStall(updateMs);
-        const endResult = this._safeCall(
-          this.onFrameEnd,
-          'frameEnd',
-          { ...frameContext, error: frameError?.error || frameError }
-        );
-
-        if (endResult.error) {
-          // 关闭帧级错误传播，主循环保持健壮。
-          frameContext.loopError = endResult.error;
-        }
-
+        this._runFrame(this.frameMs / 1000, time, alpha, this.frameMs, frameIndex);
         this.accumulator -= this.frameMs;
       }
-      const renderAlpha = clamp01(this.accumulator / this.frameMs);
+      const renderAlpha = this.uncapped ? 0 : clamp01(this.accumulator / this.frameMs);
       this.time.alpha = renderAlpha;
       this._emitRender(renderAlpha, time);
       this.lastTime = time;
     }
 
     this._schedule();
+  }
+
+  _runFrame(deltaSeconds, time, alpha, frameMs, frameIndex = null) {
+    this.frame = frameIndex ?? this.frame + 1;
+    const currentFrame = this.frame;
+    const seconds = this.timeGuard?.clampSeconds?.(deltaSeconds) ?? deltaSeconds;
+    const frameContext = {
+      frame: currentFrame,
+      time,
+      frameMs,
+      delta: seconds,
+      alpha,
+      uncapped: this.uncapped
+    };
+
+    const tickStartedAt = this._now();
+    let frameError = null;
+
+    const startResult = this._safeCall(this.onFrameStart, 'frameStart', frameContext);
+    if (startResult.error) {
+      frameError = startResult.error;
+    }
+
+    if (!frameError) {
+      this._updateFixedTime(seconds, currentFrame, alpha);
+      for (const handler of this.subscribers) {
+        try {
+          handler(seconds, time, alpha, frameContext);
+        } catch (error) {
+          frameError = { error, phase: 'frameUpdate' };
+          break;
+        }
+      }
+    }
+
+    if (frameError) {
+      const recovered = this._safeCall(
+        this.onFrameError,
+        'frameError',
+        frameError.error || frameError,
+        { ...frameContext, phase: frameError.phase || 'frameError' }
+      );
+      if (recovered?.value && recovered?.value?.recovered !== undefined) {
+        frameContext.recovered = recovered.value.recovered;
+      }
+    }
+
+    const frameEndedAt = this._now();
+    const updateMs = frameEndedAt - tickStartedAt;
+    this.memoryGuardian?.watchFrame?.({
+      ...frameContext,
+      updateMs,
+      startedAt: tickStartedAt,
+      endedAt: frameEndedAt
+    });
+    this._detectStall(updateMs);
+    const endResult = this._safeCall(
+      this.onFrameEnd,
+      'frameEnd',
+      { ...frameContext, error: frameError?.error || frameError }
+    );
+
+    if (endResult.error) {
+      // 关闭帧级错误传播，主循环保持健壮。
+      frameContext.loopError = endResult.error;
+    }
   }
 
   _updateFixedTime(seconds, frameIndex, alpha) {
@@ -271,9 +282,9 @@ export class Loop {
   }
 
   _raf(handler) {
-    if (!this.vsync) return setTimeout(() => handler(this._now()), this.frameMs);
+    if (!this.vsync) return setTimeout(() => handler(this._now()), this.uncapped ? 0 : this.frameMs);
     if (typeof requestAnimationFrame === 'function') return requestAnimationFrame(handler);
-    return setTimeout(() => handler(this._now()), this.frameMs);
+    return setTimeout(() => handler(this._now()), this.uncapped ? 0 : this.frameMs);
   }
 
   _cancel(handle) {
@@ -309,18 +320,20 @@ export class Loop {
 }
 
 export function resolveFrameRate(framerateCap = DEFAULT_LOOP_FPS, fallback = DEFAULT_LOOP_FPS, displayHz = null) {
+  if (framerateCap == null || framerateCap === false || framerateCap === 'none' || framerateCap === 'unlimited') return null;
   if (framerateCap === 'auto') {
     const detected = displayHz || globalThis.screen?.refreshRate || fallback;
-    return normalizeFps(detected, fallback);
+    return detected == null ? null : normalizeFps(detected, fallback);
   }
-  if ([30, 60, 120].includes(Number(framerateCap))) return Number(framerateCap);
+  const explicit = normalizeFps(framerateCap, null);
+  if (explicit != null) return explicit;
   return normalizeFps(fallback, DEFAULT_LOOP_FPS);
 }
 
 function normalizeFps(value, fallback) {
   const fps = Number(value);
   if (!Number.isFinite(fps) || fps <= 0) return fallback;
-  return Math.min(240, Math.max(15, Math.round(fps)));
+  return Math.max(1, Math.round(fps));
 }
 
 function clamp01(value) {

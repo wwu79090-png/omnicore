@@ -7,7 +7,7 @@ import { createOmniError } from '../core/OmniError.js';
 
 const MODEL_URL_PATTERN = /\.(gltf|glb)(?:$|[?#])/i;
 const DEFAULT_MODEL_ROTATION_SPEED = Object.freeze({ x: 0, y: 0, z: 0 });
-const DECORATIVE_RENDER_FPS = 30;
+const DECORATIVE_RENDER_FPS = null;
 const MODEL_COMPLEXITY_WARNING = '[OmniCore] 2.5D 模型复杂度过高，建议优化。';
 const MODEL_COMPLEXITY_LIMITS = Object.freeze({
   triangles: 20000,
@@ -35,7 +35,7 @@ const DECORATIVE_CAPABILITIES = Object.freeze({
     'debug-depth-guides',
     'async-model-loading',
     'ground-shadow-metadata',
-    '30fps-decorative-loop',
+    'uncapped-decorative-loop',
     'model-complexity-budget',
     'instanced-static-models',
     'aabb-occlusion-candidates',
@@ -69,6 +69,13 @@ function getOptionalThreeExport(THREE, name) {
     if (/No ".+" export/.test(String(error?.message || ''))) return null;
     throw error;
   }
+}
+
+function resolveDimensionRenderFps(value) {
+  if (value == null || value === false || value === 'none' || value === 'unlimited') return null;
+  const fps = Number(value);
+  if (!Number.isFinite(fps) || fps <= 0) return null;
+  return Math.max(1, Math.round(fps));
 }
 
 /**
@@ -137,7 +144,7 @@ export class Dimension3D {
     this.raycaster = null;
     this.gltfLoader = null;
     this.THREE = null;
-    this.renderTargetFps = Math.max(1, Number(targetFps) || DECORATIVE_RENDER_FPS);
+    this.renderTargetFps = resolveDimensionRenderFps(targetFps);
     this.renderLoopRunning = false;
     this.renderLoopFrame = null;
     this.renderLoopLastTimestamp = null;
@@ -401,19 +408,20 @@ export class Dimension3D {
     cancelAnimationFrame: cancelFrame = globalThis.cancelAnimationFrame
   } = {}) {
     if (this.renderLoopRunning) return this;
+    const resolvedFps = resolveDimensionRenderFps(fps);
     const frameRequest = typeof requestFrame === 'function'
       ? requestFrame
-      : (callback) => setTimeout(() => callback(Date.now()), 16);
+      : (callback) => setTimeout(() => callback(Date.now()), resolvedFps == null ? 0 : 1000 / resolvedFps);
     const frameCancel = typeof cancelFrame === 'function'
       ? cancelFrame
       : (id) => clearTimeout(id);
-    this.renderTargetFps = Math.max(1, Number(fps) || DECORATIVE_RENDER_FPS);
+    this.renderTargetFps = resolvedFps;
     this.renderLoopRequestFrame = frameRequest;
     this.renderLoopCancelFrame = frameCancel;
     this.renderLoopRunning = true;
     this.renderLoopLastTimestamp = null;
     this.renderLoopAccumulatorMs = 0;
-    const intervalMs = 1000 / this.renderTargetFps;
+    const intervalMs = this.renderTargetFps == null ? 0 : 1000 / this.renderTargetFps;
     const tick = (timestamp = Date.now()) => {
       if (!this.renderLoopRunning) return;
       if (this.renderLoopLastTimestamp === null) {
@@ -422,7 +430,10 @@ export class Dimension3D {
         const deltaMs = Math.max(0, Number(timestamp) - this.renderLoopLastTimestamp);
         this.renderLoopLastTimestamp = timestamp;
         this.renderLoopAccumulatorMs += deltaMs;
-        if (this.renderLoopAccumulatorMs >= intervalMs) {
+        if (intervalMs === 0 && deltaMs > 0) {
+          this.render(deltaMs / 1000);
+          this.renderLoopAccumulatorMs = 0;
+        } else if (this.renderLoopAccumulatorMs >= intervalMs) {
           const renderDeltaMs = this.renderLoopAccumulatorMs;
           this.renderLoopAccumulatorMs %= intervalMs;
           this.render(renderDeltaMs / 1000);

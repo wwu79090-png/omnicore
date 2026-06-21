@@ -437,6 +437,99 @@ export function createWebGPUHardwareEvidencePayload({
   };
 }
 
+export function createWebGPUInstancingDescriptor({
+  instances = [],
+  strideFloats = 8,
+  vertexCount = 6
+} = {}) {
+  const stride = Math.max(1, Number(strideFloats) || 8);
+  const instanceCount = instances.length;
+  return {
+    format: 'OmniCore.WebGPUInstancingDescriptor',
+    stepMode: 'instance',
+    instanceCount,
+    vertexCount,
+    drawCalls: instanceCount > 0 ? 1 : 0,
+    strideFloats: stride,
+    bufferBytes: Math.max(stride, stride * instanceCount) * Float32Array.BYTES_PER_ELEMENT,
+    attributes: [
+      { shaderLocation: 0, offset: 0, format: 'float32x2', field: 'position' },
+      { shaderLocation: 1, offset: 2 * Float32Array.BYTES_PER_ELEMENT, format: 'float32x2', field: 'size' },
+      { shaderLocation: 2, offset: 4 * Float32Array.BYTES_PER_ELEMENT, format: 'float32', field: 'rotation' },
+      { shaderLocation: 3, offset: 5 * Float32Array.BYTES_PER_ELEMENT, format: 'float32', field: 'alpha' },
+      { shaderLocation: 4, offset: 6 * Float32Array.BYTES_PER_ELEMENT, format: 'float32x2', field: 'color' }
+    ],
+    data: instances.map((item) => ({
+      x: finiteNumber(item.x, 0),
+      y: finiteNumber(item.y, 0),
+      width: finiteNumber(item.width, 0),
+      height: finiteNumber(item.height, 0),
+      rotation: finiteNumber(item.rotation, 0),
+      alpha: finiteNumber(item.alpha, 1),
+      color: item.color || '#ffffff'
+    }))
+  };
+}
+
+export function createWebGPUTextureArrayBatch(commands = [], {
+  maxTextures = 16
+} = {}) {
+  const textureToLayer = new Map();
+  const layers = [];
+  const items = [];
+  for (const command of commands) {
+    const texture = command.texture || command.atlas || 'none';
+    if (!textureToLayer.has(texture)) {
+      if (textureToLayer.size >= maxTextures) {
+        textureToLayer.set(texture, textureToLayer.size);
+      } else {
+        textureToLayer.set(texture, layers.length);
+        layers.push({
+          texture,
+          layer: layers.length,
+          commandIds: []
+        });
+      }
+    }
+    const layer = textureToLayer.get(texture);
+    const item = {
+      id: command.id,
+      texture,
+      layer,
+      material: command.material || 'default',
+      blendMode: command.blendMode || 'normal'
+    };
+    items.push(item);
+    if (layers[layer]) layers[layer].commandIds.push(command.id);
+  }
+  return {
+    format: 'OmniCore.WebGPUTextureArrayBatch',
+    layers,
+    items,
+    drawCalls: commands.length > 0 ? Math.max(1, Math.ceil(layers.length / Math.max(1, Number(maxTextures) || 16))) : 0,
+    maxTextures
+  };
+}
+
+export function createWebGPUComputeDispatchPlan({
+  task = 'generic',
+  items = 0,
+  workgroupSize = 64,
+  main = 'cs_main'
+} = {}) {
+  const count = Math.max(0, Number(items) || 0);
+  const groupSize = Math.max(1, Number(workgroupSize) || 64);
+  return {
+    format: 'OmniCore.WebGPUComputeDispatchPlan',
+    task,
+    items: count,
+    workgroupSize: groupSize,
+    workgroups: Math.ceil(count / groupSize),
+    main,
+    dispatch: [Math.ceil(count / groupSize), 1, 1]
+  };
+}
+
 function normalizeAdapterInfo(adapter = null) {
   if (!adapter) return {};
   const info = adapter.info || adapter.adapterInfo || adapter;
