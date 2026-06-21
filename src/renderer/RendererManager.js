@@ -1,5 +1,6 @@
 import PixiRenderer from './PixiRenderer.js';
 import WebGPURenderer from './WebGPURenderer.js';
+import { createRendererFallbackMatrix, resolveRendererFallbackPlan } from './RendererFallbackMatrix.js';
 import { createOmniError, toOmniError } from '../core/OmniError.js';
 
 /**
@@ -13,6 +14,7 @@ export class RendererManager {
   constructor({
     createRenderer = null,
     fallbackOrder = null,
+    fallbackMatrix = null,
     logger = null
   } = {}) {
     const hasCustomFactory = typeof createRenderer === 'function';
@@ -22,6 +24,8 @@ export class RendererManager {
         : new PixiRenderer({ backend, ...options })
     ));
     this.fallbackOrder = fallbackOrder || (hasCustomFactory ? ['pixi', 'canvas'] : ['webgpu', 'webgl', 'canvas']);
+    this.fallbackMatrix = fallbackMatrix || createRendererFallbackMatrix();
+    this.fallbackPlan = resolveRendererFallbackPlan('auto', this.fallbackMatrix, this.fallbackOrder);
     this.logger = logger;
     this.attempts = [];
     this.lastError = null;
@@ -29,6 +33,7 @@ export class RendererManager {
 
   async create(preferred = 'auto', options = {}) {
     const order = preferred === 'auto' ? this.fallbackOrder : [preferred];
+    this.fallbackPlan = resolveRendererFallbackPlan(preferred, this.fallbackMatrix, order);
     this.attempts = [];
     this.lastError = null;
 

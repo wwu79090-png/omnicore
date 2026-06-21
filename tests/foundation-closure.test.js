@@ -331,6 +331,9 @@ describe('P2 ecosystem foundation closure', () => {
 
     expect(handbook).toContain('API Governance');
     expect(handbook).toContain('Privacy And Telemetry');
+    expect(handbook).toContain('createRendererFallbackMatrix');
+    expect(handbook).toContain('WebGPU -> Pixi -> Canvas');
+    expect(handbook).toContain('navigator-gpu-missing');
     for (const template of templates) {
       expect(existsSync(`examples/templates/${template}/README.md`)).toBe(true);
     }

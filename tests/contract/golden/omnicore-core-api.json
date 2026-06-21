@@ -1049,8 +1049,18 @@
         },
         {
           "kind": "property",
+          "name": "fallbackMatrix",
+          "valueType": "Object"
+        },
+        {
+          "kind": "property",
           "name": "fallbackOrder",
           "valueType": "array"
+        },
+        {
+          "kind": "property",
+          "name": "fallbackPlan",
+          "valueType": "Object"
         },
         {
           "kind": "property",
@@ -1124,6 +1134,16 @@
         "arity": 0,
         "async": false,
         "name": "WebGPURenderer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createRendererFallbackMatrix"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "resolveRendererFallbackPlan"
       }
     ],
     "keys": [
@@ -1138,7 +1158,9 @@
       "RendererManager",
       "StaticBatchCompiler",
       "WebGLContextManager",
-      "WebGPURenderer"
+      "WebGPURenderer",
+      "createRendererFallbackMatrix",
+      "resolveRendererFallbackPlan"
     ]
   },
   "Store": {
@@ -2421,6 +2443,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createRendererFallbackMatrix"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createRendererPerformanceSandbox"
       },
       {
@@ -2532,6 +2559,11 @@
         "arity": 0,
         "async": false,
         "name": "radialGradientFill"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "resolveRendererFallbackPlan"
       },
       {
         "arity": 4,
@@ -2730,6 +2762,7 @@
       "ProfilerWaterfallPanel",
       "Quality",
       "Query",
+      "RENDERER_FALLBACK_MATRIX_SCHEMA",
       "REPRODUCTION_BUNDLE_SCHEMA",
       "RealitySensor25D",
       "RealtimeConnection",
@@ -2824,6 +2857,7 @@
       "createNormalLightShader",
       "createOmniError",
       "createPolygonPrimitive",
+      "createRendererFallbackMatrix",
       "createRendererPerformanceSandbox",
       "createReproductionBundle",
       "createRichTextPrimitive",
@@ -2847,6 +2881,7 @@
       "loadPhysics",
       "normalizeSceneDocument",
       "radialGradientFill",
+      "resolveRendererFallbackPlan",
       "safeInitialize",
       "snapshotRenderQueue",
       "textureFill",

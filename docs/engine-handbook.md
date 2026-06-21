@@ -12,6 +12,7 @@ This handbook is the stable navigation layer for shipping games with OmniCore.
 
 - Runtime composition: `Game`, `SceneManager`, `Scene`, `Store`, `InputManager`, `AudioManager`.
 - Rendering fallback: WebGPU first, WebGL/Pixi next, Canvas as the safe floor.
+- Renderer fallback matrix: `createRendererFallbackMatrix({ probe: true })` records WebGPU -> Pixi -> Canvas capability reasons before release or support triage. Typical blockers are `navigator-gpu-missing`, `webgl-context-missing`, and `canvas-2d-context-missing`; `resolveRendererFallbackPlan('webgpu', matrix)` returns the attempted order and the usable subset.
 - Addons: optional features live under npm packages or `src/addons`.
 
 ## Migration

@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   ElectronNativeBridge,
+  createRendererFallbackMatrix,
+  resolveRendererFallbackPlan,
   RendererManager,
   WebGPURenderer
 } from '../src/index.js';
@@ -40,6 +42,39 @@ describe('renderer backend MVP', () => {
 
     expect(manager.attempts).toEqual(['webgpu', 'canvas']);
     expect(renderer.backend).toBe('canvas');
+    expect(manager.fallbackPlan.order).toEqual(['webgpu', 'canvas']);
+  });
+
+  it('builds a WebGPU, Pixi, and Canvas fallback matrix with explicit capability reasons', () => {
+    const matrix = createRendererFallbackMatrix({
+      probe: true,
+      navigatorRef: {},
+      canvasFactory: () => ({
+        getContext: (type) => (type === '2d' ? { fillRect() {} } : null)
+      })
+    });
+    const plan = resolveRendererFallbackPlan('webgpu', matrix);
+
+    expect(matrix.schema).toBe('omnicore.renderer-fallback-matrix.v1');
+    expect(matrix.backends.map((backend) => backend.name)).toEqual(['webgpu', 'pixi', 'canvas']);
+    expect(matrix.backends.find((backend) => backend.name === 'webgpu')).toMatchObject({
+      available: false,
+      reason: 'navigator-gpu-missing'
+    });
+    expect(matrix.backends.find((backend) => backend.name === 'pixi')).toMatchObject({
+      available: false,
+      reason: 'webgl-context-missing'
+    });
+    expect(matrix.backends.find((backend) => backend.name === 'canvas')).toMatchObject({
+      available: true,
+      reason: 'canvas-2d-context-present'
+    });
+    expect(plan.order).toEqual(['webgpu', 'pixi', 'canvas']);
+    expect(plan.availableOrder).toEqual(['canvas']);
+    expect(plan.explanations).toContainEqual(expect.objectContaining({
+      backend: 'pixi',
+      fallbackTo: ['canvas']
+    }));
   });
 
   it('reports Electron Direct3D and Vulkan native bridge capabilities without forcing WebGL', () => {

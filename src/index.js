@@ -72,6 +72,11 @@ import { RendererContract, assertRendererBackend, createRendererPerformanceSandb
 import OffscreenCanvasRenderer from './renderer/OffscreenCanvasRenderer.js';
 import RenderWorkerBridge from './renderer/RenderWorkerBridge.js';
 import RendererManager from './renderer/RendererManager.js';
+import {
+  createRendererFallbackMatrix,
+  resolveRendererFallbackPlan,
+  RENDERER_FALLBACK_MATRIX_SCHEMA
+} from './renderer/RendererFallbackMatrix.js';
 import WebGLContextManager from './renderer/WebGLContextManager.js';
 import {
   createBezierPrimitive,
@@ -943,7 +948,7 @@ const OmniCore = {
   AssetCache,
   AssetLoader,
   Font,
-  Renderer: { PixiRenderer, WebGPURenderer, RendererBackend, OffscreenCanvasRenderer, RenderWorkerBridge, Filters, WebGLContextManager, RendererManager, RenderLayerManager, PixiBatchAdapter, CommandBuffer, StaticBatchCompiler },
+  Renderer: { PixiRenderer, WebGPURenderer, RendererBackend, OffscreenCanvasRenderer, RenderWorkerBridge, Filters, WebGLContextManager, RendererManager, RenderLayerManager, PixiBatchAdapter, CommandBuffer, StaticBatchCompiler, createRendererFallbackMatrix, resolveRendererFallbackPlan },
   createBezierPrimitive,
   createCapsulePrimitive,
   createCodeLayerPrimitive,
@@ -965,6 +970,9 @@ const OmniCore = {
   RendererContract,
   assertRendererBackend,
   createRendererPerformanceSandbox,
+  createRendererFallbackMatrix,
+  resolveRendererFallbackPlan,
+  RENDERER_FALLBACK_MATRIX_SCHEMA,
   PixiBatchAdapter,
   StaticBatchCompiler,
   CommandBuffer,
@@ -1337,6 +1345,9 @@ export {
   RendererContract,
   RendererAdapter,
   RendererManager,
+  createRendererFallbackMatrix,
+  resolveRendererFallbackPlan,
+  RENDERER_FALLBACK_MATRIX_SCHEMA,
   RenderSystem,
   createHD2DFilter,
   createNormalLightShader,
