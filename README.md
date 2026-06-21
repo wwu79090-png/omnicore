@@ -26,7 +26,7 @@ OmniCore 专注于 2D 游戏开发和有限 2.5D 表现，明确不是全 3D 引
 
 它有意不内置物理系统；物理只通过 `loadPhysics()` 延迟加载适配器。OmniCore 不暴露 Pixi ticker，不生成 UI 源码，不依赖大型编辑器。输入、Camera、Timer、Animation 是轻量基础模块，随 `Game` 和 `Scene` 生命周期更新。
 
-官网首页提供《代码觉醒者》先发案例入口、`examples/full-game-demo/` 30 分钟微型完整游戏和公开路线图。匿名遥测默认关闭；只有开发者显式传入 `telemetry: { anonymous: true }` 时才会在本地生成引擎版本、错误类型和 API 使用频率的聚合摘要，不会自动上传网络。
+官网首页提供《代码觉醒者》先发案例入口、`examples/full-game-demo/` 30 分钟微型完整游戏、`examples/market-showcase/` 市场展示 demo 和公开路线图。匿名遥测默认关闭；只有开发者显式传入 `telemetry: { anonymous: true }` 时才会在本地生成引擎版本、错误类型和 API 使用频率的聚合摘要，不会自动上传网络。
 
 ## 最新动态
 

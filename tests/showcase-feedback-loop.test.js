@@ -42,6 +42,31 @@ describe('showcase adoption and feedback loop', () => {
     expect(homepage).toContain('examples/full-game-demo/');
   });
 
+  it('ships a market showcase demo that proves performance, 2.5D layering, and HTML UI migration in one page', () => {
+    const readme = readFileSync('examples/market-showcase/README.md', 'utf8');
+    const index = readFileSync('examples/market-showcase/index.html', 'utf8');
+    const main = readFileSync('examples/market-showcase/main.js', 'utf8');
+    const pkg = JSON.parse(readFileSync('examples/market-showcase/package.json', 'utf8'));
+    const examples = readFileSync('examples/index.html', 'utf8');
+    const rootReadme = readFileSync('README.md', 'utf8');
+
+    expect(pkg.scripts.dev).toContain('vite');
+    expect(index).toContain('data-market-showcase');
+    expect(index).toContain('data-html-overlay');
+    expect(main).toContain("from '../../src/index.js'");
+    expect(main).toContain('new OmniCore.Game');
+    expect(main).toContain('new OmniCore.Scene');
+    expect(main).toContain('new OmniCore.Sprite');
+    expect(main).toContain('spawnSpriteCloud(1000)');
+    expect(main).toContain('parallaxLayers');
+    expect(main).toContain('htmlOverlayState');
+    expect(readme).toContain('三行代码');
+    expect(readme).toContain('144 FPS');
+    expect(readme).toContain('2.5D');
+    expect(examples).toContain('examples/market-showcase/');
+    expect(rootReadme).toContain('examples/market-showcase/');
+  });
+
   it('turns the benchmark page into a visual performance showroom without breaking CI output', () => {
     const html = readFileSync('tests/benchmark/benchmark.html', 'utf8');
     const js = readFileSync('tests/benchmark/benchmark.js', 'utf8');
