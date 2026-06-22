@@ -1119,6 +1119,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     exportDataJson,
     exportRenderOptimizationPlan,
     verifyRenderOptimizationPlan,
+    applyRenderOptimizationRemediation,
     createRuntimeSyncPayload,
     applyRuntimeSyncPayload,
     create25DPreview,
@@ -2344,6 +2345,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       },
       verifyRenderOptimizationPlan(input = {}, options = {}) {
         return verifyRenderOptimizationPlan(input, options);
+      },
+      applyRenderOptimizationRemediation(actionId, options = {}) {
+        return applyRenderOptimizationRemediation(actionId, options);
       },
       addUIButton(button = {}) {
         return addUIButton(button);
@@ -4561,6 +4565,48 @@ export function createEditorApp(root = document.querySelector('#app'), {
       verification.ok ? 'success' : 'warning'
     );
     return verification;
+  }
+
+  function applyRenderOptimizationRemediation(actionId, options = {}) {
+    const remediationPlan = current.renderOptimizationRemediationPlan;
+    const action = findRenderOptimizationRemediationAction(remediationPlan, actionId);
+    if (!action) return null;
+    const appliedAt = new Date(Number(options.now || Date.now())).toISOString();
+    const plan = normalizeRenderOptimizationPlanState(current.renderOptimizationPlan);
+    const result = applyRenderOptimizationRemediationAction(plan, action, {
+      appliedAt,
+      verification: current.renderOptimizationVerification,
+      remediationPlan,
+      recordDebugEvent
+    });
+    const appliedAction = {
+      ...action,
+      applied: true,
+      appliedAt,
+      result
+    };
+    const nextRemediationPlan = markRenderOptimizationRemediationApplied(remediationPlan, appliedAction);
+    current = createEditorState({
+      ...current,
+      renderOptimizationPlan: plan,
+      renderOptimizationRemediationPlan: nextRemediationPlan,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'render-diagnostics', 'bottom')
+    });
+    emit('editor:render-optimization-remediation-applied', {
+      action: appliedAction,
+      plan,
+      remediationPlan: nextRemediationPlan
+    });
+    emit('editor:render-optimization-plan', plan);
+    pushHistory(current, `应用渲染补救 ${action.label || action.type}`);
+    update(current);
+    showEditorFeedback(`已应用渲染补救：${action.label || action.type}`, 'success');
+    return {
+      action: appliedAction,
+      result,
+      plan,
+      remediationPlan: nextRemediationPlan
+    };
   }
 
   function createRuntimeSyncPayload() {
@@ -7283,7 +7329,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       const actionSummary = document.createElement('span');
       actionSummary.textContent = (remediation.actions || []).map((action) => action.label).join(' · ') || '暂无补救动作';
       const meta = document.createElement('small');
-      meta.textContent = `${remediation.priority || 'normal'} · ${(remediation.actions || []).length} 项`;
+      meta.textContent = `${remediation.priority || 'normal'} · 已应用 ${remediation.summary?.appliedCount || 0}/${(remediation.actions || []).length}`;
       remediationBlock.append(remediationTitle, actionSummary, meta);
       wrap.appendChild(remediationBlock);
     }
@@ -9599,6 +9645,132 @@ function createRenderOptimizationRemediationPlan(state = {}, verification = {}, 
       ]
     }
   };
+}
+
+function findRenderOptimizationRemediationAction(plan = null, actionId = '') {
+  const key = String(actionId || '');
+  return (plan?.actions || []).find((action) => (
+    action.id === key
+    || action.type === key
+    || action.gate === key
+  )) || null;
+}
+
+function applyRenderOptimizationRemediationAction(plan = {}, action = {}, context = {}) {
+  if (action.type === 'capTextureUploads') {
+    const maxUploadsPerFrame = Math.max(1, Number(action.maxUploadsPerFrame || action.budget || 1));
+    plan.budgets = {
+      ...(plan.budgets || {}),
+      textureUploadBudget: maxUploadsPerFrame
+    };
+    plan.textureUploads.deferred = (plan.textureUploads.deferred || []).map((upload) => ({
+      ...upload,
+      maxUploadsPerFrame,
+      strategy: upload.strategy || 'warmup-or-frame-split',
+      remediation: 'capTextureUploads'
+    }));
+    plan.textureUploads.warmupQueue = (plan.textureUploads.warmupQueue || []).map((upload) => ({
+      ...upload,
+      maxUploadsPerFrame,
+      strategy: upload.strategy || 'warmup-or-frame-split',
+      remediation: 'capTextureUploads'
+    }));
+    return {
+      textureUploadBudget: maxUploadsPerFrame,
+      uploadCount: plan.textureUploads.deferred.length || plan.textureUploads.warmupQueue.length
+    };
+  }
+
+  if (action.type === 'reduceFilterPasses') {
+    const filterPassBudget = Math.max(1, Number(action.targetPasses || action.budget || 1));
+    plan.budgets = {
+      ...(plan.budgets || {}),
+      filterPassBudget
+    };
+    plan.filters.passBudget = filterPassBudget;
+    plan.filters.flattened = (plan.filters.flattened || []).map((filter) => ({
+      ...filter,
+      targetPasses: Math.max(1, Math.min(Number(filter.targetPasses || filter.passes || filterPassBudget), filterPassBudget)),
+      remediation: 'reduceFilterPasses'
+    }));
+    plan.filters.estimatedSavedPasses = plan.filters.flattened
+      .reduce((sum, filter) => sum + Math.max(0, Number(filter.passes || 1) - Number(filter.targetPasses || 1)), 0);
+    return {
+      filterPassBudget,
+      filterCount: plan.filters.flattened.length,
+      estimatedSavedPasses: plan.filters.estimatedSavedPasses
+    };
+  }
+
+  if (action.type === 'captureRenderProfile') {
+    const event = {
+      type: 'render-optimization-remediation-profile',
+      gate: action.gate || null,
+      sourcePlanId: context.remediationPlan?.sourcePlanId || context.verification?.sourcePlanId || null,
+      at: Date.parse(context.appliedAt) || Date.now(),
+      before: action.before,
+      after: action.after,
+      budget: action.budget
+    };
+    context.recordDebugEvent?.(event);
+    return {
+      eventType: event.type,
+      gate: event.gate
+    };
+  }
+
+  if (action.type === 'rebuildAtlasGroups') {
+    plan.renderQueue.sortGroups = upsertRenderPlanItems(plan.renderQueue.sortGroups || [], [{
+      key: action.gate || 'draw-call-budget',
+      material: 'auto',
+      texture: 'auto',
+      draws: [],
+      status: 'needs-review',
+      remediation: 'rebuildAtlasGroups',
+      generatedAt: context.appliedAt || null
+    }], 'key');
+    return {
+      sortGroupCount: plan.renderQueue.sortGroups.length
+    };
+  }
+
+  if (action.type === 'rollbackRenderPlan') {
+    plan.actions = [
+      ...(plan.actions || []),
+      {
+        id: 'rollback-render-plan-request',
+        type: 'rollbackRenderPlan',
+        label: action.label || '回退优化计划',
+        appliedAt: context.appliedAt || null,
+        status: 'requested'
+      }
+    ];
+    return {
+      rollbackRequested: true
+    };
+  }
+
+  return {
+    skipped: true,
+    reason: 'unsupported-remediation-action'
+  };
+}
+
+function markRenderOptimizationRemediationApplied(plan = null, action = {}) {
+  const nextPlan = cloneState(plan || {});
+  const previousApplied = Array.isArray(nextPlan.appliedActions) ? nextPlan.appliedActions : [];
+  nextPlan.actions = (nextPlan.actions || []).map((candidate) => (
+    candidate.id === action.id || candidate.type === action.type
+      ? { ...candidate, applied: true, appliedAt: action.appliedAt, result: action.result }
+      : candidate
+  ));
+  nextPlan.appliedActions = upsertRenderPlanItems(previousApplied, [action], 'id').slice(-48);
+  nextPlan.summary = {
+    ...(nextPlan.summary || {}),
+    appliedCount: nextPlan.appliedActions.length,
+    remainingCount: Math.max(0, (nextPlan.actions || []).length - nextPlan.appliedActions.length)
+  };
+  return nextPlan;
 }
 
 function createRenderVerificationMetricsFromPanel(panel = null) {

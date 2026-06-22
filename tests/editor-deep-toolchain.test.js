@@ -771,6 +771,111 @@ describe('editor deep toolchain', () => {
     app.destroy();
   });
 
+  it('applies render optimization remediation actions back into runtime plans', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const messages = [];
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        dockLayout: {
+          left: ['assets'],
+          center: ['scene-view'],
+          right: ['inspector'],
+          bottom: ['render-diagnostics']
+        }
+      }),
+      transport: {
+        send: (message) => messages.push(JSON.parse(message))
+      }
+    });
+
+    app.EditorAPI.refreshRenderDiagnosticsPanel({
+      budgets: {
+        frameBudgetMs: 16.67,
+        drawCallBudget: 4,
+        textureUploadBudget: 2,
+        filterPassBudget: 3
+      },
+      frame: { index: 17, cpuMs: 19, gpuMs: 17, fps: 45 },
+      draws: [
+        { id: 'hero', texture: 'hero.png', material: 'lit', blendMode: 'normal' },
+        { id: 'enemy', texture: 'enemy.png', material: 'lit', blendMode: 'normal' },
+        { id: 'coin', texture: 'coin.png', material: 'lit', blendMode: 'normal' }
+      ],
+      textureUploads: [
+        { id: 'hero', bytes: 1024 },
+        { id: 'enemy', bytes: 2048 },
+        { id: 'ui', bytes: 4096 }
+      ],
+      filterPasses: [
+        { id: 'bloom', passes: 2, estimatedMs: 1.4 },
+        { id: 'blur', passes: 2, estimatedMs: 2.1 }
+      ]
+    });
+    app.EditorAPI.applyRenderDiagnosticsQuickFix('deferTextureUploads', { now: Date.UTC(2026, 0, 1) });
+    app.EditorAPI.applyRenderDiagnosticsQuickFix('createAtlas:lit|normal', { now: Date.UTC(2026, 0, 1) + 1 });
+    app.EditorAPI.applyRenderDiagnosticsQuickFix('flattenFilterChain', { now: Date.UTC(2026, 0, 1) + 2 });
+    const runtimePlan = app.EditorAPI.exportRenderOptimizationPlan({
+      generatedAt: '2026-01-01T00:00:00.000Z'
+    });
+    app.EditorAPI.verifyRenderOptimizationPlan({
+      applyReport: {
+        schema: 'omnicore.render-optimization-apply-report.v1',
+        sourcePlanId: runtimePlan.sourcePlanId,
+        status: 'applied',
+        applied: runtimePlan.runtimeActions,
+        summary: { appliedCount: runtimePlan.runtimeActions.length }
+      },
+      before: { frameMs: 15.5, drawCalls: 4, textureUploads: 2, filterPasses: 2 },
+      after: { frameMs: 23, drawCalls: 9, textureUploads: 5, filterPasses: 5 },
+      budgets: { frameMs: 16.67, drawCalls: 4, textureUploads: 2, filterPasses: 3 },
+      now: Date.UTC(2026, 0, 1) + 20
+    });
+
+    const textureFix = app.EditorAPI.applyRenderOptimizationRemediation('cap-texture-uploads', {
+      now: Date.UTC(2026, 0, 1) + 30
+    });
+    const filterFix = app.EditorAPI.applyRenderOptimizationRemediation('reduce-filter-passes', {
+      now: Date.UTC(2026, 0, 1) + 31
+    });
+    const captureFix = app.EditorAPI.applyRenderOptimizationRemediation('capture-render-profile', {
+      now: Date.UTC(2026, 0, 1) + 32
+    });
+
+    expect(textureFix).toMatchObject({
+      action: { type: 'capTextureUploads', applied: true },
+      result: { textureUploadBudget: 2 }
+    });
+    expect(filterFix).toMatchObject({
+      action: { type: 'reduceFilterPasses', applied: true },
+      result: { filterPassBudget: 3 }
+    });
+    expect(captureFix).toMatchObject({
+      action: { type: 'captureRenderProfile', applied: true },
+      result: { eventType: 'render-optimization-remediation-profile' }
+    });
+    const state = app.getState();
+    expect(state.renderOptimizationPlan.budgets.textureUploadBudget).toBe(2);
+    expect(state.renderOptimizationPlan.filters.passBudget).toBe(3);
+    expect(state.renderOptimizationRemediationPlan.appliedActions.map((action) => action.type)).toEqual(expect.arrayContaining([
+      'capTextureUploads',
+      'reduceFilterPasses',
+      'captureRenderProfile'
+    ]));
+    expect(root.querySelector('[data-render-optimization-remediation]')?.textContent).toContain('已应用 3/5');
+    expect(app.exportDebugTimeline({ now: Date.UTC(2026, 0, 1) + 40, windowMs: 1000 }).events).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'render-optimization-remediation-profile', gate: 'frame-budget' })
+    ]));
+    expect(app.EditorAPI.exportRenderOptimizationPlan({
+      generatedAt: '2026-01-01T00:00:01.000Z'
+    }).scheduler.textureUploads.maxUploadsPerFrame).toBe(2);
+    expect(messages.map((message) => message.type)).toEqual(expect.arrayContaining([
+      'editor:render-optimization-remediation-applied',
+      'editor:render-optimization-plan'
+    ]));
+    app.destroy();
+  });
+
   it('surfaces missing dependency repair actions in the editor resource panel', () => {
     const root = document.createElement('main');
     document.body.appendChild(root);
