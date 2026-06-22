@@ -1136,6 +1136,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     refreshRenderDiagnosticsPanel,
     applyAssetRegistryChanges,
     applyAssetRegistryQuickFix,
+    applyRenderDiagnosticsQuickFix,
     exportHotReloadEventStream,
     recordDebugEvent,
     exportDebugTimeline,
@@ -1844,6 +1845,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       hotReload: next.hotReload || current.hotReload,
       assetRegistryPanel: next.assetRegistryPanel || current.assetRegistryPanel,
       renderDiagnosticsPanel: next.renderDiagnosticsPanel || current.renderDiagnosticsPanel,
+      renderOptimizationPlan: next.renderOptimizationPlan || current.renderOptimizationPlan,
       assetRefresh: next.assetRefresh || current.assetRefresh,
       hotReloadEvents: next.hotReloadEvents || current.hotReloadEvents,
       autoSave: normalizeAutoSaveState(next.autoSave || current.autoSave)
@@ -2397,6 +2399,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       },
       applyAssetRegistryQuickFix(actionId, options = {}) {
         return applyAssetRegistryQuickFix(actionId, options);
+      },
+      applyRenderDiagnosticsQuickFix(actionId, options = {}) {
+        return applyRenderDiagnosticsQuickFix(actionId, options);
       },
       exportHotReloadEventStream(options = {}) {
         return exportHotReloadEventStream(options);
@@ -4803,6 +4808,40 @@ export function createEditorApp(root = document.querySelector('#app'), {
     };
   }
 
+  function applyRenderDiagnosticsQuickFix(actionId, options = {}) {
+    const action = findRenderDiagnosticsQuickFix(current, actionId);
+    if (!action) return null;
+    const appliedAt = new Date(Number(options.now || Date.now())).toISOString();
+    const plan = buildRenderOptimizationPlan(current, action, { ...options, appliedAt });
+    const appliedAction = {
+      ...action,
+      applied: true,
+      appliedAt,
+      planId: plan.id,
+      result: describeRenderOptimizationAction(action, plan)
+    };
+    const panel = markRenderDiagnosticsActionApplied(
+      current.renderDiagnosticsPanel || buildRenderDiagnosticsPanelState(current),
+      appliedAction
+    );
+    current = createEditorState({
+      ...current,
+      renderDiagnosticsPanel: panel,
+      renderOptimizationPlan: plan,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'render-diagnostics', 'bottom')
+    });
+    emit('editor:render-diagnostics-quick-fix', { action: appliedAction, panel, plan });
+    emit('editor:render-optimization-plan', plan);
+    pushHistory(current, `应用渲染优化 ${action.label}`);
+    update(current);
+    showEditorFeedback(`已应用渲染优化：${action.label}`, 'success');
+    return {
+      action: appliedAction,
+      panel,
+      plan
+    };
+  }
+
   function exportHotReloadEventStream({ since = 0, limit = 100 } = {}) {
     const minId = Number(since || 0);
     const max = Math.max(1, Number(limit || 100));
@@ -7135,12 +7174,15 @@ export function createEditorApp(root = document.querySelector('#app'), {
 
     const actions = document.createElement('div');
     actions.className = 'render-diagnostics-actions';
+    const appliedActions = new Set((panel.appliedActions || []).map((action) => action.id));
     for (const action of panel.quickFixes || []) {
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.renderDiagnosticsAction = action.id;
-      button.textContent = action.label;
-      button.addEventListener('click', () => showEditorFeedback(`已定位渲染优化动作：${action.label}`, 'info'));
+      const applied = Boolean(action.applied || appliedActions.has(action.id));
+      button.dataset.renderDiagnosticsApplied = String(applied);
+      button.textContent = applied ? `${action.label} · 已应用` : action.label;
+      button.addEventListener('click', () => applyRenderDiagnosticsQuickFix(action.id, { source: 'render-diagnostics-panel' }));
       actions.appendChild(button);
     }
     if (!actions.childNodes.length) {
@@ -7149,6 +7191,21 @@ export function createEditorApp(root = document.querySelector('#app'), {
       actions.appendChild(empty);
     }
     wrap.appendChild(actions);
+
+    const plan = current.renderOptimizationPlan;
+    if (plan) {
+      const optimizationPlan = document.createElement('div');
+      optimizationPlan.className = 'render-optimization-plan';
+      optimizationPlan.dataset.renderOptimizationPlan = 'true';
+      const planTitle = document.createElement('strong');
+      planTitle.textContent = '优化计划';
+      const planSummary = document.createElement('span');
+      planSummary.textContent = summarizeRenderOptimizationPlan(plan);
+      const planSource = document.createElement('small');
+      planSource.textContent = `${plan.source || 'editor'} · ${plan.updatedAt || '-'}`;
+      optimizationPlan.append(planTitle, planSummary, planSource);
+      wrap.appendChild(optimizationPlan);
+    }
     return wrap;
   }
 }
@@ -8974,6 +9031,222 @@ function renderDiagnosticActionLabel(recommendation = '') {
   return labels[recommendation] || `检查建议 ${recommendation}`;
 }
 
+function findRenderDiagnosticsQuickFix(state = {}, actionId = '') {
+  const id = String(actionId || '');
+  const panel = state.renderDiagnosticsPanel || buildRenderDiagnosticsPanelState(state);
+  return (panel.quickFixes || []).find((action) => action.id === id) || null;
+}
+
+function buildRenderOptimizationPlan(state = {}, action = {}, options = {}) {
+  const panel = state.renderDiagnosticsPanel || buildRenderDiagnosticsPanelState(state);
+  const report = panel.report || {};
+  const input = panel.input || {};
+  const appliedAt = options.appliedAt || new Date(Number(options.now || Date.now())).toISOString();
+  const previous = normalizeRenderOptimizationPlanState(state.renderOptimizationPlan);
+  const plan = {
+    ...previous,
+    id: previous.id || createRenderOptimizationPlanId(appliedAt),
+    source: options.source || panel.source || previous.source || 'editor-render-diagnostics',
+    updatedAt: appliedAt,
+    frameIndex: report.summary?.frameIndex ?? panel.summary?.frameIndex ?? previous.frameIndex ?? null,
+    budgets: cloneState(panel.budgets || previous.budgets || {})
+  };
+
+  applyRenderOptimizationAction(plan, action, report, input, appliedAt);
+  const actionRecord = {
+    ...action,
+    appliedAt,
+    frameIndex: plan.frameIndex,
+    result: describeRenderOptimizationAction(action, plan)
+  };
+  plan.actions = upsertRenderPlanItems(plan.actions, [actionRecord], 'id').slice(-48);
+  return plan;
+}
+
+function normalizeRenderOptimizationPlanState(value = null) {
+  const source = value && typeof value === 'object' ? value : {};
+  const textureUploads = source.textureUploads && typeof source.textureUploads === 'object'
+    ? source.textureUploads
+    : {};
+  const filters = source.filters && typeof source.filters === 'object' ? source.filters : {};
+  const renderQueue = source.renderQueue && typeof source.renderQueue === 'object' ? source.renderQueue : {};
+  return {
+    schema: 'omnicore.editor-render-optimization-plan.v1',
+    id: source.id || '',
+    source: source.source || 'editor-render-diagnostics',
+    updatedAt: source.updatedAt || null,
+    frameIndex: source.frameIndex ?? null,
+    budgets: cloneState(source.budgets || {}),
+    atlases: cloneState(Array.isArray(source.atlases) ? source.atlases : []),
+    textureUploads: {
+      deferred: cloneState(Array.isArray(textureUploads.deferred) ? textureUploads.deferred : []),
+      warmupQueue: cloneState(Array.isArray(textureUploads.warmupQueue) ? textureUploads.warmupQueue : [])
+    },
+    filters: {
+      flattened: cloneState(Array.isArray(filters.flattened) ? filters.flattened : []),
+      passBudget: filters.passBudget ?? null,
+      estimatedSavedPasses: Number(filters.estimatedSavedPasses || 0)
+    },
+    backend: source.backend ? cloneState(source.backend) : null,
+    renderQueue: {
+      sortGroups: cloneState(Array.isArray(renderQueue.sortGroups) ? renderQueue.sortGroups : []),
+      dynamicSprites: cloneState(Array.isArray(renderQueue.dynamicSprites) ? renderQueue.dynamicSprites : [])
+    },
+    actions: cloneState(Array.isArray(source.actions) ? source.actions : [])
+  };
+}
+
+function createRenderOptimizationPlanId(appliedAt = '') {
+  const stamp = Date.parse(appliedAt);
+  return `render-plan-${Number.isFinite(stamp) ? stamp : Date.now()}`;
+}
+
+function applyRenderOptimizationAction(plan, action = {}, report = {}, input = {}, appliedAt = '') {
+  if (action.type === 'createAtlas') {
+    const key = action.id.slice('createAtlas:'.length);
+    const candidate = (report.batch?.atlasCandidates || []).find((entry) => entry.key === key) || { key, textures: [] };
+    const [material = 'default', blendMode = 'normal'] = key.split('|');
+    plan.atlases = upsertRenderPlanItems(plan.atlases, [{
+      key,
+      material,
+      blendMode,
+      textures: uniqueStrings(candidate.textures || []).sort(),
+      spriteCount: Number(candidate.spriteCount || candidate.textures?.length || 0),
+      status: 'planned',
+      generatedAt: appliedAt,
+      reason: '减少纹理切换和 Draw Call'
+    }], 'key');
+  }
+
+  if (action.type === 'scheduleTextureUploads') {
+    const uploads = (report.textureUploads || []).map((upload, index) => ({
+      id: String(upload.id || `upload-${index + 1}`),
+      bytes: Number(upload.bytes || 0),
+      reason: upload.reason || 'frame-upload',
+      strategy: 'warmup-or-frame-split',
+      status: 'planned',
+      generatedAt: appliedAt
+    }));
+    plan.textureUploads.deferred = upsertRenderPlanItems(plan.textureUploads.deferred, uploads, 'id');
+    plan.textureUploads.warmupQueue = upsertRenderPlanItems(plan.textureUploads.warmupQueue, uploads.map((upload) => ({
+      ...upload,
+      maxUploadsPerFrame: Math.max(1, Number(plan.budgets.textureUploadBudget || 1))
+    })), 'id');
+  }
+
+  if (action.type === 'optimizeFilters') {
+    const flattened = (report.filterPasses || []).map((filter, index) => ({
+      id: String(filter.id || `filter-${index + 1}`),
+      passes: Number(filter.passes || 1),
+      estimatedMs: Number(filter.estimatedMs || 0),
+      targetPasses: 1,
+      status: 'planned',
+      generatedAt: appliedAt
+    }));
+    plan.filters.flattened = upsertRenderPlanItems(plan.filters.flattened, flattened, 'id');
+    plan.filters.passBudget = plan.budgets.filterPassBudget ?? report.summary?.filterPassCount ?? null;
+    plan.filters.estimatedSavedPasses = plan.filters.flattened
+      .reduce((sum, filter) => sum + Math.max(0, Number(filter.passes || 1) - Number(filter.targetPasses || 1)), 0);
+  }
+
+  if (action.type === 'reviewBackendFallback') {
+    plan.backend = {
+      preferred: 'webgpu',
+      selected: report.backend?.selected || null,
+      fallbackChain: cloneState(report.backend?.fallbackChain || []),
+      rejected: cloneState(report.backend?.rejected || []),
+      checks: ['secure-context', 'adapter-request', 'feature-flags', 'device-lost-recovery'],
+      status: report.backend?.selected === 'webgpu' ? 'active' : 'review',
+      updatedAt: appliedAt
+    };
+  }
+
+  if (action.type === 'sortRenderQueue') {
+    plan.renderQueue.sortGroups = buildRenderQueueSortGroups(input.draws || []);
+  }
+
+  if (action.type === 'splitDynamicSprites') {
+    const dynamicSprites = (input.draws || [])
+      .filter((draw) => draw?.dynamic || draw?.animated || draw?.video)
+      .map((draw, index) => ({
+        id: String(draw.id || draw.name || `dynamic-${index + 1}`),
+        texture: String(draw.texture || draw.sprite || 'texture'),
+        status: 'planned',
+        generatedAt: appliedAt
+      }));
+    plan.renderQueue.dynamicSprites = upsertRenderPlanItems(plan.renderQueue.dynamicSprites, dynamicSprites, 'id');
+  }
+}
+
+function buildRenderQueueSortGroups(draws = []) {
+  const groups = new Map();
+  for (const draw of Array.isArray(draws) ? draws : []) {
+    const material = String(draw?.material || draw?.shader || 'default');
+    const blendMode = String(draw?.blendMode || 'normal');
+    const texture = String(draw?.texture || draw?.sprite || 'texture');
+    const key = `${material}|${blendMode}|${texture}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        material,
+        blendMode,
+        texture,
+        draws: []
+      });
+    }
+    groups.get(key).draws.push(String(draw?.id || draw?.name || `draw-${groups.get(key).draws.length + 1}`));
+  }
+  return [...groups.values()].sort((left, right) => left.key.localeCompare(right.key));
+}
+
+function upsertRenderPlanItems(existing = [], incoming = [], key = 'id') {
+  const byKey = new Map();
+  for (const item of Array.isArray(existing) ? existing : []) {
+    const itemKey = item?.[key];
+    if (itemKey != null) byKey.set(String(itemKey), cloneState(item));
+  }
+  for (const item of Array.isArray(incoming) ? incoming : []) {
+    const itemKey = item?.[key];
+    if (itemKey != null) byKey.set(String(itemKey), cloneState(item));
+  }
+  return [...byKey.values()];
+}
+
+function markRenderDiagnosticsActionApplied(panel = {}, action = {}) {
+  const nextPanel = cloneState(panel || {});
+  const previous = Array.isArray(nextPanel.appliedActions) ? nextPanel.appliedActions : [];
+  nextPanel.quickFixes = (nextPanel.quickFixes || []).map((quickFix) => (
+    quickFix.id === action.id
+      ? { ...quickFix, applied: true, appliedAt: action.appliedAt, planId: action.planId, result: action.result }
+      : quickFix
+  ));
+  nextPanel.appliedActions = upsertRenderPlanItems(previous, [action], 'id').slice(-32);
+  nextPanel.summary = {
+    ...(nextPanel.summary || {}),
+    appliedActionCount: nextPanel.appliedActions.length
+  };
+  return nextPanel;
+}
+
+function describeRenderOptimizationAction(action = {}, plan = {}) {
+  if (action.type === 'createAtlas') return `已规划 ${plan.atlases?.length || 0} 个图集`;
+  if (action.type === 'scheduleTextureUploads') return `已规划 ${plan.textureUploads?.deferred?.length || 0} 个纹理上传`;
+  if (action.type === 'optimizeFilters') return `预计减少 ${plan.filters?.estimatedSavedPasses || 0} 个 Filter Pass`;
+  if (action.type === 'reviewBackendFallback') return `已生成 ${formatRenderBackendName(plan.backend?.preferred)} fallback 检查项`;
+  if (action.type === 'sortRenderQueue') return `已生成 ${plan.renderQueue?.sortGroups?.length || 0} 个渲染排序组`;
+  if (action.type === 'splitDynamicSprites') return `已规划 ${plan.renderQueue?.dynamicSprites?.length || 0} 个动态精灵分离项`;
+  return '已写入渲染诊断计划';
+}
+
+function summarizeRenderOptimizationPlan(plan = {}) {
+  const atlasCount = plan.atlases?.length || 0;
+  const deferredUploads = plan.textureUploads?.deferred?.length || 0;
+  const filterCount = plan.filters?.flattened?.length || 0;
+  const actionCount = plan.actions?.length || 0;
+  const backend = plan.backend?.preferred ? formatRenderBackendName(plan.backend.preferred) : '未配置';
+  return `图集 ${atlasCount} · 纹理上传 ${deferredUploads} · Filter ${filterCount} · 后端 ${backend} · 动作 ${actionCount}`;
+}
+
 function localizeRenderSeverity(severity = 'ok') {
   const labels = {
     ok: '正常',
@@ -9716,7 +9989,12 @@ const EDITOR_CSS = `
   .render-diagnostics-issues [data-render-diagnostics-issue="ok"] { border-left-color: #84cc16; color: #dcfce7; }
   .render-diagnostics-actions { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
   .render-diagnostics-actions button { min-height: 28px; padding: 5px 8px; border-color: #2dd4bf; border-radius: 6px; color: #ccfbf1; background: #0f1f1d; }
+  .render-diagnostics-actions button[data-render-diagnostics-applied="true"] { border-color: #84cc16; color: #dcfce7; background: #14220f; }
   .render-diagnostics-actions span { color: #94a3b8; }
+  .render-optimization-plan { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; min-width: 0; padding: 7px 8px; border: 1px solid #31523b; border-radius: 6px; background: #07130c; }
+  .render-optimization-plan strong { color: #bbf7d0; font-size: 11px; }
+  .render-optimization-plan span { min-width: 0; color: #e5e7eb; overflow-wrap: anywhere; }
+  .render-optimization-plan small { color: #94a3b8; white-space: nowrap; }
   .profiler-wrap { display: grid; gap: 5px; }
   .profiler-flamegraph { display: grid; gap: 4px; padding: 6px; border: 1px solid #334155; background: #020617; }
   .profiler-row { display: grid; grid-template-columns: 132px 1fr 56px; gap: 6px; align-items: center; }

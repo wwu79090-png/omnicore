@@ -432,6 +432,77 @@ describe('editor deep toolchain', () => {
     app.destroy();
   });
 
+  it('applies render diagnostics quick fixes into concrete optimization plans', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        dockLayout: {
+          left: ['assets'],
+          center: ['scene-view'],
+          right: ['inspector'],
+          bottom: ['profiler']
+        }
+      })
+    });
+
+    app.EditorAPI.refreshRenderDiagnosticsPanel({
+      budgets: {
+        frameBudgetMs: 16.67,
+        drawCallBudget: 4,
+        textureUploadBudget: 2,
+        filterPassBudget: 3
+      },
+      frame: { index: 9, cpuMs: 22, gpuMs: 18, fps: 45 },
+      backend: {
+        selected: 'webgl2',
+        fallbackChain: ['webgpu', 'webgl2'],
+        rejected: [{ id: 'webgpu', reason: 'adapter-missing' }]
+      },
+      draws: [
+        { id: 'hero', texture: 'hero.png', material: 'lit', blendMode: 'normal' },
+        { id: 'enemy', texture: 'enemy.png', material: 'lit', blendMode: 'normal' },
+        { id: 'coin', texture: 'coin.png', material: 'lit', blendMode: 'normal' },
+        { id: 'spark', texture: 'fx.png', material: 'additive', blendMode: 'add' }
+      ],
+      textureUploads: [
+        { id: 'hero', bytes: 1024 },
+        { id: 'enemy', bytes: 2048 },
+        { id: 'ui', bytes: 4096 }
+      ],
+      filterPasses: [
+        { id: 'bloom', passes: 2, estimatedMs: 1.4 },
+        { id: 'blur', passes: 2, estimatedMs: 2.1 }
+      ]
+    });
+
+    const textureResult = app.EditorAPI.applyRenderDiagnosticsQuickFix('deferTextureUploads', {
+      now: Date.UTC(2026, 0, 1)
+    });
+
+    expect(textureResult.action).toMatchObject({
+      id: 'deferTextureUploads',
+      type: 'scheduleTextureUploads'
+    });
+    expect(textureResult.plan.schema).toBe('omnicore.editor-render-optimization-plan.v1');
+    expect(textureResult.plan.textureUploads.deferred.map((upload) => upload.id)).toEqual(['hero', 'enemy', 'ui']);
+    expect(app.getState().renderOptimizationPlan.textureUploads.deferred.map((upload) => upload.id)).toEqual(['hero', 'enemy', 'ui']);
+    expect(app.getState().renderDiagnosticsPanel.appliedActions.map((action) => action.id)).toContain('deferTextureUploads');
+    expect(root.querySelector('[data-render-optimization-plan]')?.textContent).toContain('纹理上传 3');
+    expect(root.querySelector('[data-render-diagnostics-action="deferTextureUploads"]')?.textContent).toContain('已应用');
+
+    root.querySelector('[data-render-diagnostics-action="createAtlas:lit|normal"]')?.click();
+    const state = app.getState();
+    expect(state.renderOptimizationPlan.atlases[0]).toMatchObject({
+      key: 'lit|normal',
+      textures: ['coin.png', 'enemy.png', 'hero.png'],
+      status: 'planned'
+    });
+    expect(root.querySelector('[data-render-optimization-plan]')?.textContent).toContain('图集 1');
+    expect(root.querySelector('[data-render-diagnostics-action="createAtlas:lit|normal"]')?.textContent).toContain('已应用');
+    app.destroy();
+  });
+
   it('surfaces missing dependency repair actions in the editor resource panel', () => {
     const root = document.createElement('main');
     document.body.appendChild(root);

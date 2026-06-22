@@ -50,6 +50,7 @@ export function createEditorState(initial = {}) {
     hotReload: normalizeHotReload(initial.hotReload),
     assetRegistryPanel: normalizeAssetRegistryPanel(initial.assetRegistryPanel),
     renderDiagnosticsPanel: normalizeRenderDiagnosticsPanel(initial.renderDiagnosticsPanel),
+    renderOptimizationPlan: normalizeRenderOptimizationPlan(initial.renderOptimizationPlan),
     assetRefresh: normalizeAssetRefresh(initial.assetRefresh),
     hotReloadEvents: normalizeHotReloadEvents(initial.hotReloadEvents),
     preview25D: initial.preview25D || null,
@@ -104,6 +105,12 @@ export function applyLiveSyncMessage(state = createEditorState(), message = {}) 
   if (message.type === 'editor:closure-report') next.editorClosure = normalizeEditorClosure(message.payload);
   if (message.type === 'editor:hot-reload') next.hotReload = normalizeHotReload(message.payload);
   if (message.type === 'editor:asset-registry-panel') next.assetRegistryPanel = normalizeAssetRegistryPanel(message.payload);
+  if (message.type === 'editor:render-diagnostics-panel') next.renderDiagnosticsPanel = normalizeRenderDiagnosticsPanel(message.payload);
+  if (message.type === 'editor:render-optimization-plan') next.renderOptimizationPlan = normalizeRenderOptimizationPlan(message.payload);
+  if (message.type === 'editor:render-diagnostics-quick-fix') {
+    next.renderDiagnosticsPanel = normalizeRenderDiagnosticsPanel(message.payload?.panel);
+    next.renderOptimizationPlan = normalizeRenderOptimizationPlan(message.payload?.plan);
+  }
   if (message.type === 'editor:asset-refresh') next.assetRefresh = normalizeAssetRefresh(message.payload);
   if (message.type === 'editor:hot-reload-event-stream') next.hotReloadEvents = normalizeHotReloadEvents(message.payload?.events || message.payload);
   if (message.type === 'editor:asset-watch-refresh') {
@@ -287,6 +294,11 @@ function normalizeAssetRegistryPanel(value = null) {
 }
 
 function normalizeRenderDiagnosticsPanel(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return clonePlain(value);
+}
+
+function normalizeRenderOptimizationPlan(value = null) {
   if (!value || typeof value !== 'object') return null;
   return clonePlain(value);
 }
