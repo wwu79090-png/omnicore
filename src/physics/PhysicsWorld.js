@@ -148,6 +148,49 @@ export class PhysicsWorld {
     };
   }
 
+  createDiagnosticsSnapshot({
+    raycasts = [],
+    includeDebugDraw = true,
+    includeBackendCapabilities = true
+  } = {}) {
+    this._captureBackendState();
+
+    const bodies = [...this.rigidBodies.values()].map((body) => normalizeDiagnosticBody(body));
+    const constraints = [...this.constraints.values()].map((constraint, index) => normalizeDiagnosticConstraint(constraint, index));
+    const bodyIds = new Set(bodies.map((body) => body.id));
+    const raycastReports = normalizeArray(raycasts).map((probe, index) => {
+      const normalized = normalizeRaycastProbe(probe, index);
+      const hit = this.raycast(normalized.origin, normalized.direction, normalized.maxDistance);
+      return {
+        ...normalized,
+        hit: hit ? normalizeRaycastHit(hit) : null
+      };
+    });
+    const debugDraw = includeDebugDraw ? this.createDebugDraw() : null;
+    const backendCapabilities = includeBackendCapabilities ? this.createBackendCapabilityReport() : null;
+    const issues = createPhysicsDiagnosticsIssues({ constraints, bodyIds });
+    const severity = createPhysicsDiagnosticsSeverity(issues);
+
+    return {
+      schema: 'omnicore.physics-diagnostics-snapshot.v1',
+      backend: this.backendName || 'local',
+      summary: createPhysicsDiagnosticsSummary({
+        bodies,
+        constraints,
+        raycasts: raycastReports,
+        debugDraw,
+        severity
+      }),
+      issues,
+      bodies,
+      constraints,
+      raycasts: raycastReports,
+      debugDraw,
+      backendCapabilities,
+      crossEngineProfile: createPhysicsDiagnosticsProfile()
+    };
+  }
+
   removeRigidBody(id) {
     if (!id) return false;
     this.backendModule?.removeBody?.(this.backendWorld, id);
@@ -396,6 +439,16 @@ function normalizeConstraint(constraint = {}, index = 0) {
   };
 }
 
+function normalizeDiagnosticConstraint(constraint = {}, index = 0) {
+  const normalized = normalizeConstraint(constraint, index);
+  return {
+    ...normalized,
+    backend: constraint.backend || null,
+    breakForce: constraint.breakForce == null ? null : numberOr(constraint.breakForce, 0),
+    collideConnected: Boolean(constraint.collideConnected)
+  };
+}
+
 function normalizeCollider(collider = {}) {
   const shape = typeof collider === 'string' ? collider : collider.shape || collider.type || 'box';
   return {
@@ -404,6 +457,140 @@ function normalizeCollider(collider = {}) {
     height: numberOr(collider.height, collider.h, collider.size?.[1], 1),
     radius: numberOr(collider.radius, shape === 'circle' ? 0.5 : 0),
     sensor: Boolean(collider.sensor || collider.isSensor)
+  };
+}
+
+function normalizeDiagnosticBody(body = {}) {
+  const collider = normalizeCollider(body.collider || body.shape || body);
+  const sensor = Boolean(body.sensor || body.isSensor || collider.sensor);
+  const type = body.type || (body.isStatic || body.static ? 'static' : 'dynamic');
+  return {
+    id: String(body.id || body.name || ''),
+    name: body.name || body.id || null,
+    type,
+    collider: {
+      ...collider,
+      sensor
+    },
+    sensor,
+    material: body.material || body.physicsMaterial || body.plugin?.physicsMaterial || null,
+    position: normalizePoint(body.position || body),
+    velocity: {
+      x: numberOr(body.vx, body.velocity?.x, 0),
+      y: numberOr(body.vy, body.velocity?.y, 0)
+    },
+    angle: numberOr(body.angle, body.rotation, 0),
+    angularVelocity: numberOr(body.angularVelocity, 0),
+    backend: body.backend || null,
+    collisionFilter: normalizeDiagnosticCollisionFilter(body.collisionFilter)
+  };
+}
+
+function normalizeDiagnosticCollisionFilter(filter = {}) {
+  return {
+    category: filter.category || 'world',
+    mask: Array.isArray(filter.mask) ? [...filter.mask] : (filter.mask == null ? ['world'] : [filter.mask])
+  };
+}
+
+function normalizeRaycastProbe(probe = {}, index = 0) {
+  return {
+    id: String(probe.id || probe.name || `raycast-${index + 1}`),
+    origin: normalizePoint(probe.origin || probe.from || probe),
+    direction: normalizeDirection(probe.direction || probe.dir || { x: 1, y: 0 }),
+    maxDistance: normalizeDistance(probe.maxDistance ?? probe.distance ?? probe.length)
+  };
+}
+
+function normalizeRaycastHit(hit = {}) {
+  return {
+    bodyId: hit.bodyId || hit.body?.id || null,
+    distance: numberOr(hit.distance, 0),
+    point: normalizePoint(hit.point),
+    normal: normalizeDirection(hit.normal || { x: 0, y: -1 }),
+    body: hit.body ? normalizeDiagnosticBody(hit.body) : null
+  };
+}
+
+function normalizeDistance(distance) {
+  const numeric = Number(distance);
+  return Number.isFinite(numeric) ? Math.max(0, numeric) : Number.POSITIVE_INFINITY;
+}
+
+function normalizeArray(value) {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function createPhysicsDiagnosticsIssues({ constraints = [], bodyIds = new Set() } = {}) {
+  const issues = [];
+  for (const constraint of constraints) {
+    if (constraint.bodyA && !bodyIds.has(constraint.bodyA)) {
+      issues.push({
+        id: `missing-body:${constraint.id}:bodyA`,
+        severity: 'warning',
+        type: 'missing-constraint-body',
+        message: `Constraint ${constraint.id} references missing bodyA ${constraint.bodyA}.`,
+        constraintId: constraint.id,
+        bodyId: constraint.bodyA
+      });
+    }
+    if (constraint.bodyB && !bodyIds.has(constraint.bodyB)) {
+      issues.push({
+        id: `missing-body:${constraint.id}:bodyB`,
+        severity: 'warning',
+        type: 'missing-constraint-body',
+        message: `Constraint ${constraint.id} references missing bodyB ${constraint.bodyB}.`,
+        constraintId: constraint.id,
+        bodyId: constraint.bodyB
+      });
+    }
+  }
+  return issues;
+}
+
+function createPhysicsDiagnosticsSeverity(issues = []) {
+  if (issues.some((issue) => issue.severity === 'error')) return 'error';
+  if (issues.length > 0) return 'warning';
+  return 'ok';
+}
+
+function createPhysicsDiagnosticsSummary({
+  bodies = [],
+  constraints = [],
+  raycasts = [],
+  debugDraw = null,
+  severity = 'ok'
+} = {}) {
+  return {
+    bodyCount: bodies.length,
+    sensorCount: bodies.filter((body) => body.sensor).length,
+    staticBodyCount: bodies.filter((body) => body.type === 'static').length,
+    dynamicBodyCount: bodies.filter((body) => body.type !== 'static').length,
+    constraintCount: constraints.length,
+    raycastCount: raycasts.length,
+    raycastHitCount: raycasts.filter((raycast) => raycast.hit).length,
+    debugColliderCount: Array.isArray(debugDraw?.colliders) ? debugDraw.colliders.length : 0,
+    severity
+  };
+}
+
+function createPhysicsDiagnosticsProfile() {
+  return {
+    sources: [
+      'Godot Visible Collision Shapes',
+      'Unity Physics Debugger',
+      'Unreal Physics Debug Draw',
+      'Rapier debug render pipeline',
+      'Matter.js Render debug overlay'
+    ],
+    capabilities: [
+      'physics-world-snapshot',
+      'sensor-and-constraint-audit',
+      'raycast-probe-report',
+      'editor-debug-draw-payload',
+      'backend-capability-summary'
+    ]
   };
 }
 

@@ -91,4 +91,79 @@ describe('PhysicsWorld multi-backend switching', () => {
     world.stepBackend(0.5);
     expect(world.getRigidBody('hero')).toMatchObject({ x: 4, y: 5.5 });
   });
+
+  it('creates editor-ready physics diagnostics snapshots for debug panels', () => {
+    const world = new PhysicsWorld();
+    world.createRigidBody({
+      id: 'hero',
+      type: 'dynamic',
+      x: 0,
+      y: 0,
+      vx: 2,
+      collider: { shape: 'box', width: 2, height: 3 },
+      material: 'player'
+    });
+    world.createRigidBody({
+      id: 'goal-trigger',
+      type: 'static',
+      x: 10,
+      y: 0,
+      sensor: true,
+      collider: { shape: 'circle', radius: 1, sensor: true }
+    });
+    world.createConstraint({
+      id: 'hero-link',
+      type: 'distance',
+      bodyA: 'hero',
+      bodyB: 'goal-trigger',
+      limits: { min: 2, max: 12 }
+    });
+
+    const snapshot = world.createDiagnosticsSnapshot({
+      raycasts: [
+        {
+          id: 'forward-probe',
+          origin: { x: -5, y: 0 },
+          direction: { x: 1, y: 0 },
+          maxDistance: 20
+        }
+      ]
+    });
+
+    expect(snapshot.schema).toBe('omnicore.physics-diagnostics-snapshot.v1');
+    expect(snapshot.summary).toMatchObject({
+      bodyCount: 2,
+      sensorCount: 1,
+      dynamicBodyCount: 1,
+      staticBodyCount: 1,
+      constraintCount: 1,
+      raycastCount: 1,
+      raycastHitCount: 1,
+      debugColliderCount: 2,
+      severity: 'ok'
+    });
+    expect(snapshot.bodies).toContainEqual(expect.objectContaining({
+      id: 'goal-trigger',
+      sensor: true,
+      collider: expect.objectContaining({ shape: 'circle', radius: 1 })
+    }));
+    expect(snapshot.constraints).toContainEqual(expect.objectContaining({
+      id: 'hero-link',
+      bodyA: 'hero',
+      bodyB: 'goal-trigger'
+    }));
+    expect(snapshot.raycasts[0]).toMatchObject({
+      id: 'forward-probe',
+      hit: { bodyId: 'hero', distance: 5 }
+    });
+    expect(snapshot.debugDraw.colliders).toHaveLength(2);
+    expect(snapshot.backendCapabilities.capabilities).toContain('debug-draw');
+    expect(snapshot.crossEngineProfile.capabilities).toEqual(expect.arrayContaining([
+      'physics-world-snapshot',
+      'sensor-and-constraint-audit',
+      'raycast-probe-report',
+      'editor-debug-draw-payload',
+      'backend-capability-summary'
+    ]));
+  });
 });

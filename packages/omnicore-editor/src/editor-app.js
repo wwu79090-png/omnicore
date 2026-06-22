@@ -1,6 +1,3 @@
-import { AssetRegistry } from 'omnicore/src/assets/AssetRegistry.js';
-import { AssetRegistryChangeSet } from 'omnicore/src/assets/AssetRegistryChangeSet.js';
-import { VisualScriptGraphRuntime } from 'omnicore/src/visualgraph/VisualScriptGraphRuntime.js';
 import {
   Activity,
   BadgeCheck,
@@ -52,6 +49,11 @@ import {
   Workflow,
   Zap
 } from 'lucide-static';
+import {
+  AssetRegistry,
+  AssetRegistryChangeSet,
+  VisualScriptGraphRuntime
+} from './editor-runtime-adapters.js';
 import {
   EditorCoCreator25D,
   SocialAwareness25D,
