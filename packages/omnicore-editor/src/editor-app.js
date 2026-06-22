@@ -1118,6 +1118,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     exportUILayoutJson,
     exportDataJson,
     exportRenderOptimizationPlan,
+    verifyRenderOptimizationPlan,
     createRuntimeSyncPayload,
     applyRuntimeSyncPayload,
     create25DPreview,
@@ -2340,6 +2341,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       },
       exportRenderOptimizationPlan(options = {}) {
         return exportRenderOptimizationPlan(options);
+      },
+      verifyRenderOptimizationPlan(input = {}, options = {}) {
+        return verifyRenderOptimizationPlan(input, options);
       },
       addUIButton(button = {}) {
         return addUIButton(button);
@@ -4537,6 +4541,22 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return runtimePlan;
   }
 
+  function verifyRenderOptimizationPlan(input = {}, options = {}) {
+    const verification = createEditorRenderOptimizationVerificationReport(current, input, options);
+    current = createEditorState({
+      ...current,
+      renderOptimizationVerification: verification,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'render-diagnostics', 'bottom')
+    });
+    emit('editor:render-optimization-verification', verification);
+    update(current);
+    showEditorFeedback(
+      verification.ok ? '渲染优化验证通过' : '渲染优化验证未通过',
+      verification.ok ? 'success' : 'warning'
+    );
+    return verification;
+  }
+
   function createRuntimeSyncPayload() {
     const generatedAt = new Date().toISOString();
     return {
@@ -4549,6 +4569,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       visualScriptTrace: cloneState(current.visualScriptTrace),
       uiLayout: exportUILayoutJson(),
       renderOptimizationPlan: cloneState(current.renderOptimizationPlan),
+      renderOptimizationVerification: cloneState(current.renderOptimizationVerification),
       renderOptimizationRuntime: createRenderOptimizationRuntimePlan(current.renderOptimizationPlan, { generatedAt })
     };
   }
@@ -4562,6 +4583,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       visualScriptValidation: payload.visualScriptTrace?.validation || current.visualScriptValidation,
       uiLayout: payload.uiLayout || current.uiLayout,
       renderOptimizationPlan: payload.renderOptimizationPlan || payload.renderOptimizationRuntime?.sourcePlan || current.renderOptimizationPlan,
+      renderOptimizationVerification: payload.renderOptimizationVerification || current.renderOptimizationVerification,
       flowGraph: payload.flowGraph || current.flowGraph
     });
     emit('editor:runtime-sync-applied', { protocol: payload.protocol || null });
@@ -7225,6 +7247,23 @@ export function createEditorApp(root = document.querySelector('#app'), {
       optimizationPlan.append(planTitle, planSummary, planSource);
       wrap.appendChild(optimizationPlan);
     }
+    const verification = current.renderOptimizationVerification;
+    if (verification) {
+      const verificationBlock = document.createElement('div');
+      verificationBlock.className = 'render-optimization-verification';
+      verificationBlock.dataset.renderOptimizationVerification = 'true';
+      verificationBlock.dataset.renderOptimizationVerificationStatus = verification.status || 'unknown';
+      const status = document.createElement('strong');
+      status.textContent = localizeRenderOptimizationVerificationStatus(verification.status, verification.ok);
+      const verificationSummary = document.createElement('span');
+      const gatesPassed = verification.summary?.gatesPassed || 0;
+      const gateCount = gatesPassed + Number(verification.summary?.gatesFailed || 0);
+      verificationSummary.textContent = `门禁 ${gatesPassed}/${gateCount} · Draw Call ${formatSignedRenderMetric(-Number(verification.summary?.savedDrawCalls || 0))} · 帧耗时 ${formatSignedRenderMetric(verification.summary?.frameMsDelta)}ms`;
+      const source = document.createElement('small');
+      source.textContent = `${verification.source || 'editor'} · ${verification.verifiedAt || '-'}`;
+      verificationBlock.append(status, verificationSummary, source);
+      wrap.appendChild(verificationBlock);
+    }
     return wrap;
   }
 }
@@ -9361,6 +9400,161 @@ function summarizeRenderOptimizationPlan(plan = {}) {
   return `图集 ${atlasCount} · 纹理上传 ${deferredUploads} · Filter ${filterCount} · 后端 ${backend} · 动作 ${actionCount} · 运行时动作 ${runtimeActionCount}`;
 }
 
+function createEditorRenderOptimizationVerificationReport(state = {}, input = {}, options = {}) {
+  const verifiedAt = resolveEditorVerificationTimestamp(input.verifiedAt || options.verifiedAt || input.now || options.now);
+  const runtimePlan = input.runtimePlan || createRenderOptimizationRuntimePlan(state.renderOptimizationPlan, {
+    generatedAt: verifiedAt
+  });
+  const applyReport = input.applyReport || {
+    schema: 'omnicore.render-optimization-apply-report.v1',
+    sourcePlanId: runtimePlan.sourcePlanId || state.renderOptimizationPlan?.id || null,
+    status: input.applyStatus || 'applied',
+    applied: cloneState(runtimePlan.runtimeActions || []),
+    summary: { appliedCount: runtimePlan.runtimeActions?.length || 0 }
+  };
+  const before = normalizeRenderVerificationMetrics(input.before || createRenderVerificationMetricsFromPanel(state.renderDiagnosticsPanel));
+  const after = normalizeRenderVerificationMetrics(input.after || before);
+  const budgets = normalizeRenderVerificationBudgets(input.budgets || runtimePlan.budgets || state.renderDiagnosticsPanel?.budgets);
+  const gates = [
+    buildEditorVerificationGate('frame-budget', 'Frame budget', before.frameMs, after.frameMs, budgets.frameMs),
+    buildEditorVerificationGate('draw-call-budget', 'Draw call budget', before.drawCalls, after.drawCalls, budgets.drawCalls),
+    buildEditorVerificationGate('texture-upload-budget', 'Texture upload budget', before.textureUploads, after.textureUploads, budgets.textureUploads),
+    buildEditorVerificationGate('filter-pass-budget', 'Filter pass budget', before.filterPasses, after.filterPasses, budgets.filterPasses)
+  ];
+  const regressions = gates
+    .filter((gate) => gate.delta > 0)
+    .map(({ id, label, before: beforeValue, after: afterValue, delta, budget, ok }) => ({
+      id,
+      label,
+      before: beforeValue,
+      after: afterValue,
+      delta,
+      budget,
+      ok
+    }));
+  const gatesFailed = gates.filter((gate) => !gate.ok).length;
+  const appliedCount = Number(applyReport.summary?.appliedCount ?? applyReport.applied?.length ?? 0);
+  return {
+    schema: 'omnicore.render-optimization-verification-report.v1',
+    source: input.source || options.source || 'editor-render-diagnostics',
+    sourcePlanId: applyReport.sourcePlanId || runtimePlan.sourcePlanId || state.renderOptimizationPlan?.id || null,
+    runtimePlanId: runtimePlan.sourcePlanId || null,
+    frameIndex: input.frameIndex ?? state.renderDiagnosticsPanel?.summary?.frameIndex ?? runtimePlan.frameIndex ?? null,
+    verifiedAt,
+    applyStatus: applyReport.status || null,
+    ok: gatesFailed === 0,
+    status: gatesFailed > 0 ? 'failed' : (regressions.length ? 'warning' : 'passed'),
+    before,
+    after,
+    budgets,
+    gates,
+    regressions,
+    summary: {
+      appliedCount,
+      savedDrawCalls: Math.max(0, roundEditorVerificationMetric(before.drawCalls - after.drawCalls)),
+      frameMsDelta: roundEditorVerificationMetric(after.frameMs - before.frameMs),
+      gatesPassed: gates.length - gatesFailed,
+      gatesFailed
+    },
+    crossEngineProfile: {
+      sources: [
+        { engine: 'Godot', advantage: 'editor-visible profiling and scene feedback keep optimization actionable' },
+        { engine: 'Unity', advantage: 'Profiler-style before/after budgets make optimization evidence explicit' },
+        { engine: 'Unreal', advantage: 'Insights-style regression gates expose render cost changes' },
+        { engine: 'PixiJS', advantage: 'batching, texture upload, and filter costs stay visible to 2D workflows' }
+      ],
+      capabilities: [
+        'editor-render-optimization-verification',
+        'runtime-budget-gate-visualization',
+        'before-after-render-evidence',
+        'render-regression-surfacing'
+      ]
+    }
+  };
+}
+
+function createRenderVerificationMetricsFromPanel(panel = null) {
+  const summary = panel?.report?.summary || panel?.summary || {};
+  return {
+    frameMs: summary.cpuMs ?? summary.frameMs ?? summary.gpuMs,
+    drawCalls: summary.drawCallsBefore,
+    textureUploads: summary.textureUploadCount,
+    filterPasses: summary.filterPassCount
+  };
+}
+
+function normalizeRenderVerificationMetrics(metrics = {}) {
+  return {
+    frameMs: numberOrZero(metrics.frameMs ?? metrics.frameTimeMs ?? metrics.cpuMs ?? metrics.ms),
+    drawCalls: numberOrZero(metrics.drawCalls ?? metrics.drawCallCount ?? metrics.drawCallsBefore),
+    textureUploads: numberOrZero(metrics.textureUploads ?? metrics.textureUploadCount ?? metrics.uploads),
+    textureUploadBytes: numberOrZero(metrics.textureUploadBytes ?? metrics.uploadBytes ?? metrics.bytes),
+    filterPasses: numberOrZero(metrics.filterPasses ?? metrics.filterPassCount ?? metrics.passes),
+    filterMs: numberOrZero(metrics.filterMs ?? metrics.filterCostMs)
+  };
+}
+
+function normalizeRenderVerificationBudgets(budgets = {}) {
+  return {
+    frameMs: numberOrNull(budgets.frameMs ?? budgets.frameBudgetMs ?? budgets.frameTimeMs ?? budgets.cpuMs ?? budgets.ms),
+    drawCalls: numberOrNull(budgets.drawCalls ?? budgets.drawCallBudget ?? budgets.drawCallCount),
+    textureUploads: numberOrNull(budgets.textureUploads ?? budgets.textureUploadBudget ?? budgets.textureUploadCount ?? budgets.uploads),
+    textureUploadBytes: numberOrNull(budgets.textureUploadBytes ?? budgets.textureUploadByteBudget ?? budgets.uploadBytes ?? budgets.bytes),
+    filterPasses: numberOrNull(budgets.filterPasses ?? budgets.filterPassBudget ?? budgets.filterPassCount ?? budgets.passes),
+    filterMs: numberOrNull(budgets.filterMs ?? budgets.filterCostMs)
+  };
+}
+
+function buildEditorVerificationGate(id, label, before, after, budget) {
+  const delta = roundEditorVerificationMetric(after - before);
+  return {
+    id,
+    label,
+    ok: budget == null || after <= budget,
+    before,
+    after,
+    budget,
+    delta,
+    improved: delta <= 0
+  };
+}
+
+function localizeRenderOptimizationVerificationStatus(status = '', ok = false) {
+  if (ok || status === 'passed') return '验证通过';
+  if (status === 'warning') return '验证预警';
+  if (status === 'failed') return '验证失败';
+  return '等待验证';
+}
+
+function formatSignedRenderMetric(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number === 0) return '0';
+  const formatted = formatRenderMetric(number);
+  return number > 0 ? `+${formatted}` : formatted;
+}
+
+function resolveEditorVerificationTimestamp(value) {
+  if (value == null) return new Date().toISOString();
+  const parsed = Number.isFinite(Number(value)) ? Number(value) : Date.parse(value);
+  return new Date(Number.isFinite(parsed) ? parsed : Date.now()).toISOString();
+}
+
+function numberOrZero(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function numberOrNull(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function roundEditorVerificationMetric(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.round(parsed * 1000) / 1000;
+}
+
 function localizeRenderSeverity(severity = 'ok') {
   const labels = {
     ok: '正常',
@@ -10109,6 +10303,12 @@ const EDITOR_CSS = `
   .render-optimization-plan strong { color: #bbf7d0; font-size: 11px; }
   .render-optimization-plan span { min-width: 0; color: #e5e7eb; overflow-wrap: anywhere; }
   .render-optimization-plan small { color: #94a3b8; white-space: nowrap; }
+  .render-optimization-verification { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; min-width: 0; padding: 7px 8px; border: 1px solid #25636b; border-radius: 6px; background: #061417; }
+  .render-optimization-verification strong { color: #a7f3d0; font-size: 11px; white-space: nowrap; }
+  .render-optimization-verification span { min-width: 0; color: #e0f2fe; overflow-wrap: anywhere; }
+  .render-optimization-verification small { color: #94a3b8; white-space: nowrap; }
+  .render-optimization-verification[data-render-optimization-verification-status="failed"] { border-color: #7f1d1d; background: #1a0b0b; }
+  .render-optimization-verification[data-render-optimization-verification-status="failed"] strong { color: #fecaca; }
   .profiler-wrap { display: grid; gap: 5px; }
   .profiler-flamegraph { display: grid; gap: 4px; padding: 6px; border: 1px solid #334155; background: #020617; }
   .profiler-row { display: grid; grid-template-columns: 132px 1fr 56px; gap: 6px; align-items: center; }
