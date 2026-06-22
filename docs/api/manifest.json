@@ -134,6 +134,15 @@
       ]
     },
     {
+      "path": "assets/AssetImportProfile.js",
+      "summary": "",
+      "exports": [
+        "ASSET_IMPORT_PROFILE_RESOLUTION_SCHEMA",
+        "ASSET_IMPORT_PROFILE_AUDIT_SCHEMA",
+        "AssetImportProfile"
+      ]
+    },
+    {
       "path": "assets/AssetManifestGraph.js",
       "summary": "",
       "exports": [

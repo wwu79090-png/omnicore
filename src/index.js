@@ -302,6 +302,7 @@ import AssetBuildRecipe from './assets/AssetBuildRecipe.js';
 import FantasyConsoleBank from './assets/FantasyConsoleBank.js';
 import AssetPatchManager from './assets/AssetPatchManager.js';
 import AssetImportMetadata from './assets/AssetImportMetadata.js';
+import AssetImportProfile from './assets/AssetImportProfile.js';
 import AssetPipelineGate, { createAssetPipelineReport } from './assets/AssetPipelineGate.js';
 import PlatformVariantResolver from './assets/PlatformVariantResolver.js';
 import ResourceOwnershipGraph from './assets/ResourceOwnershipGraph.js';
@@ -1201,6 +1202,7 @@ const OmniCore = {
   AssetResidencyManager,
   AssetPatchManager,
   AssetImportMetadata,
+  AssetImportProfile,
   AssetManifestGraph,
   AssetPipelineGate,
   createAssetPipelineReport,
@@ -1429,6 +1431,7 @@ export {
   AudioEditor,
   AssetBrowser,
   AssetImportMetadata,
+  AssetImportProfile,
   AICommandService,
   AIImporter,
   AITilemapGenerator,
