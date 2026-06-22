@@ -1623,6 +1623,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "AssetRegistryChangeSet"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "AssetResidencyManager"
       },
       {
@@ -3226,6 +3231,7 @@
       "AssetPipelineGate",
       "AssetReferenceIntegrityAuditor",
       "AssetRegistry",
+      "AssetRegistryChangeSet",
       "AssetResidencyManager",
       "AudioAddon",
       "AudioEditor",

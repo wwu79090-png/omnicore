@@ -294,6 +294,7 @@ import Font from './assets/Font.js';
 import OBundle from './assets/OBundle.js';
 import AddressableCatalog from './assets/AddressableCatalog.js';
 import AssetRegistry from './assets/AssetRegistry.js';
+import AssetRegistryChangeSet from './assets/AssetRegistryChangeSet.js';
 import AssetReferenceIntegrityAuditor from './assets/AssetReferenceIntegrityAuditor.js';
 import AssetResidencyManager from './assets/AssetResidencyManager.js';
 import AssetBuildRecipe from './assets/AssetBuildRecipe.js';
@@ -1193,6 +1194,7 @@ const OmniCore = {
   Analytics,
   AddressableCatalog,
   AssetRegistry,
+  AssetRegistryChangeSet,
   AssetReferenceIntegrityAuditor,
   AssetResidencyManager,
   AssetPatchManager,
@@ -1410,6 +1412,7 @@ export {
   AbilitySystem,
   AddressableCatalog,
   AssetRegistry,
+  AssetRegistryChangeSet,
   AssetReferenceIntegrityAuditor,
   API_TIERS,
   DEFAULT_API_SURFACE,

@@ -173,6 +173,14 @@
       ]
     },
     {
+      "path": "assets/AssetRegistryChangeSet.js",
+      "summary": "Dependency-aware asset change session for editor file watches, imports, hot reload, and resource browser updates.",
+      "exports": [
+        "ASSET_REGISTRY_CHANGE_PLAN_SCHEMA",
+        "AssetRegistryChangeSet"
+      ]
+    },
+    {
       "path": "assets/AssetResidencyManager.js",
       "summary": "",
       "exports": [
