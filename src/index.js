@@ -291,6 +291,7 @@ import MarketplaceServer from './marketplace/MarketplaceServer.js';
 import Font from './assets/Font.js';
 import OBundle from './assets/OBundle.js';
 import AddressableCatalog from './assets/AddressableCatalog.js';
+import AssetReferenceIntegrityAuditor from './assets/AssetReferenceIntegrityAuditor.js';
 import AssetResidencyManager from './assets/AssetResidencyManager.js';
 import AssetBuildRecipe from './assets/AssetBuildRecipe.js';
 import FantasyConsoleBank from './assets/FantasyConsoleBank.js';
@@ -1185,6 +1186,7 @@ const OmniCore = {
   AIImporter,
   Analytics,
   AddressableCatalog,
+  AssetReferenceIntegrityAuditor,
   AssetResidencyManager,
   AssetPatchManager,
   AssetImportMetadata,
@@ -1399,6 +1401,7 @@ export {
   ABTest,
   AbilitySystem,
   AddressableCatalog,
+  AssetReferenceIntegrityAuditor,
   API_TIERS,
   DEFAULT_API_SURFACE,
   ApiSurface,

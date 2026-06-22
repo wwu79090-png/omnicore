@@ -157,6 +157,14 @@
       ]
     },
     {
+      "path": "assets/AssetReferenceIntegrityAuditor.js",
+      "summary": "Resource database auditor for stable ids, addressable paths, bundle dependencies, and prefab/scene repair plans.",
+      "exports": [
+        "ASSET_REFERENCE_INTEGRITY_REPORT_SCHEMA",
+        "AssetReferenceIntegrityAuditor"
+      ]
+    },
+    {
       "path": "assets/AssetResidencyManager.js",
       "summary": "",
       "exports": [

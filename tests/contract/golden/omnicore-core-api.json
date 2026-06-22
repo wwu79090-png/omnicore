@@ -1613,6 +1613,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "AssetReferenceIntegrityAuditor"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "AssetResidencyManager"
       },
       {
@@ -3199,6 +3204,7 @@
       "AssetManifestGraph",
       "AssetPatchManager",
       "AssetPipelineGate",
+      "AssetReferenceIntegrityAuditor",
       "AssetResidencyManager",
       "AudioAddon",
       "AudioEditor",
