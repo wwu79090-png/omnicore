@@ -224,6 +224,59 @@ export class RenderOptimizationRuntimeExecutor {
     };
   }
 
+  verifyAppliedPlan(applyReport = {}, evidence = {}) {
+    const before = normalizeRenderMetrics(evidence.before);
+    const after = normalizeRenderMetrics(evidence.after);
+    const budgets = normalizeRenderBudgets(evidence.budgets);
+    const gates = [
+      buildBudgetGate('frame-budget', 'Frame budget', before.frameMs, after.frameMs, budgets.frameMs),
+      buildBudgetGate('draw-call-budget', 'Draw call budget', before.drawCalls, after.drawCalls, budgets.drawCalls),
+      buildBudgetGate(
+        'texture-upload-budget',
+        'Texture upload budget',
+        before.textureUploads,
+        after.textureUploads,
+        budgets.textureUploads
+      ),
+      buildBudgetGate('filter-pass-budget', 'Filter pass budget', before.filterPasses, after.filterPasses, budgets.filterPasses)
+    ];
+    const regressions = gates
+      .filter((gate) => gate.delta > 0)
+      .map(({ id, label, before: beforeValue, after: afterValue, delta, budget, ok }) => ({
+        id,
+        label,
+        before: beforeValue,
+        after: afterValue,
+        delta,
+        budget,
+        ok
+      }));
+    const gatesFailed = gates.filter((gate) => !gate.ok).length;
+    const appliedCount = Number(applyReport.summary?.appliedCount ?? applyReport.applied?.length ?? 0);
+    const frameMsDelta = roundMetric(after.frameMs - before.frameMs);
+
+    return {
+      schema: 'omnicore.render-optimization-verification-report.v1',
+      sourcePlanId: applyReport.sourcePlanId || null,
+      applyStatus: applyReport.status || null,
+      ok: gatesFailed === 0,
+      status: gatesFailed > 0 ? 'failed' : (regressions.length > 0 ? 'warning' : 'passed'),
+      before,
+      after,
+      budgets,
+      gates,
+      regressions,
+      summary: {
+        appliedCount,
+        savedDrawCalls: Math.max(0, roundMetric(before.drawCalls - after.drawCalls)),
+        frameMsDelta,
+        gatesPassed: gates.length - gatesFailed,
+        gatesFailed
+      },
+      crossEngineProfile: runtimeVerificationCrossEngineProfile()
+    };
+  }
+
   #applyAction(action) {
     if (action.type === 'buildAtlas') {
       const result = callAdapter(this.renderer, ['buildAtlas', 'createAtlas', 'registerAtlas'], action);
@@ -395,6 +448,58 @@ function adapterResultToActionResult(action = {}, adapterResult = {}, baseRecord
   };
 }
 
+function normalizeRenderMetrics(metrics = {}) {
+  return {
+    frameMs: numberOrZero(metrics.frameMs ?? metrics.frameTimeMs ?? metrics.cpuMs ?? metrics.ms),
+    drawCalls: numberOrZero(metrics.drawCalls ?? metrics.drawCallCount),
+    textureUploads: numberOrZero(metrics.textureUploads ?? metrics.textureUploadCount ?? metrics.uploads),
+    textureUploadBytes: numberOrZero(metrics.textureUploadBytes ?? metrics.uploadBytes ?? metrics.bytes),
+    filterPasses: numberOrZero(metrics.filterPasses ?? metrics.filterPassCount ?? metrics.passes),
+    filterMs: numberOrZero(metrics.filterMs ?? metrics.filterCostMs)
+  };
+}
+
+function normalizeRenderBudgets(budgets = {}) {
+  return {
+    frameMs: numberOrNull(budgets.frameMs ?? budgets.frameTimeMs ?? budgets.cpuMs ?? budgets.ms),
+    drawCalls: numberOrNull(budgets.drawCalls ?? budgets.drawCallCount),
+    textureUploads: numberOrNull(budgets.textureUploads ?? budgets.textureUploadCount ?? budgets.uploads),
+    textureUploadBytes: numberOrNull(budgets.textureUploadBytes ?? budgets.uploadBytes ?? budgets.bytes),
+    filterPasses: numberOrNull(budgets.filterPasses ?? budgets.filterPassCount ?? budgets.passes),
+    filterMs: numberOrNull(budgets.filterMs ?? budgets.filterCostMs)
+  };
+}
+
+function buildBudgetGate(id, label, before, after, budget) {
+  const delta = roundMetric(after - before);
+  return {
+    id,
+    label,
+    ok: budget === null || after <= budget,
+    before,
+    after,
+    budget,
+    delta,
+    improved: delta <= 0
+  };
+}
+
+function numberOrZero(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function numberOrNull(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function roundMetric(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.round(parsed * 1000) / 1000;
+}
+
 function buildRollbackActions(actions = []) {
   return normalizeActions(actions).flatMap((action) => {
     if (action.type === 'buildAtlas') {
@@ -529,6 +634,25 @@ function runtimeExecutionCrossEngineProfile() {
       'backend-fallback-application',
       'batch-aware-render-queue-application',
       'runtime-optimization-audit-trail'
+    ]
+  };
+}
+
+function runtimeVerificationCrossEngineProfile() {
+  return {
+    sources: [
+      { engine: 'Unity', advantage: 'Profiler evidence should close the loop after optimization is applied' },
+      { engine: 'Unreal', advantage: 'Insights-style before/after budgets make render regressions visible' },
+      { engine: 'PixiJS', advantage: 'batching, texture upload, and filter costs need explicit runtime checks' },
+      { engine: 'Three.js', advantage: 'renderer statistics should be compared against stable scene budgets' }
+    ],
+    capabilities: [
+      'post-apply-budget-verification',
+      'before-after-render-evidence',
+      'runtime-optimization-gates',
+      'draw-call-budget-validation',
+      'texture-upload-budget-validation',
+      'filter-pass-budget-validation'
     ]
   };
 }

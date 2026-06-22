@@ -468,4 +468,85 @@ describe('engine pattern rendering reliability batching pack', () => {
       'rollback'
     ]));
   });
+
+  it('verifies applied render optimization plans against runtime budgets', () => {
+    const executor = new RenderOptimizationRuntimeExecutor();
+
+    const verification = executor.verifyAppliedPlan({
+      schema: 'omnicore.render-optimization-apply-report.v1',
+      sourcePlanId: 'render-plan-verify',
+      status: 'applied',
+      applied: [
+        { type: 'buildAtlas' },
+        { type: 'scheduleTextureUpload' },
+        { type: 'flattenFilter' }
+      ],
+      summary: { appliedCount: 3 }
+    }, {
+      before: { frameMs: 22, drawCalls: 12, textureUploads: 4, filterPasses: 5 },
+      after: { frameMs: 15.8, drawCalls: 6, textureUploads: 2, filterPasses: 2 },
+      budgets: { frameMs: 16.67, drawCalls: 8, textureUploads: 2, filterPasses: 3 }
+    });
+
+    expect(verification).toMatchObject({
+      schema: 'omnicore.render-optimization-verification-report.v1',
+      sourcePlanId: 'render-plan-verify',
+      ok: true,
+      status: 'passed',
+      summary: {
+        appliedCount: 3,
+        savedDrawCalls: 6,
+        frameMsDelta: -6.2,
+        gatesPassed: 4,
+        gatesFailed: 0
+      }
+    });
+    expect(verification.gates).toEqual(expect.arrayContaining([
+      { id: 'frame-budget', label: 'Frame budget', ok: true, before: 22, after: 15.8, budget: 16.67, delta: -6.2, improved: true },
+      { id: 'draw-call-budget', label: 'Draw call budget', ok: true, before: 12, after: 6, budget: 8, delta: -6, improved: true },
+      { id: 'texture-upload-budget', label: 'Texture upload budget', ok: true, before: 4, after: 2, budget: 2, delta: -2, improved: true },
+      { id: 'filter-pass-budget', label: 'Filter pass budget', ok: true, before: 5, after: 2, budget: 3, delta: -3, improved: true }
+    ]));
+    expect(verification.regressions).toEqual([]);
+    expect(verification.crossEngineProfile.capabilities).toEqual(expect.arrayContaining([
+      'post-apply-budget-verification',
+      'before-after-render-evidence',
+      'runtime-optimization-gates'
+    ]));
+  });
+
+  it('flags render optimization verification regressions', () => {
+    const executor = new RenderOptimizationRuntimeExecutor();
+
+    const verification = executor.verifyAppliedPlan({
+      sourcePlanId: 'render-plan-regression',
+      status: 'applied',
+      applied: [{ type: 'buildAtlas' }],
+      summary: { appliedCount: 1 }
+    }, {
+      before: { frameMs: 16, drawCalls: 8, textureUploads: 1, filterPasses: 2 },
+      after: { frameMs: 20, drawCalls: 9, textureUploads: 3, filterPasses: 4 },
+      budgets: { frameMs: 16.67, drawCalls: 8, textureUploads: 2, filterPasses: 3 }
+    });
+
+    expect(verification).toMatchObject({
+      schema: 'omnicore.render-optimization-verification-report.v1',
+      sourcePlanId: 'render-plan-regression',
+      ok: false,
+      status: 'failed',
+      summary: {
+        appliedCount: 1,
+        savedDrawCalls: 0,
+        frameMsDelta: 4,
+        gatesPassed: 0,
+        gatesFailed: 4
+      }
+    });
+    expect(verification.regressions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'frame-budget', before: 16, after: 20, delta: 4 }),
+      expect.objectContaining({ id: 'draw-call-budget', before: 8, after: 9, delta: 1 }),
+      expect.objectContaining({ id: 'texture-upload-budget', before: 1, after: 3, delta: 2 }),
+      expect.objectContaining({ id: 'filter-pass-budget', before: 2, after: 4, delta: 2 })
+    ]));
+  });
 });
