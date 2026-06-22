@@ -108,4 +108,81 @@ describe('engine pattern rendering reliability batching pack', () => {
       { type: 'texture:retain', reason: 'before-app-init' }
     ]);
   });
+
+  it('creates editor-ready render frame budget reports with filter and texture risks', () => {
+    const diagnostics = new BatchAtlasDiagnostics({
+      frameBudgetMs: 16.67,
+      drawCallBudget: 4,
+      textureUploadBudget: 2,
+      filterPassBudget: 3
+    });
+
+    const report = diagnostics.createFrameBudgetReport({
+      frame: { index: 42, cpuMs: 18.2, gpuMs: 14.5, fps: 52 },
+      backend: {
+        selected: 'webgl2',
+        fallbackChain: ['webgpu', 'webgl2'],
+        rejected: [{ id: 'webgpu', reason: 'adapter-missing' }]
+      },
+      draws: [
+        { id: 'hero', texture: 'hero.png', material: 'lit', blendMode: 'normal' },
+        { id: 'enemy', texture: 'enemy.png', material: 'lit', blendMode: 'normal' },
+        { id: 'spark', texture: 'fx.png', material: 'additive', blendMode: 'add' },
+        { id: 'coin', texture: 'coin.png', material: 'lit', blendMode: 'normal' },
+        { id: 'ui', texture: 'ui.png', material: 'ui', blendMode: 'normal', dynamic: true }
+      ],
+      textureUploads: [
+        { id: 'hero', bytes: 1024 },
+        { id: 'enemy', bytes: 2048 },
+        { id: 'ui', bytes: 4096 }
+      ],
+      filterPasses: [
+        { id: 'bloom', passes: 2, estimatedMs: 1.4 },
+        { id: 'blur', passes: 2, estimatedMs: 2.1 }
+      ]
+    });
+
+    expect(report.schema).toBe('omnicore.render-frame-budget-report.v1');
+    expect(report.summary).toMatchObject({
+      frameIndex: 42,
+      fps: 52,
+      cpuMs: 18.2,
+      gpuMs: 14.5,
+      frameBudgetMs: 16.67,
+      overBudget: true,
+      severity: 'warning',
+      drawCallsBefore: 5,
+      predictedDrawCallsAfter: 4,
+      textureUploadCount: 3,
+      textureUploadBytes: 7168,
+      filterPassCount: 4,
+      filterMs: 3.5,
+      backend: 'webgl2'
+    });
+    expect(report.issues).toEqual(expect.arrayContaining([
+      { type: 'cpu-budget-exceeded', severity: 'warning', value: 18.2, budget: 16.67 },
+      { type: 'texture-upload-spike', severity: 'warning', value: 3, budget: 2 },
+      { type: 'filter-pass-budget-exceeded', severity: 'warning', value: 4, budget: 3 },
+      { type: 'backend-fallback', severity: 'info', value: 'webgpu', reason: 'adapter-missing' }
+    ]));
+    expect(report.recommendations).toEqual(expect.arrayContaining([
+      'createAtlas:lit|normal',
+      'sortByMaterialTexture',
+      'deferTextureUploads',
+      'flattenFilterChain',
+      'preferWebGPUWhenAvailable'
+    ]));
+    expect(report.editorPanels).toEqual([
+      'frame-budget',
+      'batch-breaks',
+      'texture-uploads',
+      'filter-costs',
+      'backend-fallback'
+    ]);
+    expect(report.crossEngineProfile.capabilities).toEqual(expect.arrayContaining([
+      'frame-budget-overlay',
+      'texture-upload-spike-detection',
+      'filter-pass-cost-audit'
+    ]));
+  });
 });

@@ -15,11 +15,11 @@
 **Files:**
 - Create: `tests/engine-pattern-rendering-reliability-batching-pack.test.js`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 The test imports `RendererBackendContract`, `RenderWorkerOwnership`, `BatchAtlasDiagnostics`, and `PixiLifecycleAudit` from `../src/index.js`.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- tests/engine-pattern-rendering-reliability-batching-pack.test.js`
 Expected: FAIL because the new exports are missing.
@@ -31,8 +31,8 @@ Expected: FAIL because the new exports are missing.
 - Create: `src/renderer/RenderWorkerOwnership.js`
 - Modify: `src/index.js`
 
-- [ ] **Step 1: Implement renderer backend contract resolution with explicit rejection reasons**
-- [ ] **Step 2: Implement worker ownership diagnostics for OffscreenCanvas and command transfer safety**
+- [x] **Step 1: Implement renderer backend contract resolution with explicit rejection reasons**
+- [x] **Step 2: Implement worker ownership diagnostics for OffscreenCanvas and command transfer safety**
 
 ### Task 3: Batching And Lifecycle Diagnostics
 
@@ -41,29 +41,33 @@ Expected: FAIL because the new exports are missing.
 - Create: `src/renderer/PixiLifecycleAudit.js`
 - Modify: `src/index.js`
 
-- [ ] **Step 1: Implement draw-call, material, and atlas grouping diagnostics**
-- [ ] **Step 2: Implement Pixi init/texture/destroy lifecycle audit report**
+- [x] **Step 1: Implement draw-call, material, and atlas grouping diagnostics**
+- [x] **Step 2: Implement Pixi init/texture/destroy lifecycle audit report**
+
+- [x] **Step 3: Extend batching diagnostics into editor-ready frame budget reports**
+
+Adds frame time, texture upload, filter pass, backend fallback, issue severity, and editor panel routing summaries inspired by PixiJS, Unity Frame Debugger, Unreal GPU Visualizer, and Godot RenderingServer profiler workflows.
 
 ### Task 4: Verification
 
 **Files:**
 - All modified files
 
-- [ ] **Step 1: Run focused tests**
+- [x] **Step 1: Run focused tests**
 
 Run: `npm test -- tests/engine-pattern-rendering-reliability-batching-pack.test.js`
 
-- [ ] **Step 2: Run related renderer tests**
+- [x] **Step 2: Run related renderer tests**
 
 Run: `npm test -- tests/engine-pattern-rendering-reliability-batching-pack.test.js tests/renderer-backends-mvp.test.js tests/pixi-framework-layer.test.js tests/lifecycle-leak-guards.test.js tests/engine-pattern-extreme-runtime-control-pack.test.js`
 
-- [ ] **Step 3: Update API contract and docs**
+- [x] **Step 3: Update API contract and docs**
 
 Run: `node scripts/contract/snapshot-api-contract.js --update`
 Run: `npm test -- tests/contract/api-contract-snapshot.test.js`
 Run: `npm run docs:generate`
 
-- [ ] **Step 4: Run audit, lint, build, and full tests**
+- [x] **Step 4: Run audit, lint, build, and full tests**
 
 Run: `npm run audit:api`
 Run: `npm run lint`
