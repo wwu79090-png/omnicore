@@ -1618,6 +1618,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "AssetRefreshCoordinator"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "AssetRegistry"
       },
       {
@@ -3230,6 +3235,7 @@
       "AssetPatchManager",
       "AssetPipelineGate",
       "AssetReferenceIntegrityAuditor",
+      "AssetRefreshCoordinator",
       "AssetRegistry",
       "AssetRegistryChangeSet",
       "AssetResidencyManager",

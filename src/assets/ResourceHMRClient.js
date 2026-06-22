@@ -6,8 +6,9 @@
  * hmr.connect(new WebSocket('/assets-hmr'));
  */
 export class ResourceHMRClient {
-  constructor({ patchManager = null } = {}) {
+  constructor({ patchManager = null, changeCoordinator = null } = {}) {
     this.patchManager = patchManager;
+    this.changeCoordinator = changeCoordinator;
     this.socket = null;
   }
 
@@ -37,6 +38,9 @@ export class ResourceHMRClient {
       files
     };
     await this.patchManager?.apply?.(patch);
+    if (payload.changePlan && this.changeCoordinator?.apply) {
+      patch.refreshReport = await this.changeCoordinator.apply(payload.changePlan, { sendHmr: false });
+    }
     return patch;
   }
 }

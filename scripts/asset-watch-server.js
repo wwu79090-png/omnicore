@@ -7,12 +7,14 @@ export function createAssetWatchServer({
   source = 'source-assets',
   debounceMs = 100,
   converter = defaultConverter,
+  changePlanner = null,
   websocket = null
 } = {}) {
   const state = {
     source: path.resolve(source),
     debounceMs,
     converter,
+    changePlanner,
     websocket,
     pending: new Set(),
     timer: null,
@@ -35,6 +37,9 @@ export function createAssetWatchServer({
       state.pending.clear();
       if (!files.length) return { files: [], conversions: [] };
       const conversions = await state.converter(files);
+      const changePlan = typeof state.changePlanner === 'function'
+        ? await state.changePlanner({ files, conversions, source: state.source })
+        : null;
       const payload = {
         type: 'assets:hot-update',
         source: state.source,
@@ -45,6 +50,7 @@ export function createAssetWatchServer({
         changedCount: files.length,
         pushedAt: new Date().toISOString()
       };
+      if (changePlan) payload.changePlan = changePlan;
       state.websocket?.send?.(JSON.stringify(payload));
       return payload;
     },
