@@ -30,7 +30,7 @@ ipcMain.handle('omnicore-editor:save-database-config', async (_event, payload = 
   const relativePath = payload.path || path.join('config', 'data.json');
   const target = path.resolve(projectRoot, relativePath);
   if (!target.startsWith(projectRoot)) {
-    return { ok: false, path: target, error: 'Target path escapes project root.' };
+    return { ok: false, path: target, error: '目标路径越过项目根目录。' };
   }
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, `${JSON.stringify(normalizeDatabaseConfig(payload.tables || {}), null, 2)}\n`, 'utf8');
@@ -40,7 +40,7 @@ ipcMain.handle('omnicore-editor:save-database-config', async (_event, payload = 
 ipcMain.handle('omnicore-editor:open-project-folder', async (event) => {
   const owner = BrowserWindow.fromWebContents(event.sender);
   const result = await dialog.showOpenDialog(owner, {
-    title: 'Open OmniCore Project',
+    title: '打开 OmniCore 项目',
     properties: ['openDirectory']
   });
   if (result.canceled || !result.filePaths?.[0]) return { canceled: true };
@@ -121,57 +121,57 @@ function openWorkspace(root, owner = null) {
 function createEditorMenu(win) {
   const template = [
     {
-      label: 'File',
+      label: '文件',
       submenu: [
         {
-          label: 'Open Project Folder...',
+          label: '打开项目文件夹...',
           accelerator: 'CmdOrCtrl+O',
           click: () => win.webContents.send('omnicore-editor:menu-command', { command: 'open-project-folder' })
         },
         {
-          label: 'Save Scene Snapshot',
+          label: '保存场景快照',
           accelerator: 'CmdOrCtrl+S',
           click: () => win.webContents.send('omnicore-editor:menu-command', { command: 'save-scene' })
         },
         { type: 'separator' },
-        process.platform === 'darwin' ? { role: 'close' } : { role: 'quit' }
+        process.platform === 'darwin' ? { role: 'close', label: '关闭窗口' } : { role: 'quit', label: '退出' }
       ]
     },
     {
-      label: 'Edit',
+      label: '编辑',
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
+        { role: 'undo', label: '撤销' },
+        { role: 'redo', label: '重做' },
         { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'delete' },
-        { role: 'selectAll' }
+        { role: 'cut', label: '剪切' },
+        { role: 'copy', label: '复制' },
+        { role: 'paste', label: '粘贴' },
+        { role: 'delete', label: '删除' },
+        { role: 'selectAll', label: '全选' }
       ]
     },
     {
-      label: 'View',
+      label: '视图',
       submenu: [
         {
-          label: 'Reset Dock Layout',
+          label: '重置停靠布局',
           click: () => win.webContents.send('omnicore-editor:menu-command', { command: 'reset-dock-layout' })
         },
-        { role: 'reload' },
-        { role: 'toggleDevTools' },
-        { role: 'togglefullscreen' }
+        { role: 'reload', label: '重新加载' },
+        { role: 'toggleDevTools', label: '切换开发者工具' },
+        { role: 'togglefullscreen', label: '切换全屏' }
       ]
     },
     {
-      label: 'Help',
+      label: '帮助',
       submenu: [
         {
-          label: 'About OmniCore Editor',
+          label: '关于 OmniCore 编辑器',
           click: () => dialog.showMessageBox(win, {
             type: 'info',
-            title: 'OmniCore Editor',
-            message: 'OmniCore Editor',
-            detail: 'Standalone desktop scene editor for OmniCore projects.'
+            title: 'OmniCore 编辑器',
+            message: 'OmniCore 编辑器',
+            detail: '用于 OmniCore 项目的独立桌面场景编辑器。'
           })
         }
       ]

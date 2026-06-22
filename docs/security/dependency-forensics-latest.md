@@ -2,8 +2,8 @@
 
 - Generated: 2026-06-20T00:00:00.000Z
 - Root: C:\Users\39120\Documents\引擎开发
-- Packages scanned: 658
-- Packages with lifecycle scripts: 190
+- Packages scanned: 673
+- Packages with lifecycle scripts: 193
 - High-risk findings: 0
 
 ## HIGH RISK
@@ -12,13 +12,16 @@ No HIGH RISK findings detected.
 
 ## Lifecycle Script Inventory
 
+- @bramus/specificity@2.4.2: prepublish
 - ajv@8.20.0: prepublish
 - @electron/get@5.0.0: prepare, prepublishOnly
 - @electron-internal/extract-zip@1.0.3: prepublishOnly
 - @eslint/eslintrc@2.1.4: prepare
 - @humanwhocodes/config-array@0.13.0: prepublish
 - @humanwhocodes/module-importer@1.0.1: prepare
+- @jridgewell/resolve-uri@3.1.2: prepublishOnly
 - @jridgewell/sourcemap-codec@1.5.5: prepublishOnly
+- @jridgewell/trace-mapping@0.3.31: prepublishOnly
 - earcut@2.2.4: prepublishOnly
 - eventemitter3@4.0.7: prepublishOnly
 - acorn@8.17.0: prepare
@@ -43,7 +46,7 @@ No HIGH RISK findings detected.
 - yargs-parser@20.2.9: prepare
 - core-util-is@1.0.3: prepublishOnly
 - cosmiconfig@9.0.2: prepare, prepublishOnly
-- cssstyle@4.6.0: prepublishOnly
+- css-tree@3.2.1: prepublishOnly
 - data-view-buffer@1.0.2: prepublish, prepublishOnly
 - data-view-byte-length@1.0.2: prepublish, prepublishOnly
 - data-view-byte-offset@1.0.1: prepublish, prepublishOnly
@@ -51,7 +54,7 @@ No HIGH RISK findings detected.
 - define-properties@1.2.1: prepublish, prepublishOnly
 - dunder-proto@1.0.1: prepublish, prepublishOnly
 - earcut@3.0.2: prepublishOnly
-- entities@6.0.1: prepublishOnly
+- entities@8.0.0: prepublishOnly
 - es-abstract@1.24.2: prepublish, prepublishOnly
 - es-abstract-get@1.0.0: prepublish, prepublishOnly
 - es-define-property@1.0.1: prepublish, prepublishOnly
@@ -126,14 +129,15 @@ No HIGH RISK findings detected.
 - is-weakref@1.1.1: prepublish, prepublishOnly
 - is-weakset@2.0.4: prepublish, prepublishOnly
 - ismobilejs@1.1.1: prepare
-- jsdom@26.1.0: prepare
+- istanbul-reports@3.2.0: prepare
+- jsdom@29.1.1: prepare
 - json-parse-even-better-errors@2.3.1: prepublishOnly
 - json5@1.0.2: prepublishOnly
 - keyv@4.5.4: prepare
 - kind-of@6.0.3: prepublish
 - lightningcss@1.32.0: prepare, prepublishOnly
 - linkify-it@5.0.1: prepublishOnly
-- lru-cache@10.4.3: prepare, prepublishOnly
+- lru-cache@11.5.1: prepare, prepublishOnly
 - markdown-it@14.2.0: prepublishOnly
 - entities@4.5.0: prepare
 - math-intrinsics@1.1.0: prepublish, prepublishOnly
@@ -142,7 +146,7 @@ No HIGH RISK findings detected.
 - minimist@1.2.8: prepublish, prepublishOnly
 - node-exports-info@1.6.0: prepublish, prepublishOnly
 - normalize-package-data@3.0.3: prepublishOnly
-- npm-check-updates@18.3.1: prepare, prepublishOnly
+- npm-check-updates@22.2.7: prepare, prepublishOnly
 - object-inspect@1.13.4: prepublish, prepublishOnly
 - object.assign@4.1.7: prepublish, prepublishOnly
 - object.entries@1.1.9: prepublish, prepublishOnly
@@ -179,7 +183,7 @@ No HIGH RISK findings detected.
 - supports-preserve-symlinks-flag@1.0.0: prepublish, prepublishOnly
 - tiny-lru@11.4.7: prepare
 - tinyexec@1.2.4: prepare
-- tr46@5.1.1: prepublish
+- tr46@6.0.0: prepublish
 - typed-array-buffer@1.0.3: prepublish, prepublishOnly
 - typed-array-byte-length@1.0.3: prepublish, prepublishOnly
 - typed-array-byte-offset@1.0.4: prepublish, prepublishOnly
@@ -190,8 +194,7 @@ No HIGH RISK findings detected.
 - uc.micro@2.1.0: prepublishOnly
 - unbox-primitive@1.1.0: prepublish, prepublishOnly
 - undici@7.28.0: prepare
-- whatwg-encoding@3.1.1: prepare
-- whatwg-url@14.2.0: prepare
+- whatwg-url@16.0.1: prepare
 - which@2.0.2: prepublish
 - which-boxed-primitive@1.1.1: prepublish, prepublishOnly
 - which-builtin-type@1.2.1: prepublish, prepublishOnly

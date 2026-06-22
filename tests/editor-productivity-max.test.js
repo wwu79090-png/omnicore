@@ -66,7 +66,7 @@ describe('editor productivity max workflow', () => {
 
     const hero = app.getState().scene.entities.find((entity) => entity.name === 'Hero');
     expect(hero).toMatchObject({ x: 32, y: 48 });
-    expect(root.querySelector('[data-undo-history]')?.textContent).toContain('Drag 1 entity');
+    expect(root.querySelector('[data-undo-history]')?.textContent).toContain('拖动 1 个实体');
 
     app.destroy();
   });

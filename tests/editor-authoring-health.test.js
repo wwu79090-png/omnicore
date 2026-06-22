@@ -182,7 +182,7 @@ describe('editor authoring health and export readiness', () => {
       duration: 18,
       severity: 'critical'
     });
-    expect(hotspots[0].suggestion).toContain('Collision');
+    expect(hotspots[0].suggestion).toContain('碰撞耗时');
     expect(hotspots[1]).toMatchObject({ name: 'Renderer', severity: 'warning' });
     expect(root.querySelector('[data-authoring-health-hotspot="Collision"]')?.textContent).toContain('critical');
     app.destroy();

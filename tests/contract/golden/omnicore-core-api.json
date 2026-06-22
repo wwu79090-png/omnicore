@@ -1088,7 +1088,17 @@
       {
         "arity": 0,
         "async": false,
+        "name": "BatchAtlasDiagnostics"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "CommandBuffer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "MaterialPreset"
       },
       {
         "arity": 0,
@@ -1103,7 +1113,27 @@
       {
         "arity": 0,
         "async": false,
+        "name": "PixiLifecycleAudit"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PixiRenderHardeningProfile"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "PixiRenderer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RenderFeatureProfile"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RenderGraphPlanner"
       },
       {
         "arity": 0,
@@ -1118,12 +1148,32 @@
       {
         "arity": 0,
         "async": false,
+        "name": "RenderWorkerOwnership"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RendererBackendContract"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "RendererManager"
       },
       {
         "arity": 0,
         "async": false,
+        "name": "ShaderVariantCollection"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "StaticBatchCompiler"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "TextureStreamingBudget"
       },
       {
         "arity": 0,
@@ -1152,16 +1202,26 @@
       }
     ],
     "keys": [
+      "BatchAtlasDiagnostics",
       "CommandBuffer",
       "Filters",
+      "MaterialPreset",
       "OffscreenCanvasRenderer",
       "PixiBatchAdapter",
+      "PixiLifecycleAudit",
+      "PixiRenderHardeningProfile",
       "PixiRenderer",
+      "RenderFeatureProfile",
+      "RenderGraphPlanner",
       "RenderLayerManager",
       "RenderWorkerBridge",
+      "RenderWorkerOwnership",
       "RendererBackend",
+      "RendererBackendContract",
       "RendererManager",
+      "ShaderVariantCollection",
       "StaticBatchCompiler",
+      "TextureStreamingBudget",
       "WebGLContextManager",
       "WebGPURenderer",
       "createRendererFallbackMatrix",
@@ -1454,7 +1514,17 @@
       {
         "arity": 0,
         "async": false,
+        "name": "AbilitySystem"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "AdaptiveQualityManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AddressableCatalog"
       },
       {
         "arity": 0,
@@ -1499,6 +1569,16 @@
       {
         "arity": 0,
         "async": false,
+        "name": "ApiSurfaceFocusLens"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ApplicationStateStack"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "ArcadeAdapter"
       },
       {
@@ -1509,7 +1589,42 @@
       {
         "arity": 0,
         "async": false,
+        "name": "AssetBuildRecipe"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "AssetCache"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AssetDependencyTracker"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AssetImportMetadata"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AssetImportPreview"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AssetImportProfile"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AssetImportSession"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AssetImportTransaction"
       },
       {
         "arity": 0,
@@ -1534,6 +1649,31 @@
       {
         "arity": 0,
         "async": false,
+        "name": "AssetReferenceIntegrityAuditor"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AssetRefreshCoordinator"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AssetRegistry"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AssetRegistryChangeSet"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AssetResidencyManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "AudioAddon"
       },
       {
@@ -1547,6 +1687,16 @@
         "name": "AudioManager"
       },
       {
+        "arity": 0,
+        "async": false,
+        "name": "BatchAtlasDiagnostics"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "BehaviorDefinition"
+      },
+      {
         "arity": 1,
         "async": false,
         "name": "BehaviorTree"
@@ -1555,6 +1705,16 @@
         "arity": 0,
         "async": false,
         "name": "BitmapText"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "BottleneckSurfaceAnalyzer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "CallbackGameLoop"
       },
       {
         "arity": 0,
@@ -1584,12 +1744,42 @@
       {
         "arity": 0,
         "async": false,
+        "name": "ClientPredictionReconciler"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "CollectionFactory"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "CollisionMask"
       },
       {
         "arity": 0,
         "async": false,
         "name": "CommandBuffer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "CompletenessClosurePlanner"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "CompletenessGapAnalyzer"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ComponentTreeRuntime"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ComposerSceneFlow"
       },
       {
         "arity": 0,
@@ -1614,7 +1804,27 @@
       {
         "arity": 0,
         "async": false,
+        "name": "CreatorWorkflowCoach"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "CrossEngineAdoptionPlanner"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "CrossEngineParityMatrix"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "DataAdapter"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "DataAsset"
       },
       {
         "arity": 0,
@@ -1635,6 +1845,11 @@
         "arity": 0,
         "async": false,
         "name": "DebugConsole"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "DebugProbe"
       },
       {
         "arity": 0,
@@ -1669,6 +1884,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "DialogueGraph"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "Dimension3D"
       },
       {
@@ -1695,6 +1915,11 @@
         "arity": 0,
         "async": false,
         "name": "EditorCoCreator25D"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "EditorInspectorModel"
       },
       {
         "arity": 1,
@@ -1724,6 +1949,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "EditorSceneDependencyGraph"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "ElectronNativeBridge"
       },
       {
@@ -1735,6 +1965,26 @@
         "arity": 0,
         "async": false,
         "name": "EmotionalPalette25D"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "EngineAdvantageAssimilator"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "EngineCompletenessMatrix"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "EngineFunctionQualityMatrix"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "EngineLimitRegistry"
       },
       {
         "arity": 0,
@@ -1759,12 +2009,32 @@
       {
         "arity": 0,
         "async": false,
+        "name": "EventCommandQueue"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "EventSheet"
       },
       {
         "arity": 0,
         "async": false,
         "name": "ExportPaywall"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ExportPreset"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "FantasyConsoleBank"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "FeatureQualityAuditor"
       },
       {
         "arity": 1,
@@ -1784,12 +2054,32 @@
       {
         "arity": 0,
         "async": false,
+        "name": "FrameDiagnosticsCapture"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "FramePacingController"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "FrameProfiler"
       },
       {
         "arity": 0,
         "async": false,
         "name": "Game"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "GameComponentPipeline"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "GameSettingsProfile"
       },
       {
         "arity": 0,
@@ -1834,6 +2124,21 @@
       {
         "arity": 0,
         "async": false,
+        "name": "InputActionContextStack"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "InputBindingProfile"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "InputDeviceMap"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "InputManager"
       },
       {
@@ -1844,12 +2149,32 @@
       {
         "arity": 0,
         "async": false,
+        "name": "JobDependencyGraph"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "Kernel"
       },
       {
         "arity": 0,
         "async": false,
+        "name": "LagCompensationTimeline"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "LevelValidationReport"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "Light2D"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "LimitRemovalPlanner"
       },
       {
         "arity": 1,
@@ -1889,7 +2214,22 @@
       {
         "arity": 0,
         "async": false,
+        "name": "MaterialPreset"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "MemoryGuardian"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "MessageRouteBus"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ModuleGemManifest"
       },
       {
         "arity": 2,
@@ -1900,6 +2240,11 @@
         "arity": 0,
         "async": false,
         "name": "MultiplayerSession"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "NarrativeRuntime"
       },
       {
         "arity": 0,
@@ -1919,12 +2264,27 @@
       {
         "arity": 0,
         "async": false,
+        "name": "NetworkSnapshotBuffer"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "Node"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ObjectEventMap"
       },
       {
         "arity": 1,
         "async": false,
         "name": "ObjectPool"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ObjectTimelineRuntime"
       },
       {
         "arity": 0,
@@ -1964,6 +2324,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "PerformanceBudgetEnvelope"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "PerformanceDashboard"
       },
       {
@@ -1979,6 +2344,26 @@
       {
         "arity": 0,
         "async": false,
+        "name": "PerformanceMonitorRegistry"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PerformanceRegressionGuard"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PersistentSaveSlot"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PersonalCapabilityProfile"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "PhysicsQuery"
       },
       {
@@ -1990,6 +2375,16 @@
         "arity": 0,
         "async": false,
         "name": "PixiBatchAdapter"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PixiLifecycleAudit"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PixiRenderHardeningProfile"
       },
       {
         "arity": 0,
@@ -2010,6 +2405,11 @@
         "arity": 0,
         "async": false,
         "name": "PlaySession"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "PluginManifest"
       },
       {
         "arity": 0,
@@ -2044,12 +2444,37 @@
       {
         "arity": 0,
         "async": false,
+        "name": "PrefabVariantRegistry"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "ProfilerSnapshot"
       },
       {
         "arity": 0,
         "async": false,
         "name": "ProfilerWaterfallPanel"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "QualityOptimizationPlanner"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "QualityScalerProfile"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "QueryFilter"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "QuestStateMachine"
       },
       {
         "arity": 0,
@@ -2069,6 +2494,21 @@
       {
         "arity": 0,
         "async": false,
+        "name": "RemoteEventContract"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RenderFeatureProfile"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RenderGraphPlanner"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "RenderLayerManager"
       },
       {
@@ -2084,7 +2524,17 @@
       {
         "arity": 0,
         "async": false,
+        "name": "RenderWorkerOwnership"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "RendererAdapter"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RendererBackendContract"
       },
       {
         "arity": 0,
@@ -2094,7 +2544,17 @@
       {
         "arity": 0,
         "async": false,
+        "name": "ReplicationInterestGraph"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "ResourceOwnershipGraph"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ResourceStateScheduler"
       },
       {
         "arity": 0,
@@ -2104,12 +2564,52 @@
       {
         "arity": 0,
         "async": false,
+        "name": "RollbackFrameStore"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RoomExitGraph"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RoomHotspotMap"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RpgEventPageResolver"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RuntimeConfigFlags"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "RuntimeLiveSyncBridge"
       },
       {
         "arity": 0,
         "async": false,
+        "name": "RuntimeOptimizationAdvisor"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RuntimeOptimizationController"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "RuntimeSoakHarness"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "RuntimeStateSerializer"
       },
       {
         "arity": 0,
@@ -2120,6 +2620,16 @@
         "arity": 0,
         "async": false,
         "name": "SandboxBus"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SaveGameArchive"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ScalabilityTierMatrix"
       },
       {
         "arity": 1,
@@ -2139,12 +2649,47 @@
       {
         "arity": 0,
         "async": false,
+        "name": "SceneObservableHub"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SceneStreamingDirector"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SceneTransitionStack"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ScreenFlowController"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "SeededRandom"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ServerHandleRegistry"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ShaderVariantCollection"
       },
       {
         "arity": 1,
         "async": false,
         "name": "ShapeBuilder"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SignalBus"
       },
       {
         "arity": 0,
@@ -2170,6 +2715,11 @@
         "arity": 0,
         "async": false,
         "name": "SocialAwareness25D"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SoloProductionPlanner"
       },
       {
         "arity": 0,
@@ -2224,6 +2774,21 @@
       {
         "arity": 0,
         "async": false,
+        "name": "SystemMenuModel"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "SystemSchedule"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "TaskChainManager"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "TaskManager"
       },
       {
@@ -2247,6 +2812,21 @@
         "name": "Text"
       },
       {
+        "arity": 0,
+        "async": false,
+        "name": "TextureStreamingBudget"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ThermalPowerGovernor"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "ThreePhysicsBridge"
+      },
+      {
         "arity": 1,
         "async": false,
         "name": "TileSprite"
@@ -2255,6 +2835,11 @@
         "arity": 0,
         "async": false,
         "name": "Tilemap"
+      },
+      {
+        "arity": 1,
+        "async": false,
+        "name": "TilemapAuthoringTools"
       },
       {
         "arity": 0,
@@ -2309,7 +2894,22 @@
       {
         "arity": 0,
         "async": false,
+        "name": "VirtualAssetFS"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "VisualEventGraph"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "VisualNovelScript"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "VisualScriptGraphRuntime"
       },
       {
         "arity": 0,
@@ -2352,6 +2952,11 @@
         "name": "WorldMemory25D"
       },
       {
+        "arity": 0,
+        "async": false,
+        "name": "WorldPartitionGrid"
+      },
+      {
         "arity": 2,
         "async": false,
         "name": "addon"
@@ -2380,6 +2985,11 @@
         "arity": 0,
         "async": false,
         "name": "buildApiSurface"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "buildEngineCapabilityAtlas"
       },
       {
         "arity": 0,
@@ -2542,6 +3152,11 @@
         "name": "createRuntimeSoakReport"
       },
       {
+        "arity": 1,
+        "async": false,
+        "name": "createSceneServices"
+      },
+      {
         "arity": 0,
         "async": false,
         "name": "createSectorPrimitive"
@@ -2649,6 +3264,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "instantiateSceneDocument"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "isDebugBuildEnabled"
       },
       {
@@ -2680,6 +3300,11 @@
         "arity": 0,
         "async": false,
         "name": "radialGradientFill"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "renderEngineCapabilityMarkdown"
       },
       {
         "arity": 0,
@@ -2738,8 +3363,10 @@
       "AIImporter",
       "AITilemapGenerator",
       "API_TIERS",
+      "AbilitySystem",
       "Ad",
       "AdaptiveQualityManager",
+      "AddressableCatalog",
       "AllocationPressureReport",
       "Analytics",
       "Animation",
@@ -2748,66 +3375,108 @@
       "AnimationStateMachine",
       "ApiQuickPanel",
       "ApiSurface",
+      "ApiSurfaceFocusLens",
+      "ApplicationStateStack",
       "ArcadeAdapter",
       "AssetBrowser",
+      "AssetBuildRecipe",
       "AssetCache",
+      "AssetDependencyTracker",
+      "AssetImportMetadata",
+      "AssetImportPreview",
+      "AssetImportProfile",
+      "AssetImportSession",
+      "AssetImportTransaction",
       "AssetLoader",
       "AssetManifestGraph",
       "AssetPatchManager",
       "AssetPipelineGate",
+      "AssetReferenceIntegrityAuditor",
+      "AssetRefreshCoordinator",
+      "AssetRegistry",
+      "AssetRegistryChangeSet",
+      "AssetResidencyManager",
       "AudioAddon",
       "AudioEditor",
       "AudioManager",
       "Backend",
+      "BatchAtlasDiagnostics",
+      "BehaviorDefinition",
       "BehaviorTree",
       "BitmapText",
       "Bootstrap",
+      "BottleneckSurfaceAnalyzer",
       "Bus",
+      "CallbackGameLoop",
       "Camera",
       "CanvasRendererAddon",
       "CharacterRig",
       "ChunkCache",
       "ChunkManager",
+      "ClientPredictionReconciler",
+      "CollectionFactory",
       "CollisionMask",
       "Color",
       "CommandBuffer",
+      "CompletenessClosurePlanner",
+      "CompletenessGapAnalyzer",
+      "CompletenessTools",
+      "ComponentTreeRuntime",
       "Components",
+      "ComposerSceneFlow",
       "ComputeRuntime",
       "Console",
       "Container",
       "CrashHandler",
       "CrashReporter",
+      "CreatorWorkflowCoach",
+      "CrossEngineAdoptionPlanner",
+      "CrossEngineParityMatrix",
+      "CrossEngineTools",
       "DB",
       "DEFAULT_API_SURFACE",
       "Data",
       "DataAdapter",
+      "DataAsset",
       "DataTable",
       "DataTableEditor",
       "Database",
       "Debug",
       "DebugConsole",
+      "DebugProbe",
       "DebugRenderer",
       "Deprecation",
       "DeterministicReplay",
       "DevProfile",
       "DeveloperUsageReport",
       "DeviceProfiler",
+      "DialogueGraph",
       "Dimension3D",
       "DirtyFlagTracker",
       "DragonBonesAdapter",
       "DualSpatialIndex",
       "ECS",
       "EDITOR_PROTOCOL_VERSION",
+      "ENGINE_CAPABILITY_CATEGORIES",
+      "ENGINE_FAMILY_SOURCES",
       "Editor",
       "EditorCoCreator25D",
+      "EditorInspectorModel",
       "EditorOverlay",
       "EditorPanel",
       "EditorPlugin",
       "EditorPluginCascade",
       "EditorProtocol",
+      "EditorSceneDependencyGraph",
       "ElectronNativeBridge",
       "EmergencyOverlay",
       "EmotionalPalette25D",
+      "EngineAdvantageAssimilator",
+      "EngineCapabilityAtlas",
+      "EngineCompletenessMatrix",
+      "EngineFunctionQualityMatrix",
+      "EngineLimitRegistry",
+      "EngineLimitTools",
       "EngineQualityHarness",
       "Entity",
       "EntitySpatialIndex",
@@ -2815,14 +3484,24 @@
       "ErrorBoundary",
       "ErrorDiagnostics",
       "EventBus",
+      "EventCommandQueue",
       "EventSheet",
       "ExportPaywall",
+      "ExportPreset",
+      "FantasyConsoleBank",
+      "FeatureQualityAuditor",
       "FeedbackWidget",
       "FixedMemoryPool",
       "Font",
       "FrameBudgetScheduler",
+      "FrameDiagnosticsCapture",
+      "FramePacingController",
       "FrameProfiler",
+      "FunctionQualityTools",
       "Game",
+      "GameComponentPipeline",
+      "GameSettingsProfile",
+      "GameplayTags",
       "Genealogy",
       "Geom",
       "Graphics",
@@ -2833,14 +3512,21 @@
       "HotfixManager",
       "I18n",
       "Input",
+      "InputActionContextStack",
+      "InputBindingProfile",
+      "InputDeviceMap",
       "InputManager",
       "InputSequence",
+      "JobDependencyGraph",
       "Kernel",
+      "LagCompensationTimeline",
       "Lean",
       "LeanAddons",
       "LeanCore",
+      "LevelValidationReport",
       "License",
       "Light2D",
+      "LimitRemovalPlanner",
       "LiveInspector",
       "Loader",
       "Localization",
@@ -2848,16 +3534,23 @@
       "LogicWorker",
       "Loop",
       "MarketplaceServer",
+      "MaterialPreset",
       "Math",
       "MemoryGuardian",
+      "MessageRouteBus",
+      "ModuleGemManifest",
       "MovementSystem",
       "MultiplayerSession",
+      "NarrativeRuntime",
       "NavigationAgent2D",
       "Net",
       "NetRoom",
+      "NetworkSnapshotBuffer",
       "Node",
       "OBundle",
+      "ObjectEventMap",
       "ObjectPool",
+      "ObjectTimelineRuntime",
       "OffscreenCanvasRenderer",
       "OmniCoreErrorBoundary",
       "OmniError",
@@ -2867,18 +3560,27 @@
       "ParticleSystem",
       "ParticleTerrainCollider25D",
       "Payment",
+      "PerformanceBudgetEnvelope",
       "PerformanceDashboard",
       "PerformanceMetrics",
       "PerformanceMonitor",
+      "PerformanceMonitorRegistry",
+      "PerformanceRegressionGuard",
+      "PersistentSaveSlot",
+      "PersonalCapabilityProfile",
+      "PersonalCapabilityTools",
       "Physics",
       "PhysicsQuery",
       "PhysicsWorld",
       "PixiBatchAdapter",
+      "PixiLifecycleAudit",
+      "PixiRenderHardeningProfile",
       "PixiRendererAddon",
       "PlatformAdapter",
       "PlatformVariantResolver",
       "PlaySession",
       "Plugin",
+      "PluginManifest",
       "PluginPermissionSandbox",
       "PluginRecommendationEngine",
       "PluginRegistry",
@@ -2887,41 +3589,71 @@
       "Prefab",
       "PrefabManager",
       "PrefabRegistry",
+      "PrefabVariantRegistry",
       "ProfilerSnapshot",
       "ProfilerWaterfallPanel",
       "Quality",
+      "QualityOptimizationPlanner",
+      "QualityScalerProfile",
       "Query",
+      "QueryFilter",
+      "QuestStateMachine",
       "RENDERER_FALLBACK_MATRIX_SCHEMA",
       "REPRODUCTION_BUNDLE_SCHEMA",
       "RealitySensor25D",
       "RealtimeConnection",
       "RemoteDevTools",
+      "RemoteEventContract",
+      "RenderFeatureProfile",
+      "RenderGraphPlanner",
       "RenderLayerManager",
       "RenderSystem",
       "RenderWorkerBridge",
+      "RenderWorkerOwnership",
       "Renderer",
       "RendererAdapter",
       "RendererBackend",
+      "RendererBackendContract",
       "RendererContract",
       "RendererManager",
+      "ReplicationInterestGraph",
       "ResourceOwnershipGraph",
+      "ResourceStateScheduler",
       "ResourceWaterfall",
+      "RollbackFrameStore",
+      "RoomExitGraph",
+      "RoomHotspotMap",
+      "RpgEventPageResolver",
+      "RuntimeConfigFlags",
       "RuntimeLiveSyncBridge",
+      "RuntimeOptimizationAdvisor",
+      "RuntimeOptimizationController",
       "RuntimeSoakHarness",
+      "RuntimeStateSerializer",
       "SCENE_LIFECYCLE_ORDER",
       "Sandbox",
       "SandboxBus",
+      "SaveGameArchive",
+      "ScalabilityTierMatrix",
       "Scene",
       "SceneDocument",
       "SceneLifecycle",
+      "SceneObservableHub",
+      "SceneStreamingDirector",
+      "SceneTransitionStack",
+      "ScreenFlowController",
       "SeededRandom",
+      "ServerHandleRegistry",
+      "ShaderVariantCollection",
       "Shape",
       "ShapeBuilder",
+      "SignalBus",
       "SkeletalAnimation",
       "SkeletonAnimationEditor",
       "SleepWakeSystem",
       "Snapshot",
       "SocialAwareness25D",
+      "SoloProductionPlanner",
       "Sound",
       "SpineAdapter",
       "SpinePixiRuntimeAdapter",
@@ -2933,15 +3665,22 @@
       "Storage",
       "Store",
       "System",
+      "SystemMenuModel",
+      "SystemSchedule",
       "Task",
+      "TaskChainManager",
       "TaskManager",
       "TaskScheduler",
       "TelemetryCollector",
       "TelemetryDashboard",
       "Templates",
       "Text",
+      "TextureStreamingBudget",
+      "ThermalPowerGovernor",
+      "ThreePhysicsBridge",
       "TileSprite",
       "Tilemap",
+      "TilemapAuthoringTools",
       "TilemapLoader",
       "TimeGuard",
       "Timeline",
@@ -2954,7 +3693,10 @@
       "UIFocusManager",
       "VersionDialog",
       "ViewportCulling",
+      "VirtualAssetFS",
       "VisualEventGraph",
+      "VisualNovelScript",
+      "VisualScriptGraphRuntime",
       "WasmLoader",
       "WebGPURenderer",
       "WebTransportConnection",
@@ -2964,12 +3706,14 @@
       "WorkerTaskScheduler",
       "World",
       "WorldMemory25D",
+      "WorldPartitionGrid",
       "addon",
       "assertNoBreakingApiChanges",
       "assertRendererBackend",
       "assertValidSceneDocument",
       "benchmarkECSParticles",
       "buildApiSurface",
+      "buildEngineCapabilityAtlas",
       "calculateDamage",
       "collectSceneDependencies",
       "compareRenderSnapshots",
@@ -3002,6 +3746,7 @@
       "createRingPrimitive",
       "createRuntimeObjectPools",
       "createRuntimeSoakReport",
+      "createSceneServices",
       "createSectorPrimitive",
       "createSpineFFDVertexShader",
       "createTextureBudgetPlan",
@@ -3023,6 +3768,7 @@
       "formatOmniMessage",
       "help",
       "install",
+      "instantiateSceneDocument",
       "isDebugBuildEnabled",
       "linearGradientFill",
       "listHelp",
@@ -3030,6 +3776,7 @@
       "normalizeSceneDocument",
       "optimizeRenderQueueForBatching",
       "radialGradientFill",
+      "renderEngineCapabilityMarkdown",
       "resolveRendererFallbackPlan",
       "safeInitialize",
       "snapshotRenderQueue",

@@ -1,6 +1,7 @@
 import ChunkManager from './ChunkManager.js';
 import AITilemapGenerator from './AITilemapGenerator.js';
 import TilemapStreamer from './TilemapStreamer.js';
+import TilemapAuthoringTools from './TilemapAuthoringTools.js';
 import findPath from '../compute/Pathfinding.js';
 
 /**
@@ -288,6 +289,10 @@ export class Tilemap {
 
   createChunkManager(options = {}) {
     return new ChunkManager(this, options);
+  }
+
+  authoringTools() {
+    return new TilemapAuthoringTools(this);
   }
 }
 

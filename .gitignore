@@ -7,6 +7,9 @@ tests/e2e/__screenshots__/editor-current-*.png
 .vite/
 .superpowers/
 .tmp-editor-server/
+.omnicore-editor/
+packages/omnicore-editor/dist-desktop/
+packages/omnicore-editor/dist-installers/
 docs/release-notes/benchmark-current.json
 docs/release-notes/performance-regression-report.md
 npm-debug.log*

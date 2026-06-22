@@ -1,6 +1,6 @@
 {
-  "source": "C:\\Users\\39120\\Documents\\引擎开发\\assets\\logo_highres.png",
-  "generatedAt": "2026-06-18T10:12:41.846Z",
+  "source": "C:\\Users\\39120\\Documents\\引擎开发\\assets\\branding\\logo-highres.png",
+  "generatedAt": "2026-06-22T01:20:09.633Z",
   "note": "Generated without third-party image dependencies; files preserve source PNG pixels for platform packaging.",
   "targets": {
     "web/favicon.png": {
@@ -29,6 +29,10 @@
     },
     "electron/icon-512.png": {
       "size": 512
+    },
+    "electron/icon.ico": {
+      "size": 256,
+      "format": "ico"
     }
   }
 }

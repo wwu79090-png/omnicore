@@ -33,15 +33,21 @@ describe('Electron desktop shell workflow', () => {
 
     const workspace = scanWorkspaceDirectory(root);
 
-    expect(editorPackage.build.desktopTargets).toEqual(expect.arrayContaining([
+    expect(editorPackage.omnicoreEditor.desktopTargets).toEqual(expect.arrayContaining([
       'omnicore-editor.exe',
       'OmniCore Editor.dmg',
       'OmniCore Editor.AppImage'
     ]));
+    expect(editorPackage.build.desktopTargets).toBeUndefined();
     expect(electronMain).toContain('Menu.buildFromTemplate');
     expect(electronMain).toContain('dialog.showOpenDialog');
     expect(electronMain).toContain('omnicore-editor:open-project-folder');
     expect(electronMain).toContain('omnicore-editor:write-autosave');
+    expect(electronMain).toContain("label: '文件'");
+    expect(electronMain).toContain("label: '打开项目文件夹...'");
+    expect(electronMain).toContain("title: '打开 OmniCore 项目'");
+    expect(electronMain).not.toContain("label: 'File'");
+    expect(electronMain).not.toContain('Open Project Folder');
     expect(preload).toContain('openProjectFolder');
     expect(preload).toContain('writeAutoSave');
     expect(packageScript).toContain('OmniCore Editor.AppImage');

@@ -25,6 +25,8 @@ export function createEditorState(initial = {}) {
     lastCommandError: initial.lastCommandError || null,
     flowGraph: normalizeFlowGraph(initial.flowGraph),
     behaviorTree: initial.behaviorTree || null,
+    visualScriptTrace: normalizeVisualScriptTrace(initial.visualScriptTrace),
+    visualScriptValidation: normalizeVisualScriptValidation(initial.visualScriptValidation || initial.visualScriptTrace?.validation),
     uiLayout: normalizeUILayout(initial.uiLayout),
     tilemap: normalizeTilemap(initial.tilemap),
     dockLayout: normalizeDockLayout(initial.dockLayout),
@@ -44,6 +46,11 @@ export function createEditorState(initial = {}) {
     sceneTabs: normalizeSceneTabs(initial.sceneTabs),
     activeSceneTabPath: initial.activeSceneTabPath || null,
     authoringHealth: normalizeAuthoringHealth(initial.authoringHealth),
+    editorClosure: normalizeEditorClosure(initial.editorClosure),
+    hotReload: normalizeHotReload(initial.hotReload),
+    assetRegistryPanel: normalizeAssetRegistryPanel(initial.assetRegistryPanel),
+    assetRefresh: normalizeAssetRefresh(initial.assetRefresh),
+    hotReloadEvents: normalizeHotReloadEvents(initial.hotReloadEvents),
     preview25D: initial.preview25D || null,
     coCreation25D: initial.coCreation25D || null,
     livingWorldPreview25D: initial.livingWorldPreview25D || null,
@@ -93,6 +100,26 @@ export function applyLiveSyncMessage(state = createEditorState(), message = {}) 
   if (message.type === 'editor:grid-snap') next.gridSnap = normalizeGridSnap(message.payload);
   if (message.type === 'editor:scene-overlays') next.sceneOverlays = normalizeSceneOverlays(message.payload);
   if (message.type === 'editor:scene-validation') next.sceneValidation = normalizeSceneValidation(message.payload);
+  if (message.type === 'editor:closure-report') next.editorClosure = normalizeEditorClosure(message.payload);
+  if (message.type === 'editor:hot-reload') next.hotReload = normalizeHotReload(message.payload);
+  if (message.type === 'editor:asset-registry-panel') next.assetRegistryPanel = normalizeAssetRegistryPanel(message.payload);
+  if (message.type === 'editor:asset-refresh') next.assetRefresh = normalizeAssetRefresh(message.payload);
+  if (message.type === 'editor:hot-reload-event-stream') next.hotReloadEvents = normalizeHotReloadEvents(message.payload?.events || message.payload);
+  if (message.type === 'editor:asset-watch-refresh') {
+    const refresh = normalizeAssetWatchRefresh(message.payload);
+    next.assetRefresh = normalizeAssetRefresh(refresh.assetRefresh);
+    next.hotReload = normalizeHotReload(refresh.hotReload);
+    next.hotReloadEvents = appendHotReloadEvents(next.hotReloadEvents, refresh.events);
+    next.assets = applyAssetWatchChangesToAssets(next.assets, refresh.assetChanges);
+    next.assetRegistryPanel = normalizeAssetRegistryPanel(refresh.assetRegistryPanel);
+  }
+  if (message.type === 'editor:visual-script-validation') {
+    next.visualScriptValidation = normalizeVisualScriptValidation(message.payload);
+  }
+  if (message.type === 'editor:visual-script-run' || message.type === 'runtime:visual-script-trace') {
+    next.visualScriptTrace = normalizeVisualScriptTrace(message.payload);
+    next.visualScriptValidation = normalizeVisualScriptValidation(message.payload?.validation);
+  }
   return next;
 }
 
@@ -117,6 +144,53 @@ function normalizeSceneValidation(value = null) {
     ...value,
     ok: issues.length === 0,
     issues
+  };
+}
+
+function normalizeVisualScriptValidation(value = null) {
+  if (!value || typeof value !== 'object') {
+    return {
+      ok: true,
+      summary: { nodeCount: 0, edgeCount: 0, eventCount: 0, issueCount: 0 },
+      issues: []
+    };
+  }
+  const issues = Array.isArray(value.issues) ? value.issues.map((issue) => ({ ...issue })) : [];
+  return {
+    ...value,
+    ok: issues.length === 0 && value.ok !== false,
+    summary: {
+      nodeCount: Number(value.summary?.nodeCount || 0),
+      edgeCount: Number(value.summary?.edgeCount || 0),
+      eventCount: Number(value.summary?.eventCount || 0),
+      issueCount: Number(value.summary?.issueCount ?? issues.length)
+    },
+    issues
+  };
+}
+
+function normalizeVisualScriptTrace(value = null) {
+  if (!value || typeof value !== 'object') {
+    return {
+      event: null,
+      payload: {},
+      variables: {},
+      events: [],
+      trace: [],
+      graph: null,
+      validation: normalizeVisualScriptValidation(),
+      ranAt: null
+    };
+  }
+  return {
+    event: value.event || null,
+    payload: clonePlain(value.payload || {}),
+    variables: clonePlain(value.variables || {}),
+    events: Array.isArray(value.events) ? value.events.map((event) => clonePlain(event)) : [],
+    trace: Array.isArray(value.trace) ? value.trace.map((entry) => clonePlain(entry)) : [],
+    graph: value.graph ? clonePlain(value.graph) : null,
+    validation: normalizeVisualScriptValidation(value.validation),
+    ranAt: value.ranAt || null
   };
 }
 
@@ -194,6 +268,183 @@ function normalizeAuthoringHealth(value = {}) {
     hotspots: Array.isArray(value.hotspots) ? value.hotspots.map((hotspot) => ({ ...hotspot })) : [],
     counts: value.counts && typeof value.counts === 'object' ? { ...value.counts } : {}
   };
+}
+
+function normalizeEditorClosure(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return clonePlain(value);
+}
+
+function normalizeHotReload(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return clonePlain(value);
+}
+
+function normalizeAssetRegistryPanel(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return clonePlain(value);
+}
+
+function normalizeAssetRefresh(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return clonePlain(value);
+}
+
+function normalizeHotReloadEvents(value = []) {
+  return (Array.isArray(value) ? value : []).map((event) => clonePlain(event));
+}
+
+function normalizeAssetWatchRefresh(value = {}) {
+  if (!value || typeof value !== 'object') {
+    return {
+      schema: 'omnicore.editor-asset-watch-refresh.v1',
+      source: null,
+      files: [],
+      conversions: [],
+      changedAt: null,
+      assetChanges: [],
+      assetRefresh: null,
+      hotReload: null,
+      events: [],
+      assetRegistryPanel: null
+    };
+  }
+  return {
+    schema: value.schema || 'omnicore.editor-asset-watch-refresh.v1',
+    source: value.source || null,
+    files: normalizeStringList(value.files),
+    conversions: Array.isArray(value.conversions) ? value.conversions.map((conversion) => clonePlain(conversion)) : [],
+    changedAt: value.changedAt || value.pushedAt || null,
+    assetChanges: normalizeAssetWatchChanges(value.assetChanges || value.changes || []),
+    assetRefresh: value.assetRefresh ? clonePlain(value.assetRefresh) : null,
+    hotReload: value.hotReload ? clonePlain(value.hotReload) : null,
+    events: normalizeHotReloadEvents(value.events || []),
+    assetRegistryPanel: value.assetRegistryPanel ? clonePlain(value.assetRegistryPanel) : null
+  };
+}
+
+function appendHotReloadEvents(currentEvents = [], incomingEvents = []) {
+  const existing = normalizeHotReloadEvents(currentEvents);
+  const startId = Number(existing.at(-1)?.id || 0) + 1;
+  const nextEvents = normalizeHotReloadEvents(incomingEvents).map((event, index) => ({
+    ...event,
+    id: startId + index
+  }));
+  return [...existing, ...nextEvents].slice(-240);
+}
+
+function normalizeAssetWatchChanges(changes = []) {
+  return (Array.isArray(changes) ? changes : [])
+    .map((change) => ({
+      kind: normalizeAssetChangeKind(change.kind || change.type),
+      asset: normalizeResourcePath(change.asset || change.reference || change.to || change.from || change.rawAsset?.path),
+      reference: normalizeResourcePath(change.reference || change.asset || change.rawAsset?.path),
+      from: change.from ? normalizeResourcePath(change.from) : null,
+      to: change.to ? normalizeResourcePath(change.to) : null,
+      rawAsset: change.rawAsset && typeof change.rawAsset === 'object' ? clonePlain(change.rawAsset) : null
+    }))
+    .filter((change) => change.asset);
+}
+
+function applyAssetWatchChangesToAssets(assets = [], changes = []) {
+  let nextAssets = (Array.isArray(assets) ? assets : [])
+    .map((asset) => normalizeLiveAssetEntry(asset))
+    .filter((asset) => asset.path);
+  for (const change of normalizeAssetWatchChanges(changes)) {
+    if (change.kind === 'deleted') {
+      nextAssets = nextAssets.filter((asset) => !assetEntryMatchesReference(asset, change.asset));
+      continue;
+    }
+    if (change.kind === 'moved') {
+      const from = normalizeResourcePath(change.from || change.asset);
+      const to = normalizeResourcePath(change.to || change.reference);
+      if (!from || !to) continue;
+      nextAssets = nextAssets.map((asset) => (assetEntryMatchesReference(asset, from)
+        ? normalizeLiveAssetEntry({ ...asset, path: to, movedFrom: from, changeKind: 'moved' })
+        : asset));
+      continue;
+    }
+    const asset = normalizeLiveAssetEntry({
+      ...(change.rawAsset || {}),
+      path: normalizeResourcePath(change.rawAsset?.path || change.asset),
+      type: change.rawAsset?.type || inferAssetType(change.asset),
+      imported: change.kind === 'imported' || Boolean(change.rawAsset?.imported),
+      changed: change.kind === 'modified' || Boolean(change.rawAsset?.changed),
+      changeKind: change.kind
+    });
+    nextAssets = upsertLiveAssetEntry(nextAssets, asset);
+  }
+  return nextAssets;
+}
+
+function upsertLiveAssetEntry(assets = [], nextAsset = {}) {
+  const path = normalizeResourcePath(nextAsset);
+  if (!path) return assets;
+  const index = assets.findIndex((asset) => assetEntryMatchesReference(asset, path));
+  if (index < 0) return [...assets, normalizeLiveAssetEntry(nextAsset)];
+  return assets.map((asset, assetIndex) => (assetIndex === index
+    ? normalizeLiveAssetEntry({ ...asset, ...nextAsset, path })
+    : asset));
+}
+
+function normalizeLiveAssetEntry(asset = {}) {
+  const source = typeof asset === 'string' ? { path: asset } : { ...asset };
+  const assetPath = normalizeResourcePath(source);
+  return {
+    ...source,
+    path: assetPath,
+    name: source.name || assetPath.split('/').pop() || assetPath,
+    type: source.type || inferAssetType(assetPath)
+  };
+}
+
+function assetEntryMatchesReference(asset = {}, reference = '') {
+  const target = normalizeResourcePath(reference);
+  if (!target) return false;
+  const source = typeof asset === 'string' ? { path: asset } : asset;
+  return [
+    source.path,
+    source.url,
+    source.name,
+    source.file,
+    source.source,
+    source.uid,
+    source.address,
+    source.primaryId,
+    source.primaryAssetId,
+    source.id,
+    source.key
+  ].some((value) => normalizeResourcePath(value) === target);
+}
+
+function normalizeAssetChangeKind(kind = 'modified') {
+  const normalized = String(kind || 'modified').toLowerCase();
+  if (['changed', 'updated', 'reimported'].includes(normalized)) return 'modified';
+  if (['added', 'created'].includes(normalized)) return 'imported';
+  if (['removed', 'missing'].includes(normalized)) return 'deleted';
+  if (normalized === 'renamed') return 'moved';
+  return normalized;
+}
+
+function normalizeResourcePath(value = '') {
+  if (typeof value === 'string') return value.trim().replace(/\\/gu, '/').replace(/^\/+/u, '');
+  if (!value || typeof value !== 'object') return '';
+  return normalizeResourcePath(value.path || value.url || value.name || value.file || value.source || value.asset || '');
+}
+
+function normalizeStringList(value = []) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => normalizeResourcePath(item)).filter(Boolean);
+}
+
+function inferAssetType(file = '') {
+  if (/\.(png|jpg|jpeg|webp|gif|svg)$/iu.test(file)) return 'image';
+  if (/\.(mp3|wav|ogg|m4a)$/iu.test(file)) return 'audio';
+  if (/\.(glb|gltf|fbx|obj)$/iu.test(file)) return 'model';
+  if (/(^|\/)prefabs\/.+\.json$/iu.test(file)) return 'prefab';
+  if (/(^|\/)scenes\/.+\.json$/iu.test(file) || /\.scene\.json$/iu.test(file)) return 'scene';
+  if (/\.json$/iu.test(file)) return 'json';
+  return 'file';
 }
 
 function normalizeCurvePoints(points = []) {
@@ -576,9 +827,10 @@ function normalizeDockLayout(layout = {}) {
 
 function normalizeFlowGraph(flowGraph = {}) {
   return {
+    variables: { ...(flowGraph.variables || {}) },
     nodes: (flowGraph.nodes || []).map((node, index) => ({
-      id: node.id || `node-${index + 1}`,
-      type: node.type || 'action',
+      id: String(node.id || `node-${index + 1}`),
+      type: String(node.type || 'action'),
       label: node.label || node.id || `Node ${index + 1}`,
       x: Number(node.x || 0),
       y: Number(node.y || 0),
@@ -587,6 +839,10 @@ function normalizeFlowGraph(flowGraph = {}) {
     })),
     edges: (flowGraph.edges || [])
       .filter((edge) => edge?.from && edge?.to)
-      .map((edge) => ({ from: edge.from, to: edge.to }))
+      .map((edge) => ({
+        from: String(edge.from),
+        to: String(edge.to),
+        ...(edge.pin ? { pin: String(edge.pin) } : {})
+      }))
   };
 }

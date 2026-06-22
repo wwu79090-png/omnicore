@@ -15,20 +15,35 @@ import ApiSurface, {
   buildApiSurface,
   diffApiSurface
 } from './core/ApiSurface.js';
+import ApplicationStateStack from './core/ApplicationStateStack.js';
+import CallbackGameLoop from './core/CallbackGameLoop.js';
 import OmniCoreErrorBoundary from './core/RuntimeErrorBoundary.js';
 import PluginPermissionSandbox, { PLUGIN_PERMISSION_SCOPES } from './core/PluginPermissionSandbox.js';
+import PluginManifest from './core/PluginManifest.js';
+import ModuleGemManifest from './core/ModuleGemManifest.js';
 import Hook, { GlobalHook } from './core/Hook.js';
 import Plugin, { PluginRegistry } from './core/Plugin.js';
 import CrashHandler from './core/CrashHandler.js';
 import DeterministicReplay, { SeededRandom } from './core/DeterministicReplay.js';
 import EventBus from './core/EventBus.js';
+import GameComponentPipeline from './core/GameComponentPipeline.js';
+import JobDependencyGraph from './core/JobDependencyGraph.js';
+import MessageRouteBus from './core/MessageRouteBus.js';
+import SceneObservableHub from './core/SceneObservableHub.js';
+import ServerHandleRegistry from './core/ServerHandleRegistry.js';
+import SignalBus from './core/SignalBus.js';
 import Sandbox, { Bus, SandboxBus } from './core/Sandbox.js';
 import Task, { TaskManager } from './core/TaskManager.js';
 import TaskScheduler from './core/TaskScheduler.js';
+import TaskChainManager from './core/TaskChainManager.js';
+import ResourceStateScheduler from './core/ResourceStateScheduler.js';
+import SystemSchedule from './core/SystemSchedule.js';
 import Snapshot from './core/Snapshot.js';
+import RuntimeStateSerializer from './core/RuntimeStateSerializer.js';
 import EntitySpatialIndex, { Query } from './core/EntitySpatialIndex.js';
 import DualSpatialIndex from './core/DualSpatialIndex.js';
 import Entity from './core/Entity.js';
+import GameplayTags from './core/GameplayTags.js';
 import { FixedMemoryPool, Pool, PoolRegistry } from './core/MemoryPool.js';
 import Animation from './animation/Animation.js';
 import AnimationManager from './animation/AnimationManager.js';
@@ -40,15 +55,31 @@ import { Scene, Sprite } from './scene/Scene.js';
 import SceneDocument, {
   assertValidSceneDocument,
   collectSceneDependencies,
+  instantiateSceneDocument,
   normalizeSceneDocument,
   validateSceneDocument
 } from './scene/SceneDocument.js';
 import SceneLifecycle, { SCENE_LIFECYCLE_ORDER } from './scene/SceneLifecycle.js';
+import CollectionFactory from './scene/CollectionFactory.js';
+import ComponentTreeRuntime from './scene/ComponentTreeRuntime.js';
+import ObjectEventMap from './scene/ObjectEventMap.js';
+import ObjectTimelineRuntime from './scene/ObjectTimelineRuntime.js';
+import createSceneServices from './scene/SceneServices.js';
+import SceneTransitionStack from './scene/SceneTransitionStack.js';
+import ComposerSceneFlow from './scene/ComposerSceneFlow.js';
+import RoomExitGraph from './scene/RoomExitGraph.js';
+import RoomHotspotMap from './scene/RoomHotspotMap.js';
+import ScreenFlowController from './scene/ScreenFlowController.js';
+import SceneStreamingDirector from './scene/SceneStreamingDirector.js';
+import WorldPartitionGrid from './scene/WorldPartitionGrid.js';
 import TileSprite from './scene/TileSprite.js';
 import Text from './text/Text.js';
 import BitmapText from './text/BitmapText.js';
 import SceneManager from './scene/SceneManager.js';
 import InputManager from './input/InputManager.js';
+import InputActionContextStack from './input/InputActionContextStack.js';
+import InputBindingProfile from './input/InputBindingProfile.js';
+import InputDeviceMap from './input/InputDeviceMap.js';
 import Tween, { TweenSequence } from './tween/Tween.js';
 import Timer from './timer/Timer.js';
 import Vec2 from './math/Vec2.js';
@@ -63,6 +94,8 @@ import {
   randomBetween
 } from './math/MathUtils.js';
 import Store from './store/Store.js';
+import PersistentSaveSlot from './store/PersistentSaveSlot.js';
+import SaveGameArchive from './store/SaveGameArchive.js';
 import Loader from './loader/Loader.js';
 import AssetLoader from './loader/AssetLoader.js';
 import PixiRenderer from './renderer/PixiRenderer.js';
@@ -78,13 +111,23 @@ import WebGPURenderer, {
 import * as RendererBackend from './renderer/RendererBackend.js';
 import { RendererContract, assertRendererBackend, createRendererPerformanceSandbox } from './renderer/RendererBackend.js';
 import OffscreenCanvasRenderer from './renderer/OffscreenCanvasRenderer.js';
+import RendererBackendContract from './renderer/RendererBackendContract.js';
 import RenderWorkerBridge from './renderer/RenderWorkerBridge.js';
+import RenderWorkerOwnership from './renderer/RenderWorkerOwnership.js';
+import RenderGraphPlanner from './renderer/RenderGraphPlanner.js';
 import RendererManager from './renderer/RendererManager.js';
 import {
   createRendererFallbackMatrix,
   resolveRendererFallbackPlan,
   RENDERER_FALLBACK_MATRIX_SCHEMA
 } from './renderer/RendererFallbackMatrix.js';
+import MaterialPreset from './renderer/MaterialPreset.js';
+import RenderFeatureProfile from './renderer/RenderFeatureProfile.js';
+import ShaderVariantCollection from './renderer/ShaderVariantCollection.js';
+import TextureStreamingBudget from './renderer/TextureStreamingBudget.js';
+import BatchAtlasDiagnostics from './renderer/BatchAtlasDiagnostics.js';
+import PixiLifecycleAudit from './renderer/PixiLifecycleAudit.js';
+import PixiRenderHardeningProfile from './renderer/PixiRenderHardeningProfile.js';
 import WebGLContextManager from './renderer/WebGLContextManager.js';
 import {
   createBezierPrimitive,
@@ -122,12 +165,14 @@ import UIFocusManager from './ui/UIFocusManager.js';
 import UIStateMachine from './ui/UIStateMachine.js';
 import { layoutRichText } from './ui/RichText.js';
 import PrefabManager from './prefab/PrefabManager.js';
+import PrefabVariantRegistry from './prefab/PrefabVariantRegistry.js';
 import Prefab, { PrefabRegistry } from './core/PrefabRegistry.js';
 import ObjectPool from './pool/ObjectPool.js';
 import { createRuntimeObjectPools } from './pool/RuntimeObjectPools.js';
 import ECS, {
   Components,
   MovementSystem,
+  QueryFilter,
   RenderSystem,
   World,
   benchmarkECSParticles
@@ -138,7 +183,15 @@ import TilemapLoader from './tilemap/TilemapLoader.js';
 import { createTilemapChunkStreamPlan } from './tilemap/TilemapChunkStreaming.js';
 import ChunkCache from './tilemap/ChunkCache.js';
 import ChunkManager from './tilemap/ChunkManager.js';
+import TilemapAuthoringTools from './tilemap/TilemapAuthoringTools.js';
 import EventSheet from './data/EventSheet.js';
+import EventCommandQueue from './data/EventCommandQueue.js';
+import RpgEventPageResolver from './data/RpgEventPageResolver.js';
+import VisualNovelScript from './data/VisualNovelScript.js';
+import DataAsset from './data/DataAsset.js';
+import BehaviorDefinition from './data/BehaviorDefinition.js';
+import DialogueGraph from './data/DialogueGraph.js';
+import NarrativeRuntime from './data/NarrativeRuntime.js';
 import DataTable from './data/DataTable.js';
 import DataTableEditor from './data/DataTableEditor.js';
 import DataAdapter from './data/DataAdapter.js';
@@ -153,6 +206,12 @@ import NetManager from './net/NetManager.js';
 import { fetchWithTimeout } from './net/fetchWithTimeout.js';
 import NetRoom from './net/Room.js';
 import MultiplayerSession from './net/MultiplayerSession.js';
+import RemoteEventContract from './net/RemoteEventContract.js';
+import ClientPredictionReconciler from './net/ClientPredictionReconciler.js';
+import LagCompensationTimeline from './net/LagCompensationTimeline.js';
+import NetworkSnapshotBuffer from './net/NetworkSnapshotBuffer.js';
+import ReplicationInterestGraph from './net/ReplicationInterestGraph.js';
+import RollbackFrameStore from './net/RollbackFrameStore.js';
 import RealtimeConnection from './net/RealtimeConnection.js';
 import WebTransportConnection from './net/WebTransportConnection.js';
 import NavigationAgent2D from './navigation/NavigationAgent2D.js';
@@ -178,6 +237,8 @@ import createAllocationPressureReport from './debug/AllocationPressureReport.js'
 import PerformanceMetrics from './debug/PerformanceMetrics.js';
 import ProfilerWaterfallPanel from './debug/ProfilerWaterfallPanel.js';
 import ProfilerSnapshot from './debug/ProfilerSnapshot.js';
+import DebugProbe from './debug/DebugProbe.js';
+import LevelValidationReport from './debug/LevelValidationReport.js';
 import RemoteDevTools from './debug/RemoteDevTools.js';
 import CrashReporter from './debug/CrashReporter.js';
 import createReproductionBundle, { REPRODUCTION_BUNDLE_SCHEMA } from './debug/ReproductionBundle.js';
@@ -195,6 +256,8 @@ import { Assert } from './debug/Assert.js';
 import { help as describeHelp, listHelp } from './help/HelpRegistry.js';
 import FeedbackWidget from './feedback/FeedbackWidget.js';
 import AssetBrowser from './editor/AssetBrowser.js';
+import EditorInspectorModel from './editor/EditorInspectorModel.js';
+import EditorSceneDependencyGraph from './editor/EditorSceneDependencyGraph.js';
 import EditorPlugin from './editor/EditorPlugin.js';
 import EditorPanel from './editor/EditorPanel.js';
 import EditorPluginCascade from './editor/EditorPluginCascade.js';
@@ -205,13 +268,19 @@ import EditorProtocol, { EDITOR_PROTOCOL_VERSION } from './editor/EditorProtocol
 import AuthManager from './compliance/AuthManager.js';
 import License from './compliance/License.js';
 import PlatformAdapter from './platform/PlatformAdapter.js';
+import ExportPreset from './platform/ExportPreset.js';
+import GameSettingsProfile from './platform/GameSettingsProfile.js';
+import RuntimeConfigFlags from './platform/RuntimeConfigFlags.js';
+import SystemMenuModel from './platform/SystemMenuModel.js';
 import ElectronNativeBridge from './platform/ElectronNativeBridge.js';
 import Dimension3D from './dimension3d/Dimension3D.js';
+import ThreePhysicsBridge from './dimension3d/ThreePhysicsBridge.js';
 import { detectEnvironment, detectPlatformAndMergeDefaults, safeInitialize } from './core/Bootstrap.js';
 import TimeGuard from './core/TimeGuard.js';
 import Templates from './core/Templates.js';
 import Timeline from './timeline/Timeline.js';
 import VisualEventGraph from './visualgraph/VisualEventGraph.js';
+import VisualScriptGraphRuntime from './visualgraph/VisualScriptGraphRuntime.js';
 import HotReload from './hotreload/HotReload.js';
 import HotfixManager from './hotfix/HotfixManager.js';
 import AICommandService from './ai/AICommandService.js';
@@ -243,19 +312,46 @@ import PackageManager from './package/PackageManager.js';
 import MarketplaceServer from './marketplace/MarketplaceServer.js';
 import Font from './assets/Font.js';
 import OBundle from './assets/OBundle.js';
+import AddressableCatalog from './assets/AddressableCatalog.js';
+import AssetDependencyTracker from './assets/AssetDependencyTracker.js';
+import AssetRegistry from './assets/AssetRegistry.js';
+import AssetRegistryChangeSet from './assets/AssetRegistryChangeSet.js';
+import AssetRefreshCoordinator from './assets/AssetRefreshCoordinator.js';
+import AssetReferenceIntegrityAuditor from './assets/AssetReferenceIntegrityAuditor.js';
+import AssetResidencyManager from './assets/AssetResidencyManager.js';
+import AssetBuildRecipe from './assets/AssetBuildRecipe.js';
+import FantasyConsoleBank from './assets/FantasyConsoleBank.js';
 import AssetPatchManager from './assets/AssetPatchManager.js';
+import AssetImportMetadata from './assets/AssetImportMetadata.js';
+import AssetImportPreview from './assets/AssetImportPreview.js';
+import AssetImportProfile from './assets/AssetImportProfile.js';
+import AssetImportSession from './assets/AssetImportSession.js';
+import AssetImportTransaction from './assets/AssetImportTransaction.js';
 import AssetPipelineGate, { createAssetPipelineReport } from './assets/AssetPipelineGate.js';
 import PlatformVariantResolver from './assets/PlatformVariantResolver.js';
 import ResourceOwnershipGraph from './assets/ResourceOwnershipGraph.js';
 import AssetManifestGraph from './assets/AssetManifestGraph.js';
+import VirtualAssetFS from './assets/VirtualAssetFS.js';
 import BehaviorTree from './behavior/BehaviorTree.js';
 import StateBehaviorTree from './behaviortree/BehaviorTree.js';
+import AbilitySystem from './gameplay/AbilitySystem.js';
+import QuestStateMachine from './gameplay/QuestStateMachine.js';
 import ExportPaywall from './commercial/ExportPaywall.js';
 import SleepWakeSystem from './optimization/SleepWakeSystem.js';
 import ViewportCulling from './optimization/ViewportCulling.js';
 import AdaptiveQualityManager from './optimization/AdaptiveQualityManager.js';
 import DeviceProfiler from './optimization/DeviceProfiler.js';
+import FrameDiagnosticsCapture from './performance/FrameDiagnosticsCapture.js';
 import FrameBudgetScheduler from './performance/FrameBudgetScheduler.js';
+import FramePacingController from './performance/FramePacingController.js';
+import PerformanceBudgetEnvelope from './performance/PerformanceBudgetEnvelope.js';
+import PerformanceMonitorRegistry from './performance/PerformanceMonitorRegistry.js';
+import PerformanceRegressionGuard from './performance/PerformanceRegressionGuard.js';
+import QualityScalerProfile from './performance/QualityScalerProfile.js';
+import RuntimeOptimizationAdvisor from './performance/RuntimeOptimizationAdvisor.js';
+import RuntimeOptimizationController from './performance/RuntimeOptimizationController.js';
+import ScalabilityTierMatrix from './performance/ScalabilityTierMatrix.js';
+import ThermalPowerGovernor from './performance/ThermalPowerGovernor.js';
 import StartupProfiler from './performance/StartupProfiler.js';
 import CollisionMask from './physics/CollisionMask.js';
 import PhysicsQuery from './physics/PhysicsQuery.js';
@@ -276,6 +372,7 @@ import diagnoseBatchBreaks from './renderer/BatchDiagnostics.js';
 import { PixiFrameworkBridge, createPixiFrameworkAdoptionPlan } from './renderer/PixiFrameworkBridge.js';
 import { PixiTextureLifecycle } from './renderer/PixiTextureLifecycle.js';
 import { PhaserCompatScene, createPhaserCompatScene } from './compat/phaser/PhaserCompat.js';
+import PhaserRuntimeParityLayer from './compat/phaser/PhaserRuntimeParityLayer.js';
 import Kernel from './microkernel/Kernel.js';
 import RendererAdapter from './microkernel/RendererAdapter.js';
 import SplashScreen from './microkernel/SplashScreen.js';
@@ -304,8 +401,30 @@ import EngineQualityHarness, {
 import { buildEditorMarketReadiness } from './editor/EditorMarketReadiness.js';
 import { buildEditorLongTermMaturity } from './editor/EditorLongTermMaturity.js';
 import { buildMarketEngineComparison, renderMarketEngineComparisonMarkdown } from './quality/MarketEngineComparison.js';
+import {
+  buildEngineCapabilityAtlas,
+  ENGINE_CAPABILITY_CATEGORIES,
+  ENGINE_FAMILY_SOURCES,
+  renderEngineCapabilityMarkdown
+} from './quality/EngineCapabilityAtlas.js';
 import { buildMarketPositioningScorecard } from './quality/MarketPositioningScorecard.js';
 import RuntimeSoakHarness, { createRuntimeSoakReport } from './quality/RuntimeSoakHarness.js';
+import EngineLimitRegistry from './quality/EngineLimitRegistry.js';
+import BottleneckSurfaceAnalyzer from './quality/BottleneckSurfaceAnalyzer.js';
+import LimitRemovalPlanner from './quality/LimitRemovalPlanner.js';
+import PersonalCapabilityProfile from './quality/PersonalCapabilityProfile.js';
+import CreatorWorkflowCoach from './quality/CreatorWorkflowCoach.js';
+import SoloProductionPlanner from './quality/SoloProductionPlanner.js';
+import EngineFunctionQualityMatrix from './quality/EngineFunctionQualityMatrix.js';
+import FeatureQualityAuditor from './quality/FeatureQualityAuditor.js';
+import ApiSurfaceFocusLens from './quality/ApiSurfaceFocusLens.js';
+import QualityOptimizationPlanner from './quality/QualityOptimizationPlanner.js';
+import EngineCompletenessMatrix from './quality/EngineCompletenessMatrix.js';
+import CompletenessGapAnalyzer from './quality/CompletenessGapAnalyzer.js';
+import CompletenessClosurePlanner from './quality/CompletenessClosurePlanner.js';
+import CrossEngineParityMatrix from './quality/CrossEngineParityMatrix.js';
+import EngineAdvantageAssimilator from './quality/EngineAdvantageAssimilator.js';
+import CrossEngineAdoptionPlanner from './quality/CrossEngineAdoptionPlanner.js';
 
 const Data = { safeParse };
 const MathTools = { Vec2, Rect, Easing, distance, isInRadius, randomBetween, lerp, angle, random };
@@ -795,6 +914,11 @@ const System = {
 
 InputManager.Sequence = InputSequence;
 NetManager.Room = NetRoom;
+NetManager.ClientPredictionReconciler = ClientPredictionReconciler;
+NetManager.LagCompensationTimeline = LagCompensationTimeline;
+NetManager.NetworkSnapshotBuffer = NetworkSnapshotBuffer;
+NetManager.ReplicationInterestGraph = ReplicationInterestGraph;
+NetManager.RollbackFrameStore = RollbackFrameStore;
 
 const addonRegistry = new Map();
 
@@ -873,6 +997,8 @@ const OmniCore = {
   ApiSurface,
   API_TIERS,
   DEFAULT_API_SURFACE,
+  ApplicationStateStack,
+  CallbackGameLoop,
   buildApiSurface,
   diffApiSurface,
   assertNoBreakingApiChanges,
@@ -880,6 +1006,8 @@ const OmniCore = {
   OmniCoreErrorBoundary,
   PluginPermissionSandbox,
   PLUGIN_PERMISSION_SCOPES,
+  PluginManifest,
+  ModuleGemManifest,
   Hook: GlobalHook,
   HookClass: Hook,
   Plugin,
@@ -893,17 +1021,30 @@ const OmniCore = {
   disableAddon,
   connectEditorSync,
   EventBus,
+  GameComponentPipeline,
+  JobDependencyGraph,
+  MessageRouteBus,
+  SceneObservableHub,
+  ServerHandleRegistry,
+  SignalBus,
   Sandbox,
   SandboxBus,
   Bus,
   Task,
   TaskManager,
+  TaskChainManager,
   TaskScheduler,
+  ResourceStateScheduler,
+  SystemSchedule,
+  RuntimeStateSerializer,
   Query,
   EntitySpatialIndex,
   DualSpatialIndex,
+  GameplayTags,
   AssetBrowser,
   Editor: EditorPanel,
+  EditorInspectorModel,
+  EditorSceneDependencyGraph,
   EditorPlugin,
   EditorPluginCascade,
   EditorPanel,
@@ -921,9 +1062,22 @@ const OmniCore = {
   Scene,
   SceneLifecycle,
   SCENE_LIFECYCLE_ORDER,
+  CollectionFactory,
+  ComponentTreeRuntime,
+  ObjectEventMap,
+  ObjectTimelineRuntime,
+  createSceneServices,
+  SceneTransitionStack,
+  ComposerSceneFlow,
+  RoomExitGraph,
+  RoomHotspotMap,
+  ScreenFlowController,
+  SceneStreamingDirector,
+  WorldPartitionGrid,
   SceneDocument,
   assertValidSceneDocument,
   collectSceneDependencies,
+  instantiateSceneDocument,
   normalizeSceneDocument,
   validateSceneDocument,
   Sprite,
@@ -937,7 +1091,10 @@ const OmniCore = {
   Tween,
   TweenSequence,
   Input: InputManager,
+  InputActionContextStack,
+  InputBindingProfile,
   InputManager,
+  InputDeviceMap,
   InputSequence,
   Camera,
   Timer,
@@ -961,18 +1118,25 @@ const OmniCore = {
   Prefab,
   PrefabRegistry,
   PrefabManager,
+  PrefabVariantRegistry,
   Templates,
   Backend,
   Dimension3D,
+  ThreePhysicsBridge,
   Deprecation,
   Store,
+  PersistentSaveSlot,
+  SaveGameArchive,
   install: (name, options) => Store.install(name, options),
   Loader,
   AssetCache,
   AssetLoader,
   createAsyncAssetPipeline,
   Font,
-  Renderer: { PixiRenderer, WebGPURenderer, RendererBackend, OffscreenCanvasRenderer, RenderWorkerBridge, Filters, WebGLContextManager, RendererManager, RenderLayerManager, PixiBatchAdapter, CommandBuffer, StaticBatchCompiler, createRendererFallbackMatrix, resolveRendererFallbackPlan, optimizeRenderQueueForBatching },
+  AssetBuildRecipe,
+  FantasyConsoleBank,
+  VirtualAssetFS,
+  Renderer: { PixiRenderer, WebGPURenderer, RendererBackend, OffscreenCanvasRenderer, RendererBackendContract, RenderWorkerBridge, RenderWorkerOwnership, Filters, WebGLContextManager, RendererManager, RenderLayerManager, PixiBatchAdapter, CommandBuffer, StaticBatchCompiler, MaterialPreset, RenderFeatureProfile, RenderGraphPlanner, ShaderVariantCollection, TextureStreamingBudget, BatchAtlasDiagnostics, PixiLifecycleAudit, PixiRenderHardeningProfile, createRendererFallbackMatrix, resolveRendererFallbackPlan, optimizeRenderQueueForBatching },
   diagnoseBatchBreaks,
   optimizeRenderQueueForBatching,
   createBezierPrimitive,
@@ -996,9 +1160,18 @@ const OmniCore = {
   RendererContract,
   assertRendererBackend,
   createRendererPerformanceSandbox,
+  RendererBackendContract,
   createRendererFallbackMatrix,
   resolveRendererFallbackPlan,
   RENDERER_FALLBACK_MATRIX_SCHEMA,
+  MaterialPreset,
+  RenderFeatureProfile,
+  RenderGraphPlanner,
+  ShaderVariantCollection,
+  TextureStreamingBudget,
+  BatchAtlasDiagnostics,
+  PixiLifecycleAudit,
+  PixiRenderHardeningProfile,
   PixiBatchAdapter,
   StaticBatchCompiler,
   CommandBuffer,
@@ -1012,6 +1185,7 @@ const OmniCore = {
   createWebGPUTextureAtlasDescriptor,
   OffscreenCanvasRenderer,
   RenderWorkerBridge,
+  RenderWorkerOwnership,
   RendererManager,
   RenderLayerManager,
   compareRenderSnapshots,
@@ -1023,11 +1197,20 @@ const OmniCore = {
   Components,
   World,
   MovementSystem,
+  QueryFilter,
   RenderSystem,
   benchmarkECSParticles,
   Database,
+  DataAsset,
+  BehaviorDefinition,
+  DialogueGraph,
+  NarrativeRuntime,
+  EventCommandQueue,
+  RpgEventPageResolver,
+  VisualNovelScript,
   DB,
   Tilemap,
+  TilemapAuthoringTools,
   AITilemapGenerator,
   TilemapLoader,
   createTilemapChunkStreamPlan,
@@ -1042,12 +1225,25 @@ const OmniCore = {
   createEditorDeployBenchmark25D,
   Timeline,
   VisualEventGraph,
+  VisualScriptGraphRuntime,
   HotReload,
   HotfixManager,
   AICommandService,
   AIImporter,
   Analytics,
+  AddressableCatalog,
+  AssetDependencyTracker,
+  AssetRegistry,
+  AssetRegistryChangeSet,
+  AssetRefreshCoordinator,
+  AssetReferenceIntegrityAuditor,
+  AssetResidencyManager,
   AssetPatchManager,
+  AssetImportMetadata,
+  AssetImportPreview,
+  AssetImportProfile,
+  AssetImportSession,
+  AssetImportTransaction,
   AssetManifestGraph,
   AssetPipelineGate,
   createAssetPipelineReport,
@@ -1067,6 +1263,8 @@ const OmniCore = {
   calculateDamage,
   BehaviorTree,
   StateBehaviorTree,
+  AbilitySystem,
+  QuestStateMachine,
   SkeletalAnimation,
   SpineAdapter,
   SpinePixiRuntimeAdapter,
@@ -1094,12 +1292,74 @@ const OmniCore = {
   AdaptiveQualityManager,
   createTextureBudgetPlan,
   DeviceProfiler,
+  FrameDiagnosticsCapture,
   FrameBudgetScheduler,
+  FramePacingController,
+  PerformanceBudgetEnvelope,
+  PerformanceMonitorRegistry,
+  PerformanceRegressionGuard,
+  QualityScalerProfile,
+  RuntimeOptimizationAdvisor,
+  RuntimeOptimizationController,
+  ScalabilityTierMatrix,
+  ThermalPowerGovernor,
   DirtyFlagTracker,
   createIncrementalSpatialIndexReport,
   StartupProfiler,
   Quality: EngineQualityHarness,
   EngineQualityHarness,
+  EngineLimitRegistry,
+  BottleneckSurfaceAnalyzer,
+  LimitRemovalPlanner,
+  PersonalCapabilityProfile,
+  CreatorWorkflowCoach,
+  SoloProductionPlanner,
+  EngineFunctionQualityMatrix,
+  FeatureQualityAuditor,
+  ApiSurfaceFocusLens,
+  QualityOptimizationPlanner,
+  EngineCompletenessMatrix,
+  CompletenessGapAnalyzer,
+  CompletenessClosurePlanner,
+  CrossEngineParityMatrix,
+  EngineAdvantageAssimilator,
+  CrossEngineAdoptionPlanner,
+  EngineLimitTools: {
+    EngineLimitRegistry,
+    BottleneckSurfaceAnalyzer,
+    LimitRemovalPlanner
+  },
+  PersonalCapabilityTools: {
+    PersonalCapabilityProfile,
+    CreatorWorkflowCoach,
+    SoloProductionPlanner
+  },
+  FunctionQualityTools: {
+    EngineFunctionQualityMatrix,
+    FeatureQualityAuditor,
+    ApiSurfaceFocusLens,
+    QualityOptimizationPlanner
+  },
+  CompletenessTools: {
+    EngineCompletenessMatrix,
+    CompletenessGapAnalyzer,
+    CompletenessClosurePlanner
+  },
+  CrossEngineTools: {
+    CrossEngineParityMatrix,
+    EngineAdvantageAssimilator,
+    CrossEngineAdoptionPlanner
+  },
+  EngineCapabilityAtlas: {
+    buildEngineCapabilityAtlas,
+    ENGINE_CAPABILITY_CATEGORIES,
+    ENGINE_FAMILY_SOURCES,
+    renderEngineCapabilityMarkdown
+  },
+  buildEngineCapabilityAtlas,
+  ENGINE_CAPABILITY_CATEGORIES,
+  ENGINE_FAMILY_SOURCES,
+  renderEngineCapabilityMarkdown,
   RuntimeSoakHarness,
   createRuntimeSoakReport,
   Kernel,
@@ -1131,12 +1391,22 @@ const OmniCore = {
   Net,
   NetRoom,
   MultiplayerSession,
+  RemoteEventContract,
+  ClientPredictionReconciler,
+  LagCompensationTimeline,
+  NetworkSnapshotBuffer,
+  ReplicationInterestGraph,
+  RollbackFrameStore,
   NavigationAgent2D,
   RealtimeConnection,
   WebTransportConnection,
   System,
   License,
   PlatformAdapter,
+  ExportPreset,
+  GameSettingsProfile,
+  RuntimeConfigFlags,
+  SystemMenuModel,
   ElectronNativeBridge,
   ApiQuickPanel,
   Debug,
@@ -1173,6 +1443,8 @@ const OmniCore = {
   PerformanceMetrics,
   ProfilerWaterfallPanel,
   ProfilerSnapshot,
+  DebugProbe,
+  LevelValidationReport,
   RemoteDevTools,
   CrashReporter,
   createReproductionBundle,
@@ -1195,6 +1467,13 @@ Object.defineProperty(OmniCore, 'Assert', {
 export default OmniCore;
 export {
   ABTest,
+  AbilitySystem,
+  AddressableCatalog,
+  AssetDependencyTracker,
+  AssetRegistry,
+  AssetRegistryChangeSet,
+  AssetRefreshCoordinator,
+  AssetReferenceIntegrityAuditor,
   API_TIERS,
   DEFAULT_API_SURFACE,
   ApiSurface,
@@ -1206,6 +1485,11 @@ export {
   ArcadeAdapter,
   AudioEditor,
   AssetBrowser,
+  AssetImportMetadata,
+  AssetImportPreview,
+  AssetImportProfile,
+  AssetImportSession,
+  AssetImportTransaction,
   AICommandService,
   AIImporter,
   AITilemapGenerator,
@@ -1215,15 +1499,21 @@ export {
   createAnimationLODPlan,
   AnimationEditor,
   AnimationStateMachine,
+  ApplicationStateStack,
+  CallbackGameLoop,
   ApiQuickPanel,
   AssetCache,
+  AssetBuildRecipe,
   AssetPatchManager,
+  AssetResidencyManager,
   AssetManifestGraph,
   AssetPipelineGate,
   AssetLoader,
+  BatchAtlasDiagnostics,
   createAsyncAssetPipeline,
   Backend,
   BackendManager,
+  BehaviorDefinition,
   BehaviorTree,
   Button,
   Camera,
@@ -1244,12 +1534,17 @@ export {
   createReproductionBundle,
   REPRODUCTION_BUNDLE_SCHEMA,
   DataAdapter,
+  DataAsset,
+  DialogueGraph,
+  NarrativeRuntime,
   DataTable,
   DataTableEditor,
   Data,
   Database,
   DB,
   Debug,
+  DebugProbe,
+  LevelValidationReport,
   DebugConsole,
   DebugRenderer,
   MemoryGuardian,
@@ -1259,13 +1554,17 @@ export {
   distance,
   Deprecation,
   Dimension3D,
+  ThreePhysicsBridge,
   DeterministicReplay,
   DragonBonesAdapter,
   Assert,
   Easing,
   ECS,
+  GameplayTags,
   OmniMath as Math,
   ElectronNativeBridge,
+  EditorInspectorModel,
+  EditorSceneDependencyGraph,
   EditorPanel,
   EditorProtocol,
   EditorOverlay,
@@ -1273,20 +1572,62 @@ export {
   EditorPluginCascade,
   EmergencyOverlay,
   ErrorDiagnostics,
+  EventCommandQueue,
+  RpgEventPageResolver,
   EventSheet,
   EventBus,
+  GameComponentPipeline,
+  JobDependencyGraph,
+  MessageRouteBus,
+  ExportPreset,
   EntitySpatialIndex,
   createIncrementalSpatialIndexReport,
   DualSpatialIndex,
   EngineQualityHarness,
+  EngineLimitRegistry,
+  BottleneckSurfaceAnalyzer,
+  LimitRemovalPlanner,
+  PersonalCapabilityProfile,
+  CreatorWorkflowCoach,
+  SoloProductionPlanner,
+  EngineFunctionQualityMatrix,
+  FeatureQualityAuditor,
+  ApiSurfaceFocusLens,
+  QualityOptimizationPlanner,
+  EngineCompletenessMatrix,
+  CompletenessGapAnalyzer,
+  CompletenessClosurePlanner,
+  CrossEngineParityMatrix,
+  EngineAdvantageAssimilator,
+  CrossEngineAdoptionPlanner,
+  buildEngineCapabilityAtlas,
+  ENGINE_CAPABILITY_CATEGORIES,
+  ENGINE_FAMILY_SOURCES,
+  renderEngineCapabilityMarkdown,
   PhaserCompatScene,
+  PhaserRuntimeParityLayer,
+  CollectionFactory,
+  ComponentTreeRuntime,
+  ComposerSceneFlow,
   ExportPaywall,
   FeedbackWidget,
   fetchWithTimeout,
   formatOmniMessage,
   FixedMemoryPool,
   Font,
+  VirtualAssetFS,
+  FantasyConsoleBank,
+  FrameDiagnosticsCapture,
   FrameBudgetScheduler,
+  FramePacingController,
+  PerformanceBudgetEnvelope,
+  PerformanceMonitorRegistry,
+  PerformanceRegressionGuard,
+  QualityScalerProfile,
+  RuntimeOptimizationAdvisor,
+  RuntimeOptimizationController,
+  ScalabilityTierMatrix,
+  ThermalPowerGovernor,
   DirtyFlagTracker,
   FrameProfiler,
   Genealogy,
@@ -1302,6 +1643,9 @@ export {
   HotfixManager,
   I18n,
   Localization,
+  InputActionContextStack,
+  InputBindingProfile,
+  InputDeviceMap,
   InputManager,
   InputSequence,
   Inspector,
@@ -1324,6 +1668,12 @@ export {
   NetManager,
   NetRoom,
   MultiplayerSession,
+  RemoteEventContract,
+  ClientPredictionReconciler,
+  LagCompensationTimeline,
+  NetworkSnapshotBuffer,
+  ReplicationInterestGraph,
+  RollbackFrameStore,
   NavigationAgent2D,
   HeightfieldNavMesh25D,
   SocialAwareness25D,
@@ -1372,9 +1722,13 @@ export {
   PlaySession,
   Payment,
   PackageManager,
+  PersistentSaveSlot,
   PlatformAdapter,
   PlatformVariantResolver,
+  GameSettingsProfile,
   PluginPermissionSandbox,
+  PluginManifest,
+  ModuleGemManifest,
   PLUGIN_PERMISSION_SCOPES,
   Hook,
   GlobalHook,
@@ -1383,9 +1737,11 @@ export {
   Prefab,
   PrefabManager,
   PrefabRegistry,
+  PrefabVariantRegistry,
   ProfilerWaterfallPanel,
   ProfilerSnapshot,
   Query,
+  QueryFilter,
   Rect,
   runBudgetCheck,
   runDeterminismCheck,
@@ -1393,12 +1749,20 @@ export {
   runInvariantCheck,
   runTrendCheck,
   RuntimeSoakHarness,
+  RuntimeStateSerializer,
+  ResourceStateScheduler,
+  RuntimeConfigFlags,
   createRuntimeSoakReport,
   ResourceOwnershipGraph,
   RenderLayerManager,
   RenderWorkerBridge,
+  RenderWorkerOwnership,
+  MaterialPreset,
+  RenderFeatureProfile,
+  RenderGraphPlanner,
   RemoteDevTools,
   RendererBackend,
+  RendererBackendContract,
   RendererContract,
   RendererAdapter,
   RendererManager,
@@ -1407,28 +1771,46 @@ export {
   RENDERER_FALLBACK_MATRIX_SCHEMA,
   optimizeRenderQueueForBatching,
   RenderSystem,
+  ShaderVariantCollection,
+  PixiLifecycleAudit,
+  PixiRenderHardeningProfile,
+  TextureStreamingBudget,
   createHD2DFilter,
   createNormalLightShader,
   createSpineFFDVertexShader,
   RuntimeLiveSyncBridge,
+  SceneObservableHub,
+  ServerHandleRegistry,
   SceneLifecycle,
   SCENE_LIFECYCLE_ORDER,
   SceneDocument,
+  ObjectEventMap,
+  ObjectTimelineRuntime,
+  createSceneServices,
+  SceneTransitionStack,
+  RoomExitGraph,
+  RoomHotspotMap,
+  ScreenFlowController,
+  SceneStreamingDirector,
+  WorldPartitionGrid,
   Sandbox,
   SandboxBus,
   Scene,
   SceneManager,
   collectSceneDependencies,
+  instantiateSceneDocument,
   normalizeSceneDocument,
   validateSceneDocument,
   SleepWakeSystem,
   Sprite,
   Text,
   BitmapText,
+  SaveGameArchive,
   SplashScreen,
   snapshotRenderQueue,
   stableHash,
   stableStringify,
+  SignalBus,
   StaticBatchCompiler,
   SeededRandom,
   SkeletalAnimation,
@@ -1436,11 +1818,15 @@ export {
   SpineAdapter,
   SpinePixiRuntimeAdapter,
   StateBehaviorTree,
+  QuestStateMachine,
   StorageManager,
   Store,
   StartupProfiler,
   System,
+  SystemSchedule,
+  SystemMenuModel,
   Task,
+  TaskChainManager,
   TaskManager,
   TaskScheduler,
   TimeGuard,
@@ -1448,6 +1834,7 @@ export {
   TelemetryDashboard,
   Timer,
   Tilemap,
+  TilemapAuthoringTools,
   TilemapLoader,
   createTilemapChunkStreamPlan,
   Timeline,
@@ -1465,6 +1852,8 @@ export {
   UIStateMachine,
   VersionDialog,
   VisualEventGraph,
+  VisualScriptGraphRuntime,
+  VisualNovelScript,
   Vec2,
   ViewportCulling,
   WasmLoader,

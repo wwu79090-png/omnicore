@@ -1,4 +1,5 @@
 import Scene from './Scene.js';
+import createSceneServices from './SceneServices.js';
 import { createOmniError } from '../core/OmniError.js';
 
 /**
@@ -301,10 +302,7 @@ export class SceneManager {
     const scene = typeof entry === 'function' ? await entry(data) : entry;
     scene.debug = Boolean(this.game?.config?.debug);
     scene.game = this.game;
-    scene.input = this.game?.input || null;
-    scene.camera = this.game?.camera || null;
-    if (typeof scene.bindTimer === 'function') scene.bindTimer(this.game?.timer || null);
-    else scene.timer = this.game?.timer || null;
+    createSceneServices(scene, this.game || {});
     return scene;
   }
 
@@ -312,10 +310,7 @@ export class SceneManager {
     if (!scene) throw createOmniError('Scene', 'overlay(id, scene) 需要有效场景。');
     scene.debug = Boolean(this.game?.config?.debug);
     scene.game = this.game;
-    scene.input = this.game?.input || null;
-    scene.camera = this.game?.camera || null;
-    if (typeof scene.bindTimer === 'function') scene.bindTimer(this.game?.timer || null);
-    else scene.timer = this.game?.timer || null;
+    createSceneServices(scene, this.game || {});
     await Promise.resolve(data);
     return scene;
   }

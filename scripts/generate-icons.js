@@ -33,6 +33,7 @@ const targets = [
   ['electron/icon-256.png', 256],
   ['electron/icon-512.png', 512]
 ];
+const electronIcoPath = path.join(outRoot, 'electron', 'icon.ico');
 
 for (const [file, size] of targets) {
   const target = path.join(outRoot, file);
@@ -40,12 +41,18 @@ for (const [file, size] of targets) {
   writeFileSync(target, createPng(size, source));
   console.log(`[OmniCore] icon ${size}x${size}: ${target}`);
 }
+mkdirSync(path.dirname(electronIcoPath), { recursive: true });
+writeFileSync(electronIcoPath, createIco(readFileSync(path.join(outRoot, 'electron', 'icon-256.png'))));
+console.log(`[OmniCore] icon ico: ${electronIcoPath}`);
 
 writeFileSync(path.join(outRoot, 'icon-manifest.json'), JSON.stringify({
   source: input,
   generatedAt: new Date().toISOString(),
   note: 'Generated without third-party image dependencies; files preserve source PNG pixels for platform packaging.',
-  targets: Object.fromEntries(targets.map(([file, size]) => [file, { size }]))
+  targets: {
+    ...Object.fromEntries(targets.map(([file, size]) => [file, { size }])),
+    'electron/icon.ico': { size: 256, format: 'ico' }
+  }
 }, null, 2));
 
 function parseArgs(argv) {
@@ -115,6 +122,24 @@ function colorFromSeed(seed) {
     180 + ((hash >>> 16) & 0x3f),
     255
   ];
+}
+
+function createIco(png) {
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(1, 4);
+
+  const entry = Buffer.alloc(16);
+  entry[0] = 0;
+  entry[1] = 0;
+  entry[2] = 0;
+  entry[3] = 0;
+  entry.writeUInt16LE(1, 4);
+  entry.writeUInt16LE(32, 6);
+  entry.writeUInt32LE(png.length, 8);
+  entry.writeUInt32LE(header.length + entry.length, 12);
+  return Buffer.concat([header, entry, png]);
 }
 
 function chunk(type, data) {

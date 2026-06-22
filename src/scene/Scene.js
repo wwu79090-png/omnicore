@@ -42,6 +42,19 @@ class ComponentHost {
     for (const handler of this.__listeners.get(event) || []) handler(...args);
   }
 
+  connect(event, target, targetEventOrHandler = event, options = {}) {
+    const handler = typeof targetEventOrHandler === 'function'
+      ? targetEventOrHandler
+      : (...args) => target?.emit?.(targetEventOrHandler, ...args);
+    let off = null;
+    const wrapped = (...args) => {
+      handler(...args);
+      if (options.once) off?.();
+    };
+    off = this.on(event, wrapped);
+    return off;
+  }
+
   clearListeners() {
     for (const handlers of this.__listeners.values()) {
       handlers.clear();

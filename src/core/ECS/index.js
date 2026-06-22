@@ -1,5 +1,6 @@
 import World from './World.js';
 import ComponentStorage from './ComponentStorage.js';
+import QueryFilter from './QueryFilter.js';
 import { Components, MovementSystem, RenderSystem } from './Systems.js';
 
 export function benchmarkECSParticles({ count = 5000, frames = 60, delta = 1 / 60 } = {}) {
@@ -37,6 +38,7 @@ const ECS = {
   ComponentStorage,
   Components,
   MovementSystem,
+  QueryFilter,
   RenderSystem,
   World,
   benchmarkECSParticles
@@ -46,6 +48,7 @@ export {
   ComponentStorage,
   Components,
   MovementSystem,
+  QueryFilter,
   RenderSystem,
   World
 };

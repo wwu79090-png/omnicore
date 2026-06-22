@@ -95,7 +95,7 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: 'jsdom',
       setupFiles: ['tests/setup.js'],
-      exclude: ['node_modules/**', 'dist/**', 'tests/e2e/**'],
+      exclude: ['node_modules/**', '**/node_modules/**', 'dist/**', '**/dist/**', 'tests/e2e/**'],
       testTimeout: 60000,
       globals: true,
       coverage: {

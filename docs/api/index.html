@@ -97,6 +97,46 @@
       <code>AnimationStateMachine</code>
     </article>
     <article>
+      <h2>assets/AddressableCatalog.js</h2>
+      <p></p>
+      <code>AddressableCatalog</code>
+    </article>
+    <article>
+      <h2>assets/AssetBuildRecipe.js</h2>
+      <p></p>
+      <code>AssetBuildRecipe</code>
+    </article>
+    <article>
+      <h2>assets/AssetDependencyTracker.js</h2>
+      <p></p>
+      <code>ASSET_DEPENDENCY_TRACKER_REPORT_SCHEMA, AssetDependencyTracker</code>
+    </article>
+    <article>
+      <h2>assets/AssetImportMetadata.js</h2>
+      <p></p>
+      <code>AssetImportMetadata</code>
+    </article>
+    <article>
+      <h2>assets/AssetImportPreview.js</h2>
+      <p></p>
+      <code>ASSET_IMPORT_PREVIEW_SCHEMA, AssetImportPreview</code>
+    </article>
+    <article>
+      <h2>assets/AssetImportProfile.js</h2>
+      <p></p>
+      <code>ASSET_IMPORT_PROFILE_RESOLUTION_SCHEMA, ASSET_IMPORT_PROFILE_AUDIT_SCHEMA, AssetImportProfile</code>
+    </article>
+    <article>
+      <h2>assets/AssetImportSession.js</h2>
+      <p></p>
+      <code>ASSET_IMPORT_SESSION_REPORT_SCHEMA, AssetImportSession</code>
+    </article>
+    <article>
+      <h2>assets/AssetImportTransaction.js</h2>
+      <p></p>
+      <code>ASSET_IMPORT_TRANSACTION_REPORT_SCHEMA, AssetImportTransaction</code>
+    </article>
+    <article>
       <h2>assets/AssetManifestGraph.js</h2>
       <p></p>
       <code>AssetManifestGraph</code>
@@ -110,6 +150,36 @@
       <h2>assets/AssetPipelineGate.js</h2>
       <p>Asset manifest release gate for budgets, hashes, missing references, and dependency cycles.</p>
       <code>ASSET_PIPELINE_REPORT_SCHEMA, AssetPipelineGate, createAssetPipelineReport</code>
+    </article>
+    <article>
+      <h2>assets/AssetReferenceIntegrityAuditor.js</h2>
+      <p>Resource database auditor for stable ids, addressable paths, bundle dependencies, and prefab/scene repair plans.</p>
+      <code>ASSET_REFERENCE_INTEGRITY_REPORT_SCHEMA, AssetReferenceIntegrityAuditor</code>
+    </article>
+    <article>
+      <h2>assets/AssetRefreshCoordinator.js</h2>
+      <p>Applies dependency-aware asset change plans to runtime resources, editor views, and HMR sockets.</p>
+      <code>ASSET_REFRESH_APPLY_REPORT_SCHEMA, AssetRefreshCoordinator</code>
+    </article>
+    <article>
+      <h2>assets/AssetRegistry.js</h2>
+      <p>Searchable asset registry for unloaded assets, stable ids, dependency queries, and editor repair plans.</p>
+      <code>ASSET_REGISTRY_AUDIT_SCHEMA, AssetRegistry</code>
+    </article>
+    <article>
+      <h2>assets/AssetRegistryChangeSet.js</h2>
+      <p>Dependency-aware asset change session for editor file watches, imports, hot reload, and resource browser updates.</p>
+      <code>ASSET_REGISTRY_CHANGE_PLAN_SCHEMA, AssetRegistryChangeSet</code>
+    </article>
+    <article>
+      <h2>assets/AssetResidencyManager.js</h2>
+      <p></p>
+      <code>AssetResidencyManager</code>
+    </article>
+    <article>
+      <h2>assets/FantasyConsoleBank.js</h2>
+      <p></p>
+      <code>FantasyConsoleBank</code>
     </article>
     <article>
       <h2>assets/Font.js</h2>
@@ -135,6 +205,11 @@
       <h2>assets/ResourceOwnershipGraph.js</h2>
       <p></p>
       <code>ResourceOwnershipGraph</code>
+    </article>
+    <article>
+      <h2>assets/VirtualAssetFS.js</h2>
+      <p></p>
+      <code>VirtualAssetFS</code>
     </article>
     <article>
       <h2>audio/AudioEditor.js</h2>
@@ -202,6 +277,11 @@
       <code>PhaserCompatScene, createPhaserCompatScene</code>
     </article>
     <article>
+      <h2>compat/phaser/PhaserRuntimeParityLayer.js</h2>
+      <p></p>
+      <code>PhaserRuntimeParityLayer</code>
+    </article>
+    <article>
       <h2>compliance/AuthManager.js</h2>
       <p>Real-name authentication hook facade. OmniCore does not implement a jurisdiction-specific identity provider. Games install a hook and the engine calls it consistently across platforms. @example OmniCore.System.Auth.setHook(async (profile) =&gt; provider.verify(profile)); const result = await OmniCore.System.Auth.verify({ playerId: 'u1' });</p>
       <code>AuthManager</code>
@@ -237,6 +317,11 @@
       <code>API_TIERS, DEFAULT_API_SURFACE, ApiSurface, buildApiSurface, diffApiSurface, assertNoBreakingApiChanges</code>
     </article>
     <article>
+      <h2>core/ApplicationStateStack.js</h2>
+      <p></p>
+      <code>ApplicationStateStack</code>
+    </article>
+    <article>
       <h2>core/AssetCache.js</h2>
       <p></p>
       <code>AssetCache</code>
@@ -245,6 +330,11 @@
       <h2>core/Bootstrap.js</h2>
       <p>Bootstrapping helpers for standard OmniCore configuration and DOM attachment. @example const config = normalizeConfig({ width: 960, height: 540, platform: 'web' }); const container = resolveContainer(config.container);</p>
       <code>STANDARD_DIRECTORIES, normalizeConfig, detectPlatformAndMergeDefaults, hasDocument, resolveContainer, createCanvas, normalizeScaleMode, removeContainerCanvases, createNoopCanvasContext, detectEnvironment, safeInitialize</code>
+    </article>
+    <article>
+      <h2>core/CallbackGameLoop.js</h2>
+      <p></p>
+      <code>CallbackGameLoop</code>
     </article>
     <article>
       <h2>core/CrashHandler.js</h2>
@@ -277,6 +367,11 @@
       <code>benchmarkECSParticles</code>
     </article>
     <article>
+      <h2>core/ECS/QueryFilter.js</h2>
+      <p></p>
+      <code>QueryFilter</code>
+    </article>
+    <article>
       <h2>core/ECS/Systems.js</h2>
       <p></p>
       <code>MovementSystem, RenderSystem</code>
@@ -307,9 +402,24 @@
       <code>EventListenerRegistry, DEFAULT_EVENT_LISTENER_REGISTRY, attachEntityEventTracking, getEntityListenerCount, cleanupEntityListeners</code>
     </article>
     <article>
+      <h2>core/GameComponentPipeline.js</h2>
+      <p></p>
+      <code>GameComponentPipeline</code>
+    </article>
+    <article>
+      <h2>core/GameplayTags.js</h2>
+      <p></p>
+      <code>GameplayTagContainer, GameplayTags</code>
+    </article>
+    <article>
       <h2>core/Hook.js</h2>
       <p></p>
       <code>Hook, GlobalHook</code>
+    </article>
+    <article>
+      <h2>core/JobDependencyGraph.js</h2>
+      <p></p>
+      <code>JobDependencyGraph</code>
     </article>
     <article>
       <h2>core/Logger.js</h2>
@@ -320,6 +430,16 @@
       <h2>core/MemoryPool.js</h2>
       <p></p>
       <code>FixedMemoryPool, PoolRegistry</code>
+    </article>
+    <article>
+      <h2>core/MessageRouteBus.js</h2>
+      <p></p>
+      <code>MessageRouteBus</code>
+    </article>
+    <article>
+      <h2>core/ModuleGemManifest.js</h2>
+      <p></p>
+      <code>ModuleGemManifest</code>
     </article>
     <article>
       <h2>core/OmniCore.js</h2>
@@ -337,6 +457,11 @@
       <code>PluginRegistry, Plugin</code>
     </article>
     <article>
+      <h2>core/PluginManifest.js</h2>
+      <p></p>
+      <code>PluginManifest</code>
+    </article>
+    <article>
       <h2>core/PluginPermissionSandbox.js</h2>
       <p></p>
       <code>PLUGIN_PERMISSION_SCOPES, PluginPermissionSandbox</code>
@@ -347,9 +472,19 @@
       <code>PrefabRegistry</code>
     </article>
     <article>
+      <h2>core/ResourceStateScheduler.js</h2>
+      <p></p>
+      <code>ResourceStateScheduler</code>
+    </article>
+    <article>
       <h2>core/RuntimeErrorBoundary.js</h2>
       <p></p>
       <code>OmniCoreErrorBoundary</code>
+    </article>
+    <article>
+      <h2>core/RuntimeStateSerializer.js</h2>
+      <p></p>
+      <code>RuntimeStateSerializer</code>
     </article>
     <article>
       <h2>core/Sandbox.js</h2>
@@ -357,9 +492,34 @@
       <code>SandboxBus, OmniSandbox</code>
     </article>
     <article>
+      <h2>core/SceneObservableHub.js</h2>
+      <p></p>
+      <code>SceneObservableHub</code>
+    </article>
+    <article>
+      <h2>core/ServerHandleRegistry.js</h2>
+      <p></p>
+      <code>ServerHandleRegistry</code>
+    </article>
+    <article>
+      <h2>core/SignalBus.js</h2>
+      <p>Godot-style named signal hub for runtime objects and editor tools.</p>
+      <code>SignalBus</code>
+    </article>
+    <article>
       <h2>core/Snapshot.js</h2>
       <p></p>
       <code>Snapshot</code>
+    </article>
+    <article>
+      <h2>core/SystemSchedule.js</h2>
+      <p></p>
+      <code>DEFAULT_SYSTEM_STAGES, SystemSchedule</code>
+    </article>
+    <article>
+      <h2>core/TaskChainManager.js</h2>
+      <p></p>
+      <code>TaskChainManager</code>
     </article>
     <article>
       <h2>core/TaskManager.js</h2>
@@ -392,9 +552,19 @@
       <code>TransitionLayer</code>
     </article>
     <article>
+      <h2>data/BehaviorDefinition.js</h2>
+      <p></p>
+      <code>BehaviorDefinition</code>
+    </article>
+    <article>
       <h2>data/DataAdapter.js</h2>
       <p>Translates legacy JSON/config shapes into OmniCore-friendly data.</p>
       <code>DataAdapter</code>
+    </article>
+    <article>
+      <h2>data/DataAsset.js</h2>
+      <p></p>
+      <code>DataAsset</code>
     </article>
     <article>
       <h2>data/DataTable.js</h2>
@@ -405,6 +575,16 @@
       <h2>data/DataTableEditor.js</h2>
       <p></p>
       <code>DataTableEditor</code>
+    </article>
+    <article>
+      <h2>data/DialogueGraph.js</h2>
+      <p></p>
+      <code>DialogueGraph</code>
+    </article>
+    <article>
+      <h2>data/EventCommandQueue.js</h2>
+      <p></p>
+      <code>EventCommandQueue</code>
     </article>
     <article>
       <h2>data/EventSheet.js</h2>
@@ -422,9 +602,24 @@
       <code>Localization</code>
     </article>
     <article>
+      <h2>data/NarrativeRuntime.js</h2>
+      <p></p>
+      <code>NarrativeRuntime, parseNarrativeScript</code>
+    </article>
+    <article>
+      <h2>data/RpgEventPageResolver.js</h2>
+      <p></p>
+      <code>RpgEventPageResolver</code>
+    </article>
+    <article>
       <h2>data/SafeParse.js</h2>
       <p></p>
       <code>safeParse</code>
+    </article>
+    <article>
+      <h2>data/VisualNovelScript.js</h2>
+      <p></p>
+      <code>VisualNovelScript</code>
     </article>
     <article>
       <h2>database/Database.js</h2>
@@ -450,6 +645,11 @@
       <h2>debug/DebugConsole.js</h2>
       <p>WebSocket debug terminal for device logs and OmniCore events. @example const consoleSync = new DebugConsole({ events: game.events }); consoleSync.attach();</p>
       <code>DebugConsole</code>
+    </article>
+    <article>
+      <h2>debug/DebugProbe.js</h2>
+      <p></p>
+      <code>DebugProbe</code>
     </article>
     <article>
       <h2>debug/DebugRenderer.js</h2>
@@ -495,6 +695,11 @@
       <h2>debug/KnowledgeBaseDiagnostics.js</h2>
       <p></p>
       <code>KnowledgeBaseDiagnostics</code>
+    </article>
+    <article>
+      <h2>debug/LevelValidationReport.js</h2>
+      <p></p>
+      <code>LevelValidationReport</code>
     </article>
     <article>
       <h2>debug/LiveInspector.js</h2>
@@ -577,6 +782,11 @@
       <code>Dimension3D, Dimension3DScene, Character3D, PlaneLayer</code>
     </article>
     <article>
+      <h2>dimension3d/ThreePhysicsBridge.js</h2>
+      <p></p>
+      <code>ThreePhysicsBridge</code>
+    </article>
+    <article>
       <h2>docs/ApiDocGenerator.js</h2>
       <p>Generate a small structured API documentation site from source exports.</p>
       <code>generateApiDocs</code>
@@ -590,6 +800,11 @@
       <h2>editor/AssetBrowser.js</h2>
       <p></p>
       <code>AssetBrowser</code>
+    </article>
+    <article>
+      <h2>editor/EditorInspectorModel.js</h2>
+      <p></p>
+      <code>EditorInspectorModel</code>
     </article>
     <article>
       <h2>editor/EditorLongTermMaturity.js</h2>
@@ -625,6 +840,11 @@
       <h2>editor/EditorProtocol.js</h2>
       <p></p>
       <code>EDITOR_PROTOCOL_VERSION, EditorProtocol</code>
+    </article>
+    <article>
+      <h2>editor/EditorSceneDependencyGraph.js</h2>
+      <p></p>
+      <code>EditorSceneDependencyGraph</code>
     </article>
     <article>
       <h2>editor/ParticleEditorPanel.js</h2>
@@ -667,6 +887,16 @@
       <code>FeedbackWidget</code>
     </article>
     <article>
+      <h2>gameplay/AbilitySystem.js</h2>
+      <p></p>
+      <code>AbilitySystem</code>
+    </article>
+    <article>
+      <h2>gameplay/QuestStateMachine.js</h2>
+      <p></p>
+      <code>QuestStateMachine</code>
+    </article>
+    <article>
       <h2>graphics/Geom.js</h2>
       <p></p>
       <code>Geom</code>
@@ -705,6 +935,21 @@
       <h2>importer/AIImporter.js</h2>
       <p>Natural language scene importer backed by an LLM endpoint. @example const importer = new AIImporter({ endpoint: '/api/llm' }); const sceneJson = await importer.generateScene('maze with 3 monsters');</p>
       <code>AIImporter</code>
+    </article>
+    <article>
+      <h2>input/InputActionContextStack.js</h2>
+      <p></p>
+      <code>InputActionContextStack</code>
+    </article>
+    <article>
+      <h2>input/InputBindingProfile.js</h2>
+      <p></p>
+      <code>INPUT_BINDING_PROFILE_SCHEMA, InputBindingProfile</code>
+    </article>
+    <article>
+      <h2>input/InputDeviceMap.js</h2>
+      <p></p>
+      <code>InputDeviceMap</code>
     </article>
     <article>
       <h2>input/InputManager.js</h2>
@@ -882,6 +1127,16 @@
       <code>NavigationAgent2D</code>
     </article>
     <article>
+      <h2>net/ClientPredictionReconciler.js</h2>
+      <p></p>
+      <code>ClientPredictionReconciler</code>
+    </article>
+    <article>
+      <h2>net/LagCompensationTimeline.js</h2>
+      <p></p>
+      <code>LagCompensationTimeline</code>
+    </article>
+    <article>
       <h2>net/MultiplayerSession.js</h2>
       <p></p>
       <code>MultiplayerSession</code>
@@ -892,9 +1147,29 @@
       <code>NetManager, StorageManager</code>
     </article>
     <article>
+      <h2>net/NetworkSnapshotBuffer.js</h2>
+      <p></p>
+      <code>NetworkSnapshotBuffer</code>
+    </article>
+    <article>
       <h2>net/RealtimeConnection.js</h2>
       <p>WebSocket-compatible realtime connection wrapper.</p>
       <code>RealtimeConnection</code>
+    </article>
+    <article>
+      <h2>net/RemoteEventContract.js</h2>
+      <p></p>
+      <code>REMOTE_EVENT_SCHEMA, RemoteEventContract</code>
+    </article>
+    <article>
+      <h2>net/ReplicationInterestGraph.js</h2>
+      <p></p>
+      <code>ReplicationInterestGraph</code>
+    </article>
+    <article>
+      <h2>net/RollbackFrameStore.js</h2>
+      <p></p>
+      <code>RollbackFrameStore</code>
     </article>
     <article>
       <h2>net/Room.js</h2>
@@ -967,6 +1242,51 @@
       <code>FrameBudgetScheduler</code>
     </article>
     <article>
+      <h2>performance/FrameDiagnosticsCapture.js</h2>
+      <p></p>
+      <code>FRAME_DIAGNOSTICS_LANES, FRAME_DIAGNOSTICS_CAPTURE_SCHEMA, FrameDiagnosticsCapture</code>
+    </article>
+    <article>
+      <h2>performance/FramePacingController.js</h2>
+      <p></p>
+      <code>FramePacingController</code>
+    </article>
+    <article>
+      <h2>performance/PerformanceBudgetEnvelope.js</h2>
+      <p></p>
+      <code>PerformanceBudgetEnvelope</code>
+    </article>
+    <article>
+      <h2>performance/PerformanceMonitorRegistry.js</h2>
+      <p></p>
+      <code>PerformanceMonitorRegistry</code>
+    </article>
+    <article>
+      <h2>performance/PerformanceRegressionGuard.js</h2>
+      <p></p>
+      <code>PerformanceRegressionGuard</code>
+    </article>
+    <article>
+      <h2>performance/QualityScalerProfile.js</h2>
+      <p></p>
+      <code>QualityScalerProfile</code>
+    </article>
+    <article>
+      <h2>performance/RuntimeOptimizationAdvisor.js</h2>
+      <p></p>
+      <code>RuntimeOptimizationAdvisor</code>
+    </article>
+    <article>
+      <h2>performance/RuntimeOptimizationController.js</h2>
+      <p></p>
+      <code>RuntimeOptimizationController</code>
+    </article>
+    <article>
+      <h2>performance/ScalabilityTierMatrix.js</h2>
+      <p></p>
+      <code>ScalabilityTierMatrix</code>
+    </article>
+    <article>
       <h2>performance/SpatialIndexOptimizer.js</h2>
       <p>Creates a serializable report for EntitySpatialIndex incremental behavior.</p>
       <code>createIncrementalSpatialIndexReport</code>
@@ -975,6 +1295,11 @@
       <h2>performance/StartupProfiler.js</h2>
       <p></p>
       <code>StartupProfiler</code>
+    </article>
+    <article>
+      <h2>performance/ThermalPowerGovernor.js</h2>
+      <p></p>
+      <code>ThermalPowerGovernor</code>
     </article>
     <article>
       <h2>physics/ArcadeAdapter.js</h2>
@@ -1037,9 +1362,29 @@
       <code>ElectronNativeBridge</code>
     </article>
     <article>
+      <h2>platform/ExportPreset.js</h2>
+      <p></p>
+      <code>ExportPreset</code>
+    </article>
+    <article>
+      <h2>platform/GameSettingsProfile.js</h2>
+      <p></p>
+      <code>GameSettingsProfile</code>
+    </article>
+    <article>
       <h2>platform/PlatformAdapter.js</h2>
       <p>Cross-platform adapter helpers for Web, Electron, and WeChat Mini Game. @example const files = PlatformAdapter.generateElectronFiles({ appName: 'My Game' }); const wechat = PlatformAdapter.adaptWechat(wx);</p>
       <code>PlatformAdapter</code>
+    </article>
+    <article>
+      <h2>platform/RuntimeConfigFlags.js</h2>
+      <p></p>
+      <code>RuntimeConfigFlags</code>
+    </article>
+    <article>
+      <h2>platform/SystemMenuModel.js</h2>
+      <p></p>
+      <code>SystemMenuModel</code>
     </article>
     <article>
       <h2>pool/ObjectPool.js</h2>
@@ -1057,14 +1402,89 @@
       <code>PrefabManager</code>
     </article>
     <article>
+      <h2>prefab/PrefabVariantRegistry.js</h2>
+      <p></p>
+      <code>PrefabVariantRegistry</code>
+    </article>
+    <article>
+      <h2>quality/ApiSurfaceFocusLens.js</h2>
+      <p></p>
+      <code>ApiSurfaceFocusLens</code>
+    </article>
+    <article>
+      <h2>quality/BottleneckSurfaceAnalyzer.js</h2>
+      <p></p>
+      <code>BottleneckSurfaceAnalyzer</code>
+    </article>
+    <article>
+      <h2>quality/CompletenessClosurePlanner.js</h2>
+      <p></p>
+      <code>CompletenessClosurePlanner</code>
+    </article>
+    <article>
+      <h2>quality/CompletenessGapAnalyzer.js</h2>
+      <p></p>
+      <code>CompletenessGapAnalyzer</code>
+    </article>
+    <article>
+      <h2>quality/CreatorWorkflowCoach.js</h2>
+      <p></p>
+      <code>CreatorWorkflowCoach</code>
+    </article>
+    <article>
+      <h2>quality/CrossEngineAdoptionPlanner.js</h2>
+      <p></p>
+      <code>CrossEngineAdoptionPlanner</code>
+    </article>
+    <article>
+      <h2>quality/CrossEngineParityMatrix.js</h2>
+      <p></p>
+      <code>CROSS_ENGINE_SOURCE_DOCS, CrossEngineParityMatrix</code>
+    </article>
+    <article>
+      <h2>quality/EngineAdvantageAssimilator.js</h2>
+      <p></p>
+      <code>EngineAdvantageAssimilator</code>
+    </article>
+    <article>
+      <h2>quality/EngineCapabilityAtlas.js</h2>
+      <p></p>
+      <code>ENGINE_FAMILY_SOURCES, ENGINE_CAPABILITY_CATEGORIES, buildEngineCapabilityAtlas, renderEngineCapabilityMarkdown</code>
+    </article>
+    <article>
+      <h2>quality/EngineCompletenessMatrix.js</h2>
+      <p></p>
+      <code>EngineCompletenessMatrix</code>
+    </article>
+    <article>
+      <h2>quality/EngineFunctionQualityMatrix.js</h2>
+      <p></p>
+      <code>EngineFunctionQualityMatrix</code>
+    </article>
+    <article>
+      <h2>quality/EngineLimitRegistry.js</h2>
+      <p></p>
+      <code>EngineLimitRegistry</code>
+    </article>
+    <article>
       <h2>quality/EngineQualityHarness.js</h2>
       <p></p>
       <code>stableStringify, stableHash, runDeterminismCheck, runInvariantCheck, runBudgetCheck, runTrendCheck, runEngineQualityGate</code>
     </article>
     <article>
+      <h2>quality/FeatureQualityAuditor.js</h2>
+      <p></p>
+      <code>FeatureQualityAuditor</code>
+    </article>
+    <article>
       <h2>quality/ImprovementPlanner.js</h2>
       <p></p>
       <code>buildEngineImprovementPlan, formatEngineImprovementMarkdown</code>
+    </article>
+    <article>
+      <h2>quality/LimitRemovalPlanner.js</h2>
+      <p></p>
+      <code>LimitRemovalPlanner</code>
     </article>
     <article>
       <h2>quality/MarketEngineComparison.js</h2>
@@ -1077,9 +1497,29 @@
       <code>buildMarketPositioningScorecard</code>
     </article>
     <article>
+      <h2>quality/PersonalCapabilityProfile.js</h2>
+      <p></p>
+      <code>PersonalCapabilityProfile</code>
+    </article>
+    <article>
+      <h2>quality/QualityOptimizationPlanner.js</h2>
+      <p></p>
+      <code>QualityOptimizationPlanner</code>
+    </article>
+    <article>
       <h2>quality/RuntimeSoakHarness.js</h2>
       <p>Runtime soak harness for repeated scene lifecycle and resource leak checks.</p>
       <code>RUNTIME_SOAK_REPORT_SCHEMA, RuntimeSoakHarness, createRuntimeSoakReport</code>
+    </article>
+    <article>
+      <h2>quality/SoloProductionPlanner.js</h2>
+      <p></p>
+      <code>SoloProductionPlanner</code>
+    </article>
+    <article>
+      <h2>renderer/BatchAtlasDiagnostics.js</h2>
+      <p></p>
+      <code>BatchAtlasDiagnostics</code>
     </article>
     <article>
       <h2>renderer/BatchDiagnostics.js</h2>
@@ -1102,6 +1542,11 @@
       <code>appendFilter, createBloomFilter, createAdjustmentFilter, createGlitchFilter, createColorMatrixFilter, createNoiseFilter, createHD2DFilter, createNormalLightShader, createSpineFFDVertexShader</code>
     </article>
     <article>
+      <h2>renderer/MaterialPreset.js</h2>
+      <p></p>
+      <code>MaterialPreset</code>
+    </article>
+    <article>
       <h2>renderer/OffscreenCanvasRenderer.js</h2>
       <p>OffscreenCanvas-backed 2D renderer. The main thread only serializes high-level draw commands. A dedicated Worker owns the canvas context after `transferControlToOffscreen()`.</p>
       <code>OffscreenCanvasRenderer, serializeScene</code>
@@ -1117,9 +1562,19 @@
       <code>PixiFrameworkBridge, createPixiFrameworkAdoptionPlan</code>
     </article>
     <article>
+      <h2>renderer/PixiLifecycleAudit.js</h2>
+      <p></p>
+      <code>PixiLifecycleAudit</code>
+    </article>
+    <article>
       <h2>renderer/PixiRenderer.js</h2>
       <p>PixiJS v8 backed 2D renderer with Canvas fallback. Pixi lifecycle is sealed behind this wrapper. OmniCore does not expose Pixi's ticker; rendering is driven by OmniCore.Loop. @example const renderer = new PixiRenderer({ backend: 'pixi', canvas, width: 800, height: 600 }); await renderer.init(); renderer.applyBloom(sprite.displayObject);</p>
       <code>PixiRenderer</code>
+    </article>
+    <article>
+      <h2>renderer/PixiRenderHardeningProfile.js</h2>
+      <p></p>
+      <code>PixiRenderHardeningProfile</code>
     </article>
     <article>
       <h2>renderer/PixiTextureLifecycle.js</h2>
@@ -1132,6 +1587,11 @@
       <code>RendererContract, assertRendererBackend, createRendererPerformanceSandbox</code>
     </article>
     <article>
+      <h2>renderer/RendererBackendContract.js</h2>
+      <p></p>
+      <code>RendererBackendContract</code>
+    </article>
+    <article>
       <h2>renderer/RendererFallbackMatrix.js</h2>
       <p></p>
       <code>RENDERER_FALLBACK_MATRIX_SCHEMA, createRendererFallbackMatrix, resolveRendererFallbackPlan</code>
@@ -1140,6 +1600,16 @@
       <h2>renderer/RendererManager.js</h2>
       <p>Multi-backend renderer manager with automatic fallback. @example const manager = new RendererManager({ createRenderer }); const renderer = await manager.create('auto'); // webgpu -&gt; webgl -&gt; canvas</p>
       <code>RendererManager</code>
+    </article>
+    <article>
+      <h2>renderer/RenderFeatureProfile.js</h2>
+      <p></p>
+      <code>RenderFeatureProfile</code>
+    </article>
+    <article>
+      <h2>renderer/RenderGraphPlanner.js</h2>
+      <p></p>
+      <code>RenderGraphPlanner</code>
     </article>
     <article>
       <h2>renderer/RenderLayerManager.js</h2>
@@ -1157,9 +1627,24 @@
       <code>RenderWorkerBridge</code>
     </article>
     <article>
+      <h2>renderer/RenderWorkerOwnership.js</h2>
+      <p></p>
+      <code>RenderWorkerOwnership</code>
+    </article>
+    <article>
+      <h2>renderer/ShaderVariantCollection.js</h2>
+      <p></p>
+      <code>ShaderVariantCollection</code>
+    </article>
+    <article>
       <h2>renderer/StaticBatchCompiler.js</h2>
       <p>Build-time static sprite batch compiler. Converts immutable repeated sprites into deterministic vertex batches that can be loaded by renderers without spending frame time discovering merges.</p>
       <code>StaticBatchCompiler</code>
+    </article>
+    <article>
+      <h2>renderer/TextureStreamingBudget.js</h2>
+      <p></p>
+      <code>TextureStreamingBudget</code>
     </article>
     <article>
       <h2>renderer/VectorPrimitives.js</h2>
@@ -1177,9 +1662,44 @@
       <code>WebGPURenderer, createWebGPUComputeParticleDescriptor, createWebGPUTextureAtlasDescriptor, createWebGPUShaderVariantRegistry, createWebGPUHardwareEvidencePayload, createWebGPUInstancingDescriptor, createWebGPUTextureArrayBatch, createWebGPUComputeDispatchPlan, collectDrawInstructions, buildGPUBatches</code>
     </article>
     <article>
+      <h2>scene/CollectionFactory.js</h2>
+      <p></p>
+      <code>CollectionFactory</code>
+    </article>
+    <article>
+      <h2>scene/ComponentTreeRuntime.js</h2>
+      <p></p>
+      <code>ComponentTreeRuntime</code>
+    </article>
+    <article>
+      <h2>scene/ComposerSceneFlow.js</h2>
+      <p></p>
+      <code>ComposerSceneFlow</code>
+    </article>
+    <article>
       <h2>scene/Container.js</h2>
       <p>Display container with child hierarchy and world-space position helpers.</p>
       <code>Container</code>
+    </article>
+    <article>
+      <h2>scene/ObjectEventMap.js</h2>
+      <p></p>
+      <code>ObjectEventMap</code>
+    </article>
+    <article>
+      <h2>scene/ObjectTimelineRuntime.js</h2>
+      <p></p>
+      <code>ObjectTimelineRuntime</code>
+    </article>
+    <article>
+      <h2>scene/RoomExitGraph.js</h2>
+      <p></p>
+      <code>RoomExitGraph</code>
+    </article>
+    <article>
+      <h2>scene/RoomHotspotMap.js</h2>
+      <p></p>
+      <code>RoomHotspotMap</code>
     </article>
     <article>
       <h2>scene/Scene.js</h2>
@@ -1189,7 +1709,7 @@
     <article>
       <h2>scene/SceneDocument.js</h2>
       <p>Versioned scene document helpers for editor saves, migration imports, and dependency collection.</p>
-      <code>SCENE_DOCUMENT_SCHEMA, SCENE_DOCUMENT_VERSION, SceneDocument, normalizeSceneDocument, validateSceneDocument, collectSceneDependencies, assertValidSceneDocument</code>
+      <code>SCENE_DOCUMENT_SCHEMA, SCENE_DOCUMENT_VERSION, SceneDocument, normalizeSceneDocument, instantiateSceneDocument, validateSceneDocument, collectSceneDependencies, assertValidSceneDocument</code>
     </article>
     <article>
       <h2>scene/SceneLifecycle.js</h2>
@@ -1202,9 +1722,44 @@
       <code>SceneManager</code>
     </article>
     <article>
+      <h2>scene/SceneServices.js</h2>
+      <p></p>
+      <code>createSceneServices</code>
+    </article>
+    <article>
+      <h2>scene/SceneStreamingDirector.js</h2>
+      <p>High-level scene streaming planner for world partition cells, additive scenes, threaded assets, and bundles.</p>
+      <code>SCENE_STREAMING_DIRECTOR_REPORT_SCHEMA, SceneStreamingDirector</code>
+    </article>
+    <article>
+      <h2>scene/SceneTransitionStack.js</h2>
+      <p></p>
+      <code>SceneTransitionStack</code>
+    </article>
+    <article>
+      <h2>scene/ScreenFlowController.js</h2>
+      <p></p>
+      <code>ScreenFlowController</code>
+    </article>
+    <article>
       <h2>scene/TileSprite.js</h2>
       <p></p>
       <code>TileSprite</code>
+    </article>
+    <article>
+      <h2>scene/WorldPartitionGrid.js</h2>
+      <p></p>
+      <code>WorldPartitionGrid</code>
+    </article>
+    <article>
+      <h2>store/PersistentSaveSlot.js</h2>
+      <p></p>
+      <code>PersistentSaveSlot</code>
+    </article>
+    <article>
+      <h2>store/SaveGameArchive.js</h2>
+      <p></p>
+      <code>SaveGameArchive</code>
     </article>
     <article>
       <h2>store/Store.js</h2>
@@ -1240,6 +1795,11 @@
       <h2>tilemap/Tilemap.js</h2>
       <p>Parser for Tiled-style JSON maps. Supports: - finite tile/object layers - grouped layers (flattened with `group/name` paths) - infinite tile layers with `chunks` - object collision shapes: rectangle / ellipse / polygon / polyline @example const map = Tilemap.parse(tiledJson); const ground = map.getTileLayer('Ground'); ground.tileAt(4, 2);</p>
       <code>Tilemap</code>
+    </article>
+    <article>
+      <h2>tilemap/TilemapAuthoringTools.js</h2>
+      <p></p>
+      <code>TilemapAuthoringTools</code>
     </article>
     <article>
       <h2>tilemap/TilemapChunkStreaming.js</h2>
@@ -1325,6 +1885,11 @@
       <h2>visualgraph/VisualEventGraph.js</h2>
       <p>Debug-only visual event graph editor. @example const graph = new VisualEventGraph({ debug: true }); graph.addNode({ id: 'check', type: 'condition', data: { op: 'equals' } }); graph.exportJSON();</p>
       <code>VisualEventGraph</code>
+    </article>
+    <article>
+      <h2>visualgraph/VisualScriptGraphRuntime.js</h2>
+      <p>Executable visual scripting graph runtime inspired by Blueprint, Unity Visual Scripting, Godot signals, and event-sheet engines.</p>
+      <code>VisualScriptGraphRuntime</code>
     </article>
     <article>
       <h2>wasm/kernels/omnicore_compute.wasm.js</h2>

@@ -46,7 +46,7 @@ describe('mature desktop editor UI', () => {
     expect([...root.querySelectorAll('[data-dock-region]')].map((node) => node.dataset.dockRegion)).toEqual(
       expect.arrayContaining(['left', 'center', 'right', 'bottom'])
     );
-    expect(root.querySelector('[data-panel="flow-graph"]')?.textContent).toContain('Flow Graph');
+    expect(root.querySelector('[data-panel="flow-graph"]')?.textContent).toContain('流程图');
     expect([...root.querySelectorAll('[data-editor-tool]')].map((node) => node.dataset.editorTool)).toEqual(
       expect.arrayContaining(['save', 'undo', 'redo', 'play', 'pause', 'dock-reset'])
     );
@@ -76,7 +76,7 @@ describe('mature desktop editor UI', () => {
     ]));
 
     app.setDockLayout({ left: ['assets'], center: ['scene-view'], right: ['inspector'], bottom: ['animation-timeline'] });
-    expect(root.querySelector('[data-dock-region="left"]')?.textContent).toContain('Assets');
+    expect(root.querySelector('[data-dock-region="left"]')?.textContent).toContain('资源');
     app.destroy();
   });
 
