@@ -1,0 +1,11 @@
+{
+  "name": "@omnicore/plugin-wechat-capabilities",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Official OmniCore WeChat capability bridge plugin sample.",
+  "main": "src/index.js",
+  "keywords": ["omnicore-plugin", "wechat", "minigame"],
+  "peerDependencies": {
+    "omnicore": "workspace:*"
+  }
+}

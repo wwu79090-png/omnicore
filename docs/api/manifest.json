@@ -89,6 +89,13 @@
       ]
     },
     {
+      "path": "animation/AnimationLOD.js",
+      "summary": "Creates per-animation sampling decisions for CPU skinning and FFD cost.",
+      "exports": [
+        "createAnimationLODPlan"
+      ]
+    },
+    {
       "path": "animation/AnimationManager.js",
       "summary": "Small frame-animation manager for data-driven sprites and UI elements.",
       "exports": [
@@ -930,6 +937,13 @@
       ]
     },
     {
+      "path": "debug/AllocationPressureReport.js",
+      "summary": "",
+      "exports": [
+        "createAllocationPressureReport"
+      ]
+    },
+    {
       "path": "debug/ApiQuickPanel.js",
       "summary": "",
       "exports": [
@@ -1053,6 +1067,14 @@
       ]
     },
     {
+      "path": "debug/PerformanceDashboard.js",
+      "summary": "",
+      "exports": [
+        "createPerformanceDashboardSnapshot",
+        "PerformanceDashboard"
+      ]
+    },
+    {
       "path": "debug/PerformanceMetrics.js",
       "summary": "Lightweight runtime performance metric collector. Core paths can call `measure(name, fn)` or `record(name, duration)` and the collected data can be exported as JSON for CI or remote debugging. @example const metrics = new PerformanceMetrics({ enabled: true }); metrics.measure('renderer.renderScene', () => renderer.renderScene(scene));",
       "exports": [
@@ -1093,6 +1115,14 @@
       "exports": [
         "REPRODUCTION_BUNDLE_SCHEMA",
         "createReproductionBundle"
+      ]
+    },
+    {
+      "path": "debug/ResourceWaterfall.js",
+      "summary": "",
+      "exports": [
+        "createResourceWaterfall",
+        "summarizeResourceWaterfall"
       ]
     },
     {
@@ -1534,6 +1564,13 @@
       ]
     },
     {
+      "path": "loader/AsyncAssetPipeline.js",
+      "summary": "Small async asset pipeline that separates critical first-frame assets from lazy background decode and upload work.",
+      "exports": [
+        "createAsyncAssetPipeline"
+      ]
+    },
+    {
       "path": "loader/Loader.js",
       "summary": "Asset loader with manifest preflight, timeout, retry, and friendly errors. @example const loader = new Loader({ timeout: 5000, retries: 1 }); const assets = await loader.loadBundle([ { key: 'hero', url: '/assets/sprites/default/default-tilesheet.svg', type: 'blob' } ]);",
       "exports": [
@@ -1543,7 +1580,7 @@
     },
     {
       "path": "loop/Loop.js",
-      "summary": "Fixed-step requestAnimationFrame loop. Locks updates to 60 FPS, reports delta/interpolation, and pauses/resumes on page visibility changes. The internal ticker is intentionally not exposed. @example const loop = new Loop(); loop.subscribe((dt, time, alpha) => scene.update(dt, time, alpha)); loop.start();",
+      "summary": "requestAnimationFrame loop with optional fixed-step cap. Runs uncapped by default, reports delta/interpolation, and pauses/resumes on page visibility changes. Pass fps/framerateCap to opt into a fixed step. @example const loop = new Loop(); loop.subscribe((dt, time, alpha) => scene.update(dt, time, alpha)); loop.start();",
       "exports": [
         "Loop",
         "resolveFrameRate"
@@ -1732,6 +1769,13 @@
       ]
     },
     {
+      "path": "optimization/TextureBudget.js",
+      "summary": "Produces a deterministic texture downgrade plan from runtime pressure.",
+      "exports": [
+        "createTextureBudgetPlan"
+      ]
+    },
+    {
       "path": "optimization/ViewportCulling.js",
       "summary": "Viewport culling helper for large RPG maps. The system keeps render and update decisions data-driven. Any entity with `cullable: false`, `alwaysUpdate`, or `alwaysRender` can opt out while Sprite and Tilemap-like chunks use shared rectangle intersection checks. @example const culling = new ViewportCulling({ viewport: { x: 0, y: 0, width: 960, height: 540 } }); if (culling.shouldRender(sprite)) sprite.render(ctx);",
       "exports": [
@@ -1764,6 +1808,13 @@
       "summary": "",
       "exports": [
         "ParticleTerrainCollider25D"
+      ]
+    },
+    {
+      "path": "performance/DirtyFlagTracker.js",
+      "summary": "Tracks render-facing property changes and syncs only dirty records.",
+      "exports": [
+        "DirtyFlagTracker"
       ]
     },
     {
@@ -1836,6 +1887,20 @@
       "summary": "",
       "exports": [
         "ScalabilityTierMatrix"
+      ]
+    },
+    {
+      "path": "performance/SpatialIndexOptimizer.js",
+      "summary": "Creates a serializable report for EntitySpatialIndex incremental behavior.",
+      "exports": [
+        "createIncrementalSpatialIndexReport"
+      ]
+    },
+    {
+      "path": "performance/StartupProfiler.js",
+      "summary": "",
+      "exports": [
+        "StartupProfiler"
       ]
     },
     {
@@ -1973,6 +2038,13 @@
       "summary": "Generic object pool for bullets, particles, temporary vectors, and UI nodes. @example const bullets = new ObjectPool(() => new Sprite('bullet'), (bullet) => bullet.visible = false); const bullet = bullets.acquire(); bullets.release(bullet);",
       "exports": [
         "ObjectPool"
+      ]
+    },
+    {
+      "path": "pool/RuntimeObjectPools.js",
+      "summary": "Runtime pool group covering the hot allocation classes used by gameplay.",
+      "exports": [
+        "createRuntimeObjectPools"
       ]
     },
     {
@@ -2165,6 +2237,13 @@
       ]
     },
     {
+      "path": "renderer/BatchDiagnostics.js",
+      "summary": "",
+      "exports": [
+        "diagnoseBatchBreaks"
+      ]
+    },
+    {
       "path": "renderer/BatchOptimizer.js",
       "summary": "Pixi sprite batch analyzer. Pixi's BatchRenderer can merge sprites when they share the same texture source and render state. This helper keeps OmniCore's scene sync aligned with those constraints and exposes deterministic draw-call telemetry for tests, debug panels, and benchmark thresholds.",
       "exports": [
@@ -2314,6 +2393,13 @@
       ]
     },
     {
+      "path": "renderer/RenderQueueOptimizer.js",
+      "summary": "Reorders safe render commands inside the same layer so identical render state becomes consecutive. Mask/filter/barrier commands keep their position.",
+      "exports": [
+        "optimizeRenderQueueForBatching"
+      ]
+    },
+    {
       "path": "renderer/RenderWorkerBridge.js",
       "summary": "Thin OffscreenCanvas worker bridge for renderer backends. The main thread still builds draw instructions, while the bridge owns the message boundary for texture upload and GPU command submission workers.",
       "exports": [
@@ -2381,6 +2467,12 @@
       "exports": [
         "WebGPURenderer",
         "createWebGPUComputeParticleDescriptor",
+        "createWebGPUTextureAtlasDescriptor",
+        "createWebGPUShaderVariantRegistry",
+        "createWebGPUHardwareEvidencePayload",
+        "createWebGPUInstancingDescriptor",
+        "createWebGPUTextureArrayBatch",
+        "createWebGPUComputeDispatchPlan",
         "collectDrawInstructions",
         "buildGPUBatches"
       ]
@@ -2592,6 +2684,13 @@
       ]
     },
     {
+      "path": "tilemap/TilemapChunkStreaming.js",
+      "summary": "Computes tilemap chunks that should load, remain resident, or unload.",
+      "exports": [
+        "createTilemapChunkStreamPlan"
+      ]
+    },
+    {
       "path": "tilemap/TilemapLoader.js",
       "summary": "Tiled JSON loader for OmniCore tilemaps. @example const loader = new TilemapLoader(); const map = await loader.load('/maps/world.json');",
       "exports": [
@@ -2739,6 +2838,13 @@
       "summary": "Worker task facade with main-thread fallback. @example const worker = new WorkerManager(); worker.register('sum', ({ values }) => values.reduce((a, b) => a + b, 0)); await worker.run('sum', { values: [1, 2, 3] });",
       "exports": [
         "WorkerManager"
+      ]
+    },
+    {
+      "path": "worker/WorkerTaskScheduler.js",
+      "summary": "Worker lane dispatcher for heavyweight runtime jobs.",
+      "exports": [
+        "WorkerTaskScheduler"
       ]
     }
   ]

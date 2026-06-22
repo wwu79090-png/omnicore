@@ -345,8 +345,8 @@ export class Game {
       logger: this.logger
     });
     this.loop = new Loop({
-      fps: 60,
-      framerateCap: this.config.framerateCap ?? 60,
+      fps: this.config.fps ?? null,
+      framerateCap: this.config.framerateCap ?? null,
       vsync: this.config.vsync ?? true,
       autoPause: this.config.pausedOnHidden !== false,
       onFrameStart: (frame) => this.snapshot?.startFrame?.(frame),
@@ -497,7 +497,7 @@ export class Game {
       }, this.logger);
       if (this.dimension3D) {
         this.dimension3D.bindGameTime?.(this.time);
-        this.dimension3D.startRenderLoop?.({ fps: 30 });
+        this.dimension3D.startRenderLoop?.();
         this.dimension3DUnsubscribe = () => this.dimension3D?.stopRenderLoop?.();
       }
     } else if (this.config.dimension3D && this.environment.skipThree) {

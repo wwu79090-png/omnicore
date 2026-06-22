@@ -1,0 +1,11 @@
+{
+  "name": "@omnicore/plugin-achievements",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Official OmniCore achievements plugin sample.",
+  "main": "src/index.js",
+  "keywords": ["omnicore-plugin", "achievements", "game-engine"],
+  "peerDependencies": {
+    "omnicore": "workspace:*"
+  }
+}

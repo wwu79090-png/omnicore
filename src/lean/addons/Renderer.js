@@ -173,7 +173,7 @@ export class RendererAddon {
   _recordRender(start) {
     this.drawCount += 1;
     this.lastRenderMs = now() - start;
-    this.fps = this.lastRenderMs > 0 ? Math.min(60, Math.round(1000 / this.lastRenderMs)) : 60;
+    this.fps = this.lastRenderMs > 0 ? Math.round(1000 / this.lastRenderMs) : 0;
   }
 }
 

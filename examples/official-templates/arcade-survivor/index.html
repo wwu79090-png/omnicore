@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OmniCore Arcade Survivor</title>
+    <style>
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background: #06131f;
+        color: #e5e7eb;
+        font-family: Arial, sans-serif;
+      }
+
+      #game {
+        width: 100vw;
+        height: 100vh;
+        display: grid;
+        place-items: center;
+      }
+
+      .hud {
+        position: fixed;
+        left: 16px;
+        top: 14px;
+        display: flex;
+        gap: 16px;
+        font-size: 14px;
+      }
+
+      .help {
+        position: fixed;
+        right: 16px;
+        bottom: 14px;
+        color: #a7f3d0;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hud">
+      <strong id="score">Score 0</strong>
+      <span id="status">Survive and collect cores</span>
+    </div>
+    <div id="game"></div>
+    <div class="help">WASD / Arrow keys move. R restarts.</div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

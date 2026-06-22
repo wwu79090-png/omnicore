@@ -295,6 +295,26 @@ describe('microkernel contracts and self-optimizing runtime', () => {
     });
   });
 
+  it('does not reduce loop FPS on low-power signals unless lowPowerFps is explicit', () => {
+    const renderer = {
+      enableBloom: true,
+      textureQuality: 1,
+      setQualityProfile: vi.fn()
+    };
+    const loop = { fps: null, frameMs: 0, framerateCap: null, uncapped: true };
+    const manager = new AdaptiveQualityManager({
+      renderer,
+      loop,
+      lowPowerTextureQuality: 0.5
+    });
+
+    const result = manager.applyPowerState({ lowPowerMode: true });
+
+    expect(result.applied).not.toContain('reduceLoopFps');
+    expect(loop).toMatchObject({ fps: null, framerateCap: null, uncapped: true });
+    expect(result.applied).toEqual(expect.arrayContaining(['reduceTextureQuality', 'disableBloom']));
+  });
+
   it('hard-maintains target FPS by escalating non-core runtime degradation', () => {
     const store = new Store();
     const renderer = {

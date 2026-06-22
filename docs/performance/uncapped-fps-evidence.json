@@ -1,0 +1,26 @@
+{
+  "format": "OmniCore.UncappedFpsEvidence",
+  "version": 1,
+  "generatedAt": "2026-06-21T13:04:43.070Z",
+  "ok": true,
+  "tolerance": 0.9,
+  "samples": [
+    {
+      "device": "Local verification device",
+      "browser": "Chromium",
+      "displayHz": 144,
+      "fps": 141,
+      "p95FrameMs": 8,
+      "sprites": 1000,
+      "drawCalls": 3,
+      "uncapped": true,
+      "notes": ""
+    }
+  ],
+  "failures": [],
+  "captureChecklist": [
+    "Run npm run performance:uncapped-evidence on the target device.",
+    "Record display refresh rate, browser version, FPS, p95 frame time, sprite count, and draw calls.",
+    "Attach a screenshot or screen recording to the GitHub release when available."
+  ]
+}

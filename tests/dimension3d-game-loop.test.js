@@ -29,7 +29,7 @@ describe('Dimension3D Game loop binding', () => {
     document.body.innerHTML = '';
   });
 
-  it('runs the decorative 3D background through its own throttled render loop', async () => {
+  it('runs the decorative 3D background through its own uncapped render loop', async () => {
     const game = new OmniCore.Game({
       renderer: 'canvas',
       autoStart: false,
@@ -44,7 +44,7 @@ describe('Dimension3D Game loop binding', () => {
 
     expect(dimensionState.instances).toHaveLength(1);
     expect(dimensionState.instances[0].init).toHaveBeenCalledTimes(1);
-    expect(dimensionState.instances[0].startRenderLoop).toHaveBeenCalledWith({ fps: 30 });
+    expect(dimensionState.instances[0].startRenderLoop).toHaveBeenCalledWith();
     expect(dimensionState.instances[0].render).not.toHaveBeenCalled();
 
     game.destroy();

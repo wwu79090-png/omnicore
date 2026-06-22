@@ -1,0 +1,85 @@
+{
+  "format": "OmniCore.ReleasePlatformReadiness",
+  "version": 1,
+  "generatedAt": "2026-06-21T14:03:54.931Z",
+  "ok": false,
+  "accounts": {
+    "github": {
+      "user": "wwu79090-png",
+      "authenticated": true
+    },
+    "npm": {
+      "user": null,
+      "authenticated": false,
+      "packageAvailable": true
+    },
+    "vercel": {
+      "user": null,
+      "authenticated": false,
+      "projectLinked": false
+    }
+  },
+  "checks": [
+    {
+      "id": "github-auth",
+      "ok": true,
+      "message": "GitHub CLI is authenticated.",
+      "recovery": "Run gh auth login."
+    },
+    {
+      "id": "npm-auth",
+      "ok": false,
+      "message": "NPM CLI is authenticated.",
+      "recovery": "Run npm login before npm publish."
+    },
+    {
+      "id": "npm-package-availability",
+      "ok": true,
+      "message": "NPM package name/version is publishable.",
+      "recovery": "Check npm view omnicore and version availability."
+    },
+    {
+      "id": "vercel-auth",
+      "ok": false,
+      "message": "Vercel CLI is authenticated.",
+      "recovery": "Run vercel login or provide VERCEL_TOKEN."
+    },
+    {
+      "id": "vercel-project-link",
+      "ok": false,
+      "message": "Vercel project is linked.",
+      "recovery": "Run vercel link before production deploy."
+    },
+    {
+      "id": "dist-artifact",
+      "ok": true,
+      "message": "dist/omnicore.esm.js exists.",
+      "recovery": "Run npm run build."
+    },
+    {
+      "id": "publish-dry-run",
+      "ok": true,
+      "message": "npm publish dry-run evidence is clean.",
+      "recovery": "Run npm run publish:dry-run."
+    }
+  ],
+  "blockers": [
+    {
+      "id": "npm-auth",
+      "action": "Run npm login before npm publish."
+    },
+    {
+      "id": "vercel-auth",
+      "action": "Run vercel login or provide VERCEL_TOKEN."
+    },
+    {
+      "id": "vercel-project-link",
+      "action": "Run vercel link before production deploy."
+    }
+  ],
+  "nextActions": [
+    "Run npm login before npm publish.",
+    "Run vercel login or provide VERCEL_TOKEN.",
+    "Run vercel link before production deploy."
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "format": "OmniCore.TypeCoverageReport",
+  "version": 1,
+  "generatedAt": "2026-06-21T14:04:06.315Z",
+  "ok": true,
+  "declarationFile": "dist\\omnicore.d.ts",
+  "requiredSymbols": [
+    "optimizeRenderQueueForBatching",
+    "createRuntimeObjectPools",
+    "DirtyFlagTracker",
+    "createAsyncAssetPipeline",
+    "createIncrementalSpatialIndexReport",
+    "WorkerTaskScheduler",
+    "createTextureBudgetPlan",
+    "createTilemapChunkStreamPlan",
+    "createAnimationLODPlan",
+    "createWebGPUInstancingDescriptor",
+    "createWebGPUTextureArrayBatch",
+    "createWebGPUComputeDispatchPlan"
+  ],
+  "coveredSymbols": [
+    "optimizeRenderQueueForBatching",
+    "createRuntimeObjectPools",
+    "DirtyFlagTracker",
+    "createAsyncAssetPipeline",
+    "createIncrementalSpatialIndexReport",
+    "WorkerTaskScheduler",
+    "createTextureBudgetPlan",
+    "createTilemapChunkStreamPlan",
+    "createAnimationLODPlan",
+    "createWebGPUInstancingDescriptor",
+    "createWebGPUTextureArrayBatch",
+    "createWebGPUComputeDispatchPlan"
+  ],
+  "missingSymbols": []
+}

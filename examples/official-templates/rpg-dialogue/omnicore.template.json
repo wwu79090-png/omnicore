@@ -1,0 +1,8 @@
+{
+  "kind": "official-playable-template",
+  "id": "rpg-dialogue",
+  "name": "RPG Dialogue Starter",
+  "entry": "src/main.js",
+  "features": ["dialogue-state", "npc", "inventory", "html-overlay"],
+  "validation": "npm install && npm run dev"
+}

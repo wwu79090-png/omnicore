@@ -237,6 +237,48 @@ export class RuntimeSoakHarness {
 export function createRuntimeSoakReport(options?: Record<string, unknown>): Record<string, unknown>;
 export function createReproductionBundle(options?: Record<string, unknown>): Record<string, unknown>;
 
+export function optimizeRenderQueueForBatching(commands?: Array<Record<string, unknown>>): Record<string, unknown>;
+export function createRuntimeObjectPools(options?: Record<string, unknown>): {
+  acquire(type: string, values?: Record<string, unknown>): Record<string, unknown>;
+  release(type: string, item: unknown): boolean;
+  get(type: string): unknown;
+  report(): Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+export class DirtyFlagTracker {
+  constructor(options?: { sync?: (entity: unknown, properties: string[], record: Record<string, unknown>) => void });
+  track(entity: Record<string, unknown>, id?: string): Record<string, unknown>;
+  mark(entityOrId: unknown, property: string): boolean;
+  set(entityOrId: unknown, property: string, value: unknown): unknown;
+  collectDirty(): Array<Record<string, unknown>>;
+  clear(entityOrId?: unknown): this;
+  syncOnlyDirty(options?: Record<string, unknown>): Record<string, unknown>;
+}
+
+export function createAsyncAssetPipeline(options?: Record<string, unknown>): {
+  timeline: Array<Record<string, unknown>>;
+  loadFrame(assets?: Array<Record<string, unknown>>, options?: Record<string, unknown>): Promise<Record<string, unknown>>;
+  flushBackground(options?: Record<string, unknown>): Promise<Array<Record<string, unknown>>>;
+  pending(): Array<Record<string, unknown>>;
+  report(): Record<string, unknown>;
+};
+export function createIncrementalSpatialIndexReport(index?: unknown): Record<string, unknown>;
+
+export class WorkerTaskScheduler {
+  constructor(options?: Record<string, unknown>);
+  dispatch(taskName: string, payload?: Record<string, unknown>, options?: Record<string, unknown>): Promise<Record<string, unknown>>;
+  plan(tasks?: string[]): Record<string, unknown>;
+  report(): Record<string, unknown>;
+}
+
+export function createTextureBudgetPlan(options?: Record<string, unknown>): Record<string, unknown>;
+export function createTilemapChunkStreamPlan(options?: Record<string, unknown>): Record<string, unknown>;
+export function createAnimationLODPlan(animations?: Array<Record<string, unknown>>, options?: Record<string, unknown>): Record<string, unknown>;
+export function createWebGPUInstancingDescriptor(options?: Record<string, unknown>): Record<string, unknown>;
+export function createWebGPUTextureArrayBatch(commands?: Array<Record<string, unknown>>, options?: Record<string, unknown>): Record<string, unknown>;
+export function createWebGPUComputeDispatchPlan(options?: Record<string, unknown>): Record<string, unknown>;
+
 export class Store {
   static set(key: string, value: unknown): unknown;
 }
@@ -259,6 +301,18 @@ export interface OmniCoreNamespace {
   RuntimeSoakHarness: typeof RuntimeSoakHarness;
   Store: typeof Store;
   Entity: typeof Entity;
+  DirtyFlagTracker: typeof DirtyFlagTracker;
+  WorkerTaskScheduler: typeof WorkerTaskScheduler;
+  optimizeRenderQueueForBatching: typeof optimizeRenderQueueForBatching;
+  createRuntimeObjectPools: typeof createRuntimeObjectPools;
+  createAsyncAssetPipeline: typeof createAsyncAssetPipeline;
+  createIncrementalSpatialIndexReport: typeof createIncrementalSpatialIndexReport;
+  createTextureBudgetPlan: typeof createTextureBudgetPlan;
+  createTilemapChunkStreamPlan: typeof createTilemapChunkStreamPlan;
+  createAnimationLODPlan: typeof createAnimationLODPlan;
+  createWebGPUInstancingDescriptor: typeof createWebGPUInstancingDescriptor;
+  createWebGPUTextureArrayBatch: typeof createWebGPUTextureArrayBatch;
+  createWebGPUComputeDispatchPlan: typeof createWebGPUComputeDispatchPlan;
   Hook: Hook;
   HookClass: typeof Hook;
   Plugin: typeof Plugin;

@@ -1,0 +1,59 @@
+{
+  "format": "OmniCore.ReleaseChecklistReport",
+  "version": 1,
+  "generatedAt": "2026-06-21T14:03:55.081Z",
+  "ok": true,
+  "checks": [
+    {
+      "id": "security-policy",
+      "ok": true,
+      "message": "SECURITY.md exists."
+    },
+    {
+      "id": "support-policy",
+      "ok": true,
+      "message": "SUPPORT.md exists."
+    },
+    {
+      "id": "code-of-conduct",
+      "ok": true,
+      "message": "CODE_OF_CONDUCT.md exists."
+    },
+    {
+      "id": "compatibility-matrix",
+      "ok": true,
+      "message": "docs/platforms/compatibility-matrix.md exists."
+    },
+    {
+      "id": "real-device-guide",
+      "ok": true,
+      "message": "docs/performance/real-device-capture-guide.md exists."
+    },
+    {
+      "id": "dependency-inventory",
+      "ok": true,
+      "message": "docs/release-notes/dependency-inventory.json exists."
+    },
+    {
+      "id": "npm-provenance-workflow",
+      "ok": true,
+      "message": "Expected content: npm publish --provenance --access public"
+    },
+    {
+      "id": "release-deps-script",
+      "ok": true,
+      "message": "Expected content: release:deps"
+    },
+    {
+      "id": "release-checklist-script",
+      "ok": true,
+      "message": "Expected content: release:checklist"
+    },
+    {
+      "id": "publish-dry-run",
+      "ok": true,
+      "message": "npm publish dry-run report is clean."
+    }
+  ],
+  "blockers": []
+}

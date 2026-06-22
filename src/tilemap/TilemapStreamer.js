@@ -1,3 +1,5 @@
+import { createTilemapChunkStreamPlan } from './TilemapChunkStreaming.js';
+
 export class TilemapStreamer {
   constructor({
     chunkSize = 16,
@@ -26,6 +28,15 @@ export class TilemapStreamer {
       chunks
     });
     return chunks;
+  }
+
+  planViewport(viewport = {}, options = {}) {
+    return createTilemapChunkStreamPlan({
+      viewport,
+      chunkSize: this.chunkSize,
+      loadedChunks: this.scheduled.map((chunk) => `${chunk.chunkX},${chunk.chunkY}`),
+      ...options
+    });
   }
 
   destroy() {

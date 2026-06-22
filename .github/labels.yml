@@ -1,0 +1,15 @@
+- name: bug
+  color: d73a4a
+  description: Runtime, editor, package, or documentation bug.
+- name: performance
+  color: 0e8a16
+  description: FPS, memory, draw call, loading, or package size work.
+- name: compatibility
+  color: 1d76db
+  description: Browser, WebView, WeChat, iOS, Android, or file protocol support.
+- name: documentation
+  color: 0075ca
+  description: README, guides, examples, and API docs.
+- name: good first issue
+  color: 7057ff
+  description: Scoped issue suitable for first-time contributors.

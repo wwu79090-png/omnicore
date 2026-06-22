@@ -5,9 +5,9 @@
     "name": "omnicore",
     "version": "1.0.0",
     "filename": "omnicore-1.0.0.tgz",
-    "size": 1278399,
-    "unpackedSize": 5038207,
-    "entryCount": 442
+    "size": 1344443,
+    "unpackedSize": 5272709,
+    "entryCount": 518
   },
   "limits": {
     "maxPackageBytes": 5242880,
@@ -43,27 +43,27 @@
   "largestFiles": [
     {
       "path": "dist/omnicore.iife.js",
-      "size": 1229067
+      "size": 1260946
     },
     {
       "path": "dist/omnicore.esm.js",
-      "size": 928553
+      "size": 959488
     },
     {
       "path": "packages/omnicore-editor/src/editor-app.js",
-      "size": 232042
+      "size": 236961
     },
     {
-      "path": "dist/dist-BD95_hDh.js",
+      "path": "dist/dist-J0DB7fHi.js",
       "size": 219836
     },
     {
       "path": "dist/quality-report.json",
-      "size": 153282
+      "size": 154055
     },
     {
       "path": "src/dimension3d/Dimension3D.js",
-      "size": 71176
+      "size": 71661
     },
     {
       "path": "src/debug/knowledgePatterns.js",
@@ -71,16 +71,102 @@
     },
     {
       "path": "src/index.js",
-      "size": 46776
+      "size": 49582
     },
     {
       "path": "README.md",
-      "size": 46623
+      "size": 49151
     },
     {
       "path": "dist/omnicore-core.js",
-      "size": 40797
+      "size": 40782
     }
   ],
+  "packageQuality": {
+    "provenanceReady": true,
+    "sbomReady": true,
+    "treeShakingReady": true,
+    "typeDeclarationsReady": true,
+    "includedExamples": [
+      "examples/full-game-demo/README.md",
+      "examples/full-game-demo/index.html",
+      "examples/full-game-demo/main.js",
+      "examples/market-showcase/README.md",
+      "examples/market-showcase/index.html",
+      "examples/market-showcase/main.js",
+      "examples/market-showcase/package.json",
+      "examples/official-templates/arcade-survivor/README.md",
+      "examples/official-templates/arcade-survivor/index.html",
+      "examples/official-templates/arcade-survivor/omnicore.template.json",
+      "examples/official-templates/arcade-survivor/package.json",
+      "examples/official-templates/arcade-survivor/src/main.js",
+      "examples/official-templates/bullet-heaven/README.md",
+      "examples/official-templates/bullet-heaven/benchmark.js",
+      "examples/official-templates/bullet-heaven/index.html",
+      "examples/official-templates/bullet-heaven/omnicore.template.json",
+      "examples/official-templates/bullet-heaven/package.json",
+      "examples/official-templates/bullet-heaven/src/main.js",
+      "examples/official-templates/platformer/README.md",
+      "examples/official-templates/platformer/benchmark.js",
+      "examples/official-templates/platformer/index.html",
+      "examples/official-templates/platformer/omnicore.template.json",
+      "examples/official-templates/platformer/package.json",
+      "examples/official-templates/platformer/src/main.js",
+      "examples/official-templates/rpg-dialogue/README.md",
+      "examples/official-templates/rpg-dialogue/benchmark.js",
+      "examples/official-templates/rpg-dialogue/index.html",
+      "examples/official-templates/rpg-dialogue/omnicore.template.json",
+      "examples/official-templates/rpg-dialogue/package.json",
+      "examples/official-templates/rpg-dialogue/src/main.js",
+      "examples/performance-hot-paths-demo/README.md",
+      "examples/performance-hot-paths-demo/index.html",
+      "examples/performance-hot-paths-demo/package.json",
+      "examples/performance-hot-paths-demo/src/main.js",
+      "examples/plugins/Achievements/README.md",
+      "examples/plugins/Achievements/package.json",
+      "examples/plugins/Achievements/src/index.js",
+      "examples/plugins/Leaderboard/README.md",
+      "examples/plugins/Leaderboard/package.json",
+      "examples/plugins/Leaderboard/src/index.js",
+      "examples/plugins/WechatCapabilities/README.md",
+      "examples/plugins/WechatCapabilities/package.json",
+      "examples/plugins/WechatCapabilities/src/index.js",
+      "examples/template-interactive/DEBUGGING.md",
+      "examples/template-interactive/README.md",
+      "examples/template-interactive/index.html",
+      "examples/template-interactive/package.json",
+      "examples/template-interactive/src/main.js",
+      "examples/template-platformer/DEBUGGING.md",
+      "examples/template-platformer/README.md",
+      "examples/template-platformer/index.html",
+      "examples/template-platformer/package.json",
+      "examples/template-platformer/src/main.js",
+      "examples/template-rpg/DEBUGGING.md",
+      "examples/template-rpg/README.md",
+      "examples/template-rpg/index.html",
+      "examples/template-rpg/package.json",
+      "examples/template-rpg/src/main.js"
+    ],
+    "includedDocs": [
+      "docs/api-cookbook.md",
+      "docs/editor-export-workflow.md",
+      "docs/engine-handbook.md",
+      "docs/optimization-governance.md",
+      "docs/performance-hot-paths.md",
+      "docs/performance/long-run-stability.md",
+      "docs/performance/npm-package-quality.md",
+      "docs/performance/real-device-capture-guide.md",
+      "docs/performance/real-device-uncapped-fps.md",
+      "docs/performance/types-coverage.md",
+      "docs/performance/webgpu-hot-path-evidence.md",
+      "docs/platforms/compatibility-matrix.md",
+      "docs/platforms/mobile-wechat-evidence.md",
+      "docs/plugin-publishing-guide.md",
+      "docs/public-release-evidence.md",
+      "docs/ten-minute-quickstart.md",
+      "docs/webgpu-hardware-evidence.md"
+    ],
+    "suspiciousFiles": []
+  },
   "violations": []
 }

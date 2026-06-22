@@ -8,6 +8,25 @@ import InputManager from '../src/input/InputManager.js';
 import Dimension3D from '../src/dimension3d/Dimension3D.js';
 
 describe('time-driven runtime foundation', () => {
+  it('does not cap Loop updates by default on high refresh frames', () => {
+    const loop = new Loop({ vsync: false, warnTimeJumps: false });
+    const updates = [];
+    const renders = [];
+    loop.running = true;
+    loop.lastTime = 0;
+    loop._schedule = vi.fn();
+    loop.subscribe((delta, time, alpha) => updates.push({ delta, time, alpha }));
+    loop.subscribeRender((alpha, time, frame) => renders.push({ alpha, time, frame }));
+
+    loop._tick(8);
+    loop._tick(16);
+
+    expect(loop.uncapped).toBe(true);
+    expect(loop.framerateCap).toBeNull();
+    expect(updates.map((item) => item.delta)).toEqual([0.008, 0.008]);
+    expect(renders).toHaveLength(2);
+  });
+
   it('runs deterministic fixed updates and one interpolated render per display frame', () => {
     const loop60 = createManualLoop();
     const loop30 = createManualLoop();

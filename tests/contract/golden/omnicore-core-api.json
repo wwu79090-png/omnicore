@@ -1193,6 +1193,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "optimizeRenderQueueForBatching"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "resolveRendererFallbackPlan"
       }
     ],
@@ -1220,6 +1225,7 @@
       "WebGLContextManager",
       "WebGPURenderer",
       "createRendererFallbackMatrix",
+      "optimizeRenderQueueForBatching",
       "resolveRendererFallbackPlan"
     ]
   },
@@ -1519,6 +1525,11 @@
         "arity": 0,
         "async": false,
         "name": "AddressableCatalog"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "AllocationPressureReport"
       },
       {
         "arity": 0,
@@ -1879,6 +1890,11 @@
         "arity": 0,
         "async": false,
         "name": "Dimension3D"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "DirtyFlagTracker"
       },
       {
         "arity": 0,
@@ -2313,6 +2329,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "PerformanceDashboard"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "PerformanceMetrics"
       },
       {
@@ -2538,6 +2559,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "ResourceWaterfall"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "RollbackFrameStore"
       },
       {
@@ -2719,6 +2745,11 @@
         "arity": 1,
         "async": false,
         "name": "Sprite"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "StartupProfiler"
       },
       {
         "arity": 0,
@@ -2908,6 +2939,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "WorkerTaskScheduler"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "World"
       },
       {
@@ -2983,7 +3019,22 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createAllocationPressureReport"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createAnimationLODPlan"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createAssetPipelineReport"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createAsyncAssetPipeline"
       },
       {
         "arity": 0,
@@ -3031,6 +3082,11 @@
         "name": "createHousePrimitive"
       },
       {
+        "arity": 1,
+        "async": false,
+        "name": "createIncrementalSpatialIndexReport"
+      },
+      {
         "arity": 0,
         "async": true,
         "name": "createLeanRuntime"
@@ -3044,6 +3100,11 @@
         "arity": 2,
         "async": false,
         "name": "createOmniError"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createPerformanceDashboardSnapshot"
       },
       {
         "arity": 0,
@@ -3068,12 +3129,22 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createResourceWaterfall"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createRichTextPrimitive"
       },
       {
         "arity": 0,
         "async": false,
         "name": "createRingPrimitive"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createRuntimeObjectPools"
       },
       {
         "arity": 0,
@@ -3098,7 +3169,47 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createTextureBudgetPlan"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createTilemapChunkStreamPlan"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createWebGPUComputeDispatchPlan"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createWebGPUComputeParticleDescriptor"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createWebGPUHardwareEvidencePayload"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createWebGPUInstancingDescriptor"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createWebGPUShaderVariantRegistry"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createWebGPUTextureArrayBatch"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createWebGPUTextureAtlasDescriptor"
       },
       {
         "arity": 0,
@@ -3109,6 +3220,11 @@
         "arity": 0,
         "async": false,
         "name": "detectPlatformAndMergeDefaults"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "diagnoseBatchBreaks"
       },
       {
         "arity": 0,
@@ -3178,6 +3294,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "optimizeRenderQueueForBatching"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "radialGradientFill"
       },
       {
@@ -3199,6 +3320,11 @@
         "arity": 0,
         "async": false,
         "name": "snapshotRenderQueue"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "summarizeResourceWaterfall"
       },
       {
         "arity": 0,
@@ -3241,6 +3367,7 @@
       "Ad",
       "AdaptiveQualityManager",
       "AddressableCatalog",
+      "AllocationPressureReport",
       "Analytics",
       "Animation",
       "AnimationEditor",
@@ -3325,6 +3452,7 @@
       "DeviceProfiler",
       "DialogueGraph",
       "Dimension3D",
+      "DirtyFlagTracker",
       "DragonBonesAdapter",
       "DualSpatialIndex",
       "ECS",
@@ -3433,6 +3561,7 @@
       "ParticleTerrainCollider25D",
       "Payment",
       "PerformanceBudgetEnvelope",
+      "PerformanceDashboard",
       "PerformanceMetrics",
       "PerformanceMonitor",
       "PerformanceMonitorRegistry",
@@ -3490,6 +3619,7 @@
       "ReplicationInterestGraph",
       "ResourceOwnershipGraph",
       "ResourceStateScheduler",
+      "ResourceWaterfall",
       "RollbackFrameStore",
       "RoomExitGraph",
       "RoomHotspotMap",
@@ -3529,6 +3659,7 @@
       "SpinePixiRuntimeAdapter",
       "SplashScreen",
       "Sprite",
+      "StartupProfiler",
       "StateBehaviorTree",
       "StaticBatchCompiler",
       "Storage",
@@ -3572,6 +3703,7 @@
       "WechatMiniGameMonetization",
       "Worker",
       "WorkerManager",
+      "WorkerTaskScheduler",
       "World",
       "WorldMemory25D",
       "WorldPartitionGrid",
@@ -3587,7 +3719,10 @@
       "compareRenderSnapshots",
       "conicGradientFill",
       "connectEditorSync",
+      "createAllocationPressureReport",
+      "createAnimationLODPlan",
       "createAssetPipelineReport",
+      "createAsyncAssetPipeline",
       "createBezierPrimitive",
       "createCapsulePrimitive",
       "createCodeLayerPrimitive",
@@ -3597,22 +3732,35 @@
       "createGame",
       "createHD2DFilter",
       "createHousePrimitive",
+      "createIncrementalSpatialIndexReport",
       "createLeanRuntime",
       "createNormalLightShader",
       "createOmniError",
+      "createPerformanceDashboardSnapshot",
       "createPolygonPrimitive",
       "createRendererFallbackMatrix",
       "createRendererPerformanceSandbox",
       "createReproductionBundle",
+      "createResourceWaterfall",
       "createRichTextPrimitive",
       "createRingPrimitive",
+      "createRuntimeObjectPools",
       "createRuntimeSoakReport",
       "createSceneServices",
       "createSectorPrimitive",
       "createSpineFFDVertexShader",
+      "createTextureBudgetPlan",
+      "createTilemapChunkStreamPlan",
+      "createWebGPUComputeDispatchPlan",
       "createWebGPUComputeParticleDescriptor",
+      "createWebGPUHardwareEvidencePayload",
+      "createWebGPUInstancingDescriptor",
+      "createWebGPUShaderVariantRegistry",
+      "createWebGPUTextureArrayBatch",
+      "createWebGPUTextureAtlasDescriptor",
       "detectEnvironment",
       "detectPlatformAndMergeDefaults",
+      "diagnoseBatchBreaks",
       "diffApiSurface",
       "disableAddon",
       "expandVectorPrimitive",
@@ -3626,11 +3774,13 @@
       "listHelp",
       "loadPhysics",
       "normalizeSceneDocument",
+      "optimizeRenderQueueForBatching",
       "radialGradientFill",
       "renderEngineCapabilityMarkdown",
       "resolveRendererFallbackPlan",
       "safeInitialize",
       "snapshotRenderQueue",
+      "summarizeResourceWaterfall",
       "textureFill",
       "toOmniError",
       "use",

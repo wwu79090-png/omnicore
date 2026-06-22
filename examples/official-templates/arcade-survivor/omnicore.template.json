@@ -1,0 +1,15 @@
+{
+  "kind": "official-playable-template",
+  "id": "arcade-survivor",
+  "name": "Arcade Survivor Complete Game",
+  "category": "complete-game",
+  "entry": "src/main.js",
+  "features": [
+    "player-movement",
+    "enemy-loop",
+    "collect-score",
+    "restart-game",
+    "tween-feedback"
+  ],
+  "validation": "npm install && npm run dev"
+}

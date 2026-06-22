@@ -168,7 +168,7 @@ describe('Dimension3D performance guards', () => {
     document.body.innerHTML = '';
   });
 
-  it('runs the decorative renderer on an independent 30 FPS accumulator', async () => {
+  it('does not cap the decorative renderer by default on high refresh frames', async () => {
     rafCallbacks = [];
     rafId = 0;
     globalThis.requestAnimationFrame = vi.fn((callback) => {
@@ -182,16 +182,10 @@ describe('Dimension3D performance guards', () => {
     dimension.startRenderLoop();
     runNextFrame(0);
     runNextFrame(16);
-    runNextFrame(32);
-    expect(threeState.renderCalls).toHaveLength(0);
-
-    runNextFrame(34);
     expect(threeState.renderCalls).toHaveLength(1);
-
-    runNextFrame(50);
-    expect(threeState.renderCalls).toHaveLength(1);
-    runNextFrame(68);
+    runNextFrame(24);
     expect(threeState.renderCalls).toHaveLength(2);
+    expect(dimension.renderTargetFps).toBeNull();
 
     dimension.stopRenderLoop();
     expect(globalThis.cancelAnimationFrame).toHaveBeenCalled();
