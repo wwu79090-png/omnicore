@@ -2401,6 +2401,13 @@
       ]
     },
     {
+      "path": "renderer/RenderOptimizationRuntimeExecutor.js",
+      "summary": "Applies editor-exported render optimization runtime plans to renderer adapters.",
+      "exports": [
+        "RenderOptimizationRuntimeExecutor"
+      ]
+    },
+    {
       "path": "renderer/RenderQueueOptimizer.js",
       "summary": "Reorders safe render commands inside the same layer so identical render state becomes consecutive. Mask/filter/barrier commands keep their position.",
       "exports": [

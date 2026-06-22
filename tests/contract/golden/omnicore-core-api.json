@@ -1143,6 +1143,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "RenderOptimizationRuntimeExecutor"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "RenderWorkerBridge"
       },
       {
@@ -1214,6 +1219,7 @@
       "RenderFeatureProfile",
       "RenderGraphPlanner",
       "RenderLayerManager",
+      "RenderOptimizationRuntimeExecutor",
       "RenderWorkerBridge",
       "RenderWorkerOwnership",
       "RendererBackend",
@@ -2512,6 +2518,11 @@
         "name": "RenderLayerManager"
       },
       {
+        "arity": 0,
+        "async": false,
+        "name": "RenderOptimizationRuntimeExecutor"
+      },
+      {
         "arity": 1,
         "async": false,
         "name": "RenderSystem"
@@ -3622,6 +3633,7 @@
       "RenderFeatureProfile",
       "RenderGraphPlanner",
       "RenderLayerManager",
+      "RenderOptimizationRuntimeExecutor",
       "RenderSystem",
       "RenderWorkerBridge",
       "RenderWorkerOwnership",

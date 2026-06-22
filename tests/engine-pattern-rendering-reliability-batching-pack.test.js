@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BatchAtlasDiagnostics,
   PixiLifecycleAudit,
+  RenderOptimizationRuntimeExecutor,
   RendererBackendContract,
   RenderWorkerOwnership
 } from '../src/index.js';
@@ -183,6 +184,90 @@ describe('engine pattern rendering reliability batching pack', () => {
       'frame-budget-overlay',
       'texture-upload-spike-detection',
       'filter-pass-cost-audit'
+    ]));
+  });
+
+  it('applies render optimization runtime plans to renderer resource adapters', () => {
+    const calls = [];
+    const executor = new RenderOptimizationRuntimeExecutor({
+      renderer: {
+        buildAtlas: (atlas) => {
+          calls.push({ kind: 'atlas', key: atlas.key, textures: atlas.textures });
+          return { atlasId: `atlas://${atlas.key}` };
+        },
+        splitDynamicSpriteBatch: (sprite) => {
+          calls.push({ kind: 'dynamic', id: sprite.id });
+          return { isolated: sprite.id };
+        }
+      },
+      textureManager: {
+        scheduleUpload: (upload, context) => {
+          calls.push({ kind: 'upload', id: upload.id, frameOffset: context.frameOffset });
+          return { queued: upload.id, frameOffset: context.frameOffset };
+        }
+      },
+      filterPipeline: {
+        flattenFilter: (filter) => {
+          calls.push({ kind: 'filter', id: filter.id, targetPasses: filter.targetPasses });
+          return { filter: filter.id, targetPasses: filter.targetPasses };
+        }
+      },
+      backendManager: {
+        preferBackend: (backend) => {
+          calls.push({ kind: 'backend', backend: backend.backend });
+          return { selected: backend.backend };
+        }
+      },
+      renderQueue: [
+        { id: 'b', layer: 'world', texture: 'b.png', material: 'lit', blendMode: 'normal' },
+        { id: 'a', layer: 'world', texture: 'a.png', material: 'lit', blendMode: 'normal' },
+        { id: 'c', layer: 'world', texture: 'a.png', material: 'lit', blendMode: 'normal' }
+      ]
+    });
+
+    const report = executor.applyPlan({
+      schema: 'omnicore.render-optimization-runtime.v1',
+      scheduler: {
+        textureUploads: { maxUploadsPerFrame: 2 }
+      },
+      runtimeActions: [
+        { type: 'buildAtlas', key: 'lit|normal', textures: ['a.png', 'b.png'], material: 'lit', blendMode: 'normal' },
+        { type: 'scheduleTextureUpload', id: 'hero', bytes: 1024, strategy: 'warmup-or-frame-split' },
+        { type: 'scheduleTextureUpload', id: 'enemy', bytes: 2048, strategy: 'warmup-or-frame-split' },
+        { type: 'scheduleTextureUpload', id: 'ui', bytes: 4096, strategy: 'warmup-or-frame-split' },
+        { type: 'flattenFilter', id: 'bloom', passes: 2, targetPasses: 1, estimatedMs: 1.4 },
+        { type: 'preferBackend', backend: 'webgpu', fallbackChain: ['webgpu', 'webgl2'] },
+        { type: 'sortRenderQueueGroup', key: 'lit|normal|a.png' },
+        { type: 'splitDynamicSpriteBatch', id: 'ui-hud', texture: 'ui.png' }
+      ]
+    });
+
+    expect(report.schema).toBe('omnicore.render-optimization-apply-report.v1');
+    expect(report.applied.map((action) => action.type)).toEqual(expect.arrayContaining([
+      'buildAtlas',
+      'scheduleTextureUpload',
+      'flattenFilter',
+      'preferBackend',
+      'sortRenderQueueGroup',
+      'splitDynamicSpriteBatch'
+    ]));
+    expect(report.textureUploadBatches.map((batch) => batch.uploads.map((upload) => upload.id))).toEqual([
+      ['hero', 'enemy'],
+      ['ui']
+    ]);
+    expect(calls).toEqual(expect.arrayContaining([
+      { kind: 'atlas', key: 'lit|normal', textures: ['a.png', 'b.png'] },
+      { kind: 'upload', id: 'hero', frameOffset: 0 },
+      { kind: 'upload', id: 'ui', frameOffset: 1 },
+      { kind: 'filter', id: 'bloom', targetPasses: 1 },
+      { kind: 'backend', backend: 'webgpu' },
+      { kind: 'dynamic', id: 'ui-hud' }
+    ]));
+    expect(report.renderQueue.afterDrawCalls).toBeLessThanOrEqual(report.renderQueue.beforeDrawCalls);
+    expect(report.crossEngineProfile.capabilities).toEqual(expect.arrayContaining([
+      'runtime-plan-application',
+      'texture-upload-frame-splitting',
+      'batch-aware-render-queue-application'
     ]));
   });
 });

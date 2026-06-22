@@ -128,6 +128,7 @@ import RenderFeatureProfile from './renderer/RenderFeatureProfile.js';
 import ShaderVariantCollection from './renderer/ShaderVariantCollection.js';
 import TextureStreamingBudget from './renderer/TextureStreamingBudget.js';
 import BatchAtlasDiagnostics from './renderer/BatchAtlasDiagnostics.js';
+import RenderOptimizationRuntimeExecutor from './renderer/RenderOptimizationRuntimeExecutor.js';
 import PixiLifecycleAudit from './renderer/PixiLifecycleAudit.js';
 import PixiRenderHardeningProfile from './renderer/PixiRenderHardeningProfile.js';
 import WebGLContextManager from './renderer/WebGLContextManager.js';
@@ -1140,7 +1141,7 @@ const OmniCore = {
   AssetBuildRecipe,
   FantasyConsoleBank,
   VirtualAssetFS,
-  Renderer: { PixiRenderer, WebGPURenderer, RendererBackend, OffscreenCanvasRenderer, RendererBackendContract, RenderWorkerBridge, RenderWorkerOwnership, Filters, WebGLContextManager, RendererManager, RenderLayerManager, PixiBatchAdapter, CommandBuffer, StaticBatchCompiler, MaterialPreset, RenderFeatureProfile, RenderGraphPlanner, ShaderVariantCollection, TextureStreamingBudget, BatchAtlasDiagnostics, PixiLifecycleAudit, PixiRenderHardeningProfile, createRendererFallbackMatrix, resolveRendererFallbackPlan, optimizeRenderQueueForBatching },
+  Renderer: { PixiRenderer, WebGPURenderer, RendererBackend, OffscreenCanvasRenderer, RendererBackendContract, RenderWorkerBridge, RenderWorkerOwnership, Filters, WebGLContextManager, RendererManager, RenderLayerManager, PixiBatchAdapter, CommandBuffer, StaticBatchCompiler, MaterialPreset, RenderFeatureProfile, RenderGraphPlanner, ShaderVariantCollection, TextureStreamingBudget, BatchAtlasDiagnostics, RenderOptimizationRuntimeExecutor, PixiLifecycleAudit, PixiRenderHardeningProfile, createRendererFallbackMatrix, resolveRendererFallbackPlan, optimizeRenderQueueForBatching },
   diagnoseBatchBreaks,
   optimizeRenderQueueForBatching,
   createBezierPrimitive,
@@ -1174,6 +1175,7 @@ const OmniCore = {
   ShaderVariantCollection,
   TextureStreamingBudget,
   BatchAtlasDiagnostics,
+  RenderOptimizationRuntimeExecutor,
   PixiLifecycleAudit,
   PixiRenderHardeningProfile,
   PixiBatchAdapter,
@@ -1777,6 +1779,7 @@ export {
   resolveRendererFallbackPlan,
   RENDERER_FALLBACK_MATRIX_SCHEMA,
   optimizeRenderQueueForBatching,
+  RenderOptimizationRuntimeExecutor,
   RenderSystem,
   ShaderVariantCollection,
   PixiLifecycleAudit,
