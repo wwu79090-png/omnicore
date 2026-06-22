@@ -31,3 +31,5 @@ This gives non-code users a visible answer after they apply quick fixes: whether
 When verification fails, the editor also creates `state.renderOptimizationRemediationPlan` and emits `editor:render-optimization-remediation-plan`. The plan maps failed gates to concrete follow-up work such as rolling back the applied render plan, rebuilding atlas groups, capping texture uploads per frame, reducing filter passes, or capturing another render profile sample.
 
 Remediation actions can be applied through `EditorAPI.applyRenderOptimizationRemediation(actionId)`. Applied actions write back into the editor render optimization plan, update the runtime export budget, emit `editor:render-optimization-remediation-applied`, and mark progress in the diagnostics panel.
+
+For guided repair flows, `EditorAPI.applyRenderOptimizationRemediationPlan()` applies every pending remediation action and emits `editor:render-optimization-remediation-apply-report`. The report records requested, applied, skipped, and failed counts, and is included in runtime sync as `renderOptimizationRemediationReport`.

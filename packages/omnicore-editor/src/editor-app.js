@@ -1120,6 +1120,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     exportRenderOptimizationPlan,
     verifyRenderOptimizationPlan,
     applyRenderOptimizationRemediation,
+    applyRenderOptimizationRemediationPlan,
     createRuntimeSyncPayload,
     applyRuntimeSyncPayload,
     create25DPreview,
@@ -2348,6 +2349,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       },
       applyRenderOptimizationRemediation(actionId, options = {}) {
         return applyRenderOptimizationRemediation(actionId, options);
+      },
+      applyRenderOptimizationRemediationPlan(options = {}) {
+        return applyRenderOptimizationRemediationPlan(options);
       },
       addUIButton(button = {}) {
         return addUIButton(button);
@@ -4609,6 +4613,104 @@ export function createEditorApp(root = document.querySelector('#app'), {
     };
   }
 
+  function applyRenderOptimizationRemediationPlan(options = {}) {
+    const remediationPlan = current.renderOptimizationRemediationPlan;
+    if (!remediationPlan) return null;
+    const requestedActions = (remediationPlan.actions || []).filter((action) => !action.applied);
+    const appliedAt = new Date(Number(options.now || Date.now())).toISOString();
+    const plan = normalizeRenderOptimizationPlanState(current.renderOptimizationPlan);
+    let nextRemediationPlan = cloneState(remediationPlan);
+    const applied = [];
+    const skipped = [];
+    const failed = [];
+    const auditTrail = [];
+
+    for (const action of requestedActions) {
+      try {
+        const result = applyRenderOptimizationRemediationAction(plan, action, {
+          appliedAt,
+          verification: current.renderOptimizationVerification,
+          remediationPlan: nextRemediationPlan,
+          recordDebugEvent
+        });
+        if (result.skipped) {
+          skipped.push({ ...action, result });
+          auditTrail.push(renderRemediationAuditEntry('skip', action, result));
+          continue;
+        }
+        const appliedAction = {
+          ...action,
+          applied: true,
+          appliedAt,
+          result
+        };
+        nextRemediationPlan = markRenderOptimizationRemediationApplied(nextRemediationPlan, appliedAction);
+        applied.push(appliedAction);
+        auditTrail.push(renderRemediationAuditEntry('apply', action, result));
+      } catch (error) {
+        const failure = {
+          ...action,
+          applied: false,
+          errorName: error?.name || 'Error',
+          reason: String(error?.message || 'remediation-action-failed')
+        };
+        failed.push(failure);
+        auditTrail.push(renderRemediationAuditEntry('error', action, failure));
+      }
+    }
+
+    const report = {
+      schema: 'omnicore.render-optimization-remediation-apply-report.v1',
+      source: options.source || 'editor-render-diagnostics',
+      sourcePlanId: nextRemediationPlan.sourcePlanId || current.renderOptimizationVerification?.sourcePlanId || null,
+      generatedAt: appliedAt,
+      status: failed.length ? 'failed' : (applied.length ? 'applied' : 'skipped'),
+      applied,
+      skipped,
+      failed,
+      auditTrail,
+      summary: {
+        requestedCount: requestedActions.length,
+        appliedCount: applied.length,
+        skippedCount: skipped.length,
+        failedCount: failed.length
+      },
+      nextVerification: {
+        recommended: applied.length > 0,
+        sourcePlanId: nextRemediationPlan.sourcePlanId || null,
+        reason: applied.length > 0 ? 'remediation-applied' : 'no-remediation-applied'
+      },
+      crossEngineProfile: {
+        sources: [
+          { engine: 'Unity', advantage: 'batch apply fixes then re-profile the scene' },
+          { engine: 'Unreal', advantage: 'group remediation work into auditable optimization passes' },
+          { engine: 'Godot', advantage: 'keep editor fixes beginner-visible and reversible' },
+          { engine: 'Cocos Creator', advantage: 'apply editor-side render fixes back into exportable project state' }
+        ],
+        capabilities: [
+          'batch-render-remediation-application',
+          'remediation-apply-audit-report',
+          'runtime-plan-budget-writeback',
+          'post-remediation-reverify-prompt'
+        ]
+      }
+    };
+
+    current = createEditorState({
+      ...current,
+      renderOptimizationPlan: plan,
+      renderOptimizationRemediationPlan: nextRemediationPlan,
+      renderOptimizationRemediationApplyReport: report,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'render-diagnostics', 'bottom')
+    });
+    emit('editor:render-optimization-remediation-apply-report', report);
+    emit('editor:render-optimization-plan', plan);
+    pushHistory(current, `批量应用渲染补救 ${applied.length}/${requestedActions.length}`);
+    update(current);
+    showEditorFeedback(`已批量应用渲染补救：${applied.length}/${requestedActions.length}`, 'success');
+    return report;
+  }
+
   function createRuntimeSyncPayload() {
     const generatedAt = new Date().toISOString();
     return {
@@ -4623,6 +4725,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       renderOptimizationPlan: cloneState(current.renderOptimizationPlan),
       renderOptimizationVerification: cloneState(current.renderOptimizationVerification),
       renderOptimizationRemediation: cloneState(current.renderOptimizationRemediationPlan),
+      renderOptimizationRemediationReport: cloneState(current.renderOptimizationRemediationApplyReport),
       renderOptimizationRuntime: createRenderOptimizationRuntimePlan(current.renderOptimizationPlan, { generatedAt })
     };
   }
@@ -4638,6 +4741,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       renderOptimizationPlan: payload.renderOptimizationPlan || payload.renderOptimizationRuntime?.sourcePlan || current.renderOptimizationPlan,
       renderOptimizationVerification: payload.renderOptimizationVerification || current.renderOptimizationVerification,
       renderOptimizationRemediationPlan: payload.renderOptimizationRemediation || payload.renderOptimizationRemediationPlan || current.renderOptimizationRemediationPlan,
+      renderOptimizationRemediationApplyReport: payload.renderOptimizationRemediationReport || payload.renderOptimizationRemediationApplyReport || current.renderOptimizationRemediationApplyReport,
       flowGraph: payload.flowGraph || current.flowGraph
     });
     emit('editor:runtime-sync-applied', { protocol: payload.protocol || null });
@@ -7333,6 +7437,21 @@ export function createEditorApp(root = document.querySelector('#app'), {
       remediationBlock.append(remediationTitle, actionSummary, meta);
       wrap.appendChild(remediationBlock);
     }
+    const remediationReport = current.renderOptimizationRemediationApplyReport;
+    if (remediationReport) {
+      const reportBlock = document.createElement('div');
+      reportBlock.className = 'render-optimization-remediation-report';
+      reportBlock.dataset.renderOptimizationRemediationReport = 'true';
+      reportBlock.dataset.renderOptimizationRemediationReportStatus = remediationReport.status || 'unknown';
+      const reportTitle = document.createElement('strong');
+      reportTitle.textContent = '补救执行';
+      const reportSummary = document.createElement('span');
+      reportSummary.textContent = `批量应用 ${remediationReport.summary?.appliedCount || 0}/${remediationReport.summary?.requestedCount || 0} · 跳过 ${remediationReport.summary?.skippedCount || 0} · 失败 ${remediationReport.summary?.failedCount || 0}`;
+      const reportMeta = document.createElement('small');
+      reportMeta.textContent = remediationReport.generatedAt || '-';
+      reportBlock.append(reportTitle, reportSummary, reportMeta);
+      wrap.appendChild(reportBlock);
+    }
     return wrap;
   }
 }
@@ -9773,6 +9892,17 @@ function markRenderOptimizationRemediationApplied(plan = null, action = {}) {
   return nextPlan;
 }
 
+function renderRemediationAuditEntry(phase, action = {}, result = {}) {
+  return {
+    phase,
+    id: action.id || null,
+    type: action.type || 'unknown',
+    gate: action.gate || null,
+    ok: phase !== 'error',
+    result: cloneState(result)
+  };
+}
+
 function createRenderVerificationMetricsFromPanel(panel = null) {
   const summary = panel?.report?.summary || panel?.summary || {};
   return {
@@ -10614,6 +10744,11 @@ const EDITOR_CSS = `
   .render-optimization-remediation span { min-width: 0; color: #ffedd5; overflow-wrap: anywhere; }
   .render-optimization-remediation small { color: #fdba74; white-space: nowrap; }
   .render-optimization-remediation[data-render-optimization-remediation-priority="critical"] { border-color: #991b1b; background: #1f0909; }
+  .render-optimization-remediation-report { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; min-width: 0; padding: 7px 8px; border: 1px solid #365314; border-radius: 6px; background: #0c1705; }
+  .render-optimization-remediation-report strong { color: #d9f99d; font-size: 11px; white-space: nowrap; }
+  .render-optimization-remediation-report span { min-width: 0; color: #ecfccb; overflow-wrap: anywhere; }
+  .render-optimization-remediation-report small { color: #a3e635; white-space: nowrap; }
+  .render-optimization-remediation-report[data-render-optimization-remediation-report-status="failed"] { border-color: #991b1b; background: #1f0909; }
   .profiler-wrap { display: grid; gap: 5px; }
   .profiler-flamegraph { display: grid; gap: 4px; padding: 6px; border: 1px solid #334155; background: #020617; }
   .profiler-row { display: grid; grid-template-columns: 132px 1fr 56px; gap: 6px; align-items: center; }

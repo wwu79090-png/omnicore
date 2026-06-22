@@ -53,6 +53,7 @@ export function createEditorState(initial = {}) {
     renderOptimizationPlan: normalizeRenderOptimizationPlan(initial.renderOptimizationPlan),
     renderOptimizationVerification: normalizeRenderOptimizationVerification(initial.renderOptimizationVerification),
     renderOptimizationRemediationPlan: normalizeRenderOptimizationRemediationPlan(initial.renderOptimizationRemediationPlan),
+    renderOptimizationRemediationApplyReport: normalizeRenderOptimizationRemediationApplyReport(initial.renderOptimizationRemediationApplyReport),
     assetRefresh: normalizeAssetRefresh(initial.assetRefresh),
     hotReloadEvents: normalizeHotReloadEvents(initial.hotReloadEvents),
     preview25D: initial.preview25D || null,
@@ -114,6 +115,9 @@ export function applyLiveSyncMessage(state = createEditorState(), message = {}) 
   }
   if (message.type === 'editor:render-optimization-remediation-plan') {
     next.renderOptimizationRemediationPlan = normalizeRenderOptimizationRemediationPlan(message.payload);
+  }
+  if (message.type === 'editor:render-optimization-remediation-apply-report') {
+    next.renderOptimizationRemediationApplyReport = normalizeRenderOptimizationRemediationApplyReport(message.payload);
   }
   if (message.type === 'editor:render-optimization-runtime-plan') {
     next.renderOptimizationPlan = normalizeRenderOptimizationPlan(message.payload?.sourcePlan);
@@ -320,6 +324,11 @@ function normalizeRenderOptimizationVerification(value = null) {
 }
 
 function normalizeRenderOptimizationRemediationPlan(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return clonePlain(value);
+}
+
+function normalizeRenderOptimizationRemediationApplyReport(value = null) {
   if (!value || typeof value !== 'object') return null;
   return clonePlain(value);
 }

@@ -876,6 +876,99 @@ describe('editor deep toolchain', () => {
     app.destroy();
   });
 
+  it('applies complete render optimization remediation plans with an audit report', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const messages = [];
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        dockLayout: {
+          left: ['assets'],
+          center: ['scene-view'],
+          right: ['inspector'],
+          bottom: ['render-diagnostics']
+        }
+      }),
+      transport: {
+        send: (message) => messages.push(JSON.parse(message))
+      }
+    });
+
+    app.EditorAPI.refreshRenderDiagnosticsPanel({
+      budgets: {
+        frameBudgetMs: 16.67,
+        drawCallBudget: 4,
+        textureUploadBudget: 2,
+        filterPassBudget: 3
+      },
+      frame: { index: 18, cpuMs: 19, gpuMs: 17, fps: 45 },
+      draws: [
+        { id: 'hero', texture: 'hero.png', material: 'lit', blendMode: 'normal' },
+        { id: 'enemy', texture: 'enemy.png', material: 'lit', blendMode: 'normal' },
+        { id: 'coin', texture: 'coin.png', material: 'lit', blendMode: 'normal' }
+      ],
+      textureUploads: [
+        { id: 'hero', bytes: 1024 },
+        { id: 'enemy', bytes: 2048 },
+        { id: 'ui', bytes: 4096 }
+      ],
+      filterPasses: [
+        { id: 'bloom', passes: 2, estimatedMs: 1.4 },
+        { id: 'blur', passes: 2, estimatedMs: 2.1 }
+      ]
+    });
+    app.EditorAPI.applyRenderDiagnosticsQuickFix('deferTextureUploads', { now: Date.UTC(2026, 0, 1) });
+    app.EditorAPI.applyRenderDiagnosticsQuickFix('createAtlas:lit|normal', { now: Date.UTC(2026, 0, 1) + 1 });
+    app.EditorAPI.applyRenderDiagnosticsQuickFix('flattenFilterChain', { now: Date.UTC(2026, 0, 1) + 2 });
+    const runtimePlan = app.EditorAPI.exportRenderOptimizationPlan({
+      generatedAt: '2026-01-01T00:00:00.000Z'
+    });
+    app.EditorAPI.verifyRenderOptimizationPlan({
+      applyReport: {
+        schema: 'omnicore.render-optimization-apply-report.v1',
+        sourcePlanId: runtimePlan.sourcePlanId,
+        status: 'applied',
+        applied: runtimePlan.runtimeActions,
+        summary: { appliedCount: runtimePlan.runtimeActions.length }
+      },
+      before: { frameMs: 15.5, drawCalls: 4, textureUploads: 2, filterPasses: 2 },
+      after: { frameMs: 23, drawCalls: 9, textureUploads: 5, filterPasses: 5 },
+      budgets: { frameMs: 16.67, drawCalls: 4, textureUploads: 2, filterPasses: 3 },
+      now: Date.UTC(2026, 0, 1) + 20
+    });
+
+    const report = app.EditorAPI.applyRenderOptimizationRemediationPlan({
+      now: Date.UTC(2026, 0, 1) + 50
+    });
+
+    expect(report).toMatchObject({
+      schema: 'omnicore.render-optimization-remediation-apply-report.v1',
+      sourcePlanId: runtimePlan.sourcePlanId,
+      status: 'applied',
+      summary: {
+        requestedCount: 5,
+        appliedCount: 5,
+        skippedCount: 0,
+        failedCount: 0
+      }
+    });
+    expect(report.applied.map((entry) => entry.type)).toEqual(expect.arrayContaining([
+      'rollbackRenderPlan',
+      'rebuildAtlasGroups',
+      'capTextureUploads',
+      'reduceFilterPasses',
+      'captureRenderProfile'
+    ]));
+    expect(app.getState().renderOptimizationRemediationApplyReport.summary.appliedCount).toBe(5);
+    expect(root.querySelector('[data-render-optimization-remediation-report]')?.textContent).toContain('批量应用 5/5');
+    expect(app.createRuntimeSyncPayload().renderOptimizationRemediationReport.schema).toBe('omnicore.render-optimization-remediation-apply-report.v1');
+    expect(messages.map((message) => message.type)).toContain('editor:render-optimization-remediation-apply-report');
+    expect(app.EditorAPI.exportRenderOptimizationPlan({
+      generatedAt: '2026-01-01T00:00:02.000Z'
+    }).scheduler.textureUploads.maxUploadsPerFrame).toBe(2);
+    app.destroy();
+  });
+
   it('surfaces missing dependency repair actions in the editor resource panel', () => {
     const root = document.createElement('main');
     document.body.appendChild(root);
