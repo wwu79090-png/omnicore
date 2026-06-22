@@ -196,7 +196,7 @@ describe('standalone desktop-grade OmniCore Editor', () => {
     });
 
     const hub = root.querySelector('[data-desktop-hub]');
-    expect(hub?.getAttribute('data-desktop-layout')).toBe('command-center');
+    expect(hub?.getAttribute('data-desktop-layout')).toBe('integrated-workbench');
     expect(root.querySelector('[data-desktop-nav="projects"]')).toBeTruthy();
     expect(root.querySelector('[data-desktop-nav="editor"]')).toBeTruthy();
     expect(root.querySelector('[data-desktop-nav="assets"]')).toBeTruthy();
@@ -212,8 +212,8 @@ describe('standalone desktop-grade OmniCore Editor', () => {
     expect(root.textContent).toContain('最近项目');
     expect(root.textContent).toContain('模板创建');
     expect(root.textContent).toContain('发布诊断');
-    expect(root.textContent).toContain('系统状态');
-    expect(root.textContent).toContain('启动序列');
+    expect(root.textContent).toContain('EXE 工作台');
+    expect(root.textContent).toContain('功能入口已整合');
 
     root.querySelector('[data-desktop-template="platformer"]').click();
     expect(root.querySelector('[data-editor-feedback]')?.textContent).toContain('模板已选择：横版动作');
@@ -321,6 +321,109 @@ describe('standalone desktop-grade OmniCore Editor', () => {
     root.querySelector('[data-desktop-command="profiler"]').click();
     expect(app.getState().profilerOpen).toBe(true);
     expect(root.querySelector('[data-desktop-hub]')?.dataset.lastDesktopCommand).toBe('profiler');
+
+    app.destroy();
+  });
+
+  it('keeps the launcher visual, focused, searchable, and backed by actionable command details', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const app = createEditorApp(root, {
+      state: {
+        scene: {
+          entities: []
+        }
+      }
+    });
+
+    const hub = root.querySelector('[data-desktop-hub]');
+    const search = root.querySelector('[data-desktop-command-search]');
+    const details = root.querySelector('[data-desktop-command-details]');
+    const workflowMap = root.querySelector('[data-desktop-workflow-map]');
+    const actionPreview = root.querySelector('[data-desktop-action-preview]');
+    const visiblePanels = () => [...root.querySelectorAll('[data-desktop-feature-group]')].filter((panel) => !panel.hidden);
+
+    expect(search).toBeTruthy();
+    expect(details).toBeTruthy();
+    expect(workflowMap).toBeTruthy();
+    expect(actionPreview).toBeTruthy();
+    expect(root.querySelector('[data-desktop-section-board]')).toBeTruthy();
+    expect(root.querySelector('[data-desktop-section-map]')).toBeTruthy();
+    expect(root.querySelectorAll('[data-desktop-section-node]').length).toBeGreaterThanOrEqual(4);
+    expect(visiblePanels()).toHaveLength(1);
+    expect(visiblePanels()[0]?.dataset.desktopFeatureGroup).toBe('projects');
+    expect(root.querySelector('[data-desktop-feature-group="projects"]')?.classList.contains('is-focused')).toBe(true);
+    expect(details?.querySelector('[data-desktop-detail-title]')?.textContent).toContain('打开本地项目');
+    expect(details?.querySelectorAll('[data-desktop-detail-step]').length).toBeGreaterThanOrEqual(3);
+    expect(workflowMap?.querySelectorAll('[data-desktop-workflow-step]').length).toBeGreaterThanOrEqual(4);
+
+    const cards = [...root.querySelectorAll('[data-desktop-command-card]')];
+    expect(cards.length).toBeGreaterThanOrEqual(32);
+    for (const card of cards) {
+      expect(card.dataset.desktopCommandUseful).toBe('true');
+      expect(card.dataset.desktopCommandOutcome).toBeTruthy();
+      expect(card.dataset.desktopCommandTarget).toBeTruthy();
+    }
+
+    root.querySelector('[data-desktop-command="visual-scripting"]').click();
+    expect(hub?.dataset.lastDesktopCommand).toBe('visual-scripting');
+    expect(root.querySelector('[data-desktop-command="visual-scripting"]')?.classList.contains('selected')).toBe(true);
+    expect(details?.querySelector('[data-desktop-detail-title]')?.textContent).toContain('可视化脚本');
+    expect(root.querySelector('[data-desktop-action-preview]')?.textContent).toContain('可视化脚本');
+    const updatedWorkflowMap = root.querySelector('[data-desktop-workflow-map]');
+    expect(updatedWorkflowMap?.textContent).toContain('拖拽节点');
+    expect(updatedWorkflowMap?.textContent).toContain('查看 Trace');
+
+    root.querySelector('[data-desktop-nav="render"]').click();
+    expect(hub?.dataset.activeDesktopSection).toBe('render');
+    expect(visiblePanels()).toHaveLength(1);
+    expect(visiblePanels()[0]?.dataset.desktopFeatureGroup).toBe('render-performance');
+    expect(root.querySelector('[data-desktop-feature-group="render-performance"]')?.classList.contains('is-focused')).toBe(true);
+    expect(root.querySelector('[data-desktop-section-count]')?.textContent).toContain('渲染与性能');
+
+    search.value = 'GLTF';
+    search.dispatchEvent(new Event('input', { bubbles: true }));
+    const visibleCards = cards.filter((card) => !card.hidden);
+    expect(visibleCards.length).toBeGreaterThan(0);
+    expect(visibleCards.every((card) => card.textContent.toLowerCase().includes('gltf'))).toBe(true);
+    expect(root.querySelector('[data-desktop-search-count]')?.textContent).toContain(String(visibleCards.length));
+
+    app.destroy();
+  });
+
+  it('starts with an unobstructed launcher and exposes resizable editor splitters', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const app = createEditorApp(root, {
+      state: {
+        scene: {
+          entities: []
+        }
+      }
+    });
+
+    const frame = root.querySelector('.editor-frame');
+    const shell = root.querySelector('.editor-shell');
+    const workspaceResizer = root.querySelector('[data-editor-workspace-resizer]');
+
+    expect(frame?.dataset.workspaceMode).toBe('launcher');
+    expect(shell?.getAttribute('aria-hidden')).toBe('true');
+    expect(workspaceResizer).toBeTruthy();
+    expect(workspaceResizer?.dataset.workspaceMode).toBe('launcher');
+    expect([...root.querySelectorAll('[data-dock-resizer]')].map((node) => node.dataset.dockResizer)).toEqual([
+      'left',
+      'bottom',
+      'right'
+    ]);
+
+    workspaceResizer.click();
+    expect(frame?.dataset.workspaceMode).toBe('editor');
+    expect(shell?.getAttribute('aria-hidden')).toBe('false');
+    expect(workspaceResizer?.dataset.workspaceMode).toBe('editor');
+
+    root.querySelector('[data-desktop-command="visual-scripting"]').click();
+    expect(frame?.dataset.workspaceMode).toBe('editor');
+    expect(app.getDockLayout().center).toContain('visual-scripting');
 
     app.destroy();
   });

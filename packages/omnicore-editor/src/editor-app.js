@@ -468,6 +468,140 @@ const DESKTOP_COMMAND_SECTIONS = [
   }
 ];
 
+const DESKTOP_RENDER_DIAGNOSTIC_COMMANDS = new Set([
+  'webgpu-diagnostics',
+  'pixi-batch',
+  'filter-cost',
+  'texture-lifecycle',
+  'frame-budget'
+]);
+const DESKTOP_PUBLISH_COMMANDS = new Set(['exe-package', 'web-export', 'wechat-export']);
+const DESKTOP_SCENE3D_COMMANDS = new Set(['scene-3d-demo', 'camera-lighting', 'gltf-import']);
+const DESKTOP_ASSET_PIPELINE_COMMANDS = new Set(['asset-refresh', 'hot-reload', 'dependency-graph']);
+const DESKTOP_OVERVIEW_COMMANDS = new Set(['workflow-overview', 'systems-overview', 'production-overview']);
+const DESKTOP_LEARNING_COMMANDS = new Set(['beginner-tutorial', 'tutorial-demo', 'migration-guide', 'api-path']);
+const DESKTOP_DIAGNOSTIC_COMMANDS = new Set([
+  'release-check',
+  'scene-validate',
+  'quality-gate',
+  'recovery-check',
+  'debug-timeline',
+  'governance-report'
+]);
+
+const DESKTOP_COMMANDS_BY_ID = new Map();
+const DESKTOP_COMMAND_SECTION_BY_ID = new Map();
+for (const section of DESKTOP_COMMAND_SECTIONS) {
+  for (const command of section.commands) {
+    DESKTOP_COMMANDS_BY_ID.set(command.id, command);
+    DESKTOP_COMMAND_SECTION_BY_ID.set(command.id, section);
+  }
+}
+const DESKTOP_SECTION_BY_NAV = new Map(DESKTOP_COMMAND_SECTIONS.map((section) => [section.nav, section]));
+
+function getDesktopCommandRecord(commandId) {
+  const id = String(commandId || '');
+  return DESKTOP_COMMANDS_BY_ID.get(id)
+    || DESKTOP_HEADER_ACTIONS.find((action) => action.id === id)
+    || { id, title: id || '启动器功能', label: id || '启动器功能', purpose: '启动器功能入口', status: '入口' };
+}
+
+function getDesktopCommandKind(commandId, command = getDesktopCommandRecord(commandId)) {
+  const id = String(commandId || command?.id || '');
+  if (command?.template) return 'template';
+  if (command?.recentProject) return 'recent';
+  if (DESKTOP_PANEL_COMMANDS[id]) return id === 'visual-scripting' ? 'visual-script' : 'panel';
+  if (DESKTOP_TOOLBAR_COMMANDS.has(id)) return 'toolbar';
+  if (DESKTOP_RENDER_DIAGNOSTIC_COMMANDS.has(id)) return 'render';
+  if (DESKTOP_PUBLISH_COMMANDS.has(id)) return 'publish';
+  if (DESKTOP_SCENE3D_COMMANDS.has(id)) return 'scene3d';
+  if (DESKTOP_ASSET_PIPELINE_COMMANDS.has(id)) return 'asset-pipeline';
+  if (DESKTOP_OVERVIEW_COMMANDS.has(id)) return 'overview';
+  if (DESKTOP_LEARNING_COMMANDS.has(id)) return 'learning';
+  if (DESKTOP_DIAGNOSTIC_COMMANDS.has(id)) return 'diagnostic';
+  return 'command';
+}
+
+function getDesktopCommandSteps(kind) {
+  return {
+    toolbar: ['执行命令', '同步状态', '刷新工作台', '查看反馈'],
+    template: ['选择模板', '生成项目骨架', '打开示例场景', '进入编辑器'],
+    recent: ['定位项目', '恢复工作区', '刷新资源索引', '进入编辑器'],
+    panel: ['定位功能', '打开面板', '编辑数据', '查看 Trace'],
+    'visual-script': ['打开节点图', '拖拽节点', '连线运行', '查看 Trace'],
+    render: ['采集帧', '打开 Profiler', '标记瓶颈', '输出预算'],
+    publish: ['打开构建设置', '检查平台配置', '生成产物', '回看诊断'],
+    scene3d: ['加载场景', '检查材质灯光', '验证模型资源', '查看调试视图'],
+    'asset-pipeline': ['扫描资源', '生成变更集', '刷新依赖图', '触发热重载'],
+    overview: ['定位路径', '推荐入口', '串联面板', '形成闭环'],
+    learning: ['选择课程', '播放演示', '复制命令', '进入模板'],
+    diagnostic: ['运行检查', '定位问题', '给出修复', '输出报告'],
+    command: ['执行入口', '更新状态', '打开结果', '查看反馈']
+  }[kind] || ['执行入口', '更新状态', '打开结果', '查看反馈'];
+}
+
+function describeDesktopCommand(commandId) {
+  const id = String(commandId || 'open-project');
+  const command = getDesktopCommandRecord(id);
+  const section = DESKTOP_COMMAND_SECTION_BY_ID.get(id);
+  const kind = getDesktopCommandKind(id, command);
+  const panelRoute = DESKTOP_PANEL_COMMANDS[id];
+  const title = command.title || command.label || panelRoute?.title || id;
+  const purpose = command.purpose || '从启动器直接进入对应编辑器能力。';
+  const status = command.status || '入口';
+  let target = `${section?.title || '启动器'} / ${status}`;
+  let outcome = `${title} 已接入启动器，可直接执行并显示结果。`;
+
+  if (panelRoute) {
+    target = `${panelRoute.title} -> ${panelRoute.region} 停靠区`;
+    outcome = `打开${panelRoute.title}并固定到${panelRoute.region}区域。`;
+  } else if (command.template) {
+    target = `模板工厂 -> ${DESKTOP_TEMPLATE_NAMES[command.template] || command.template}`;
+    outcome = `选择${DESKTOP_TEMPLATE_NAMES[command.template] || command.template}模板并准备创建项目。`;
+  } else if (command.recentProject) {
+    target = `最近项目 -> ${DESKTOP_RECENT_PROJECT_NAMES[command.recentProject] || command.recentProject}`;
+    outcome = `定位${DESKTOP_RECENT_PROJECT_NAMES[command.recentProject] || command.recentProject}并恢复工作区。`;
+  } else if (DESKTOP_RENDER_DIAGNOSTIC_COMMANDS.has(id)) {
+    target = 'Profiler / 渲染预算 / 帧采样';
+    outcome = '生成可回看的渲染性能采样，帮助定位 batch、filter、纹理和帧预算问题。';
+  } else if (DESKTOP_PUBLISH_COMMANDS.has(id)) {
+    target = '构建设置 / 平台发布 / 产物检查';
+    outcome = '打开平台发布检查路径，明确 EXE、Web 或小游戏导出条件。';
+  } else if (DESKTOP_SCENE3D_COMMANDS.has(id)) {
+    target = '场景视图 / 3D 资源 / 调试路径';
+    outcome = '进入 3D/2.5D 场景、相机灯光或模型资源检查流程。';
+  } else if (DESKTOP_ASSET_PIPELINE_COMMANDS.has(id)) {
+    target = '资源数据库 / 依赖图 / 热重载';
+    outcome = '刷新资源数据库并把资源变更接入编辑器可视化闭环。';
+  } else if (DESKTOP_DIAGNOSTIC_COMMANDS.has(id)) {
+    target = '诊断报告 / 场景验证 / 恢复检查';
+    outcome = '运行项目体检或调试报告，给出可继续处理的结果。';
+  } else if (DESKTOP_LEARNING_COMMANDS.has(id)) {
+    target = '新手教程 / 示例演示 / API 路线';
+    outcome = '把 0 基础用户引到模板、命令和迁移路径。';
+  } else if (DESKTOP_OVERVIEW_COMMANDS.has(id)) {
+    target = '推荐路径 / 功能总览 / 闭环导航';
+    outcome = '把分散入口收敛成从项目到发布的推荐工作流。';
+  } else if (DESKTOP_TOOLBAR_COMMANDS.has(id)) {
+    target = '顶部工具栏 / 工作台状态';
+    outcome = '执行工具栏动作并同步编辑器状态。';
+  }
+
+  return {
+    id,
+    kind,
+    title,
+    purpose,
+    status,
+    sectionTitle: section?.title || '启动器',
+    nav: section?.nav || 'projects',
+    target,
+    outcome,
+    preview: `${title}：${purpose}`,
+    steps: getDesktopCommandSteps(kind)
+  };
+}
+
 export function createInputFocusManager({ root = null } = {}) {
   let gizmoShortcutsEnabled = true;
 
@@ -566,6 +700,7 @@ function renderDesktopHeaderAction(action) {
 }
 
 function renderDesktopCommandCard(command, index = 0) {
+  const detail = describeDesktopCommand(command.id);
   const className = `desktop-command-card motion-card${command.primary ? ' primary' : ''}`;
   return `
     <button
@@ -579,12 +714,76 @@ function renderDesktopCommandCard(command, index = 0) {
       ${desktopDataAttr('data-desktop-recent-project', command.recentProject)}
       ${desktopDataAttr('data-desktop-diagnostic-action', command.diagnosticAction)}
       ${desktopDataAttr('data-desktop-capability', command.capability)}
+      data-desktop-command-useful="true"
+      data-desktop-command-outcome="${escapeDesktopHtml(detail.outcome)}"
+      data-desktop-command-target="${escapeDesktopHtml(detail.target)}"
     >
       ${renderDesktopIcon(DESKTOP_COMMAND_ICONS[command.id], 'desktop-lucide-icon desktop-command-icon', ' data-desktop-command-icon')}
       <strong data-desktop-command-title>${escapeDesktopHtml(command.title)}</strong>
       <span data-desktop-command-purpose>${escapeDesktopHtml(command.purpose)}</span>
       <b data-desktop-command-status>${escapeDesktopHtml(command.status)}</b>
     </button>
+  `;
+}
+
+function renderDesktopCommandDetailBody(commandId = 'open-project') {
+  const detail = describeDesktopCommand(commandId);
+  return `
+    <div class="desktop-detail-heading">
+      <span>当前功能</span>
+      <strong data-desktop-detail-title>${escapeDesktopHtml(detail.title)}</strong>
+    </div>
+    <p data-desktop-detail-summary>${escapeDesktopHtml(detail.purpose)}</p>
+    <div class="desktop-detail-meta">
+      <span><b>分区</b><em>${escapeDesktopHtml(detail.sectionTitle)}</em></span>
+      <span><b>目标</b><em data-desktop-detail-target>${escapeDesktopHtml(detail.target)}</em></span>
+      <span><b>结果</b><em data-desktop-detail-outcome>${escapeDesktopHtml(detail.outcome)}</em></span>
+    </div>
+    <div class="desktop-action-preview" data-desktop-action-preview>
+      <strong>${escapeDesktopHtml(detail.title)}</strong>
+      <span>${escapeDesktopHtml(detail.preview)}</span>
+      <i aria-hidden="true"></i>
+    </div>
+    <ol class="desktop-workflow-map" data-desktop-workflow-map aria-label="当前功能流程">
+      ${detail.steps.map((step, stepIndex) => `
+        <li data-desktop-workflow-step data-desktop-detail-step>
+          <b>${stepIndex + 1}</b>
+          <span>${escapeDesktopHtml(step)}</span>
+        </li>
+      `).join('')}
+    </ol>
+  `;
+}
+
+function renderDesktopCommandDetails(commandId = 'open-project') {
+  return `
+    <aside class="desktop-command-details" data-desktop-command-details="${escapeDesktopHtml(commandId)}" aria-label="功能详情">
+      ${renderDesktopCommandDetailBody(commandId)}
+    </aside>
+  `;
+}
+
+function renderDesktopSectionMap(section) {
+  const commands = section.commands || [];
+  const primary = commands.find((command) => command.primary) || commands[0] || {};
+  const secondary = commands[Math.min(1, Math.max(0, commands.length - 1))] || primary;
+  const finalCommand = commands[commands.length - 1] || primary;
+  const nodes = [
+    { title: section.title, text: '选择分区' },
+    { title: primary.title || '核心入口', text: primary.status || '执行' },
+    { title: secondary.title || '编辑能力', text: '可视化操作' },
+    { title: finalCommand.title || '闭环结果', text: '反馈闭环' }
+  ];
+  return `
+    <div class="desktop-section-map" data-desktop-section-map aria-label="${escapeDesktopHtml(section.title)}可视化流程">
+      ${nodes.map((node, index) => `
+        <div class="desktop-section-node" data-desktop-section-node>
+          <b>${index + 1}</b>
+          <strong>${escapeDesktopHtml(node.title)}</strong>
+          <span>${escapeDesktopHtml(node.text)}</span>
+        </div>
+      `).join('')}
+    </div>
   `;
 }
 
@@ -644,6 +843,7 @@ function renderDesktopFeatureSection(section, index = 0) {
         <span>${escapeDesktopHtml(section.subtitle)}</span>
       </div>
       <p class="desktop-section-lead">${escapeDesktopHtml(section.lead)}</p>
+      ${renderDesktopSectionMap(section)}
       <div class="desktop-command-grid">
         ${section.commands.map((command, commandIndex) => renderDesktopCommandCard(command, commandIndex)).join('')}
       </div>
@@ -654,7 +854,7 @@ function renderDesktopFeatureSection(section, index = 0) {
 
 function renderDesktopLauncherHub() {
   return `
-    <section class="desktop-hub" data-desktop-hub data-desktop-layout="command-center" data-active-desktop-section="projects" aria-label="OmniCore EXE 启动器">
+    <section class="desktop-hub" data-desktop-hub data-desktop-layout="integrated-workbench" data-active-desktop-section="projects" aria-label="OmniCore EXE 启动器">
       <div class="desktop-launch-splash" aria-hidden="true">
         <div class="desktop-launch-mark">
           ${renderDesktopIcon(Rocket, 'desktop-lucide-icon desktop-launch-icon')}
@@ -665,28 +865,39 @@ function renderDesktopLauncherHub() {
       </div>
       <aside class="desktop-command-rail" aria-label="启动器导航">
         <strong>OmniCore</strong>
-        <small>启动序列 100%</small>
+        <small>EXE 工作台</small>
         ${DESKTOP_LAUNCHER_NAV.map(renderDesktopNavButton).join('')}
-        <span>桌面 EXE 全功能入口</span>
+        <span>功能入口已整合</span>
       </aside>
       <div class="desktop-hub-main">
         <header class="desktop-hub-header">
           <div>
             <h1>OmniCore Editor</h1>
-            <p>EXE 桌面启动器：项目、编辑器、资源、2D/3D/物理、渲染性能、平台发布、教程和诊断统一入口。</p>
+            <p>项目、编辑、资源、渲染、发布一屏直达。</p>
           </div>
           <div class="desktop-hub-actions">
             ${DESKTOP_HEADER_ACTIONS.map(renderDesktopHeaderAction).join('')}
           </div>
+          <div class="desktop-status-strip" aria-label="系统状态">
+            <div data-desktop-status-metric><strong>状态</strong><span>就绪</span></div>
+            <div data-desktop-status-metric><strong>资源</strong><span>增量刷新</span></div>
+            <div data-desktop-status-metric><strong>门禁</strong><span>912 项</span></div>
+            <div data-desktop-status-metric><strong>导出</strong><span>Web / EXE</span></div>
+          </div>
         </header>
-        <div class="desktop-status-strip" aria-label="系统状态">
-          <div data-desktop-status-metric><strong>系统状态</strong><span>就绪</span></div>
-          <div data-desktop-status-metric><strong>资源索引</strong><span>增量刷新</span></div>
-          <div data-desktop-status-metric><strong>测试门禁</strong><span>912 项</span></div>
-          <div data-desktop-status-metric><strong>导出目标</strong><span>Web / EXE / 小游戏</span></div>
+        <div class="desktop-hub-control-strip" aria-label="启动器控制">
+          <label class="desktop-command-search">
+            <span>功能搜索</span>
+            <input type="search" data-desktop-command-search placeholder="搜索 GLTF / 物理 / 发布 / 教程" autocomplete="off" />
+          </label>
+          <span data-desktop-section-count>项目中心 · ${DESKTOP_SECTION_BY_NAV.get('projects')?.commands.length || 0} 个入口</span>
+          <span data-desktop-search-count>显示 ${DESKTOP_COMMANDS_BY_ID.size} 个功能</span>
         </div>
-        <div class="desktop-hub-grid">
-          ${DESKTOP_COMMAND_SECTIONS.map((section, index) => renderDesktopFeatureSection(section, index)).join('')}
+        <div class="desktop-hub-body">
+          <div class="desktop-hub-grid" data-desktop-section-board>
+            ${DESKTOP_COMMAND_SECTIONS.map((section, index) => renderDesktopFeatureSection(section, index)).join('')}
+          </div>
+          ${renderDesktopCommandDetails('open-project')}
         </div>
       </div>
     </section>
@@ -703,6 +914,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
 } = {}) {
   let current = createEditorState(state);
   let dragSession = null;
+  let workspaceResizeSession = null;
+  let dockResizeSession = null;
+  let suppressWorkspaceResizeClick = false;
   let marqueeSession = null;
   let tilePaintSession = false;
   let autoSaveTimer = null;
@@ -743,14 +957,19 @@ export function createEditorApp(root = document.querySelector('#app'), {
         <div class="desktop-boot-progress"><i></i></div>
       </div>
     </div>
-    <div class="editor-frame">
+    <div class="editor-frame" data-workspace-mode="launcher">
       <nav class="editor-toolbar" data-editor-toolbar data-editor-surface="topbar" aria-label="编辑器工具栏"></nav>
       ${renderDesktopLauncherHub()}
+      <button type="button" class="editor-workspace-resizer" data-editor-workspace-resizer data-workspace-mode="launcher" aria-label="切换并调整编辑器工作台">
+        <span>编辑器工作台</span>
+      </button>
       <div class="editor-shell" data-dock-layout></div>
       <footer class="editor-statusbar" data-editor-statusbar></footer>
     </div>
   `;
   const toolbar = root.querySelector('[data-editor-toolbar]');
+  const editorFrame = root.querySelector('.editor-frame');
+  const workspaceResizer = root.querySelector('[data-editor-workspace-resizer]');
   const desktopBoot = root.querySelector('[data-desktop-boot-animation]');
   const desktopTutorialCode = root.querySelector('[data-desktop-tutorial-code] code');
   const desktopTutorialProgress = root.querySelector('[data-desktop-tutorial-progress] i');
@@ -882,9 +1101,17 @@ export function createEditorApp(root = document.querySelector('#app'), {
   function setupDesktopLauncher() {
     selectDesktopTutorialStep(1, { silent: true });
     ownerWindow?.setTimeout?.(() => desktopBoot?.classList.add('ready'), 260);
-    const hub = root.querySelector('[data-desktop-hub]');
+    setEditorWorkspaceMode('launcher');
+    setupWorkspaceResizer();
+    setDesktopActiveSection('projects', { silent: true, scroll: false });
+    updateDesktopCommandDetails('open-project');
+    filterDesktopCommands('');
 
     for (const button of root.querySelectorAll('[data-desktop-command]')) bindDesktopCommand(button);
+
+    root.querySelector('[data-desktop-command-search]')?.addEventListener('input', (event) => {
+      filterDesktopCommands(event.target?.value || '');
+    });
 
     for (const button of root.querySelectorAll('[data-desktop-hub-action]')) {
       if (button.dataset.desktopCommand) continue;
@@ -899,21 +1126,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     for (const button of root.querySelectorAll('[data-desktop-nav]')) {
       button.addEventListener('click', () => {
         const section = button.dataset.desktopNav || 'projects';
-        hub?.setAttribute('data-active-desktop-section', section);
-        for (const navButton of root.querySelectorAll('[data-desktop-nav]')) {
-          navButton.classList.toggle('selected', navButton === button);
-        }
-        const sectionMap = {
-          projects: '[data-desktop-feature-group="projects"]',
-          editor: '[data-desktop-feature-group="editor-workbench"]',
-          assets: '[data-desktop-feature-group="assets-scenes"]',
-          systems: '[data-desktop-feature-group="systems-2d-3d-physics"]',
-          render: '[data-desktop-feature-group="render-performance"]',
-          publish: '[data-desktop-feature-group="platform-publish"]',
-          learning: '[data-desktop-feature-group="learning"]',
-          diagnostics: '[data-desktop-feature-group="diagnostics"]'
-        };
-        root.querySelector(sectionMap[section])?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+        setDesktopActiveSection(section);
         showEditorFeedback(`已切换启动器分区：${button.textContent}`, 'info');
         update();
       });
@@ -969,6 +1182,130 @@ export function createEditorApp(root = document.querySelector('#app'), {
     });
   }
 
+  function setEditorWorkspaceMode(mode = 'launcher') {
+    const nextMode = mode === 'editor' ? 'editor' : 'launcher';
+    editorFrame.dataset.workspaceMode = nextMode;
+    workspaceResizer.dataset.workspaceMode = nextMode;
+    shell.setAttribute('aria-hidden', nextMode === 'launcher' ? 'true' : 'false');
+    return nextMode;
+  }
+
+  function setupWorkspaceResizer() {
+    workspaceResizer.addEventListener('click', () => {
+      if (suppressWorkspaceResizeClick) {
+        suppressWorkspaceResizeClick = false;
+        return;
+      }
+      const nextMode = editorFrame.dataset.workspaceMode === 'editor' ? 'launcher' : 'editor';
+      setEditorWorkspaceMode(nextMode);
+      showEditorFeedback(nextMode === 'editor' ? '已展开编辑器工作台' : '已收起编辑器工作台', 'info');
+      update(current);
+    });
+    workspaceResizer.addEventListener('pointerdown', (event) => {
+      if (event.button != null && event.button !== 0) return;
+      setEditorWorkspaceMode('editor');
+      const hubRect = root.querySelector('[data-desktop-hub]')?.getBoundingClientRect?.();
+      workspaceResizeSession = {
+        startY: Number(event.clientY || 0),
+        startHeight: hubRect?.height || 360,
+        moved: false
+      };
+      workspaceResizer.setPointerCapture?.(event.pointerId);
+      ownerWindow?.addEventListener?.('pointermove', onWorkspaceResizeMove);
+      ownerWindow?.addEventListener?.('pointerup', endWorkspaceResize);
+    });
+  }
+
+  function onWorkspaceResizeMove(event) {
+    if (!workspaceResizeSession) return;
+    const delta = Number(event.clientY || 0) - workspaceResizeSession.startY;
+    if (Math.abs(delta) > 4) {
+      workspaceResizeSession.moved = true;
+      suppressWorkspaceResizeClick = true;
+    }
+    const nextHeight = clampNumber(workspaceResizeSession.startHeight + delta, 260, Math.max(300, (ownerWindow?.innerHeight || 720) - 260));
+    editorFrame.style.setProperty('--desktop-hub-size', `${Math.round(nextHeight)}px`);
+  }
+
+  function endWorkspaceResize() {
+    workspaceResizeSession = null;
+    ownerWindow?.removeEventListener?.('pointermove', onWorkspaceResizeMove);
+    ownerWindow?.removeEventListener?.('pointerup', endWorkspaceResize);
+  }
+
+  function clampNumber(value, min, max) {
+    return Math.max(min, Math.min(max, Number(value) || min));
+  }
+
+  function setDesktopActiveSection(section = 'projects', { silent = false, scroll = true } = {}) {
+    const selectedSection = DESKTOP_SECTION_BY_NAV.has(section) ? section : 'projects';
+    const hub = root.querySelector('[data-desktop-hub]');
+    const sectionInfo = DESKTOP_SECTION_BY_NAV.get(selectedSection);
+    let focusedPanel = null;
+    hub?.setAttribute('data-active-desktop-section', selectedSection);
+    for (const navButton of root.querySelectorAll('[data-desktop-nav]')) {
+      navButton.classList.toggle('selected', navButton.dataset.desktopNav === selectedSection);
+    }
+    for (const panel of root.querySelectorAll('[data-desktop-feature-group]')) {
+      const isFocused = panel.dataset.desktopSectionTarget === selectedSection;
+      panel.classList.toggle('is-focused', isFocused);
+      panel.setAttribute('aria-current', isFocused ? 'true' : 'false');
+      if (isFocused) focusedPanel = panel;
+    }
+    const count = root.querySelector('[data-desktop-section-count]');
+    if (count && sectionInfo) count.textContent = `${sectionInfo.title} · ${sectionInfo.commands.length} 个入口`;
+    filterDesktopCommands(root.querySelector('[data-desktop-command-search]')?.value || '', { activeSection: selectedSection });
+    if (scroll) focusedPanel?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    if (!silent && sectionInfo) showEditorFeedback(`已聚焦启动器分区：${sectionInfo.title}`, 'info');
+    return sectionInfo;
+  }
+
+  function updateDesktopCommandDetails(commandId = 'open-project') {
+    const detail = describeDesktopCommand(commandId);
+    const details = root.querySelector('[data-desktop-command-details]');
+    if (details) {
+      details.dataset.desktopCommandDetails = detail.id;
+      details.innerHTML = renderDesktopCommandDetailBody(detail.id);
+    }
+    for (const commandButton of root.querySelectorAll('[data-desktop-command]')) {
+      commandButton.classList.toggle('selected', commandButton.dataset.desktopCommand === detail.id);
+    }
+    return detail;
+  }
+
+  function filterDesktopCommands(query = '', { activeSection = root.querySelector('[data-desktop-hub]')?.dataset.activeDesktopSection || 'projects' } = {}) {
+    const normalized = String(query || '').trim().toLowerCase();
+    let visibleCards = 0;
+    let visiblePanels = 0;
+    for (const panel of root.querySelectorAll('[data-desktop-feature-group]')) {
+      let panelMatches = 0;
+      const isActivePanel = panel.dataset.desktopSectionTarget === activeSection;
+      for (const card of panel.querySelectorAll('[data-desktop-command-card]')) {
+        const haystack = [
+          card.dataset.desktopCommand,
+          card.dataset.desktopCommandOutcome,
+          card.dataset.desktopCommandTarget,
+          card.textContent
+        ].join(' ').toLowerCase();
+        const isMatch = normalized ? haystack.includes(normalized) : isActivePanel;
+        card.hidden = !isMatch;
+        if (isMatch) {
+          panelMatches += 1;
+          visibleCards += 1;
+        }
+      }
+      panel.hidden = normalized ? panelMatches === 0 : !isActivePanel;
+      if (!panel.hidden) visiblePanels += 1;
+    }
+    const count = root.querySelector('[data-desktop-search-count]');
+    if (count) {
+      count.textContent = normalized
+        ? `筛选 ${visibleCards} 个功能 / ${visiblePanels} 个分区`
+        : `显示 ${visibleCards} 个功能`;
+    }
+    return visibleCards;
+  }
+
   function bindDesktopCommand(button) {
     button.addEventListener('click', () => {
       const result = runDesktopCommand(button.dataset.desktopCommand, button);
@@ -985,6 +1322,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const hub = root.querySelector('[data-desktop-hub]');
     if (hub && command) hub.dataset.lastDesktopCommand = command;
     if (!command) return null;
+    const detail = updateDesktopCommandDetails(command);
+    if (detail?.nav) setDesktopActiveSection(detail.nav, { silent: true, scroll: false });
 
     if (button?.dataset?.desktopTemplate) {
       return selectDesktopTemplate(button.dataset.desktopTemplate, button);
@@ -1000,6 +1339,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
 
     const panelRoute = DESKTOP_PANEL_COMMANDS[command];
     if (panelRoute) {
+      setEditorWorkspaceMode('editor');
       const layout = movePanelToRegion(panelRoute.panel, panelRoute.region);
       showEditorFeedback(`已打开${panelRoute.title}`, 'info');
       update(current);
@@ -1031,9 +1371,11 @@ export function createEditorApp(root = document.querySelector('#app'), {
       return report;
     }
     if (command === 'webgpu-diagnostics' || command === 'pixi-batch' || command === 'filter-cost' || command === 'texture-lifecycle' || command === 'frame-budget') {
+      setEditorWorkspaceMode('editor');
       return runDesktopRenderDiagnostic(command);
     }
     if (command === 'scene-3d-demo' || command === 'camera-lighting') {
+      setEditorWorkspaceMode('editor');
       movePanelToRegion('scene-view', 'center');
       showEditorFeedback(command === 'scene-3d-demo' ? '已打开 3D/2.5D 场景 Demo 检查路径' : '已打开相机、灯光、阴影检查路径', 'info');
       update(current);
@@ -1045,6 +1387,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       return panel;
     }
     if (command === 'exe-package' || command === 'web-export' || command === 'wechat-export') {
+      setEditorWorkspaceMode('editor');
       movePanelToRegion('build-settings', 'right');
       showEditorFeedback(desktopPublishFeedback(command), 'info');
       update(current);
@@ -1287,9 +1630,57 @@ export function createEditorApp(root = document.querySelector('#app'), {
       }
       shell.appendChild(regionNode);
     }
+    appendDockResizers();
     renderStatusbar();
     renderTransientSurfaces();
     return current;
+  }
+
+  function appendDockResizers() {
+    for (const id of ['left', 'bottom', 'right']) {
+      const resizer = document.createElement('div');
+      resizer.className = `dock-resizer dock-resizer-${id}`;
+      resizer.dataset.dockResizer = id;
+      resizer.setAttribute('role', 'separator');
+      resizer.setAttribute('aria-label', `${id} dock resize`);
+      resizer.addEventListener('pointerdown', (event) => startDockResize(id, event));
+      shell.appendChild(resizer);
+    }
+  }
+
+  function startDockResize(id, event) {
+    if (event.button != null && event.button !== 0) return;
+    const shellRect = shell.getBoundingClientRect?.();
+    dockResizeSession = {
+      id,
+      shellRect,
+      startX: Number(event.clientX || 0),
+      startY: Number(event.clientY || 0)
+    };
+    event.currentTarget?.setPointerCapture?.(event.pointerId);
+    ownerWindow?.addEventListener?.('pointermove', onDockResizeMove);
+    ownerWindow?.addEventListener?.('pointerup', endDockResize);
+  }
+
+  function onDockResizeMove(event) {
+    if (!dockResizeSession?.shellRect) return;
+    const rect = dockResizeSession.shellRect;
+    if (dockResizeSession.id === 'left') {
+      const width = clampNumber(Number(event.clientX || 0) - rect.left, 180, 420);
+      shell.style.setProperty('--dock-left-width', `${Math.round(width)}px`);
+    } else if (dockResizeSession.id === 'right') {
+      const width = clampNumber(rect.right - Number(event.clientX || 0), 220, 500);
+      shell.style.setProperty('--dock-right-width', `${Math.round(width)}px`);
+    } else if (dockResizeSession.id === 'bottom') {
+      const height = clampNumber(rect.bottom - Number(event.clientY || 0), 150, 380);
+      shell.style.setProperty('--dock-bottom-height', `${Math.round(height)}px`);
+    }
+  }
+
+  function endDockResize() {
+    dockResizeSession = null;
+    ownerWindow?.removeEventListener?.('pointermove', onDockResizeMove);
+    ownerWindow?.removeEventListener?.('pointerup', endDockResize);
   }
 
   function setDockLayout(layout = DEFAULT_DOCK_LAYOUT) {
@@ -4701,6 +5092,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
 
   function runToolbarAction(action) {
     if (action === 'open-project') {
+      setEditorWorkspaceMode('editor');
       const result = openProjectWorkspace();
       showEditorFeedback('正在打开项目...', 'info');
       return result;
@@ -4719,6 +5111,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       return result;
     }
     if (action === 'play') {
+      setEditorWorkspaceMode('editor');
       current = {
         ...current,
         simulation: { active: true, physics: true, logic: true },
@@ -4730,6 +5123,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       return update(current);
     }
     if (action === 'pause') {
+      setEditorWorkspaceMode('editor');
       current = {
         ...current,
         simulation: { active: false, physics: false, logic: false },
@@ -4741,6 +5135,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       return update(current);
     }
     if (action === 'step') {
+      setEditorWorkspaceMode('editor');
       current = {
         ...current,
         simulation: { active: false, physics: true, logic: true },
@@ -4756,6 +5151,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       return update(current);
     }
     if (action === 'profiler') {
+      setEditorWorkspaceMode('editor');
       const result = openProfiler();
       showEditorFeedback('已打开性能面板', 'info');
       update(current);
@@ -8448,11 +8844,12 @@ const EDITOR_CSS = `
   .desktop-boot-mark::after { position: absolute; inset: 8px; border: 1px solid rgba(245,158,11,.72); border-radius: 5px; content: ""; animation: desktopBootPulse 1.4s ease-in-out infinite; }
   .desktop-boot-progress { grid-column: 1 / -1; height: 8px; overflow: hidden; border: 1px solid #3f484f; border-radius: 999px; background: #090a0a; }
   .desktop-boot-progress i { display: block; width: 72%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2dd4bf, #f59e0b, #84cc16); animation: desktopBootLoad 1.4s ease-in-out infinite; }
-  .editor-frame { display: grid; grid-template-rows: 40px minmax(520px, 58vh) minmax(0, 1fr) 24px; height: 100vh; overflow: hidden; background: #111312; }
+  .editor-frame { --desktop-hub-size: 42vh; --dock-left-width: 240px; --dock-right-width: 300px; --dock-bottom-height: 220px; display: grid; grid-template-rows: 40px minmax(0, 1fr) 8px 0 24px; height: 100vh; overflow: hidden; background: #111312; }
+  .editor-frame[data-workspace-mode="editor"] { grid-template-rows: 40px minmax(260px, var(--desktop-hub-size)) 8px minmax(240px, 1fr) 24px; }
   .editor-toolbar { display: flex; gap: 6px; align-items: center; padding: 6px 8px; border-bottom: 1px solid rgba(166,173,166,.22); background: #0d0f0e; }
   .editor-toolbar button { display: inline-flex; align-items: center; min-width: 72px; min-height: 28px; padding: 4px 8px; border-radius: 4px; white-space: nowrap; }
   .editor-toolbar button::before { content: attr(data-editor-icon); display: inline-grid; flex: 0 0 auto; place-items: center; width: 18px; height: 18px; margin-right: 5px; border-radius: 4px; background: rgba(45,212,191,.15); color: #99f6e4; font-size: 11px; font-weight: 700; }
-  .desktop-hub { position: relative; isolation: isolate; display: grid; grid-template-columns: 158px minmax(0, 1fr); gap: 10px; min-height: 0; overflow: hidden; padding: 10px; border-bottom: 1px solid rgba(166,173,166,.22); background: radial-gradient(circle at 18% 12%, rgba(45,212,191,.13), transparent 26%), linear-gradient(180deg, #171817, #101211); }
+  .desktop-hub { position: relative; isolation: isolate; display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 8px; min-height: 0; overflow: hidden; padding: 8px; border-bottom: 1px solid rgba(166,173,166,.22); background: linear-gradient(180deg, #151716, #101211); }
   .desktop-lucide-icon { display: inline-grid; place-items: center; flex: 0 0 auto; color: currentColor; line-height: 0; }
   .desktop-lucide-icon svg { display: block; width: 18px; height: 18px; stroke: currentColor; }
   .desktop-launch-splash { position: absolute; inset: 10px; z-index: 5; display: grid; place-items: center; align-content: center; gap: 10px; border: 1px solid rgba(45,212,191,.35); border-radius: 8px; background: linear-gradient(135deg, rgba(7,9,8,.96), rgba(15,19,18,.92)); pointer-events: none; animation: desktopSplashExit 1.15s ease .55s forwards; }
@@ -8463,46 +8860,78 @@ const EDITOR_CSS = `
   .desktop-launch-mark { position: relative; display: grid; place-items: center; width: 60px; height: 60px; border: 1px solid rgba(45,212,191,.7); border-radius: 10px; background: #10201e; color: #99f6e4; box-shadow: 0 0 26px rgba(45,212,191,.18); }
   .desktop-launch-mark::after { position: absolute; inset: 8px; border: 1px solid rgba(245,158,11,.72); border-radius: 7px; content: ""; animation: desktopBootPulse 1.4s ease-in-out infinite; }
   .desktop-launch-icon svg { width: 26px; height: 26px; }
-  .desktop-command-rail { display: grid; grid-template-rows: auto auto repeat(8, 36px) minmax(0, 1fr); gap: 7px; min-width: 0; padding: 10px; border: 1px solid #343a3a; border-radius: 8px; background: rgba(15,17,16,.96); animation: desktopPanelEnter .28s ease both; }
-  .desktop-command-rail strong { color: #fbfbf8; font-size: 16px; }
-  .desktop-command-rail small { color: #fbbf24; font-size: 11px; }
-  .desktop-command-rail button { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 7px; align-items: center; min-width: 0; min-height: 36px; padding: 0 9px; border-radius: 6px; text-align: left; white-space: nowrap; }
+  .desktop-command-rail { display: grid; grid-template-rows: auto auto repeat(8, 31px) minmax(0, 1fr); gap: 5px; min-width: 0; padding: 8px; border: 1px solid #343a3a; border-radius: 8px; background: rgba(15,17,16,.96); animation: desktopPanelEnter .28s ease both; }
+  .desktop-command-rail strong { color: #fbfbf8; font-size: 15px; }
+  .desktop-command-rail small { color: #fbbf24; font-size: 10px; }
+  .desktop-command-rail button { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 6px; align-items: center; min-width: 0; min-height: 31px; padding: 0 7px; border-radius: 6px; text-align: left; white-space: nowrap; }
   .desktop-command-rail button span:not(.desktop-lucide-icon) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-  .desktop-command-rail > span { align-self: end; color: #a3e635; font-size: 11px; line-height: 1.4; }
-  .desktop-hub-main { display: grid; grid-template-rows: auto 54px minmax(0, 1fr); gap: 10px; min-width: 0; min-height: 0; }
-  .desktop-hub-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 60px; padding: 12px 14px; border: 1px solid #3b4343; border-radius: 8px; background: linear-gradient(135deg, #202321, #171918); animation: desktopPanelEnter .32s ease both; }
+  .desktop-command-rail > span { align-self: end; color: #a3e635; font-size: 10px; line-height: 1.25; }
+  .desktop-hub-main { display: grid; grid-template-rows: 52px 34px minmax(0, 1fr); gap: 8px; min-width: 0; min-height: 0; }
+  .desktop-hub-header { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(300px, auto) minmax(300px, .82fr); gap: 8px; align-items: center; min-height: 0; padding: 8px 10px; border: 1px solid #3b4343; border-radius: 8px; background: linear-gradient(135deg, #202321, #171918); animation: desktopPanelEnter .32s ease both; }
   .desktop-hub h1, .desktop-hub h2 { margin: 0; color: #fbfbf8; letter-spacing: 0; }
-  .desktop-hub h1 { font-size: 21px; line-height: 1.15; }
+  .desktop-hub h1 { font-size: 17px; line-height: 1.1; }
   .desktop-hub p { margin: 0; color: #b7c3bd; line-height: 1.45; }
-  .desktop-hub-header p { margin-top: 5px; }
-  .desktop-hub-actions { display: grid; grid-template-columns: repeat(2, minmax(96px, 1fr)); gap: 8px; }
-  .desktop-hub-actions button { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 7px; align-items: center; min-height: 32px; padding: 6px 10px; border: 1px solid #2dd4bf; border-radius: 6px; background: #111716; color: #ccfbf1; text-align: left; }
+  .desktop-hub-header p { margin-top: 2px; overflow: hidden; color: #aeb8b2; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-hub-actions { display: grid; grid-template-columns: repeat(4, minmax(72px, 1fr)); gap: 6px; min-width: 0; }
+  .desktop-hub-actions button { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 5px; align-items: center; min-height: 28px; padding: 4px 7px; border: 1px solid #2dd4bf; border-radius: 6px; background: #111716; color: #ccfbf1; text-align: left; }
   .desktop-hub-actions button span:not(.desktop-lucide-icon) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .desktop-tutorial-workbench button { min-height: 30px; padding: 6px 10px; border: 1px solid #2dd4bf; border-radius: 6px; background: #111716; color: #ccfbf1; }
-  .desktop-status-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-  .desktop-status-strip div { display: grid; gap: 2px; min-width: 0; min-height: 54px; padding: 8px 10px; border: 1px solid #384142; border-radius: 8px; background: #171a19; animation: desktopPanelEnter .36s ease both; }
-  .desktop-status-strip strong { color: #fbfbf8; font-size: 11px; }
-  .desktop-status-strip span { color: #fbbf24; font-size: 11px; overflow-wrap: anywhere; }
-  .desktop-hub-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: auto; align-items: stretch; gap: 10px; min-height: 0; overflow: auto; padding-right: 2px; }
-  .desktop-hub-panel { position: relative; display: grid; grid-template-rows: auto auto auto auto; gap: 10px; min-width: 0; align-self: stretch; padding: 11px; border: 1px solid #343c3c; border-radius: 8px; background: #151817; animation: desktopPanelEnter .36s ease both; animation-delay: calc(var(--desktop-section-index, 0) * 24ms); }
-  .desktop-hub-panel[data-desktop-feature-group] { grid-column: span 2; }
-  .desktop-panel-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 10px; min-width: 0; }
-  .desktop-panel-heading h2 { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 7px; align-items: center; min-width: 0; font-size: 14px; line-height: 1.25; }
+  .desktop-status-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; min-width: 0; }
+  .desktop-status-strip div { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px; align-items: center; min-width: 0; min-height: 20px; padding: 2px 5px; border: 1px solid #384142; border-radius: 6px; background: #171a19; animation: desktopPanelEnter .36s ease both; }
+  .desktop-status-strip strong { color: #fbfbf8; font-size: 9px; }
+  .desktop-status-strip span { min-width: 0; color: #fbbf24; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-hub-control-strip { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(150px, auto) minmax(140px, auto); gap: 6px; align-items: stretch; min-width: 0; }
+  .desktop-command-search { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 6px; align-items: center; min-width: 0; margin: 0; padding: 5px 8px; border: 1px solid #384142; border-radius: 8px; background: #171a19; }
+  .desktop-command-search span { color: #ccfbf1; font-size: 10px; font-weight: 700; }
+  .desktop-command-search input { min-height: 22px; padding: 3px 7px; border-radius: 6px; background: #090b0a; font-size: 11px; }
+  .desktop-hub-control-strip > span { display: grid; place-items: center start; min-width: 0; padding: 5px 8px; border: 1px solid #384142; border-radius: 8px; background: #141716; color: #fbbf24; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-hub-body { display: grid; grid-template-columns: minmax(0, 1fr) 278px; gap: 8px; min-width: 0; min-height: 0; }
+  .desktop-hub-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(0, 1fr); align-items: stretch; gap: 0; min-height: 0; overflow: hidden; padding-right: 0; }
+  .desktop-hub-panel { position: relative; display: grid; grid-template-rows: 30px 24px 34px minmax(0, 1fr) auto; gap: 6px; min-width: 0; min-height: 0; align-self: stretch; overflow: hidden; padding: 9px; border: 1px solid #343c3c; border-radius: 8px; background: #151817; opacity: .86; animation: desktopPanelEnter .36s ease both; animation-delay: calc(var(--desktop-section-index, 0) * 24ms); transition: border-color .16s ease, opacity .16s ease, box-shadow .16s ease, background .16s ease; }
+  .desktop-hub-panel.is-focused { border-color: #2dd4bf; background: linear-gradient(135deg, rgba(45,212,191,.08), rgba(245,158,11,.045)), #161a19; opacity: 1; box-shadow: inset 0 0 0 1px rgba(45,212,191,.16), 0 12px 34px rgba(0,0,0,.2); }
+  .desktop-command-card[hidden], .desktop-hub-panel[hidden] { display: none !important; }
+  .desktop-panel-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; min-width: 0; }
+  .desktop-panel-heading h2 { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 6px; align-items: center; min-width: 0; font-size: 13px; line-height: 1.2; }
   .desktop-panel-heading h2 > span:not(.desktop-lucide-icon) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .desktop-panel-heading > span { justify-self: end; max-width: 240px; color: #aeb8b2; font-size: 11px; line-height: 1.35; text-align: right; overflow-wrap: anywhere; }
-  .desktop-section-lead { min-height: 42px; font-size: 11px; overflow-wrap: anywhere; }
+  .desktop-panel-heading > span { justify-self: end; max-width: 210px; color: #aeb8b2; font-size: 10px; line-height: 1.2; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-section-lead { min-height: 0; overflow: hidden; color: #b7c3bd; font-size: 10px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
   .desktop-section-anchor { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
-  .desktop-command-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(96px, auto); gap: 8px; min-width: 0; }
-  .desktop-command-card { display: grid; grid-template-columns: 34px minmax(0, 1fr) minmax(68px, auto); grid-template-rows: auto minmax(0, 1fr); gap: 5px 8px; min-width: 0; min-height: 96px; padding: 10px; border: 1px solid #3d4646; border-radius: 8px; background: #1b1e1d; color: #eceff1; text-align: left; opacity: 0; animation: desktopCardEnter .34s ease forwards; animation-delay: calc(var(--desktop-card-index, 0) * 14ms); }
-  .desktop-command-card.primary { background: linear-gradient(135deg, rgba(45,212,191,.2), rgba(245,158,11,.08)), #1b1e1d; }
-  .desktop-command-icon { grid-row: 1 / 3; display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid rgba(45,212,191,.42); border-radius: 8px; background: #10201e; color: #99f6e4; }
-  .desktop-command-icon svg { width: 18px; height: 18px; }
-  .desktop-command-card strong { min-width: 0; color: #fbfbf8; font-size: 13px; line-height: 1.25; overflow-wrap: anywhere; }
-  .desktop-command-card [data-desktop-command-purpose] { grid-column: 2 / 4; min-width: 0; color: #b7c3bd; font-size: 11px; line-height: 1.42; overflow-wrap: anywhere; }
-  .desktop-command-card b { justify-self: end; align-self: start; min-width: 64px; max-width: 96px; padding: 2px 7px; border: 1px solid rgba(132,204,22,.45); border-radius: 6px; color: #bef264; font-size: 10px; font-weight: 700; line-height: 1.25; text-align: center; overflow-wrap: normal; word-break: keep-all; }
+  .desktop-section-map { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; min-width: 0; overflow: hidden; }
+  .desktop-section-node { position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr); grid-template-rows: 1fr; gap: 5px; align-items: center; min-width: 0; min-height: 30px; padding: 3px 5px; border: 1px solid #344040; border-radius: 7px; background: #121615; }
+  .desktop-section-node::after { position: absolute; right: -8px; top: 50%; width: 8px; height: 1px; background: #2dd4bf; content: ""; opacity: .45; }
+  .desktop-section-node:last-child::after { display: none; }
+  .desktop-section-node b { display: grid; place-items: center; width: 16px; height: 16px; border: 1px solid rgba(45,212,191,.5); border-radius: 999px; color: #99f6e4; background: #0c1a18; font-size: 8px; }
+  .desktop-section-node strong { min-width: 0; color: #fbfbf8; font-size: 10px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-section-node span { display: none; }
+  .desktop-command-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); grid-auto-rows: 58px; align-content: start; gap: 6px; min-width: 0; overflow: hidden; }
+  .desktop-command-card { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; grid-template-rows: auto auto; gap: 2px 7px; align-items: center; min-width: 0; min-height: 0; height: 58px; padding: 6px 7px; border: 1px solid #3d4646; border-radius: 7px; background: #1a1e1d; color: #eceff1; text-align: left; opacity: 0; animation: desktopCardEnter .26s ease forwards; animation-delay: calc(var(--desktop-card-index, 0) * 10ms); }
+  .desktop-command-card.primary { background: linear-gradient(135deg, rgba(45,212,191,.14), rgba(245,158,11,.06)), #1a1e1d; }
+  .desktop-command-icon { grid-row: 1 / 3; display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid rgba(45,212,191,.42); border-radius: 6px; background: #10201e; color: #99f6e4; }
+  .desktop-command-icon svg { width: 15px; height: 15px; }
+  .desktop-command-card strong { min-width: 0; color: #fbfbf8; font-size: 11px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-command-card [data-desktop-command-purpose] { grid-column: 2; min-width: 0; color: #b7c3bd; font-size: 9px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-command-card b { grid-column: 3; grid-row: 1 / 3; justify-self: end; min-width: 0; max-width: 74px; padding: 1px 5px; border: 1px solid rgba(132,204,22,.45); border-radius: 6px; color: #bef264; font-size: 9px; font-weight: 700; line-height: 1.2; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .motion-card { transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease; }
   .motion-card:hover { transform: translateY(-2px); border-color: #2dd4bf; background: #202522; box-shadow: 0 10px 24px rgba(0,0,0,.2); }
   .desktop-command-card.selected { border-color: #f59e0b; background: #241f13; box-shadow: inset 0 0 0 1px rgba(245,158,11,.24); }
+  .desktop-command-details { display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr); gap: 6px; min-width: 0; min-height: 0; align-self: stretch; overflow: hidden; padding: 9px; border: 1px solid #3d4646; border-radius: 8px; background: linear-gradient(180deg, #1b1f1e, #111514); box-shadow: 0 12px 26px rgba(0,0,0,.18); animation: desktopPanelEnter .34s ease both; }
+  .desktop-detail-heading { display: grid; gap: 2px; }
+  .desktop-detail-heading span { color: #fbbf24; font-size: 10px; font-weight: 700; }
+  .desktop-detail-heading strong { color: #fbfbf8; font-size: 13px; line-height: 1.18; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-command-details p { min-height: 0; overflow: hidden; color: #b7c3bd; font-size: 10px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .desktop-detail-meta { display: grid; gap: 4px; }
+  .desktop-detail-meta span { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 6px; min-width: 0; padding: 4px 6px; border: 1px solid #303838; border-radius: 6px; background: #141817; }
+  .desktop-detail-meta b { color: #ccfbf1; font-size: 9px; }
+  .desktop-detail-meta em { min-width: 0; color: #e5e7eb; font-size: 9px; font-style: normal; line-height: 1.22; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-action-preview { position: relative; display: grid; gap: 3px; min-height: 44px; overflow: hidden; padding: 7px; border: 1px solid rgba(45,212,191,.4); border-radius: 7px; background: linear-gradient(135deg, rgba(45,212,191,.14), rgba(132,204,22,.07)), #0f1716; }
+  .desktop-action-preview strong { color: #fbfbf8; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-action-preview span { color: #cbd5d1; font-size: 9px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-action-preview i { position: absolute; left: 8px; right: 8px; bottom: 7px; height: 4px; overflow: hidden; border-radius: 999px; background: #070a09; }
+  .desktop-action-preview i::before { display: block; width: 68%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2dd4bf, #84cc16, #f59e0b); content: ""; animation: desktopLaunchLoad 1.8s ease infinite alternate; }
+  .desktop-workflow-map { display: grid; grid-auto-rows: 26px; align-content: start; gap: 4px; margin: 0; padding: 0; list-style: none; }
+  .desktop-workflow-map li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 6px; align-items: center; min-height: 0; height: 26px; padding: 3px 5px; border: 1px solid #303838; border-radius: 6px; background: #121615; }
+  .desktop-workflow-map b { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 999px; background: #10201e; color: #99f6e4; font-size: 9px; }
+  .desktop-workflow-map span { min-width: 0; color: #e5e7eb; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .desktop-diagnostic-body { display: grid; gap: 8px; min-width: 0; }
   .desktop-diagnostic-body [data-desktop-diagnostic-result] { display: grid; gap: 4px; min-height: 56px; padding: 10px; border-left: 3px solid #84cc16; border-radius: 6px; background: #111514; }
   .desktop-diagnostic-body strong { color: #fbfbf8; }
@@ -8516,12 +8945,22 @@ const EDITOR_CSS = `
   .desktop-tutorial-progress i { display: block; width: 25%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #84cc16, #2dd4bf, #f59e0b); transition: width .18s ease; }
   .desktop-tutorial-preview { display: grid; align-content: center; gap: 8px; min-height: 86px; padding: 12px; border: 1px solid #3d4646; border-radius: 8px; background: linear-gradient(90deg, rgba(45,212,191,.22) 0 28%, transparent 28%), #171a19; color: #ccfbf1; }
   .desktop-tutorial-preview b { color: #bef264; }
-  .editor-shell { display: grid; grid-template-columns: 240px minmax(320px, 1fr) 300px; grid-template-rows: minmax(0, 1fr) 220px; min-height: 0; }
+  .editor-workspace-resizer { display: grid; place-items: center; min-height: 8px; padding: 0; border-width: 1px 0; border-color: rgba(45,212,191,.34); border-radius: 0; background: linear-gradient(90deg, transparent, rgba(45,212,191,.22), transparent), #0c0f0e; color: #ccfbf1; cursor: row-resize; }
+  .editor-workspace-resizer span { width: min(72px, 14vw); height: 3px; overflow: hidden; border-radius: 999px; background: #2dd4bf; color: transparent; opacity: .62; }
+  .editor-frame[data-workspace-mode="launcher"] .editor-workspace-resizer { cursor: pointer; }
+  .editor-shell { display: grid; grid-template-columns: var(--dock-left-width) 7px minmax(320px, 1fr) 7px var(--dock-right-width); grid-template-rows: minmax(0, 1fr) 7px var(--dock-bottom-height); min-height: 0; overflow: hidden; }
+  .editor-frame[data-workspace-mode="launcher"] .editor-shell { visibility: hidden; pointer-events: none; }
   .dock-region { display: grid; gap: 0; min-width: 0; min-height: 0; overflow: hidden; }
-  .dock-left { grid-column: 1; grid-row: 1 / span 2; grid-template-rows: minmax(0, 1.2fr) minmax(0, .9fr) minmax(0, .9fr); }
-  .dock-center { grid-column: 2; grid-row: 1; }
-  .dock-right { grid-column: 3; grid-row: 1 / span 2; }
-  .dock-bottom { grid-column: 2; grid-row: 2; grid-template-rows: minmax(64px, .6fr) minmax(96px, 1fr); }
+  .dock-left { grid-column: 1; grid-row: 1 / span 3; grid-template-rows: minmax(0, 1.2fr) minmax(0, .9fr) minmax(0, .9fr); }
+  .dock-center { grid-column: 3; grid-row: 1; }
+  .dock-right { grid-column: 5; grid-row: 1 / span 3; }
+  .dock-bottom { grid-column: 3; grid-row: 3; grid-template-rows: minmax(64px, .6fr) minmax(96px, 1fr); }
+  .dock-resizer { z-index: 2; min-width: 0; min-height: 0; background: #0b0f0e; border: 1px solid rgba(45,212,191,.24); }
+  .dock-resizer-left { grid-column: 2; grid-row: 1 / span 3; cursor: col-resize; }
+  .dock-resizer-right { grid-column: 4; grid-row: 1 / span 3; cursor: col-resize; }
+  .dock-resizer-bottom { grid-column: 3; grid-row: 2; cursor: row-resize; }
+  .dock-resizer::after { display: block; width: 100%; height: 100%; background: linear-gradient(180deg, transparent, rgba(45,212,191,.5), transparent); content: ""; opacity: .65; }
+  .dock-resizer-bottom::after { background: linear-gradient(90deg, transparent, rgba(45,212,191,.5), transparent); }
   .editor-panel { min-width: 0; min-height: 0; border: 1px solid rgba(148,163,184,.28); padding: 10px; overflow: auto; background: #0f172a; }
   .scene-view { background: #172033; }
   .animation-timeline { background: #111827; }
