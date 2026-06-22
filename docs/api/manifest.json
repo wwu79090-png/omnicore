@@ -165,6 +165,14 @@
       ]
     },
     {
+      "path": "assets/AssetRegistry.js",
+      "summary": "Searchable asset registry for unloaded assets, stable ids, dependency queries, and editor repair plans.",
+      "exports": [
+        "ASSET_REGISTRY_AUDIT_SCHEMA",
+        "AssetRegistry"
+      ]
+    },
+    {
       "path": "assets/AssetResidencyManager.js",
       "summary": "",
       "exports": [
