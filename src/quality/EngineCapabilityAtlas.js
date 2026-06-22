@@ -67,7 +67,10 @@ export const ENGINE_CAPABILITY_CATEGORIES = Object.freeze([
   capability('asset-pipeline', 'Asset pipeline', ['unity', 'godot', 'defold', 'cocosCreator'], [
     'src/assets/AddressableCatalog.js',
     'src/assets/AssetResidencyManager.js',
-    'src/assets/AssetImportMetadata.js'
+    'src/assets/AssetImportMetadata.js',
+    'src/assets/AssetImportProfile.js',
+    'src/assets/AssetImportPreview.js',
+    'src/assets/AssetImportTransaction.js'
   ]),
   capability('editor-authoring', 'Editor authoring', ['unreal', 'unity', 'godot', 'gamemaker', 'cocosCreator'], [
     'src/editor/EditorInspectorModel.js',

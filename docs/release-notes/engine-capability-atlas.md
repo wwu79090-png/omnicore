@@ -1,6 +1,6 @@
 # OmniCore Engine Capability Atlas
 
-Generated: 2026-06-22T00:00:00.000+08:00
+Generated: 1970-01-01T00:00:00.000Z
 Engine families: 13
 Categories: 26
 Coverage score: 100
@@ -28,7 +28,7 @@ P0 gaps: 0
 | Scene architecture | covered | Unreal, Unity, Godot, Phaser, Defold | src/scene/Scene.js<br>src/scene/SceneDocument.js<br>src/scene/SceneTransitionStack.js |
 | Entity/component/ECS | covered | Unity, Bevy, Godot, libGDX | src/core/ECS/World.js<br>src/core/ECS/QueryFilter.js<br>src/scene/ComponentTreeRuntime.js |
 | Rendering pipeline | covered | Unreal, Unity, Godot, Phaser, Cocos Creator | src/renderer/RenderGraphPlanner.js<br>src/renderer/ShaderVariantCollection.js<br>src/renderer/TextureStreamingBudget.js |
-| Asset pipeline | covered | Unity, Godot, Defold, Cocos Creator | src/assets/AddressableCatalog.js<br>src/assets/AssetResidencyManager.js<br>src/assets/AssetImportMetadata.js |
+| Asset pipeline | covered | Unity, Godot, Defold, Cocos Creator | src/assets/AddressableCatalog.js<br>src/assets/AssetResidencyManager.js<br>src/assets/AssetImportMetadata.js<br>src/assets/AssetImportProfile.js<br>src/assets/AssetImportPreview.js<br>src/assets/AssetImportTransaction.js |
 | Editor authoring | covered | Unreal, Unity, Godot, GameMaker, Cocos Creator | src/editor/EditorInspectorModel.js<br>src/editor/EditorPluginCascade.js<br>src/editor/RuntimeLiveSyncBridge.js |
 | Visual scripting | covered | Unreal, Construct, RPG Maker, GameMaker | src/visualgraph/VisualEventGraph.js<br>src/data/EventSheet.js<br>src/data/EventCommandQueue.js |
 | Gameplay framework | covered | Unreal, Unity, Godot, RPG Maker | src/gameplay/AbilitySystem.js<br>src/gameplay/QuestStateMachine.js<br>src/core/GameplayTags.js |

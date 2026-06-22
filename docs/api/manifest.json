@@ -151,6 +151,14 @@
       ]
     },
     {
+      "path": "assets/AssetImportTransaction.js",
+      "summary": "",
+      "exports": [
+        "ASSET_IMPORT_TRANSACTION_REPORT_SCHEMA",
+        "AssetImportTransaction"
+      ]
+    },
+    {
       "path": "assets/AssetManifestGraph.js",
       "summary": "",
       "exports": [
