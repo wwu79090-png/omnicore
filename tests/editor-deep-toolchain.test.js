@@ -368,6 +368,60 @@ describe('editor deep toolchain', () => {
     server.close();
     app.destroy();
   });
+
+  it('surfaces missing dependency repair actions in the editor resource panel', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        scene: {
+          name: 'main',
+          entities: [
+            { id: 'hero', name: 'Hero', sprite: 'assets/hero.png', prefabId: 'hero-prefab' }
+          ]
+        },
+        assets: [
+          { path: 'assets/hero.png', type: 'image', uid: 'uid://hero-texture' },
+          { path: 'prefabs/hero.json', type: 'prefab', uid: 'uid://hero-prefab', dependencies: ['assets/hero.png'] },
+          { path: 'scenes/main.json', type: 'scene', uid: 'uid://main-scene', dependencies: ['prefabs/hero.json'] }
+        ],
+        prefabs: [
+          { id: 'hero-prefab', path: 'prefabs/hero.json', sprite: 'assets/hero.png' }
+        ],
+        projectFiles: {
+          'scenes/main.json': '{"prefab":"prefabs/hero.json","texture":"assets/hero.png"}',
+          'prefabs/hero.json': '{"sprite":"assets/hero.png"}'
+        },
+        dockLayout: {
+          left: ['assets'],
+          center: ['scene-view'],
+          right: ['inspector'],
+          bottom: ['runtime-debug']
+        }
+      })
+    });
+
+    const result = app.EditorAPI.applyAssetRegistryChanges([
+      { kind: 'deleted', reference: 'assets/hero.png' }
+    ], { source: 'editor-watch-server' });
+
+    expect(result.plan.summary.brokenReferenceCount).toBe(2);
+    expect(result.panel.diagnostics).toMatchObject({
+      missingReferenceCount: 2,
+      quickFixCount: 1
+    });
+    expect(root.querySelector('[data-asset-registry-diagnostics]')?.textContent).toContain('断引用 2');
+    expect(root.querySelector('[data-asset-repair-action="register-missing:assets/hero.png"]')?.textContent).toContain('注册缺失资源');
+
+    root.querySelector('[data-asset-repair-action="register-missing:assets/hero.png"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(app.getState().assets.find((asset) => asset.path === 'assets/hero.png')).toMatchObject({
+      missingStub: true,
+      changeKind: 'repaired'
+    });
+    expect(root.querySelector('[data-asset-registry-row="assets/hero.png"]')?.textContent).toContain('已修复');
+    app.destroy();
+  });
 });
 
 function createEditorWatchChangePlan() {

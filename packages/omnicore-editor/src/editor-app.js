@@ -502,6 +502,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     queueHotReload,
     refreshAssetRegistryPanel,
     applyAssetRegistryChanges,
+    applyAssetRegistryQuickFix,
     exportHotReloadEventStream,
     recordDebugEvent,
     exportDebugTimeline,
@@ -1181,6 +1182,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       },
       applyAssetRegistryChanges(changes = [], options = {}) {
         return applyAssetRegistryChanges(changes, options);
+      },
+      applyAssetRegistryQuickFix(actionId, options = {}) {
+        return applyAssetRegistryQuickFix(actionId, options);
       },
       exportHotReloadEventStream(options = {}) {
         return exportHotReloadEventStream(options);
@@ -3416,6 +3420,36 @@ export function createEditorApp(root = document.querySelector('#app'), {
     };
   }
 
+  function applyAssetRegistryQuickFix(actionId, options = {}) {
+    const action = findAssetRegistryQuickFix(current, actionId);
+    if (!action) return null;
+    let statePatch = {};
+    if (action.type === 'registerMissingAsset') {
+      statePatch = registerMissingAssetStub(current, action.path, options);
+    }
+    if (!Object.keys(statePatch).length) return null;
+    const next = createEditorState({
+      ...current,
+      ...statePatch
+    });
+    const panel = buildAssetRegistryPanelState(next, {
+      query: options.query ?? current.assetRegistryPanel?.query ?? ''
+    });
+    current = createEditorState({
+      ...next,
+      assetRegistryPanel: panel,
+      dockLayout: ensurePanelInDock(next.dockLayout, 'assets', 'left')
+    });
+    emit('editor:asset-registry-quick-fix', { action, panel });
+    pushHistory(current, `修复资源依赖 ${action.path}`);
+    update(current);
+    return {
+      action,
+      panel,
+      assets: cloneState(current.assets)
+    };
+  }
+
   function exportHotReloadEventStream({ since = 0, limit = 100 } = {}) {
     const minId = Number(since || 0);
     const max = Math.max(1, Number(limit || 100));
@@ -4867,6 +4901,24 @@ export function createEditorApp(root = document.querySelector('#app'), {
       ? '依赖完整'
       : `缺失 ${panel.audit?.summary?.missingReferenceCount || 0} / 重复 ${panel.audit?.summary?.duplicateUidCount || 0}`;
     wrap.appendChild(status);
+
+    if (panel.diagnostics?.missingReferenceCount || panel.quickFixes?.length) {
+      const diagnostics = document.createElement('div');
+      diagnostics.className = 'asset-registry-diagnostics';
+      diagnostics.dataset.assetRegistryDiagnostics = 'true';
+      const summary = document.createElement('span');
+      summary.textContent = `断引用 ${panel.diagnostics?.missingReferenceCount || 0} · 可修复 ${panel.quickFixes?.length || 0}`;
+      diagnostics.appendChild(summary);
+      for (const action of panel.quickFixes || []) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.assetRepairAction = action.id;
+        button.textContent = action.label;
+        button.addEventListener('click', () => applyAssetRegistryQuickFix(action.id, { query: panel.query || '' }));
+        diagnostics.appendChild(button);
+      }
+      wrap.appendChild(diagnostics);
+    }
 
     const rows = document.createElement('div');
     rows.className = 'asset-registry-rows';
@@ -7176,8 +7228,13 @@ function buildAssetRegistryPanelState(state = {}, options = {}) {
         referenceCount: 0,
         sources: []
       });
+    } else {
+      const row = rowByPath.get(asset.path);
+      if (asset.missingStub) row.missingStub = true;
+      if (asset.changeKind) row.changeKind = asset.changeKind;
     }
   }
+  const diagnostics = buildAssetRegistryDiagnostics(registryState, state);
   const rows = [...rowByPath.values()]
     .map((row) => {
       const dependencies = registryState.snapshot.dependencies[row.path] || [];
@@ -7189,7 +7246,7 @@ function buildAssetRegistryPanelState(state = {}, options = {}) {
         referencerCount: referencers.length,
         dependencies: cloneState(dependencies),
         referencers: cloneState(referencers),
-        changeKind: changeKinds.get(row.path) || null
+        changeKind: row.changeKind || changeKinds.get(row.path) || null
       };
     })
     .filter((row) => !query || [
@@ -7210,7 +7267,83 @@ function buildAssetRegistryPanelState(state = {}, options = {}) {
     generatedAt: options.generatedAt || new Date().toISOString(),
     snapshot: registryState.snapshot,
     audit: registryState.audit,
+    diagnostics,
+    quickFixes: diagnostics.quickFixes,
     rows
+  };
+}
+
+function buildAssetRegistryDiagnostics(registryState = {}, state = {}) {
+  const auditMissing = Array.isArray(registryState.audit?.missingReferences)
+    ? registryState.audit.missingReferences
+    : [];
+  const brokenReferences = Array.isArray(state.assetRefresh?.plan?.brokenReferences)
+    ? state.assetRefresh.plan.brokenReferences
+    : [];
+  const repairActions = Array.isArray(state.assetRefresh?.plan?.repairActions)
+    ? state.assetRefresh.plan.repairActions
+    : [];
+  const referenceIssues = brokenReferences.length ? brokenReferences : auditMissing;
+  const missingByPath = new Map();
+  for (const issue of referenceIssues) {
+    const path = normalizeResourcePath(issue.missingAsset || issue.asset || issue.reference || issue.dependency);
+    if (!path) continue;
+    if (!missingByPath.has(path)) {
+      missingByPath.set(path, {
+        path,
+        sources: new Set(),
+        reasons: new Set()
+      });
+    }
+    const item = missingByPath.get(path);
+    if (issue.source || issue.via) item.sources.add(String(issue.source || issue.via));
+    if (issue.reason || issue.type) item.reasons.add(String(issue.reason || issue.type));
+  }
+  const quickFixes = [...missingByPath.values()]
+    .sort((left, right) => left.path.localeCompare(right.path))
+    .map((item) => ({
+      id: `register-missing:${item.path}`,
+      type: 'registerMissingAsset',
+      path: item.path,
+      label: `注册缺失资源 ${item.path}`,
+      sourceCount: item.sources.size,
+      reasons: [...item.reasons].sort()
+    }));
+  return {
+    schema: 'omnicore.editor-asset-registry-diagnostics.v1',
+    missingReferenceCount: referenceIssues.length,
+    brokenReferenceCount: brokenReferences.length,
+    auditMissingReferenceCount: auditMissing.length,
+    repairActionCount: repairActions.length,
+    quickFixCount: quickFixes.length,
+    brokenReferences: cloneState(brokenReferences),
+    missingReferences: cloneState(auditMissing),
+    repairActions: cloneState(repairActions),
+    quickFixes
+  };
+}
+
+function findAssetRegistryQuickFix(state = {}, actionId = '') {
+  const id = String(actionId || '').trim();
+  if (!id) return null;
+  const panel = state.assetRegistryPanel || buildAssetRegistryPanelState(state);
+  return (panel.quickFixes || []).find((action) => action.id === id) || null;
+}
+
+function registerMissingAssetStub(state = {}, path = '', options = {}) {
+  const assetPath = normalizeResourcePath(path);
+  if (!assetPath) return {};
+  const repairedAt = options.repairedAt || new Date(Number(options.now || Date.now())).toISOString();
+  const nextAsset = normalizeAssetEntry({
+    path: assetPath,
+    name: assetPath.split('/').pop() || assetPath,
+    type: assetType(assetPath),
+    missingStub: true,
+    repairedAt,
+    changeKind: 'repaired'
+  });
+  return {
+    assets: upsertEditorAssetEntry(state.assets || [], nextAsset)
   };
 }
 
@@ -7286,6 +7419,7 @@ function localizeAssetChangeKind(kind = '') {
   if (kind === 'modified') return '变更 ';
   if (kind === 'moved') return '移动 ';
   if (kind === 'deleted') return '删除 ';
+  if (kind === 'repaired') return '已修复 ';
   return '';
 }
 
@@ -7713,6 +7847,9 @@ const EDITOR_CSS = `
   .asset-registry-rows [data-asset-registry-change="modified"] { border-left-color: #22d3ee; color: #cffafe; }
   .asset-registry-rows [data-asset-registry-change="moved"] { border-left-color: #facc15; color: #fef3c7; }
   .asset-registry-rows [data-asset-registry-change="deleted"] { border-left-color: #f87171; color: #fecaca; }
+  .asset-registry-rows [data-asset-registry-change="repaired"] { border-left-color: #34d399; color: #d1fae5; }
+  .asset-registry-diagnostics { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; padding: 6px; border: 1px solid #facc15; background: rgba(120,53,15,.35); color: #fef3c7; font-size: 11px; }
+  .asset-registry-diagnostics button { min-height: 24px; border-color: #facc15; color: #fef9c3; }
   .asset-refresh-plan, .asset-hot-reload-events { display: grid; gap: 4px; min-width: 0; padding: 5px 6px; border: 1px solid #1e293b; background: #0f172a; color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .asset-hot-reload-events { max-height: 92px; overflow: auto; white-space: normal; }
   .asset-hot-reload-events span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
