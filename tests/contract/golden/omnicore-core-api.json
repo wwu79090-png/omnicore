@@ -1593,6 +1593,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "AssetImportPreview"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "AssetImportProfile"
       },
       {
@@ -3235,6 +3240,7 @@
       "AssetBuildRecipe",
       "AssetCache",
       "AssetImportMetadata",
+      "AssetImportPreview",
       "AssetImportProfile",
       "AssetLoader",
       "AssetManifestGraph",

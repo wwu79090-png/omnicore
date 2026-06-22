@@ -134,6 +134,14 @@
       ]
     },
     {
+      "path": "assets/AssetImportPreview.js",
+      "summary": "",
+      "exports": [
+        "ASSET_IMPORT_PREVIEW_SCHEMA",
+        "AssetImportPreview"
+      ]
+    },
+    {
       "path": "assets/AssetImportProfile.js",
       "summary": "",
       "exports": [
