@@ -643,6 +643,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
   }
 
   function update(next = current) {
+    const incomingAssetRefresh = next.assetRefresh && next.assetRefresh !== current.assetRefresh;
     current = createEditorState({
       ...current,
       ...next,
@@ -690,6 +691,14 @@ export function createEditorApp(root = document.querySelector('#app'), {
       hotReloadEvents: next.hotReloadEvents || current.hotReloadEvents,
       autoSave: normalizeAutoSaveState(next.autoSave || current.autoSave)
     });
+    if (incomingAssetRefresh && !next.assetRegistryPanel) {
+      current = createEditorState({
+        ...current,
+        assetRegistryPanel: buildAssetRegistryPanelState(current, {
+          query: current.assetRegistryPanel?.query || ''
+        })
+      });
+    }
     renderToolbar();
     shell.textContent = '';
     const panels = {

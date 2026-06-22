@@ -1,13 +1,16 @@
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { createAssetWatchServer } from '../scripts/asset-watch-server.js';
+import { AssetRegistry, AssetRegistryChangeSet } from '../src/index.js';
 
 let createEditorApp;
 let createEditorState;
+let applyLiveSyncMessage;
 
 beforeAll(async () => {
   ({ createEditorApp } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/editor-app.js')).href));
-  ({ createEditorState } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/live-sync-protocol.js')).href));
+  ({ createEditorState, applyLiveSyncMessage } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/live-sync-protocol.js')).href));
 });
 
 afterEach(() => {
@@ -284,4 +287,116 @@ describe('editor deep toolchain', () => {
     expect(root.querySelector('[data-asset-refresh-plan]')?.textContent).toContain('prefabs/hero.json');
     app.destroy();
   });
+
+  it('streams watch server change sessions into the editor resource panel', async () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        scene: {
+          name: 'main',
+          entities: [
+            { id: 'hero', name: 'Hero', sprite: 'assets/hero.png', prefabId: 'hero-prefab' }
+          ]
+        },
+        assets: [
+          { path: 'assets/hero.png', type: 'image', uid: 'uid://hero-texture' },
+          { path: 'prefabs/hero.json', type: 'prefab', uid: 'uid://hero-prefab' },
+          { path: 'scenes/main.json', type: 'scene', uid: 'uid://main-scene' }
+        ],
+        prefabs: [
+          { id: 'hero-prefab', path: 'prefabs/hero.json', sprite: 'assets/hero.png' }
+        ],
+        projectFiles: {
+          'scenes/main.json': '{"prefab":"prefabs/hero.json","texture":"assets/hero.png"}',
+          'prefabs/hero.json': '{"sprite":"assets/hero.png"}'
+        },
+        dockLayout: {
+          left: ['assets'],
+          center: ['scene-view'],
+          right: ['inspector'],
+          bottom: ['runtime-debug']
+        }
+      })
+    });
+    app.EditorAPI.refreshAssetRegistryPanel();
+
+    const editorMessages = [];
+    const server = createAssetWatchServer({
+      source: 'assets',
+      converter: async (files) => files.map((file) => ({ file, output: file.replace(/\.png$/u, '.webp') })),
+      changePlanner: async () => createEditorWatchChangePlan(),
+      editorSync: {
+        send: (message) => editorMessages.push(JSON.parse(message))
+      }
+    });
+
+    server.recordChange('assets/hero.png');
+    server.recordChange('assets/enemy.png');
+    const report = await server.flushPending();
+    const nextState = applyLiveSyncMessage(app.getState(), editorMessages[0]);
+    app.update(nextState);
+
+    expect(report.editorRefresh).toMatchObject({
+      schema: 'omnicore.editor-asset-watch-refresh.v1',
+      assetRefresh: {
+        source: 'editor-watch-server',
+        plan: {
+          summary: {
+            affectedAssetCount: 2
+          }
+        }
+      }
+    });
+    expect(editorMessages[0]).toMatchObject({
+      type: 'editor:asset-watch-refresh',
+      payload: {
+        assetRefresh: {
+          hmrPayload: {
+            type: 'assets:hot-update',
+            incremental: true,
+            files: expect.arrayContaining(['assets/enemy.png', 'assets/hero.png'])
+          }
+        }
+      }
+    });
+    expect(app.getState().assets.map((asset) => asset.path)).toContain('assets/enemy.png');
+    expect(root.querySelector('[data-asset-registry-row="assets/hero.png"]')?.textContent).toContain('变更');
+    expect(root.querySelector('[data-asset-registry-row="assets/enemy.png"]')?.textContent).toContain('新增');
+    expect(root.querySelector('[data-hot-reload-event="assets:hot-update"]')?.textContent).toContain('assets/hero.png');
+    expect(root.querySelector('[data-asset-refresh-plan]')?.textContent).toContain('prefabs/hero.json');
+    server.close();
+    app.destroy();
+  });
 });
+
+function createEditorWatchChangePlan() {
+  const registry = new AssetRegistry({
+    assets: [
+      {
+        uid: 'uid://main-scene',
+        path: 'scenes/main.json',
+        type: 'scene',
+        dependencies: ['prefabs/hero.json', 'assets/hero.png']
+      },
+      {
+        uid: 'uid://hero-prefab',
+        path: 'prefabs/hero.json',
+        type: 'prefab',
+        dependencies: ['assets/hero.png']
+      },
+      {
+        uid: 'uid://hero-texture',
+        path: 'assets/hero.png',
+        type: 'image'
+      }
+    ]
+  });
+  const session = new AssetRegistryChangeSet({ registry, source: 'editor-watch-server' });
+  session.record({ kind: 'modified', reference: 'assets/hero.png' });
+  session.record({
+    kind: 'imported',
+    asset: { path: 'assets/enemy.png', type: 'image', uid: 'uid://enemy-texture', labels: ['enemy'] }
+  });
+  return session.plan();
+}
