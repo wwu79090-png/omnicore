@@ -270,4 +270,131 @@ describe('engine pattern rendering reliability batching pack', () => {
       'batch-aware-render-queue-application'
     ]));
   });
+
+  it('previews render optimization runtime plans without touching adapters', () => {
+    const calls = [];
+    const executor = new RenderOptimizationRuntimeExecutor({
+      renderer: { buildAtlas: () => calls.push('atlas') },
+      textureManager: { scheduleUpload: () => calls.push('upload') },
+      filterPipeline: { flattenFilter: () => calls.push('filter') },
+      backendManager: { preferBackend: () => calls.push('backend') },
+      renderQueue: [
+        { id: 'b', layer: 'world', texture: 'b.png', material: 'lit' },
+        { id: 'a', layer: 'world', texture: 'a.png', material: 'lit' }
+      ]
+    });
+    const plan = {
+      sourcePlanId: 'render-plan-1',
+      scheduler: { textureUploads: { maxUploadsPerFrame: 1 } },
+      runtimeActions: [
+        { type: 'buildAtlas', key: 'lit|normal', textures: ['a.png', 'b.png'] },
+        { type: 'scheduleTextureUpload', id: 'hero', bytes: 1024 },
+        { type: 'flattenFilter', id: 'bloom', passes: 2, targetPasses: 1 },
+        { type: 'preferBackend', backend: 'webgpu', selected: 'webgl2' },
+        { type: 'sortRenderQueueGroup', key: 'lit|normal|a.png' }
+      ]
+    };
+
+    const preview = executor.previewPlan(plan);
+    const dryRun = executor.applyPlan(plan, { dryRun: true });
+
+    expect(calls).toEqual([]);
+    expect(preview).toMatchObject({
+      schema: 'omnicore.render-optimization-preview.v1',
+      sourcePlanId: 'render-plan-1',
+      summary: {
+        actionCount: 5,
+        wouldApplyCount: 5,
+        textureUploadBatchCount: 1
+      }
+    });
+    expect(preview.rollbackActions.map((action) => action.type)).toEqual(expect.arrayContaining([
+      'destroyAtlas',
+      'cancelTextureUpload',
+      'restoreFilter',
+      'restoreBackend'
+    ]));
+    expect(preview.auditTrail.map((entry) => entry.phase)).toContain('preview');
+    expect(dryRun.summary.dryRun).toBe(true);
+    expect(dryRun.applied.every((action) => action.dryRun)).toBe(true);
+  });
+
+  it('rolls back applied render optimization runtime plans', () => {
+    const calls = [];
+    const executor = new RenderOptimizationRuntimeExecutor({
+      renderer: {
+        buildAtlas: (atlas) => {
+          calls.push({ kind: 'atlas', key: atlas.key });
+          return { atlasId: `atlas://${atlas.key}` };
+        },
+        destroyAtlas: (rollback) => {
+          calls.push({ kind: 'destroyAtlas', key: rollback.key });
+          return { destroyed: rollback.key };
+        }
+      },
+      textureManager: {
+        scheduleUpload: (upload) => {
+          calls.push({ kind: 'upload', id: upload.id });
+          return { queued: upload.id };
+        },
+        cancelUpload: (rollback) => {
+          calls.push({ kind: 'cancelUpload', id: rollback.id });
+          return { cancelled: rollback.id };
+        }
+      },
+      filterPipeline: {
+        flattenFilter: (filter) => {
+          calls.push({ kind: 'filter', id: filter.id });
+          return { filter: filter.id };
+        },
+        restoreFilter: (rollback) => {
+          calls.push({ kind: 'restoreFilter', id: rollback.id });
+          return { restored: rollback.id };
+        }
+      },
+      backendManager: {
+        preferBackend: (backend) => {
+          calls.push({ kind: 'backend', backend: backend.backend });
+          return { selected: backend.backend };
+        },
+        restoreBackend: (rollback) => {
+          calls.push({ kind: 'restoreBackend', backend: rollback.previousBackend });
+          return { selected: rollback.previousBackend };
+        }
+      }
+    });
+
+    const report = executor.applyPlan({
+      sourcePlanId: 'render-plan-rollback',
+      runtimeActions: [
+        { type: 'buildAtlas', key: 'lit|normal', textures: ['a.png', 'b.png'] },
+        { type: 'scheduleTextureUpload', id: 'hero', bytes: 1024 },
+        { type: 'flattenFilter', id: 'bloom', passes: 2, targetPasses: 1 },
+        { type: 'preferBackend', backend: 'webgpu', selected: 'webgl2' }
+      ]
+    });
+    const rollback = executor.rollback(report);
+
+    expect(report.rollbackActions.map((action) => action.type)).toEqual(expect.arrayContaining([
+      'destroyAtlas',
+      'cancelTextureUpload',
+      'restoreFilter',
+      'restoreBackend'
+    ]));
+    expect(rollback).toMatchObject({
+      schema: 'omnicore.render-optimization-rollback-report.v1',
+      sourcePlanId: 'render-plan-rollback',
+      summary: {
+        rollbackCount: 4,
+        restoredCount: 4,
+        failedCount: 0
+      }
+    });
+    expect(calls).toEqual(expect.arrayContaining([
+      { kind: 'destroyAtlas', key: 'lit|normal' },
+      { kind: 'cancelUpload', id: 'hero' },
+      { kind: 'restoreFilter', id: 'bloom' },
+      { kind: 'restoreBackend', backend: 'webgl2' }
+    ]));
+  });
 });
