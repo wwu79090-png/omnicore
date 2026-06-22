@@ -107,6 +107,9 @@ export function applyLiveSyncMessage(state = createEditorState(), message = {}) 
   if (message.type === 'editor:asset-registry-panel') next.assetRegistryPanel = normalizeAssetRegistryPanel(message.payload);
   if (message.type === 'editor:render-diagnostics-panel') next.renderDiagnosticsPanel = normalizeRenderDiagnosticsPanel(message.payload);
   if (message.type === 'editor:render-optimization-plan') next.renderOptimizationPlan = normalizeRenderOptimizationPlan(message.payload);
+  if (message.type === 'editor:render-optimization-runtime-plan') {
+    next.renderOptimizationPlan = normalizeRenderOptimizationPlan(message.payload?.sourcePlan);
+  }
   if (message.type === 'editor:render-diagnostics-quick-fix') {
     next.renderDiagnosticsPanel = normalizeRenderDiagnosticsPanel(message.payload?.panel);
     next.renderOptimizationPlan = normalizeRenderOptimizationPlan(message.payload?.plan);

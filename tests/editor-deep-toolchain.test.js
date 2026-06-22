@@ -503,6 +503,87 @@ describe('editor deep toolchain', () => {
     app.destroy();
   });
 
+  it('exports render optimization plans into runtime sync and runnable project bundles', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        scene: { name: 'render-runtime', entities: [{ id: 'hero', sprite: 'hero.png' }] },
+        dockLayout: {
+          left: ['assets'],
+          center: ['scene-view'],
+          right: ['inspector'],
+          bottom: ['render-diagnostics']
+        }
+      })
+    });
+
+    app.EditorAPI.refreshRenderDiagnosticsPanel({
+      budgets: {
+        textureUploadBudget: 2,
+        filterPassBudget: 3
+      },
+      frame: { index: 12, cpuMs: 21, gpuMs: 17, fps: 42 },
+      backend: {
+        selected: 'webgl2',
+        fallbackChain: ['webgpu', 'webgl2'],
+        rejected: [{ id: 'webgpu', reason: 'adapter-missing' }]
+      },
+      draws: [
+        { id: 'hero', texture: 'hero.png', material: 'lit', blendMode: 'normal' },
+        { id: 'enemy', texture: 'enemy.png', material: 'lit', blendMode: 'normal' },
+        { id: 'coin', texture: 'coin.png', material: 'lit', blendMode: 'normal' }
+      ],
+      textureUploads: [
+        { id: 'hero', bytes: 1024 },
+        { id: 'enemy', bytes: 2048 },
+        { id: 'ui', bytes: 4096 }
+      ],
+      filterPasses: [
+        { id: 'bloom', passes: 2, estimatedMs: 1.4 },
+        { id: 'blur', passes: 2, estimatedMs: 2.1 }
+      ]
+    });
+    app.EditorAPI.applyRenderDiagnosticsQuickFix('deferTextureUploads', { now: Date.UTC(2026, 0, 1) });
+    app.EditorAPI.applyRenderDiagnosticsQuickFix('createAtlas:lit|normal', { now: Date.UTC(2026, 0, 1) + 1 });
+    app.EditorAPI.applyRenderDiagnosticsQuickFix('flattenFilterChain', { now: Date.UTC(2026, 0, 1) + 2 });
+    app.EditorAPI.applyRenderDiagnosticsQuickFix('preferWebGPUWhenAvailable', { now: Date.UTC(2026, 0, 1) + 3 });
+
+    const runtimePlan = app.EditorAPI.exportRenderOptimizationPlan({
+      generatedAt: '2026-01-01T00:00:00.000Z'
+    });
+
+    expect(runtimePlan.format).toBe('OmniCore.RenderOptimizationRuntimePlan');
+    expect(runtimePlan.schema).toBe('omnicore.render-optimization-runtime.v1');
+    expect(runtimePlan.runtimeActions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'scheduleTextureUpload', id: 'hero', strategy: 'warmup-or-frame-split' }),
+      expect.objectContaining({ type: 'buildAtlas', key: 'lit|normal', textures: ['coin.png', 'enemy.png', 'hero.png'] }),
+      expect.objectContaining({ type: 'flattenFilter', id: 'bloom', targetPasses: 1 }),
+      expect.objectContaining({ type: 'preferBackend', backend: 'webgpu' })
+    ]));
+    expect(runtimePlan.scheduler.textureUploads.maxUploadsPerFrame).toBe(2);
+
+    const syncPayload = app.createRuntimeSyncPayload();
+    expect(syncPayload.renderOptimizationRuntime.runtimeActions.map((action) => action.type)).toEqual(expect.arrayContaining([
+      'buildAtlas',
+      'scheduleTextureUpload',
+      'flattenFilter',
+      'preferBackend'
+    ]));
+    expect(app.applyRuntimeSyncPayload(syncPayload).renderOptimizationPlan.id).toBe(runtimePlan.sourcePlanId);
+    const syncedState = applyLiveSyncMessage(createEditorState(), {
+      type: 'editor:render-optimization-runtime-plan',
+      payload: runtimePlan
+    });
+    expect(syncedState.renderOptimizationPlan.id).toBe(runtimePlan.sourcePlanId);
+
+    const project = app.EditorAPI.exportRunnableProject({ generatedAt: '2026-01-01T00:00:00.000Z' });
+    const renderConfig = project.files.find((file) => file.path === 'config/render-optimization.runtime.json');
+    expect(renderConfig.data.runtimeActions.map((action) => action.type)).toContain('buildAtlas');
+    expect(root.querySelector('[data-render-optimization-plan]')?.textContent).toContain('运行时动作 7');
+    app.destroy();
+  });
+
   it('surfaces missing dependency repair actions in the editor resource panel', () => {
     const root = document.createElement('main');
     document.body.appendChild(root);

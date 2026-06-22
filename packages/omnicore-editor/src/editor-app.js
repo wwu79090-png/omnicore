@@ -1117,6 +1117,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     runVisualScript,
     exportUILayoutJson,
     exportDataJson,
+    exportRenderOptimizationPlan,
     createRuntimeSyncPayload,
     applyRuntimeSyncPayload,
     create25DPreview,
@@ -2337,6 +2338,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       runVisualScript(eventName = 'start', payload = {}, options = {}) {
         return runVisualScript(eventName, payload, options);
       },
+      exportRenderOptimizationPlan(options = {}) {
+        return exportRenderOptimizationPlan(options);
+      },
       addUIButton(button = {}) {
         return addUIButton(button);
       },
@@ -3365,6 +3369,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const scenePath = `scenes/${sceneFileStem(scene)}.scene.json`;
     const assets = deploymentAssetManifestEntries();
     const targets = enabledBuildTargets();
+    const renderOptimizationRuntime = current.renderOptimizationPlan
+      ? createRenderOptimizationRuntimePlan(current.renderOptimizationPlan, { generatedAt })
+      : null;
     const manifest = {
       format: 'OmniCore.AssetManifest',
       version: 1,
@@ -3373,7 +3380,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
       entryScene: scenePath,
       scenes: [scenePath],
       assets,
-      targets
+      targets,
+      renderOptimization: renderOptimizationRuntime ? 'config/render-optimization.runtime.json' : null
     };
     const packageJson = {
       name: projectName,
@@ -3395,6 +3403,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       { path: 'src/main.js', data: renderRunnableProjectMain({ scenePath }) },
       { path: 'assets/manifest.json', data: manifest },
       { path: scenePath, data: scene },
+      ...(renderOptimizationRuntime ? [{ path: 'config/render-optimization.runtime.json', data: renderOptimizationRuntime }] : []),
       { path: 'README.md', data: renderRunnableProjectReadme({ projectName, targets }) }
     ];
     return {
@@ -4522,16 +4531,25 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return cloneState(current.database?.tables || {});
   }
 
+  function exportRenderOptimizationPlan(options = {}) {
+    const runtimePlan = createRenderOptimizationRuntimePlan(current.renderOptimizationPlan, options);
+    emit('editor:render-optimization-runtime-plan', runtimePlan);
+    return runtimePlan;
+  }
+
   function createRuntimeSyncPayload() {
+    const generatedAt = new Date().toISOString();
     return {
       protocol: 'omnicore-editor-runtime-sync/v1',
-      generatedAt: new Date().toISOString(),
+      generatedAt,
       scene: cloneState(current.scene),
       eventSheet: exportFlowGraphEventSheet(),
       behaviorTree: exportBehaviorTreeJson(),
       visualScriptGraph: exportVisualScriptGraph(),
       visualScriptTrace: cloneState(current.visualScriptTrace),
-      uiLayout: exportUILayoutJson()
+      uiLayout: exportUILayoutJson(),
+      renderOptimizationPlan: cloneState(current.renderOptimizationPlan),
+      renderOptimizationRuntime: createRenderOptimizationRuntimePlan(current.renderOptimizationPlan, { generatedAt })
     };
   }
 
@@ -4543,6 +4561,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       visualScriptTrace: payload.visualScriptTrace || current.visualScriptTrace,
       visualScriptValidation: payload.visualScriptTrace?.validation || current.visualScriptValidation,
       uiLayout: payload.uiLayout || current.uiLayout,
+      renderOptimizationPlan: payload.renderOptimizationPlan || payload.renderOptimizationRuntime?.sourcePlan || current.renderOptimizationPlan,
       flowGraph: payload.flowGraph || current.flowGraph
     });
     emit('editor:runtime-sync-applied', { protocol: payload.protocol || null });
@@ -9101,6 +9120,100 @@ function createRenderOptimizationPlanId(appliedAt = '') {
   return `render-plan-${Number.isFinite(stamp) ? stamp : Date.now()}`;
 }
 
+function createRenderOptimizationRuntimePlan(planInput = null, options = {}) {
+  const plan = normalizeRenderOptimizationPlanState(planInput);
+  const generatedAt = options.generatedAt || new Date().toISOString();
+  const runtimeActions = buildRenderOptimizationRuntimeActions(plan);
+  return {
+    format: 'OmniCore.RenderOptimizationRuntimePlan',
+    schema: 'omnicore.render-optimization-runtime.v1',
+    version: 1,
+    generatedAt,
+    sourcePlanId: plan.id || null,
+    frameIndex: plan.frameIndex,
+    budgets: cloneState(plan.budgets),
+    scheduler: {
+      textureUploads: {
+        strategy: 'warmup-or-frame-split',
+        maxUploadsPerFrame: Math.max(1, Number(plan.budgets.textureUploadBudget || plan.textureUploads.warmupQueue?.[0]?.maxUploadsPerFrame || 1)),
+        queue: cloneState(plan.textureUploads.warmupQueue.length ? plan.textureUploads.warmupQueue : plan.textureUploads.deferred)
+      },
+      atlases: cloneState(plan.atlases),
+      filters: {
+        flatten: cloneState(plan.filters.flattened),
+        passBudget: plan.filters.passBudget,
+        estimatedSavedPasses: plan.filters.estimatedSavedPasses
+      },
+      backend: plan.backend ? cloneState(plan.backend) : null,
+      renderQueue: cloneState(plan.renderQueue)
+    },
+    runtimeActions,
+    sourcePlan: cloneState(plan),
+    crossEngineProfile: [
+      { engine: 'PixiJS', advantage: 'texture warmup, batching, and renderer fallback are explicit runtime concerns' },
+      { engine: 'Unity Frame Debugger', advantage: 'diagnostic findings can become concrete frame/render settings' },
+      { engine: 'Unreal GPU Visualizer', advantage: 'render pass cost should map to actionable pass reduction work' },
+      { engine: 'Three.js ecosystem', advantage: 'renderer backend and resource lifecycle choices stay portable' }
+    ]
+  };
+}
+
+function buildRenderOptimizationRuntimeActions(planInput = {}) {
+  const plan = normalizeRenderOptimizationPlanState(planInput);
+  const atlasActions = plan.atlases.map((atlas) => ({
+    type: 'buildAtlas',
+    key: atlas.key,
+    material: atlas.material,
+    blendMode: atlas.blendMode,
+    textures: cloneState(atlas.textures || []),
+    status: atlas.status || 'planned'
+  }));
+  const uploadActions = plan.textureUploads.deferred.map((upload) => ({
+    type: 'scheduleTextureUpload',
+    id: upload.id,
+    bytes: Number(upload.bytes || 0),
+    reason: upload.reason || 'frame-upload',
+    strategy: upload.strategy || 'warmup-or-frame-split',
+    maxUploadsPerFrame: Math.max(1, Number(plan.budgets.textureUploadBudget || upload.maxUploadsPerFrame || 1))
+  }));
+  const filterActions = plan.filters.flattened.map((filter) => ({
+    type: 'flattenFilter',
+    id: filter.id,
+    passes: Number(filter.passes || 1),
+    targetPasses: Math.max(1, Number(filter.targetPasses || 1)),
+    estimatedMs: Number(filter.estimatedMs || 0)
+  }));
+  const backendActions = plan.backend?.preferred ? [{
+    type: 'preferBackend',
+    backend: plan.backend.preferred,
+    selected: plan.backend.selected || null,
+    fallbackChain: cloneState(plan.backend.fallbackChain || []),
+    rejected: cloneState(plan.backend.rejected || []),
+    checks: cloneState(plan.backend.checks || [])
+  }] : [];
+  const queueActions = (plan.renderQueue.sortGroups || []).map((group) => ({
+    type: 'sortRenderQueueGroup',
+    key: group.key,
+    material: group.material,
+    texture: group.texture,
+    draws: cloneState(group.draws || [])
+  }));
+  const dynamicActions = (plan.renderQueue.dynamicSprites || []).map((sprite) => ({
+    type: 'splitDynamicSpriteBatch',
+    id: sprite.id,
+    texture: sprite.texture,
+    status: sprite.status || 'planned'
+  }));
+  return [
+    ...atlasActions,
+    ...uploadActions,
+    ...filterActions,
+    ...backendActions,
+    ...queueActions,
+    ...dynamicActions
+  ];
+}
+
 function applyRenderOptimizationAction(plan, action = {}, report = {}, input = {}, appliedAt = '') {
   if (action.type === 'createAtlas') {
     const key = action.id.slice('createAtlas:'.length);
@@ -9243,8 +9356,9 @@ function summarizeRenderOptimizationPlan(plan = {}) {
   const deferredUploads = plan.textureUploads?.deferred?.length || 0;
   const filterCount = plan.filters?.flattened?.length || 0;
   const actionCount = plan.actions?.length || 0;
+  const runtimeActionCount = buildRenderOptimizationRuntimeActions(plan).length;
   const backend = plan.backend?.preferred ? formatRenderBackendName(plan.backend.preferred) : '未配置';
-  return `图集 ${atlasCount} · 纹理上传 ${deferredUploads} · Filter ${filterCount} · 后端 ${backend} · 动作 ${actionCount}`;
+  return `图集 ${atlasCount} · 纹理上传 ${deferredUploads} · Filter ${filterCount} · 后端 ${backend} · 动作 ${actionCount} · 运行时动作 ${runtimeActionCount}`;
 }
 
 function localizeRenderSeverity(severity = 'ok') {
