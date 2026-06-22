@@ -8,6 +8,17 @@ describe('standalone desktop-grade OmniCore Editor', () => {
     document.body.innerHTML = '';
   });
 
+  function expectDesktopCommandWindow(root, commandId, expectedText) {
+    const commandWindow = root.querySelector('[data-desktop-command-window]');
+    expect(commandWindow).toBeTruthy();
+    expect(commandWindow?.dataset.desktopCommandWindow).toBe(commandId);
+    expect(commandWindow?.querySelector('[data-desktop-command-window-title]')?.textContent).toContain(expectedText);
+    expect(commandWindow?.querySelector('[data-desktop-command-window-action="execute"]')).toBeTruthy();
+    expect(commandWindow?.querySelectorAll('[data-desktop-window-step]').length).toBeGreaterThanOrEqual(3);
+    expect(commandWindow?.querySelector('[data-desktop-command-window-result]')?.textContent.trim()).not.toBe('');
+    expect(commandWindow?.querySelector('[data-desktop-command-window-result-state]')?.textContent).toMatch(/已执行|执行中|等待/);
+  }
+
   it('declares a no-browser Electron command and desktop package targets', () => {
     const rootPackage = JSON.parse(readFileSync('package.json', 'utf8'));
     const editorPackage = JSON.parse(readFileSync('packages/omnicore-editor/package.json', 'utf8'));
@@ -49,7 +60,10 @@ describe('standalone desktop-grade OmniCore Editor', () => {
   });
 
   it('builds desktop renderer assets with relative paths for Electron loadFile', () => {
+    const editorHtml = readFileSync('packages/omnicore-editor/index.html', 'utf8');
+
     expect(editorViteConfig.base).toBe('./');
+    expect(editorHtml).toContain('rel="icon"');
   });
 
   it('supports QWER edit shortcuts and drag docking panels between regions', () => {
@@ -216,13 +230,17 @@ describe('standalone desktop-grade OmniCore Editor', () => {
     expect(root.textContent).toContain('功能入口已整合');
 
     root.querySelector('[data-desktop-template="platformer"]').click();
+    expectDesktopCommandWindow(root, 'template-platformer', '横版动作');
+    expect(root.querySelector('[data-desktop-command-window-result]')?.textContent).toContain('模板已选择');
     expect(root.querySelector('[data-editor-feedback]')?.textContent).toContain('模板已选择：横版动作');
     expect(root.querySelector('[data-desktop-template="platformer"]')?.classList.contains('selected')).toBe(true);
 
     root.querySelector('[data-desktop-recent-project="demo-action"]').click();
+    expectDesktopCommandWindow(root, 'recent-demo-action', '示例动作游戏');
     expect(root.querySelector('[data-editor-feedback]')?.textContent).toContain('已定位项目：示例动作游戏');
 
     root.querySelector('[data-desktop-diagnostic-action="release-check"]').click();
+    expectDesktopCommandWindow(root, 'release-check', '一键体检');
     expect(root.querySelector('[data-editor-feedback]')?.textContent).toContain('发布诊断完成');
     expect(root.querySelector('[data-desktop-diagnostic-result]')?.textContent).toContain('9 项通过');
 
@@ -311,14 +329,17 @@ describe('standalone desktop-grade OmniCore Editor', () => {
     }
 
     root.querySelector('[data-desktop-command="assets"]').click();
+    expectDesktopCommandWindow(root, 'assets', '资源库');
     expect(app.getDockLayout().left).toContain('assets');
     expect(root.querySelector('[data-editor-feedback]')?.textContent).toContain('资源库');
 
     root.querySelector('[data-desktop-command="visual-scripting"]').click();
+    expectDesktopCommandWindow(root, 'visual-scripting', '可视化脚本');
     expect(app.getDockLayout().center).toContain('visual-scripting');
     expect(root.querySelector('[data-editor-feedback]')?.textContent).toContain('可视化脚本');
 
     root.querySelector('[data-desktop-command="profiler"]').click();
+    expectDesktopCommandWindow(root, 'profiler', '性能分析器');
     expect(app.getState().profilerOpen).toBe(true);
     expect(root.querySelector('[data-desktop-hub]')?.dataset.lastDesktopCommand).toBe('profiler');
 
@@ -338,24 +359,17 @@ describe('standalone desktop-grade OmniCore Editor', () => {
 
     const hub = root.querySelector('[data-desktop-hub]');
     const search = root.querySelector('[data-desktop-command-search]');
-    const details = root.querySelector('[data-desktop-command-details]');
-    const workflowMap = root.querySelector('[data-desktop-workflow-map]');
-    const actionPreview = root.querySelector('[data-desktop-action-preview]');
     const visiblePanels = () => [...root.querySelectorAll('[data-desktop-feature-group]')].filter((panel) => !panel.hidden);
 
     expect(search).toBeTruthy();
-    expect(details).toBeTruthy();
-    expect(workflowMap).toBeTruthy();
-    expect(actionPreview).toBeTruthy();
+    expect(root.querySelector('[data-desktop-command-window-layer]')).toBeTruthy();
+    expect(root.querySelector('[data-desktop-command-details]')).toBeFalsy();
     expect(root.querySelector('[data-desktop-section-board]')).toBeTruthy();
     expect(root.querySelector('[data-desktop-section-map]')).toBeTruthy();
     expect(root.querySelectorAll('[data-desktop-section-node]').length).toBeGreaterThanOrEqual(4);
     expect(visiblePanels()).toHaveLength(1);
     expect(visiblePanels()[0]?.dataset.desktopFeatureGroup).toBe('projects');
     expect(root.querySelector('[data-desktop-feature-group="projects"]')?.classList.contains('is-focused')).toBe(true);
-    expect(details?.querySelector('[data-desktop-detail-title]')?.textContent).toContain('打开本地项目');
-    expect(details?.querySelectorAll('[data-desktop-detail-step]').length).toBeGreaterThanOrEqual(3);
-    expect(workflowMap?.querySelectorAll('[data-desktop-workflow-step]').length).toBeGreaterThanOrEqual(4);
 
     const cards = [...root.querySelectorAll('[data-desktop-command-card]')];
     expect(cards.length).toBeGreaterThanOrEqual(32);
@@ -368,11 +382,9 @@ describe('standalone desktop-grade OmniCore Editor', () => {
     root.querySelector('[data-desktop-command="visual-scripting"]').click();
     expect(hub?.dataset.lastDesktopCommand).toBe('visual-scripting');
     expect(root.querySelector('[data-desktop-command="visual-scripting"]')?.classList.contains('selected')).toBe(true);
-    expect(details?.querySelector('[data-desktop-detail-title]')?.textContent).toContain('可视化脚本');
-    expect(root.querySelector('[data-desktop-action-preview]')?.textContent).toContain('可视化脚本');
-    const updatedWorkflowMap = root.querySelector('[data-desktop-workflow-map]');
-    expect(updatedWorkflowMap?.textContent).toContain('拖拽节点');
-    expect(updatedWorkflowMap?.textContent).toContain('查看 Trace');
+    expectDesktopCommandWindow(root, 'visual-scripting', '可视化脚本');
+    expect(root.querySelector('[data-desktop-command-window]')?.textContent).toContain('拖拽节点');
+    expect(root.querySelector('[data-desktop-command-window]')?.textContent).toContain('查看 Trace');
 
     root.querySelector('[data-desktop-nav="render"]').click();
     expect(hub?.dataset.activeDesktopSection).toBe('render');
@@ -387,6 +399,42 @@ describe('standalone desktop-grade OmniCore Editor', () => {
     expect(visibleCards.length).toBeGreaterThan(0);
     expect(visibleCards.every((card) => card.textContent.toLowerCase().includes('gltf'))).toBe(true);
     expect(root.querySelector('[data-desktop-search-count]')?.textContent).toContain(String(visibleCards.length));
+
+    app.destroy();
+  });
+
+  it('opens desktop launcher commands in complete focused feature windows with real execution feedback', async () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const app = createEditorApp(root, {
+      state: {
+        scene: {
+          entities: []
+        }
+      }
+    });
+
+    const commandSamples = [
+      ['template-rpg', '剧情 RPG'],
+      ['assets', '资源库'],
+      ['hot-reload', '热重载'],
+      ['scene-3d-demo', '3D 场景 Demo'],
+      ['webgpu-diagnostics', 'WebGPU 诊断'],
+      ['wechat-export', '微信小游戏导出'],
+      ['beginner-tutorial', '0 基础新手教程'],
+      ['governance-report', '项目治理报告']
+    ];
+
+    for (const [commandId, title] of commandSamples) {
+      root.querySelector(`[data-desktop-command="${commandId}"]`)?.click();
+      await Promise.resolve();
+      expectDesktopCommandWindow(root, commandId, title);
+      expect(root.querySelector('[data-desktop-command-window]')?.textContent).toContain('执行结果');
+      expect(root.querySelector('[data-desktop-command-window]')?.textContent).toContain('下一步');
+    }
+
+    root.querySelector('[data-desktop-command-window-close]')?.click();
+    expect(root.querySelector('[data-desktop-command-window]')).toBeFalsy();
 
     app.destroy();
   });

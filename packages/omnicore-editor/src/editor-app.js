@@ -755,11 +755,79 @@ function renderDesktopCommandDetailBody(commandId = 'open-project') {
   `;
 }
 
-function renderDesktopCommandDetails(commandId = 'open-project') {
+function formatDesktopResultValue(value) {
+  if (value == null) return '无返回数据';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  try {
+    const json = JSON.stringify(value, null, 2);
+    return json.length > 1400 ? `${json.slice(0, 1400)}\n...` : json;
+  } catch {
+    return String(value);
+  }
+}
+
+function renderDesktopCommandWindow(detail, {
+  serial = 1,
+  resultState = '等待执行',
+  resultSummary = '功能窗口已打开，点击执行可以重新运行该功能。',
+  resultDetail = '等待命令执行结果。',
+  nextStep = '根据结果继续进入编辑器、诊断面板或发布检查。'
+} = {}) {
   return `
-    <aside class="desktop-command-details" data-desktop-command-details="${escapeDesktopHtml(commandId)}" aria-label="功能详情">
-      ${renderDesktopCommandDetailBody(commandId)}
-    </aside>
+    <article
+      class="desktop-command-window"
+      data-desktop-command-window="${escapeDesktopHtml(detail.id)}"
+      data-desktop-command-window-serial="${serial}"
+      role="dialog"
+      aria-modal="false"
+      aria-label="${escapeDesktopHtml(detail.title)}"
+      tabindex="-1"
+    >
+      <header class="desktop-command-window-titlebar">
+        <div>
+          <span>${escapeDesktopHtml(detail.sectionTitle)}</span>
+          <strong data-desktop-command-window-title>${escapeDesktopHtml(detail.title)}</strong>
+        </div>
+        <button type="button" data-desktop-command-window-close aria-label="关闭功能窗口">关闭</button>
+      </header>
+      <div class="desktop-command-window-body">
+        <section class="desktop-command-window-panel desktop-command-window-intro">
+          <h2>功能说明</h2>
+          <p>${escapeDesktopHtml(detail.purpose)}</p>
+          <dl>
+            <div><dt>入口</dt><dd>${escapeDesktopHtml(detail.status)}</dd></div>
+            <div><dt>目标</dt><dd>${escapeDesktopHtml(detail.target)}</dd></div>
+            <div><dt>预期结果</dt><dd>${escapeDesktopHtml(detail.outcome)}</dd></div>
+          </dl>
+        </section>
+        <section class="desktop-command-window-panel">
+          <h2>完整流程</h2>
+          <ol class="desktop-command-window-steps">
+            ${detail.steps.map((step, stepIndex) => `
+              <li data-desktop-window-step>
+                <b>${stepIndex + 1}</b>
+                <span>${escapeDesktopHtml(step)}</span>
+              </li>
+            `).join('')}
+          </ol>
+        </section>
+        <section class="desktop-command-window-panel desktop-command-window-result" data-desktop-command-window-result>
+          <h2>执行结果</h2>
+          <b data-desktop-command-window-result-state>${escapeDesktopHtml(resultState)}</b>
+          <strong data-desktop-command-window-result-summary>${escapeDesktopHtml(resultSummary)}</strong>
+          <pre data-desktop-command-window-result-detail>${escapeDesktopHtml(resultDetail)}</pre>
+        </section>
+        <section class="desktop-command-window-panel desktop-command-window-next">
+          <h2>下一步</h2>
+          <p data-desktop-command-window-next>${escapeDesktopHtml(nextStep)}</p>
+          <div class="desktop-command-window-actions">
+            <button type="button" data-desktop-command-window-action="execute">执行功能</button>
+            <button type="button" data-desktop-command-window-action="open-editor">打开编辑器工作台</button>
+          </div>
+        </section>
+      </div>
+    </article>
   `;
 }
 
@@ -897,8 +965,8 @@ function renderDesktopLauncherHub() {
           <div class="desktop-hub-grid" data-desktop-section-board>
             ${DESKTOP_COMMAND_SECTIONS.map((section, index) => renderDesktopFeatureSection(section, index)).join('')}
           </div>
-          ${renderDesktopCommandDetails('open-project')}
         </div>
+        <div class="desktop-command-window-layer" data-desktop-command-window-layer aria-live="polite"></div>
       </div>
     </section>
   `;
@@ -932,6 +1000,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
   let historyLabels = ['初始场景'];
   let historyIndex = 0;
   let desktopTutorialStep = 1;
+  let desktopWindowSerial = 1;
   const sceneBaselines = new Map();
   const t = createTextResolver(localization);
   const ownerWindow = root.ownerDocument?.defaultView || globalThis.window;
@@ -1319,17 +1388,159 @@ export function createEditorApp(root = document.querySelector('#app'), {
   }
 
   function runDesktopCommand(command, button = null) {
+    return openDesktopCommandWindow(command, button, { execute: true });
+  }
+
+  function openDesktopCommandWindow(command, button = null, { execute = true } = {}) {
     const hub = root.querySelector('[data-desktop-hub]');
     if (hub && command) hub.dataset.lastDesktopCommand = command;
     if (!command) return null;
     const detail = updateDesktopCommandDetails(command);
     if (detail?.nav) setDesktopActiveSection(detail.nav, { silent: true, scroll: false });
 
-    if (button?.dataset?.desktopTemplate) {
-      return selectDesktopTemplate(button.dataset.desktopTemplate, button);
+    const layer = root.querySelector('[data-desktop-command-window-layer]');
+    if (layer) {
+      const serial = desktopWindowSerial;
+      desktopWindowSerial += 1;
+      layer.innerHTML = renderDesktopCommandWindow(detail, {
+        serial,
+        resultState: execute ? '执行中' : '等待执行',
+        resultSummary: execute ? '正在运行该功能，并把结果同步到这里。' : '功能窗口已打开，等待执行。',
+        resultDetail: detail.preview,
+        nextStep: getDesktopCommandNextStep(command)
+      });
+      bindDesktopCommandWindow(command, button);
+      layer.querySelector('[data-desktop-command-window]')?.focus?.();
     }
-    if (button?.dataset?.desktopRecentProject) {
-      return selectDesktopRecentProject(button.dataset.desktopRecentProject, button);
+
+    if (!execute) return detail;
+    const result = executeDesktopCommand(command, button);
+    if (result && typeof result.then === 'function') {
+      return result.then((value) => {
+        updateDesktopCommandWindowResult(command, value, '已执行');
+        return value;
+      }).catch((error) => {
+        updateDesktopCommandWindowResult(command, error, '执行失败');
+        throw error;
+      });
+    }
+    updateDesktopCommandWindowResult(command, result, '已执行');
+    return result;
+  }
+
+  function bindDesktopCommandWindow(command, sourceButton = null) {
+    const commandWindow = root.querySelector(`[data-desktop-command-window="${command}"]`);
+    if (!commandWindow) return;
+    commandWindow.querySelector('[data-desktop-command-window-close]')?.addEventListener('click', () => {
+      commandWindow.remove();
+    });
+    commandWindow.querySelector('[data-desktop-command-window-action="execute"]')?.addEventListener('click', () => {
+      updateDesktopCommandWindowResult(command, null, '执行中');
+      const result = executeDesktopCommand(command, sourceButton || findDesktopCommandButton(command));
+      if (result && typeof result.then === 'function') {
+        result.then((value) => updateDesktopCommandWindowResult(command, value, '已执行')).catch((error) => {
+          updateDesktopCommandWindowResult(command, error, '执行失败');
+          showEditorFeedback(`桌面命令执行失败：${error?.message || error}`, 'error');
+          update(current);
+        });
+        return;
+      }
+      updateDesktopCommandWindowResult(command, result, '已执行');
+    });
+    commandWindow.querySelector('[data-desktop-command-window-action="open-editor"]')?.addEventListener('click', () => {
+      setEditorWorkspaceMode('editor');
+      showEditorFeedback('已打开编辑器工作台', 'info');
+      update(current);
+      updateDesktopCommandWindowResult(command, { workspaceMode: 'editor', command }, '已执行');
+    });
+  }
+
+  function findDesktopCommandButton(command) {
+    return [...root.querySelectorAll('[data-desktop-command]')].find((node) => node.dataset.desktopCommand === command) || null;
+  }
+
+  function getDesktopCommandNextStep(command) {
+    const panelRoute = DESKTOP_PANEL_COMMANDS[command];
+    if (panelRoute) return `继续在${panelRoute.title}里编辑内容，或通过窗口按钮切回完整工作台。`;
+    if (DESKTOP_PUBLISH_COMMANDS.has(command) || command === 'quality-gate') return '确认构建设置和诊断结果后，再进入对应平台导出。';
+    if (DESKTOP_RENDER_DIAGNOSTIC_COMMANDS.has(command)) return '打开 Profiler 查看采样，结合帧预算继续优化 batch、filter 和纹理。';
+    if (DESKTOP_ASSET_PIPELINE_COMMANDS.has(command)) return '继续检查资源数据库、依赖图、热重载事件和丢失资源修复。';
+    if (DESKTOP_LEARNING_COMMANDS.has(command)) return '按照教程步骤继续创建项目、写场景、运行预览和构建发布。';
+    if (DESKTOP_SCENE3D_COMMANDS.has(command)) return '继续检查场景视图、模型资源、相机灯光和 3D 调试证据。';
+    if (DESKTOP_DIAGNOSTIC_COMMANDS.has(command)) return '根据报告进入对应面板修复问题，再重新运行体检。';
+    return '继续打开编辑器工作台，完成实际编辑、运行或发布流程。';
+  }
+
+  function updateDesktopCommandWindowResult(command, result, resultState = '已执行') {
+    const commandWindow = root.querySelector(`[data-desktop-command-window="${command}"]`);
+    if (!commandWindow) return null;
+    const summary = summarizeDesktopCommandResult(command, result, resultState);
+    commandWindow.dataset.desktopCommandWindowState = resultState;
+    const stateNode = commandWindow.querySelector('[data-desktop-command-window-result-state]');
+    const summaryNode = commandWindow.querySelector('[data-desktop-command-window-result-summary]');
+    const detailNode = commandWindow.querySelector('[data-desktop-command-window-result-detail]');
+    const nextNode = commandWindow.querySelector('[data-desktop-command-window-next]');
+    if (stateNode) stateNode.textContent = summary.state;
+    if (summaryNode) summaryNode.textContent = summary.summary;
+    if (detailNode) detailNode.textContent = summary.detail;
+    if (nextNode) nextNode.textContent = summary.nextStep;
+    return summary;
+  }
+
+  function summarizeDesktopCommandResult(command, result, resultState = '已执行') {
+    const detail = describeDesktopCommand(command);
+    if (resultState === '执行中') {
+      return {
+        state: '执行中',
+        summary: '正在执行功能，结果会在这里刷新。',
+        detail: detail.preview,
+        nextStep: getDesktopCommandNextStep(command)
+      };
+    }
+    if (resultState === '执行失败') {
+      return {
+        state: '执行失败',
+        summary: result?.message || '功能执行失败，请查看反馈并重新执行。',
+        detail: result?.stack || formatDesktopResultValue(result),
+        nextStep: '先处理错误原因，再重新执行该功能。'
+      };
+    }
+
+    let summary = detail.outcome;
+    if (command === 'release-check' && result?.passed) summary = `发布体检完成：${result.passed} 项通过。`;
+    else if (command === 'asset-refresh' && result?.assets) summary = `资源库刷新完成：${result.assets.length} 项资源已同步。`;
+    else if (command === 'hot-reload' && result?.changedFiles) summary = `热重载事件流完成：${result.changedFiles.length} 个变更已进入队列。`;
+    else if (command === 'dependency-graph' && result?.nodes) summary = `场景依赖图完成：${result.nodes.length} 个节点。`;
+    else if ((command === 'scene-validate' || command === 'quality-gate') && result?.issues) summary = `场景验证完成：${result.issues.length} 个问题。`;
+    else if (DESKTOP_RENDER_DIAGNOSTIC_COMMANDS.has(command) && result?.sections) summary = `性能采样完成：${result.sections.length} 个阶段，${result.drawCalls || 0} 次 draw call。`;
+    else if (DESKTOP_PANEL_COMMANDS[command]) summary = `已打开 ${DESKTOP_PANEL_COMMANDS[command].title}，停靠到 ${DESKTOP_PANEL_COMMANDS[command].region} 区域。`;
+    else if (getDesktopCommandRecord(command).template) summary = `模板已选择：${DESKTOP_TEMPLATE_NAMES[getDesktopCommandRecord(command).template] || getDesktopCommandRecord(command).template}。`;
+    else if (getDesktopCommandRecord(command).recentProject) summary = `最近项目已定位：${DESKTOP_RECENT_PROJECT_NAMES[getDesktopCommandRecord(command).recentProject] || getDesktopCommandRecord(command).recentProject}。`;
+    else if (command === 'beginner-tutorial' || command === 'tutorial-demo') summary = `教程窗口已打开：${result?.title || '0 基础新手教程'}。`;
+    else if (command === 'mature-editor-bundle') summary = '成熟编辑器交付包已生成。';
+    else if (command === 'governance-report') summary = '项目治理报告已生成。';
+    else if (command === 'open-project') summary = '已切换到编辑器工作台并请求打开项目。';
+    else if (command === 'save') summary = result?.id ? `保存完成：${result.id}` : '保存动作已执行。';
+    else if (command === 'play') summary = '运行预览已启动。';
+    else if (command === 'dock-reset') summary = '工作台布局已恢复默认。';
+
+    return {
+      state: resultState,
+      summary,
+      detail: formatDesktopResultValue(result),
+      nextStep: getDesktopCommandNextStep(command)
+    };
+  }
+
+  function executeDesktopCommand(command, button = null) {
+    const triggerButton = button || findDesktopCommandButton(command);
+    const commandRecord = getDesktopCommandRecord(command);
+
+    if (triggerButton?.dataset?.desktopTemplate || commandRecord.template) {
+      return selectDesktopTemplate(triggerButton?.dataset?.desktopTemplate || commandRecord.template, triggerButton);
+    }
+    if (triggerButton?.dataset?.desktopRecentProject || commandRecord.recentProject) {
+      return selectDesktopRecentProject(triggerButton?.dataset?.desktopRecentProject || commandRecord.recentProject, triggerButton);
     }
     if (DESKTOP_TOOLBAR_COMMANDS.has(command)) {
       const result = runToolbarAction(command);
@@ -1443,25 +1654,29 @@ export function createEditorApp(root = document.querySelector('#app'), {
       return report;
     }
 
-    showEditorFeedback(`已选择启动器功能：${button?.textContent?.trim() || command}`, 'info');
+    showEditorFeedback(`已选择启动器功能：${triggerButton?.textContent?.trim() || command}`, 'info');
     update(current);
     return true;
   }
 
   function selectDesktopTemplate(templateId, button) {
+    const selectedButton = button || [...root.querySelectorAll('[data-desktop-template]')]
+      .find((templateButton) => templateButton.dataset.desktopTemplate === templateId) || null;
     for (const templateButton of root.querySelectorAll('[data-desktop-template]')) {
-      templateButton.classList.toggle('selected', templateButton === button);
+      templateButton.classList.toggle('selected', templateButton === selectedButton);
     }
-    showEditorFeedback(`模板已选择：${DESKTOP_TEMPLATE_NAMES[templateId] || button?.textContent || templateId}`, 'success');
+    showEditorFeedback(`模板已选择：${DESKTOP_TEMPLATE_NAMES[templateId] || selectedButton?.textContent || templateId}`, 'success');
     update(current);
     return templateId;
   }
 
   function selectDesktopRecentProject(projectId, button) {
+    const selectedButton = button || [...root.querySelectorAll('[data-desktop-recent-project]')]
+      .find((recentButton) => recentButton.dataset.desktopRecentProject === projectId) || null;
     for (const recentButton of root.querySelectorAll('[data-desktop-recent-project]')) {
-      recentButton.classList.toggle('selected', recentButton === button);
+      recentButton.classList.toggle('selected', recentButton === selectedButton);
     }
-    const title = DESKTOP_RECENT_PROJECT_NAMES[projectId] || button?.querySelector('strong')?.textContent || '最近项目';
+    const title = DESKTOP_RECENT_PROJECT_NAMES[projectId] || selectedButton?.querySelector('strong')?.textContent || '最近项目';
     showEditorFeedback(`已定位项目：${title}`, 'info');
     update(current);
     return projectId;
@@ -8885,7 +9100,7 @@ const EDITOR_CSS = `
   .desktop-command-search span { color: #ccfbf1; font-size: 10px; font-weight: 700; }
   .desktop-command-search input { min-height: 22px; padding: 3px 7px; border-radius: 6px; background: #090b0a; font-size: 11px; }
   .desktop-hub-control-strip > span { display: grid; place-items: center start; min-width: 0; padding: 5px 8px; border: 1px solid #384142; border-radius: 8px; background: #141716; color: #fbbf24; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .desktop-hub-body { display: grid; grid-template-columns: minmax(0, 1fr) 278px; gap: 8px; min-width: 0; min-height: 0; }
+  .desktop-hub-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; min-height: 0; }
   .desktop-hub-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(0, 1fr); align-items: stretch; gap: 0; min-height: 0; overflow: hidden; padding-right: 0; }
   .desktop-hub-panel { position: relative; display: grid; grid-template-rows: 30px 24px 34px minmax(0, 1fr) auto; gap: 6px; min-width: 0; min-height: 0; align-self: stretch; overflow: hidden; padding: 9px; border: 1px solid #343c3c; border-radius: 8px; background: #151817; opacity: .86; animation: desktopPanelEnter .36s ease both; animation-delay: calc(var(--desktop-section-index, 0) * 24ms); transition: border-color .16s ease, opacity .16s ease, box-shadow .16s ease, background .16s ease; }
   .desktop-hub-panel.is-focused { border-color: #2dd4bf; background: linear-gradient(135deg, rgba(45,212,191,.08), rgba(245,158,11,.045)), #161a19; opacity: 1; box-shadow: inset 0 0 0 1px rgba(45,212,191,.16), 0 12px 34px rgba(0,0,0,.2); }
@@ -8932,6 +9147,34 @@ const EDITOR_CSS = `
   .desktop-workflow-map li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 6px; align-items: center; min-height: 0; height: 26px; padding: 3px 5px; border: 1px solid #303838; border-radius: 6px; background: #121615; }
   .desktop-workflow-map b { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 999px; background: #10201e; color: #99f6e4; font-size: 9px; }
   .desktop-workflow-map span { min-width: 0; color: #e5e7eb; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-command-window-layer { position: fixed; inset: 54px 18px 36px 160px; z-index: 40; display: grid; place-items: center; pointer-events: none; }
+  .desktop-command-window-layer:empty { display: none; }
+  .desktop-command-window-layer::before { position: fixed; inset: 40px 0 24px; background: rgba(4,7,6,.54); backdrop-filter: blur(1px); content: ""; }
+  .desktop-command-window { position: relative; z-index: 1; pointer-events: auto; display: grid; grid-template-rows: auto minmax(0, 1fr); width: min(1040px, 100%); max-height: 100%; min-height: min(560px, 100%); overflow: hidden; opacity: 1; border: 1px solid rgba(45,212,191,.68); border-radius: 8px; background: #101413; box-shadow: 0 26px 70px rgba(0,0,0,.6); animation: desktopWindowEnter .18s ease both; }
+  .desktop-command-window-titlebar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; min-width: 0; padding: 10px 12px; border-bottom: 1px solid #354040; background: linear-gradient(135deg, #202522, #121615); }
+  .desktop-command-window-titlebar div { display: grid; gap: 2px; min-width: 0; }
+  .desktop-command-window-titlebar span { color: #fbbf24; font-size: 10px; font-weight: 800; }
+  .desktop-command-window-titlebar strong { color: #fbfbf8; font-size: 17px; line-height: 1.2; overflow-wrap: anywhere; }
+  .desktop-command-window-titlebar button { min-height: 30px; padding: 0 12px; border-radius: 6px; background: #111716; color: #ccfbf1; }
+  .desktop-command-window-body { display: grid; grid-template-columns: minmax(280px, .9fr) minmax(340px, 1.1fr); grid-template-rows: auto minmax(0, 1fr); gap: 10px; min-height: 0; overflow: auto; padding: 12px; background: #101413; }
+  .desktop-command-window-panel { display: grid; align-content: start; gap: 8px; min-width: 0; overflow: hidden; padding: 12px; border: 1px solid #394343; border-radius: 8px; background: #121716; box-shadow: inset 0 0 0 1px rgba(255,255,255,.015); }
+  .desktop-command-window-panel h2 { margin: 0; color: #ccfbf1; font-size: 12px; }
+  .desktop-command-window-panel p { margin: 0; color: #d7dedb; font-size: 12px; line-height: 1.55; overflow-wrap: anywhere; }
+  .desktop-command-window-intro dl { display: grid; gap: 6px; margin: 0; }
+  .desktop-command-window-intro div { display: grid; grid-template-columns: 66px minmax(0, 1fr); gap: 8px; align-items: start; padding: 7px 8px; border: 1px solid #303838; border-radius: 6px; background: #171b1a; }
+  .desktop-command-window-intro dt { color: #99f6e4; font-size: 10px; font-weight: 800; }
+  .desktop-command-window-intro dd { margin: 0; color: #f1f5f9; font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+  .desktop-command-window-steps { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+  .desktop-command-window-steps li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 8px; align-items: start; min-width: 0; padding: 8px; border: 1px solid #303838; border-radius: 7px; background: #171b1a; }
+  .desktop-command-window-steps b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 999px; background: #10201e; color: #99f6e4; font-size: 10px; }
+  .desktop-command-window-steps span { min-width: 0; color: #f1f5f9; font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+  .desktop-command-window-result { min-height: 0; border-color: rgba(132,204,22,.45); background: linear-gradient(135deg, rgba(132,204,22,.08), rgba(45,212,191,.06)), #101413; }
+  .desktop-command-window-result b { justify-self: start; padding: 3px 8px; border: 1px solid rgba(132,204,22,.45); border-radius: 999px; color: #bef264; font-size: 10px; }
+  .desktop-command-window-result strong { color: #fbfbf8; font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+  .desktop-command-window-result pre { box-sizing: border-box; width: 100%; min-width: 0; min-height: 96px; max-height: 210px; overflow: auto; margin: 0; padding: 9px; border: 1px solid #303838; border-radius: 7px; background: #080a09; color: #d8f3ef; font: 11px/1.45 "Cascadia Code", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .desktop-command-window-next { min-height: 0; border-color: rgba(245,158,11,.42); }
+  .desktop-command-window-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .desktop-command-window-actions button { min-height: 32px; padding: 0 12px; border-radius: 6px; background: #10201e; color: #ccfbf1; }
   .desktop-diagnostic-body { display: grid; gap: 8px; min-width: 0; }
   .desktop-diagnostic-body [data-desktop-diagnostic-result] { display: grid; gap: 4px; min-height: 56px; padding: 10px; border-left: 3px solid #84cc16; border-radius: 6px; background: #111514; }
   .desktop-diagnostic-body strong { color: #fbfbf8; }
@@ -8974,6 +9217,7 @@ const EDITOR_CSS = `
   @keyframes desktopBootPulse { 0%, 100% { opacity: .42; transform: scale(.94); } 50% { opacity: 1; transform: scale(1); } }
   @keyframes desktopBootLoad { 0% { width: 18%; } 55% { width: 82%; } 100% { width: 100%; } }
   @keyframes desktopPanelEnter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes desktopWindowEnter { from { transform: translateY(6px) scale(.992); } to { transform: translateY(0) scale(1); } }
   @keyframes desktopCardEnter { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
   @keyframes desktopLaunchLoad { from { transform: scaleX(.08); } to { transform: scaleX(1); } }
   @keyframes desktopSplashExit { 0% { opacity: 1; transform: scale(1); } 70% { opacity: 1; transform: scale(1); } 100% { opacity: 0; visibility: hidden; transform: scale(1.012); } }
