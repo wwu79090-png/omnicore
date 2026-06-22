@@ -27,3 +27,5 @@ This mirrors the useful parts of mature engine workflows: Unity-style profiler e
 The desktop/editor shell exposes the same loop through `EditorAPI.verifyRenderOptimizationPlan(input)`. The editor stores the report as `state.renderOptimizationVerification`, emits `editor:render-optimization-verification`, includes the report in runtime sync payloads, and renders a compact verification block inside the render diagnostics panel.
 
 This gives non-code users a visible answer after they apply quick fixes: whether the plan passed the runtime gates, how many gates passed, how many draw calls were saved, and whether frame time regressed.
+
+When verification fails, the editor also creates `state.renderOptimizationRemediationPlan` and emits `editor:render-optimization-remediation-plan`. The plan maps failed gates to concrete follow-up work such as rolling back the applied render plan, rebuilding atlas groups, capping texture uploads per frame, reducing filter passes, or capturing another render profile sample.

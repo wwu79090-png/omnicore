@@ -4542,13 +4542,19 @@ export function createEditorApp(root = document.querySelector('#app'), {
   }
 
   function verifyRenderOptimizationPlan(input = {}, options = {}) {
-    const verification = createEditorRenderOptimizationVerificationReport(current, input, options);
+    const baseVerification = createEditorRenderOptimizationVerificationReport(current, input, options);
+    const remediationPlan = createRenderOptimizationRemediationPlan(current, baseVerification, input, options);
+    const verification = remediationPlan
+      ? { ...baseVerification, remediationPlan }
+      : baseVerification;
     current = createEditorState({
       ...current,
       renderOptimizationVerification: verification,
+      renderOptimizationRemediationPlan: remediationPlan,
       dockLayout: ensurePanelInDock(current.dockLayout, 'render-diagnostics', 'bottom')
     });
     emit('editor:render-optimization-verification', verification);
+    if (remediationPlan) emit('editor:render-optimization-remediation-plan', remediationPlan);
     update(current);
     showEditorFeedback(
       verification.ok ? '渲染优化验证通过' : '渲染优化验证未通过',
@@ -4570,6 +4576,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       uiLayout: exportUILayoutJson(),
       renderOptimizationPlan: cloneState(current.renderOptimizationPlan),
       renderOptimizationVerification: cloneState(current.renderOptimizationVerification),
+      renderOptimizationRemediation: cloneState(current.renderOptimizationRemediationPlan),
       renderOptimizationRuntime: createRenderOptimizationRuntimePlan(current.renderOptimizationPlan, { generatedAt })
     };
   }
@@ -4584,6 +4591,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       uiLayout: payload.uiLayout || current.uiLayout,
       renderOptimizationPlan: payload.renderOptimizationPlan || payload.renderOptimizationRuntime?.sourcePlan || current.renderOptimizationPlan,
       renderOptimizationVerification: payload.renderOptimizationVerification || current.renderOptimizationVerification,
+      renderOptimizationRemediationPlan: payload.renderOptimizationRemediation || payload.renderOptimizationRemediationPlan || current.renderOptimizationRemediationPlan,
       flowGraph: payload.flowGraph || current.flowGraph
     });
     emit('editor:runtime-sync-applied', { protocol: payload.protocol || null });
@@ -7264,6 +7272,21 @@ export function createEditorApp(root = document.querySelector('#app'), {
       verificationBlock.append(status, verificationSummary, source);
       wrap.appendChild(verificationBlock);
     }
+    const remediation = current.renderOptimizationRemediationPlan;
+    if (remediation) {
+      const remediationBlock = document.createElement('div');
+      remediationBlock.className = 'render-optimization-remediation';
+      remediationBlock.dataset.renderOptimizationRemediation = 'true';
+      remediationBlock.dataset.renderOptimizationRemediationPriority = remediation.priority || 'normal';
+      const remediationTitle = document.createElement('strong');
+      remediationTitle.textContent = '后续修复';
+      const actionSummary = document.createElement('span');
+      actionSummary.textContent = (remediation.actions || []).map((action) => action.label).join(' · ') || '暂无补救动作';
+      const meta = document.createElement('small');
+      meta.textContent = `${remediation.priority || 'normal'} · ${(remediation.actions || []).length} 项`;
+      remediationBlock.append(remediationTitle, actionSummary, meta);
+      wrap.appendChild(remediationBlock);
+    }
     return wrap;
   }
 }
@@ -9473,6 +9496,111 @@ function createEditorRenderOptimizationVerificationReport(state = {}, input = {}
   };
 }
 
+function createRenderOptimizationRemediationPlan(state = {}, verification = {}, input = {}, options = {}) {
+  if (!verification || verification.ok === true) return null;
+  const generatedAt = resolveEditorVerificationTimestamp(input.remediationAt || options.remediationAt || verification.verifiedAt);
+  const failedGates = (verification.gates || []).filter((gate) => !gate.ok || gate.delta > 0);
+  const actions = [];
+  const addAction = (action) => {
+    if (!action?.type || actions.some((item) => item.type === action.type && item.gate === action.gate)) return;
+    actions.push(action);
+  };
+
+  addAction({
+    id: 'rollback-render-plan',
+    type: 'rollbackRenderPlan',
+    label: '回退优化计划',
+    gate: 'verification-failed',
+    reason: '优化验证失败，先恢复到应用前状态再重新分批验证。',
+    sourcePlanId: verification.sourcePlanId || state.renderOptimizationPlan?.id || null
+  });
+
+  for (const gate of failedGates) {
+    if (gate.id === 'draw-call-budget') {
+      addAction({
+        id: 'rebuild-atlas-groups',
+        type: 'rebuildAtlasGroups',
+        label: '重建图集与排序',
+        gate: gate.id,
+        before: gate.before,
+        after: gate.after,
+        budget: gate.budget,
+        reason: 'Draw Call 超预算或退化，重新检查图集、材质切换和渲染队列排序。'
+      });
+    }
+    if (gate.id === 'texture-upload-budget') {
+      addAction({
+        id: 'cap-texture-uploads',
+        type: 'capTextureUploads',
+        label: '纹理上传降级',
+        gate: gate.id,
+        maxUploadsPerFrame: Math.max(1, Number(gate.budget || 1)),
+        before: gate.before,
+        after: gate.after,
+        budget: gate.budget,
+        reason: '纹理上传仍然超预算，降低每帧上传数量并转入预热队列。'
+      });
+    }
+    if (gate.id === 'filter-pass-budget') {
+      addAction({
+        id: 'reduce-filter-passes',
+        type: 'reduceFilterPasses',
+        label: '压缩 Filter Pass',
+        gate: gate.id,
+        targetPasses: Math.max(1, Number(gate.budget || 1)),
+        before: gate.before,
+        after: gate.after,
+        budget: gate.budget,
+        reason: 'Filter Pass 仍然超预算，继续合并后处理链并禁用高成本滤镜。'
+      });
+    }
+    if (gate.id === 'frame-budget') {
+      addAction({
+        id: 'capture-render-profile',
+        type: 'captureRenderProfile',
+        label: '采集渲染证据',
+        gate: gate.id,
+        before: gate.before,
+        after: gate.after,
+        budget: gate.budget,
+        reason: '帧耗时退化，需要保存下一帧 profiler、draw call、upload 和 filter 证据。'
+      });
+    }
+  }
+
+  const priority = failedGates.some((gate) => gate.id === 'frame-budget' && !gate.ok)
+    ? 'critical'
+    : (failedGates.length ? 'high' : 'medium');
+  return {
+    schema: 'omnicore.render-optimization-remediation-plan.v1',
+    source: input.source || options.source || 'editor-render-diagnostics',
+    sourcePlanId: verification.sourcePlanId || state.renderOptimizationPlan?.id || null,
+    sourceVerificationStatus: verification.status || 'failed',
+    generatedAt,
+    priority,
+    actions,
+    summary: {
+      actionCount: actions.length,
+      failedGateCount: (verification.gates || []).filter((gate) => !gate.ok).length,
+      regressionCount: (verification.regressions || []).length
+    },
+    crossEngineProfile: {
+      sources: [
+        { engine: 'Unity', advantage: 'Profiler regressions should lead to concrete optimization tasks' },
+        { engine: 'Unreal', advantage: 'Insights findings should produce rollback and re-profile steps' },
+        { engine: 'Godot', advantage: 'editor diagnostics should remain visible and beginner-actionable' },
+        { engine: 'Cocos Creator', advantage: 'asset and render fixes should stay in the editor workflow' }
+      ],
+      capabilities: [
+        'failed-verification-remediation-plan',
+        'render-optimization-rollback-guidance',
+        'budget-gate-follow-up-actions',
+        'editor-visible-render-recovery'
+      ]
+    }
+  };
+}
+
 function createRenderVerificationMetricsFromPanel(panel = null) {
   const summary = panel?.report?.summary || panel?.summary || {};
   return {
@@ -10309,6 +10437,11 @@ const EDITOR_CSS = `
   .render-optimization-verification small { color: #94a3b8; white-space: nowrap; }
   .render-optimization-verification[data-render-optimization-verification-status="failed"] { border-color: #7f1d1d; background: #1a0b0b; }
   .render-optimization-verification[data-render-optimization-verification-status="failed"] strong { color: #fecaca; }
+  .render-optimization-remediation { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; min-width: 0; padding: 7px 8px; border: 1px solid #7c2d12; border-radius: 6px; background: #170c05; }
+  .render-optimization-remediation strong { color: #fed7aa; font-size: 11px; white-space: nowrap; }
+  .render-optimization-remediation span { min-width: 0; color: #ffedd5; overflow-wrap: anywhere; }
+  .render-optimization-remediation small { color: #fdba74; white-space: nowrap; }
+  .render-optimization-remediation[data-render-optimization-remediation-priority="critical"] { border-color: #991b1b; background: #1f0909; }
   .profiler-wrap { display: grid; gap: 5px; }
   .profiler-flamegraph { display: grid; gap: 4px; padding: 6px; border: 1px solid #334155; background: #020617; }
   .profiler-row { display: grid; grid-template-columns: 132px 1fr 56px; gap: 6px; align-items: center; }

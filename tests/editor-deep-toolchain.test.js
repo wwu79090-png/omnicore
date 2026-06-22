@@ -672,6 +672,105 @@ describe('editor deep toolchain', () => {
     app.destroy();
   });
 
+  it('creates remediation plans when render optimization verification fails', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const messages = [];
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        dockLayout: {
+          left: ['assets'],
+          center: ['scene-view'],
+          right: ['inspector'],
+          bottom: ['render-diagnostics']
+        }
+      }),
+      transport: {
+        send: (message) => messages.push(JSON.parse(message))
+      }
+    });
+
+    app.EditorAPI.refreshRenderDiagnosticsPanel({
+      budgets: {
+        frameBudgetMs: 16.67,
+        drawCallBudget: 4,
+        textureUploadBudget: 2,
+        filterPassBudget: 3
+      },
+      frame: { index: 16, cpuMs: 19, gpuMs: 17, fps: 45 },
+      draws: [
+        { id: 'hero', texture: 'hero.png', material: 'lit', blendMode: 'normal' },
+        { id: 'enemy', texture: 'enemy.png', material: 'lit', blendMode: 'normal' },
+        { id: 'coin', texture: 'coin.png', material: 'lit', blendMode: 'normal' }
+      ],
+      textureUploads: [
+        { id: 'hero', bytes: 1024 },
+        { id: 'enemy', bytes: 2048 },
+        { id: 'ui', bytes: 4096 }
+      ],
+      filterPasses: [
+        { id: 'bloom', passes: 2, estimatedMs: 1.4 },
+        { id: 'blur', passes: 2, estimatedMs: 2.1 }
+      ]
+    });
+    app.EditorAPI.applyRenderDiagnosticsQuickFix('deferTextureUploads', { now: Date.UTC(2026, 0, 1) });
+    app.EditorAPI.applyRenderDiagnosticsQuickFix('createAtlas:lit|normal', { now: Date.UTC(2026, 0, 1) + 1 });
+    app.EditorAPI.applyRenderDiagnosticsQuickFix('flattenFilterChain', { now: Date.UTC(2026, 0, 1) + 2 });
+    const runtimePlan = app.EditorAPI.exportRenderOptimizationPlan({
+      generatedAt: '2026-01-01T00:00:00.000Z'
+    });
+
+    const verification = app.EditorAPI.verifyRenderOptimizationPlan({
+      applyReport: {
+        schema: 'omnicore.render-optimization-apply-report.v1',
+        sourcePlanId: runtimePlan.sourcePlanId,
+        status: 'applied',
+        applied: runtimePlan.runtimeActions,
+        summary: { appliedCount: runtimePlan.runtimeActions.length }
+      },
+      before: { frameMs: 15.5, drawCalls: 4, textureUploads: 2, filterPasses: 2 },
+      after: { frameMs: 23, drawCalls: 9, textureUploads: 5, filterPasses: 5 },
+      budgets: { frameMs: 16.67, drawCalls: 4, textureUploads: 2, filterPasses: 3 },
+      now: Date.UTC(2026, 0, 1) + 20
+    });
+
+    expect(verification.status).toBe('failed');
+    expect(verification.remediationPlan).toMatchObject({
+      schema: 'omnicore.render-optimization-remediation-plan.v1',
+      sourcePlanId: runtimePlan.sourcePlanId,
+      priority: 'critical'
+    });
+    expect(verification.remediationPlan.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'rollbackRenderPlan', label: '回退优化计划' }),
+      expect.objectContaining({ type: 'rebuildAtlasGroups', gate: 'draw-call-budget' }),
+      expect.objectContaining({ type: 'capTextureUploads', gate: 'texture-upload-budget', maxUploadsPerFrame: 2 }),
+      expect.objectContaining({ type: 'reduceFilterPasses', gate: 'filter-pass-budget', targetPasses: 3 }),
+      expect.objectContaining({ type: 'captureRenderProfile', gate: 'frame-budget' })
+    ]));
+    expect(app.getState().renderOptimizationRemediationPlan.actions.map((action) => action.type)).toEqual(expect.arrayContaining([
+      'rollbackRenderPlan',
+      'rebuildAtlasGroups',
+      'capTextureUploads',
+      'reduceFilterPasses',
+      'captureRenderProfile'
+    ]));
+    expect(messages.map((message) => message.type)).toEqual(expect.arrayContaining([
+      'editor:render-optimization-verification',
+      'editor:render-optimization-remediation-plan'
+    ]));
+    expect(root.querySelector('[data-render-optimization-verification]')?.textContent).toContain('验证失败');
+    expect(root.querySelector('[data-render-optimization-remediation]')?.textContent).toContain('后续修复');
+    expect(root.querySelector('[data-render-optimization-remediation]')?.textContent).toContain('回退优化计划');
+    expect(root.querySelector('[data-render-optimization-remediation]')?.textContent).toContain('纹理上传降级');
+    expect(app.createRuntimeSyncPayload().renderOptimizationRemediation.actions.map((action) => action.type)).toContain('rollbackRenderPlan');
+    const syncedState = applyLiveSyncMessage(createEditorState(), {
+      type: 'editor:render-optimization-remediation-plan',
+      payload: verification.remediationPlan
+    });
+    expect(syncedState.renderOptimizationRemediationPlan.sourcePlanId).toBe(runtimePlan.sourcePlanId);
+    app.destroy();
+  });
+
   it('surfaces missing dependency repair actions in the editor resource panel', () => {
     const root = document.createElement('main');
     document.body.appendChild(root);
