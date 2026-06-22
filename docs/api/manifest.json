@@ -127,6 +127,14 @@
       ]
     },
     {
+      "path": "assets/AssetDependencyTracker.js",
+      "summary": "",
+      "exports": [
+        "ASSET_DEPENDENCY_TRACKER_REPORT_SCHEMA",
+        "AssetDependencyTracker"
+      ]
+    },
+    {
       "path": "assets/AssetImportMetadata.js",
       "summary": "",
       "exports": [

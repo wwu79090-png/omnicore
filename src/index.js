@@ -293,6 +293,7 @@ import MarketplaceServer from './marketplace/MarketplaceServer.js';
 import Font from './assets/Font.js';
 import OBundle from './assets/OBundle.js';
 import AddressableCatalog from './assets/AddressableCatalog.js';
+import AssetDependencyTracker from './assets/AssetDependencyTracker.js';
 import AssetRegistry from './assets/AssetRegistry.js';
 import AssetRegistryChangeSet from './assets/AssetRegistryChangeSet.js';
 import AssetRefreshCoordinator from './assets/AssetRefreshCoordinator.js';
@@ -1198,6 +1199,7 @@ const OmniCore = {
   AIImporter,
   Analytics,
   AddressableCatalog,
+  AssetDependencyTracker,
   AssetRegistry,
   AssetRegistryChangeSet,
   AssetRefreshCoordinator,
@@ -1421,6 +1423,7 @@ export {
   ABTest,
   AbilitySystem,
   AddressableCatalog,
+  AssetDependencyTracker,
   AssetRegistry,
   AssetRegistryChangeSet,
   AssetRefreshCoordinator,

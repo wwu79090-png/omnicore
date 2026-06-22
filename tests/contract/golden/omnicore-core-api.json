@@ -1588,6 +1588,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "AssetDependencyTracker"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "AssetImportMetadata"
       },
       {
@@ -3249,6 +3254,7 @@
       "AssetBrowser",
       "AssetBuildRecipe",
       "AssetCache",
+      "AssetDependencyTracker",
       "AssetImportMetadata",
       "AssetImportPreview",
       "AssetImportProfile",

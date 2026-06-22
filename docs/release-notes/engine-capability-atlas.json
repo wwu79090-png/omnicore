@@ -244,6 +244,7 @@
       "evidence": [
         "src/assets/AddressableCatalog.js",
         "src/assets/AssetResidencyManager.js",
+        "src/assets/AssetDependencyTracker.js",
         "src/assets/AssetImportMetadata.js",
         "src/assets/AssetImportProfile.js",
         "src/assets/AssetImportPreview.js",
@@ -259,8 +260,8 @@
         "Cocos Creator"
       ],
       "evidenceStatus": {
-        "presentCount": 7,
-        "totalCount": 7,
+        "presentCount": 8,
+        "totalCount": 8,
         "missing": [],
         "checks": [
           {
@@ -269,6 +270,10 @@
           },
           {
             "file": "src/assets/AssetResidencyManager.js",
+            "present": true
+          },
+          {
+            "file": "src/assets/AssetDependencyTracker.js",
             "present": true
           },
           {

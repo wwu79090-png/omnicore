@@ -1,4 +1,5 @@
 import { createOmniError } from '../core/OmniError.js';
+import AssetDependencyTracker from './AssetDependencyTracker.js';
 import AssetImportPreview from './AssetImportPreview.js';
 import AssetImportTransaction from './AssetImportTransaction.js';
 import AssetRegistryChangeSet from './AssetRegistryChangeSet.js';
@@ -17,6 +18,7 @@ export class AssetImportSession {
     onEditorEvent = null,
     rollback = null,
     transaction = null,
+    dependencyTracker = null,
     refreshCoordinator = null,
     logger = null
   } = {}) {
@@ -30,6 +32,7 @@ export class AssetImportSession {
     this.onEditorEvent = onEditorEvent;
     this.rollback = rollback;
     this.transaction = transaction;
+    this.dependencyTracker = dependencyTracker;
     this.refreshCoordinator = refreshCoordinator;
     this.logger = logger;
   }
@@ -67,6 +70,9 @@ export class AssetImportSession {
     refresh = true,
     current = this.current,
     transactionOptions = {},
+    trackDependencies = false,
+    dependencyChanges = null,
+    dependencyOptions = {},
     refreshOptions = {},
     ...previewOptions
   } = {}) {
@@ -92,11 +98,19 @@ export class AssetImportSession {
 
     const transaction = await this._transaction().apply(preview, transactionOptions);
     let changePlan = null;
+    let dependencyReport = null;
     let refreshReport = null;
     const failures = [...normalizeArray(transaction.failures).map(clone)];
 
     if (transaction.ok) {
       changePlan = this._buildChangePlan(preview, transaction);
+      if (trackDependencies) {
+        dependencyReport = this._analyzeDependencies({
+          preview,
+          dependencyChanges,
+          dependencyOptions
+        });
+      }
       if (refresh && this.refreshCoordinator && shouldRefresh(changePlan)) {
         const refreshResult = await this._applyRefresh(changePlan, refreshOptions);
         refreshReport = refreshResult.report;
@@ -108,6 +122,7 @@ export class AssetImportSession {
       preview,
       transaction,
       changePlan,
+      dependencyReport,
       refreshReport,
       failures,
       dryRun: false
@@ -153,6 +168,36 @@ export class AssetImportSession {
     return changeSet.plan();
   }
 
+  _analyzeDependencies({
+    preview,
+    dependencyChanges,
+    dependencyOptions
+  }) {
+    const importerVersions = Object.fromEntries(
+      preview.entries.map((entry) => [
+        entry.importer,
+        entry.reimport?.inputs?.importerVersion
+      ]).filter(([, version]) => version)
+    );
+    const platform = preview.entries.find((entry) => entry.platform)?.platform || null;
+    const changes = dependencyChanges || preview.entries.map((entry) => ({ path: entry.source }));
+    const tracker = this.dependencyTracker || new AssetDependencyTracker({
+      registry: this.registry,
+      imports: this.current,
+      knownInputs: knownInputsForSession(this.current, changes)
+    });
+    if (!tracker?.analyze) return null;
+
+    return tracker.analyze(changes, {
+      platform,
+      ...dependencyOptions,
+      importerVersions: {
+        ...importerVersions,
+        ...(dependencyOptions.importerVersions || {})
+      }
+    });
+  }
+
   async _applyRefresh(changePlan, refreshOptions) {
     try {
       const report = await this.refreshCoordinator.apply(changePlan, refreshOptions);
@@ -181,6 +226,7 @@ export class AssetImportSession {
     preview,
     transaction,
     changePlan,
+    dependencyReport,
     refreshReport,
     failures,
     dryRun
@@ -189,6 +235,7 @@ export class AssetImportSession {
       preview,
       transaction,
       changePlan,
+      dependencyReport,
       refreshReport,
       failures,
       dryRun
@@ -201,6 +248,7 @@ export class AssetImportSession {
       preview,
       transaction,
       changePlan,
+      dependencyReport,
       refreshReport,
       failures,
       crossEngineProfile: this.crossEngineProfile()
@@ -212,15 +260,17 @@ function summarize({
   preview,
   transaction,
   changePlan,
+  dependencyReport,
   refreshReport,
   failures,
   dryRun
 }) {
   const transactionSummary = transaction?.summary || {};
   const refreshOk = refreshReport ? Boolean(refreshReport.ok) : null;
+  const dependencyOk = dependencyReport ? Boolean(dependencyReport.ok) : null;
   const ok = dryRun
     ? Boolean(preview.summary?.ok)
-    : Boolean(transaction?.ok) && (refreshOk !== false) && failures.length === 0;
+    : Boolean(transaction?.ok) && (dependencyOk !== false) && (refreshOk !== false) && failures.length === 0;
 
   return {
     ok,
@@ -235,7 +285,9 @@ function summarize({
     blockedCount: Number(transactionSummary.blockedCount || 0),
     failedCount: failures.length,
     runtimeActionCount: Number(changePlan?.runtimeActions?.length || 0),
-    editorEventCount: Number(changePlan?.editorEvents?.length || 0)
+    editorEventCount: Number(changePlan?.editorEvents?.length || 0),
+    dependencyStaleCount: Number(dependencyReport?.summary?.staleImportCount || 0),
+    dependencyMissingCount: Number(dependencyReport?.summary?.missingDependencyCount || 0)
   };
 }
 
@@ -264,6 +316,21 @@ function importedAssetFor(entry, result, reference) {
     bundle: entry.output?.bundle || entry.current?.bundle || 'default',
     dependencies: normalizeArray(entry.reimport?.inputs?.dependencies || entry.current?.dependencies).map(normalizeRef)
   };
+}
+
+function knownInputsForSession(current, changes) {
+  const inputs = [];
+  for (const record of normalizeArray(current)) {
+    inputs.push(record.source, record.path);
+    inputs.push(...normalizeArray(record.reimport?.inputs?.dependencies));
+    inputs.push(...normalizeArray(record.reimport?.inputs?.dynamicDependencies));
+    inputs.push(...normalizeArray(record.dynamicDependencies));
+    inputs.push(...normalizeArray(record.dependencies));
+  }
+  for (const change of normalizeArray(changes)) {
+    inputs.push(typeof change === 'string' ? change : change.path || change.source || change.asset);
+  }
+  return inputs.filter(Boolean).map(normalizeRef);
 }
 
 function shouldRefresh(changePlan) {
