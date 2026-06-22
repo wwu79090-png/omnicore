@@ -33,3 +33,5 @@ When verification fails, the editor also creates `state.renderOptimizationRemedi
 Remediation actions can be applied through `EditorAPI.applyRenderOptimizationRemediation(actionId)`. Applied actions write back into the editor render optimization plan, update the runtime export budget, emit `editor:render-optimization-remediation-applied`, and mark progress in the diagnostics panel.
 
 For guided repair flows, `EditorAPI.applyRenderOptimizationRemediationPlan()` applies every pending remediation action and emits `editor:render-optimization-remediation-apply-report`. The report records requested, applied, skipped, and failed counts, and is included in runtime sync as `renderOptimizationRemediationReport`.
+
+After a batch remediation pass, `EditorAPI.reverifyRenderOptimizationRemediation(input)` creates `omnicore.render-optimization-remediation-reverify-report.v1`, updates the latest verification result, emits `editor:render-optimization-remediation-reverify-report`, and includes the report in runtime sync as `renderOptimizationRemediationReverify`. This closes the editor loop from failed gate, to remediation plan, to applied fixes, to measured recovery.

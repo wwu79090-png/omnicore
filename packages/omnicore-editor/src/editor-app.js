@@ -1121,6 +1121,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     verifyRenderOptimizationPlan,
     applyRenderOptimizationRemediation,
     applyRenderOptimizationRemediationPlan,
+    reverifyRenderOptimizationRemediation,
     createRuntimeSyncPayload,
     applyRuntimeSyncPayload,
     create25DPreview,
@@ -2352,6 +2353,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       },
       applyRenderOptimizationRemediationPlan(options = {}) {
         return applyRenderOptimizationRemediationPlan(options);
+      },
+      reverifyRenderOptimizationRemediation(input = {}, options = {}) {
+        return reverifyRenderOptimizationRemediation(input, options);
       },
       addUIButton(button = {}) {
         return addUIButton(button);
@@ -4711,6 +4715,92 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return report;
   }
 
+  function reverifyRenderOptimizationRemediation(input = {}, options = {}) {
+    const previousVerification = current.renderOptimizationVerification;
+    const remediationReport = current.renderOptimizationRemediationApplyReport;
+    const reverifiedAt = resolveEditorVerificationTimestamp(
+      input.reverifiedAt || options.reverifiedAt || input.verifiedAt || options.verifiedAt || (input.now ?? options.now)
+    );
+    const runtimePlan = input.runtimePlan || createRenderOptimizationRuntimePlan(current.renderOptimizationPlan, {
+      generatedAt: reverifiedAt
+    });
+    const applyReport = input.applyReport || remediationReport || {
+      schema: 'omnicore.render-optimization-apply-report.v1',
+      sourcePlanId: runtimePlan.sourcePlanId || previousVerification?.sourcePlanId || current.renderOptimizationPlan?.id || null,
+      status: 'applied',
+      applied: cloneState(runtimePlan.runtimeActions || []),
+      summary: { appliedCount: runtimePlan.runtimeActions?.length || 0 }
+    };
+    const verification = createEditorRenderOptimizationVerificationReport(current, {
+      ...input,
+      applyReport,
+      runtimePlan,
+      source: input.source || options.source || 'editor-render-remediation-reverify',
+      verifiedAt: reverifiedAt
+    }, options);
+    const previousFailedGates = (previousVerification?.gates || []).filter((gate) => !gate.ok);
+    const previousFailedGateIds = new Set(previousFailedGates.map((gate) => gate.id));
+    const stillFailingGates = (verification.gates || []).filter((gate) => !gate.ok);
+    const stillFailingGateIds = new Set(stillFailingGates.map((gate) => gate.id));
+    const recoveredGateCount = previousFailedGateIds.size
+      ? [...previousFailedGateIds].filter((id) => !stillFailingGateIds.has(id)).length
+      : Math.max(0, Number(verification.summary?.gatesPassed || 0));
+    const remediationAppliedCount = Number(
+      remediationReport?.summary?.appliedCount
+      ?? remediationReport?.applied?.length
+      ?? applyReport.summary?.appliedCount
+      ?? applyReport.applied?.length
+      ?? 0
+    );
+    const reverify = {
+      schema: 'omnicore.render-optimization-remediation-reverify-report.v1',
+      source: input.source || options.source || 'editor-render-remediation-reverify',
+      sourcePlanId: verification.sourcePlanId || runtimePlan.sourcePlanId || null,
+      generatedAt: reverifiedAt,
+      ok: verification.ok === true,
+      status: verification.ok ? 'recovered' : 'still-failing',
+      previousVerificationStatus: previousVerification?.status || null,
+      remediationAppliedCount,
+      verification,
+      stillFailingGates: cloneState(stillFailingGates),
+      summary: {
+        recoveredGateCount,
+        previousFailedGateCount: previousFailedGateIds.size || (verification.gates || []).length,
+        stillFailingGateCount: stillFailingGates.length,
+        frameMsDelta: roundEditorVerificationMetric(verification.summary?.frameMsDelta || 0)
+      },
+      crossEngineProfile: {
+        sources: [
+          { engine: 'Unity', advantage: 'profile again after fixes and keep pass/fail evidence attached to the editor state' },
+          { engine: 'Unreal', advantage: 're-run budget gates after remediation instead of treating fixes as complete by execution' },
+          { engine: 'Godot', advantage: 'make recovery status visible inside the beginner-facing editor panel' },
+          { engine: 'PixiJS', advantage: 'verify batching, texture uploads, and filter costs after every render repair pass' }
+        ],
+        capabilities: [
+          'post-remediation-render-reverify',
+          'recovered-budget-gate-summary',
+          'runtime-sync-reverify-report',
+          'editor-visible-render-recovery-state'
+        ]
+      }
+    };
+    current = createEditorState({
+      ...current,
+      renderOptimizationVerification: verification,
+      renderOptimizationRemediationReverifyReport: reverify,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'render-diagnostics', 'bottom')
+    });
+    emit('editor:render-optimization-remediation-reverify-report', reverify);
+    emit('editor:render-optimization-verification', verification);
+    pushHistory(current, verification.ok ? '渲染补救复验通过' : '渲染补救复验仍未通过');
+    update(current);
+    showEditorFeedback(
+      verification.ok ? '渲染补救复验通过' : '渲染补救复验仍未通过',
+      verification.ok ? 'success' : 'warning'
+    );
+    return reverify;
+  }
+
   function createRuntimeSyncPayload() {
     const generatedAt = new Date().toISOString();
     return {
@@ -4726,6 +4816,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       renderOptimizationVerification: cloneState(current.renderOptimizationVerification),
       renderOptimizationRemediation: cloneState(current.renderOptimizationRemediationPlan),
       renderOptimizationRemediationReport: cloneState(current.renderOptimizationRemediationApplyReport),
+      renderOptimizationRemediationReverify: cloneState(current.renderOptimizationRemediationReverifyReport),
       renderOptimizationRuntime: createRenderOptimizationRuntimePlan(current.renderOptimizationPlan, { generatedAt })
     };
   }
@@ -4742,6 +4833,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       renderOptimizationVerification: payload.renderOptimizationVerification || current.renderOptimizationVerification,
       renderOptimizationRemediationPlan: payload.renderOptimizationRemediation || payload.renderOptimizationRemediationPlan || current.renderOptimizationRemediationPlan,
       renderOptimizationRemediationApplyReport: payload.renderOptimizationRemediationReport || payload.renderOptimizationRemediationApplyReport || current.renderOptimizationRemediationApplyReport,
+      renderOptimizationRemediationReverifyReport: payload.renderOptimizationRemediationReverify || payload.renderOptimizationRemediationReverifyReport || current.renderOptimizationRemediationReverifyReport,
       flowGraph: payload.flowGraph || current.flowGraph
     });
     emit('editor:runtime-sync-applied', { protocol: payload.protocol || null });
@@ -7451,6 +7543,23 @@ export function createEditorApp(root = document.querySelector('#app'), {
       reportMeta.textContent = remediationReport.generatedAt || '-';
       reportBlock.append(reportTitle, reportSummary, reportMeta);
       wrap.appendChild(reportBlock);
+    }
+    const reverifyReport = current.renderOptimizationRemediationReverifyReport;
+    if (reverifyReport) {
+      const reverifyBlock = document.createElement('div');
+      reverifyBlock.className = 'render-optimization-remediation-reverify';
+      reverifyBlock.dataset.renderOptimizationRemediationReverify = 'true';
+      reverifyBlock.dataset.renderOptimizationRemediationReverifyStatus = reverifyReport.status || 'unknown';
+      const reverifyTitle = document.createElement('strong');
+      reverifyTitle.textContent = reverifyReport.ok ? '复验通过' : '复验未通过';
+      const reverifySummary = document.createElement('span');
+      const recoveredGateCount = Number(reverifyReport.summary?.recoveredGateCount || 0);
+      const previousFailedGateCount = Number(reverifyReport.summary?.previousFailedGateCount || recoveredGateCount + Number(reverifyReport.summary?.stillFailingGateCount || 0));
+      reverifySummary.textContent = `恢复 ${recoveredGateCount}/${previousFailedGateCount} · 仍失败 ${reverifyReport.summary?.stillFailingGateCount || 0} · 帧耗时 ${formatSignedRenderMetric(reverifyReport.summary?.frameMsDelta)}ms`;
+      const reverifyMeta = document.createElement('small');
+      reverifyMeta.textContent = `${reverifyReport.source || 'editor'} · ${reverifyReport.generatedAt || '-'}`;
+      reverifyBlock.append(reverifyTitle, reverifySummary, reverifyMeta);
+      wrap.appendChild(reverifyBlock);
     }
     return wrap;
   }
@@ -10749,6 +10858,12 @@ const EDITOR_CSS = `
   .render-optimization-remediation-report span { min-width: 0; color: #ecfccb; overflow-wrap: anywhere; }
   .render-optimization-remediation-report small { color: #a3e635; white-space: nowrap; }
   .render-optimization-remediation-report[data-render-optimization-remediation-report-status="failed"] { border-color: #991b1b; background: #1f0909; }
+  .render-optimization-remediation-reverify { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; min-width: 0; padding: 7px 8px; border: 1px solid #0f766e; border-radius: 6px; background: #061614; }
+  .render-optimization-remediation-reverify strong { color: #99f6e4; font-size: 11px; white-space: nowrap; }
+  .render-optimization-remediation-reverify span { min-width: 0; color: #ccfbf1; overflow-wrap: anywhere; }
+  .render-optimization-remediation-reverify small { color: #5eead4; white-space: nowrap; }
+  .render-optimization-remediation-reverify[data-render-optimization-remediation-reverify-status="still-failing"] { border-color: #991b1b; background: #1f0909; }
+  .render-optimization-remediation-reverify[data-render-optimization-remediation-reverify-status="still-failing"] strong { color: #fecaca; }
   .profiler-wrap { display: grid; gap: 5px; }
   .profiler-flamegraph { display: grid; gap: 4px; padding: 6px; border: 1px solid #334155; background: #020617; }
   .profiler-row { display: grid; grid-template-columns: 132px 1fr 56px; gap: 6px; align-items: center; }
