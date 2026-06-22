@@ -312,6 +312,7 @@ import SleepWakeSystem from './optimization/SleepWakeSystem.js';
 import ViewportCulling from './optimization/ViewportCulling.js';
 import AdaptiveQualityManager from './optimization/AdaptiveQualityManager.js';
 import DeviceProfiler from './optimization/DeviceProfiler.js';
+import FrameDiagnosticsCapture from './performance/FrameDiagnosticsCapture.js';
 import FrameBudgetScheduler from './performance/FrameBudgetScheduler.js';
 import FramePacingController from './performance/FramePacingController.js';
 import PerformanceBudgetEnvelope from './performance/PerformanceBudgetEnvelope.js';
@@ -1238,6 +1239,7 @@ const OmniCore = {
   ViewportCulling,
   AdaptiveQualityManager,
   DeviceProfiler,
+  FrameDiagnosticsCapture,
   FrameBudgetScheduler,
   FramePacingController,
   PerformanceBudgetEnvelope,
@@ -1539,6 +1541,7 @@ export {
   Font,
   VirtualAssetFS,
   FantasyConsoleBank,
+  FrameDiagnosticsCapture,
   FrameBudgetScheduler,
   FramePacingController,
   PerformanceBudgetEnvelope,

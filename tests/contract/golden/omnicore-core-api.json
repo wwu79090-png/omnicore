@@ -1998,6 +1998,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "FrameDiagnosticsCapture"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "FramePacingController"
       },
       {
@@ -3308,6 +3313,7 @@
       "FixedMemoryPool",
       "Font",
       "FrameBudgetScheduler",
+      "FrameDiagnosticsCapture",
       "FramePacingController",
       "FrameProfiler",
       "FunctionQualityTools",

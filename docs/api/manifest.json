@@ -1701,6 +1701,15 @@
       ]
     },
     {
+      "path": "performance/FrameDiagnosticsCapture.js",
+      "summary": "",
+      "exports": [
+        "FRAME_DIAGNOSTICS_LANES",
+        "FRAME_DIAGNOSTICS_CAPTURE_SCHEMA",
+        "FrameDiagnosticsCapture"
+      ]
+    },
+    {
       "path": "performance/FramePacingController.js",
       "summary": "",
       "exports": [
