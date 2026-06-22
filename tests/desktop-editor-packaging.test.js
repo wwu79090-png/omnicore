@@ -1,17 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-
-let createEditorApp;
-let editorViteConfig;
+import { afterEach, describe, expect, it } from 'vitest';
+import { createEditorApp } from 'omnicore-editor/src/editor-app.js';
+import editorViteConfig from 'omnicore-editor/vite.config.js';
 
 describe('standalone desktop-grade OmniCore Editor', () => {
-  beforeAll(async () => {
-    ({ createEditorApp } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/editor-app.js')).href));
-    ({ default: editorViteConfig } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/vite.config.js')).href));
-  });
-
   afterEach(() => {
     document.body.innerHTML = '';
   });

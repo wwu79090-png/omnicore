@@ -1,13 +1,6 @@
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { createEditorApp } from 'omnicore-editor/src/editor-app.js';
 import { EditorCoCreator25D } from '../src/index.js';
-
-let createEditorApp;
-
-beforeAll(async () => {
-  ({ createEditorApp } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/editor-app.js')).href));
-});
 
 describe('OmniCore 2.5D editor co-creation', () => {
   it('plans a tower behind a forest with a sword on top from Chinese natural language', () => {

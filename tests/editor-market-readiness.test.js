@@ -1,15 +1,7 @@
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { createEditorApp } from 'omnicore-editor/src/editor-app.js';
+import { createEditorState } from 'omnicore-editor/src/live-sync-protocol.js';
 import { buildEditorMarketReadiness } from '../src/editor/EditorMarketReadiness.js';
-
-let createEditorApp;
-let createEditorState;
-
-beforeAll(async () => {
-  ({ createEditorApp } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/editor-app.js')).href));
-  ({ createEditorState } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/live-sync-protocol.js')).href));
-});
 
 describe('editor market readiness', () => {
   it('scores editor and low-code maturity from real app workflow evidence', () => {

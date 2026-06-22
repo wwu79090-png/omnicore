@@ -1,16 +1,8 @@
-import { beforeAll, describe, expect, it } from 'vitest';
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-
-let createEditorApp;
-let createEditorState;
+import { describe, expect, it } from 'vitest';
+import { createEditorApp } from 'omnicore-editor/src/editor-app.js';
+import { createEditorState } from 'omnicore-editor/src/live-sync-protocol.js';
 
 describe('editor productivity max workflow', () => {
-  beforeAll(async () => {
-    ({ createEditorApp } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/editor-app.js')).href));
-    ({ createEditorState } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/live-sync-protocol.js')).href));
-  });
-
   function mountEditor() {
     document.body.innerHTML = '<main id="app"></main>';
     const root = document.querySelector('#app');

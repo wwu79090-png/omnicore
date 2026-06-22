@@ -1,17 +1,7 @@
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createEditorApp } from 'omnicore-editor/src/editor-app.js';
+import { createEditorState } from 'omnicore-editor/src/live-sync-protocol.js';
 import { Entity, Store } from '../src/index.js';
-
-let createEditorApp;
-let createEditorState;
-
-beforeAll(async () => {
-  const editorAppUrl = pathToFileURL(path.resolve('packages/omnicore-editor/src/editor-app.js')).href;
-  const syncProtocolUrl = pathToFileURL(path.resolve('packages/omnicore-editor/src/live-sync-protocol.js')).href;
-  ({ createEditorApp } = await import(editorAppUrl));
-  ({ createEditorState } = await import(syncProtocolUrl));
-});
 
 describe('Godot-style entity API ergonomics', () => {
   it('creates entities with local signals and mutable position accessors that sync Store', () => {

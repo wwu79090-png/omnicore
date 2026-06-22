@@ -1,17 +1,8 @@
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createEditorApp } from 'omnicore-editor/src/editor-app.js';
+import { applyLiveSyncMessage, createEditorState } from 'omnicore-editor/src/live-sync-protocol.js';
 import { createAssetWatchServer } from '../scripts/asset-watch-server.js';
 import { AssetRegistry, AssetRegistryChangeSet } from '../src/index.js';
-
-let createEditorApp;
-let createEditorState;
-let applyLiveSyncMessage;
-
-beforeAll(async () => {
-  ({ createEditorApp } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/editor-app.js')).href));
-  ({ createEditorState, applyLiveSyncMessage } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/live-sync-protocol.js')).href));
-});
 
 afterEach(() => {
   document.body.innerHTML = '';

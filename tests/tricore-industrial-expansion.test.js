@@ -1,23 +1,14 @@
 import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { createCollaborationSession } from 'omnicore-editor/src/collaboration.js';
+import { createEditorApp } from 'omnicore-editor/src/editor-app.js';
+import { createEditorState } from 'omnicore-editor/src/live-sync-protocol.js';
 import {
   RendererContract,
   WebGPURenderer,
   createRendererPerformanceSandbox,
   createWebGPUComputeParticleDescriptor
 } from '../src/index.js';
-
-let createEditorApp;
-let createEditorState;
-let createCollaborationSession;
-
-beforeAll(async () => {
-  ({ createEditorApp } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/editor-app.js')).href));
-  ({ createEditorState } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/live-sync-protocol.js')).href));
-  ({ createCollaborationSession } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/collaboration.js')).href));
-});
 
 afterEach(() => {
   document.body.innerHTML = '';

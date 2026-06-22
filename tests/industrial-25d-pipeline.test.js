@@ -3,8 +3,9 @@ import { mkdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { createEditorApp } from 'omnicore-editor/src/editor-app.js';
+import { createEditorState } from 'omnicore-editor/src/live-sync-protocol.js';
 import OmniCore, {
   Camera,
   Scene,
@@ -15,14 +16,6 @@ import OmniCore, {
   createSpineFFDVertexShader
 } from '../src/index.js';
 import Dimension3D from '../src/dimension3d/Dimension3D.js';
-
-let createEditorApp;
-let createEditorState;
-
-beforeAll(async () => {
-  ({ createEditorApp } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/editor-app.js')).href));
-  ({ createEditorState } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/live-sync-protocol.js')).href));
-});
 
 describe('industrial 2.5D pipeline', () => {
   it('creates HD-2D, normal-light, and Spine FFD shader descriptors without runtime dependencies', () => {

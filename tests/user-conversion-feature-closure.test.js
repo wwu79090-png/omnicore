@@ -1,8 +1,8 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { createEditorApp } from 'omnicore-editor/src/editor-app.js';
 import {
   createWebGPUHardwareEvidencePayload,
   createWebGPUShaderVariantRegistry,
@@ -13,11 +13,6 @@ import { createEngineDoctorReport, writeEngineDoctorMarkdown } from '../scripts/
 import { generateMobileShells } from '../scripts/generate-mobile-shells.js';
 
 const tempRoots = [];
-let createEditorApp;
-
-beforeAll(async () => {
-  ({ createEditorApp } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/editor-app.js')).href));
-});
 
 afterEach(() => {
   while (tempRoots.length) rmSync(tempRoots.pop(), { recursive: true, force: true });

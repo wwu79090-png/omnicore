@@ -1,16 +1,8 @@
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-
-let createEditorApp;
-let createEditorState;
+import { afterEach, describe, expect, it } from 'vitest';
+import { createEditorApp } from 'omnicore-editor/src/editor-app.js';
+import { createEditorState } from 'omnicore-editor/src/live-sync-protocol.js';
 
 describe('mature desktop editor UI', () => {
-  beforeAll(async () => {
-    ({ createEditorApp } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/editor-app.js')).href));
-    ({ createEditorState } = await import(pathToFileURL(path.resolve('packages/omnicore-editor/src/live-sync-protocol.js')).href));
-  });
-
   afterEach(() => {
     document.body.innerHTML = '';
   });
