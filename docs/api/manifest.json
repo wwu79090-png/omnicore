@@ -1298,6 +1298,14 @@
       ]
     },
     {
+      "path": "input/InputBindingProfile.js",
+      "summary": "",
+      "exports": [
+        "INPUT_BINDING_PROFILE_SCHEMA",
+        "InputBindingProfile"
+      ]
+    },
+    {
       "path": "input/InputDeviceMap.js",
       "summary": "",
       "exports": [

@@ -78,6 +78,7 @@ import BitmapText from './text/BitmapText.js';
 import SceneManager from './scene/SceneManager.js';
 import InputManager from './input/InputManager.js';
 import InputActionContextStack from './input/InputActionContextStack.js';
+import InputBindingProfile from './input/InputBindingProfile.js';
 import InputDeviceMap from './input/InputDeviceMap.js';
 import Tween, { TweenSequence } from './tween/Tween.js';
 import Timer from './timer/Timer.js';
@@ -1061,6 +1062,7 @@ const OmniCore = {
   TweenSequence,
   Input: InputManager,
   InputActionContextStack,
+  InputBindingProfile,
   InputManager,
   InputDeviceMap,
   InputSequence,
@@ -1567,6 +1569,7 @@ export {
   I18n,
   Localization,
   InputActionContextStack,
+  InputBindingProfile,
   InputDeviceMap,
   InputManager,
   InputSequence,

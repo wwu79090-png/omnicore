@@ -2073,6 +2073,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "InputBindingProfile"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "InputDeviceMap"
       },
       {
@@ -3332,6 +3337,7 @@
       "I18n",
       "Input",
       "InputActionContextStack",
+      "InputBindingProfile",
       "InputDeviceMap",
       "InputManager",
       "InputSequence",
