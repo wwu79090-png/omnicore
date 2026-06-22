@@ -4,6 +4,7 @@ export class PhysicsBackend {
     this.module = module;
     this.world = null;
     this.bodies = new Map();
+    this.constraints = new Map();
   }
 
   async init(options = {}) {
@@ -24,8 +25,9 @@ export class PhysicsBackend {
   }
 
   createWorld(options = {}) {
-    this.world = this.module?.createWorld?.(options) || { name: this.name, bodies: new Map() };
+    this.world = this.module?.createWorld?.(options) || { name: this.name, bodies: new Map(), constraints: new Map() };
     if (!this.world.bodies) this.world.bodies = new Map();
+    if (!this.world.constraints) this.world.constraints = new Map();
     return this.world;
   }
 
@@ -43,6 +45,33 @@ export class PhysicsBackend {
     this.bodies.set(stored.id, stored);
     world?.bodies?.set?.(stored.id, stored);
     return stored;
+  }
+
+  createConstraint(options = {}) {
+    if (!this.world) this.createWorld();
+    const constraint = normalizeConstraintState(options);
+    const nativeConstraint = this.module?.createConstraint
+      ? this.module.createConstraint(this.world, constraint)
+      : { ...constraint, backend: this.name };
+    const stored = { ...constraint, ...nativeConstraint, id: constraint.id, backend: this.name };
+    this.constraints.set(stored.id, stored);
+    this.world?.constraints?.set?.(stored.id, stored);
+    return stored;
+  }
+
+  getConstraint(id) {
+    return this.world?.constraints?.get?.(id) || this.constraints.get(id) || null;
+  }
+
+  removeConstraint(id) {
+    this.module?.removeConstraint?.(this.world, id);
+    this.world?.constraints?.delete?.(id);
+    return this.constraints.delete(id);
+  }
+
+  listConstraints() {
+    syncConstraintMap(this.constraints, this.world?.constraints);
+    return [...this.constraints.values()].map((constraint) => ({ ...constraint }));
   }
 
   getRigidBody(id) {
@@ -89,13 +118,38 @@ export class PhysicsBackend {
     if (this.module?.raycast) {
       return this.module.raycast(this.world, origin, direction, maxDistance);
     }
-    return null;
+    return fallbackRaycast([...this.bodies.values()], origin, direction, maxDistance);
+  }
+
+  createDebugDraw() {
+    return {
+      backend: this.name,
+      colliders: [...this.bodies.values()].map((body) => ({
+        id: body.id,
+        shape: body.collider.shape,
+        x: body.x,
+        y: body.y,
+        width: body.collider.width,
+        height: body.collider.height,
+        radius: body.collider.radius,
+        sensor: body.sensor
+      })),
+      constraints: this.listConstraints().map((constraint) => ({
+        id: constraint.id,
+        type: constraint.type,
+        bodyA: constraint.bodyA,
+        bodyB: constraint.bodyB,
+        limits: constraint.limits
+      }))
+    };
   }
 
   destroy(world = this.world) {
     this.module?.destroy?.(world);
     this.bodies.clear();
+    this.constraints.clear();
     world?.bodies?.clear?.();
+    world?.constraints?.clear?.();
     if (world === this.world) this.world = null;
   }
 }
@@ -114,9 +168,95 @@ export function normalizeBodyState(body = {}) {
     height: numberOr(body.height, body.h, 1),
     radius: numberOr(body.radius, 0),
     type: body.type || 'dynamic',
-    sensor: Boolean(body.sensor || body.isSensor),
+    collider: normalizeColliderState(body.collider || body.shape || body),
+    sensor: Boolean(body.sensor || body.isSensor || body.collider?.sensor || body.collider?.isSensor),
     material: body.material || body.physicsMaterial || null,
+    collisionFilter: normalizeCollisionFilter(body.collisionFilter),
     backend: body.backend || null
+  };
+}
+
+export function normalizeConstraintState(constraint = {}) {
+  const id = String(constraint.id || constraint.name || `constraint-${Math.random().toString(36).slice(2)}`);
+  return {
+    id,
+    type: constraint.type || 'fixed',
+    bodyA: constraint.bodyA || constraint.a || null,
+    bodyB: constraint.bodyB || constraint.b || null,
+    anchorA: normalizePoint(constraint.anchorA),
+    anchorB: normalizePoint(constraint.anchorB),
+    limits: constraint.limits ? { ...constraint.limits } : null,
+    motor: constraint.motor ? { ...constraint.motor } : null,
+    breakForce: constraint.breakForce == null ? null : numberOr(constraint.breakForce, 0),
+    collideConnected: Boolean(constraint.collideConnected)
+  };
+}
+
+function normalizeColliderState(collider = {}) {
+  const shape = typeof collider === 'string' ? collider : collider.shape || collider.type || 'box';
+  return {
+    shape,
+    width: numberOr(collider.width, collider.w, collider.size?.[0], 1),
+    height: numberOr(collider.height, collider.h, collider.size?.[1], 1),
+    radius: numberOr(collider.radius, shape === 'circle' ? 0.5 : 0),
+    depth: numberOr(collider.depth, collider.size?.[2], 0),
+    sensor: Boolean(collider.sensor || collider.isSensor)
+  };
+}
+
+function normalizeCollisionFilter(filter = {}) {
+  return {
+    category: filter.category || 'world',
+    mask: Array.isArray(filter.mask) ? [...filter.mask] : (filter.mask == null ? ['world'] : [filter.mask])
+  };
+}
+
+function fallbackRaycast(bodies, origin = {}, direction = {}, maxDistance = Number.POSITIVE_INFINITY) {
+  const start = normalizePoint(origin);
+  const dir = normalizeDirection(direction);
+  const numericDistance = Number(maxDistance);
+  const limit = Number.isFinite(numericDistance) ? Math.max(0, numericDistance) : Number.POSITIVE_INFINITY;
+  const hits = bodies
+    .map((body) => raycastBody(body, start, dir, limit))
+    .filter(Boolean)
+    .sort((left, right) => left.distance - right.distance || left.bodyId.localeCompare(right.bodyId));
+  return hits[0] || null;
+}
+
+function raycastBody(body, origin, direction, maxDistance) {
+  const radius = body.collider.shape === 'circle' || body.collider.shape === 'capsule'
+    ? Math.max(body.collider.radius, body.collider.width / 2, 0.5)
+    : Math.max(body.collider.width, body.collider.height, 1) / 2;
+  const toBody = { x: body.x - origin.x, y: body.y - origin.y };
+  const projected = toBody.x * direction.x + toBody.y * direction.y;
+  if (projected < 0 || projected > maxDistance) return null;
+  const closest = {
+    x: origin.x + direction.x * projected,
+    y: origin.y + direction.y * projected
+  };
+  const dx = body.x - closest.x;
+  const dy = body.y - closest.y;
+  if ((dx * dx) + (dy * dy) > radius * radius) return null;
+  return {
+    bodyId: body.id,
+    body,
+    distance: projected,
+    point: { x: body.x, y: body.y },
+    normal: { x: -direction.x, y: -direction.y }
+  };
+}
+
+function normalizeDirection(direction = {}) {
+  const x = numberOr(direction.x, 0);
+  const y = numberOr(direction.y, 0);
+  const length = Math.hypot(x, y) || 1;
+  return { x: x / length, y: y / length };
+}
+
+function normalizePoint(point = {}) {
+  return {
+    x: numberOr(point.x, 0),
+    y: numberOr(point.y, 0)
   };
 }
 
@@ -124,6 +264,14 @@ function syncMap(target, source) {
   if (!target?.set || !source?.entries) return;
   target.clear?.();
   for (const [id, body] of source.entries()) target.set(id, normalizeBodyState({ ...body, id }));
+}
+
+function syncConstraintMap(target, source) {
+  if (!target?.set || !source?.entries) return;
+  target.clear?.();
+  for (const [id, constraint] of source.entries()) {
+    target.set(id, normalizeConstraintState({ ...constraint, id }));
+  }
 }
 
 function numberOr(...values) {

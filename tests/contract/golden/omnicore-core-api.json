@@ -2639,6 +2639,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "Scene3DKit"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "SceneDocument"
       },
       {
@@ -3189,12 +3194,22 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createWebGPUFrameBudgetReport"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createWebGPUHardwareEvidencePayload"
       },
       {
         "arity": 0,
         "async": false,
         "name": "createWebGPUInstancingDescriptor"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createWebGPUResourceLifecyclePlan"
       },
       {
         "arity": 0,
@@ -3636,6 +3651,7 @@
       "SaveGameArchive",
       "ScalabilityTierMatrix",
       "Scene",
+      "Scene3DKit",
       "SceneDocument",
       "SceneLifecycle",
       "SceneObservableHub",
@@ -3753,8 +3769,10 @@
       "createTilemapChunkStreamPlan",
       "createWebGPUComputeDispatchPlan",
       "createWebGPUComputeParticleDescriptor",
+      "createWebGPUFrameBudgetReport",
       "createWebGPUHardwareEvidencePayload",
       "createWebGPUInstancingDescriptor",
+      "createWebGPUResourceLifecyclePlan",
       "createWebGPUShaderVariantRegistry",
       "createWebGPUTextureArrayBatch",
       "createWebGPUTextureAtlasDescriptor",

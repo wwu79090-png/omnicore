@@ -20,6 +20,7 @@ const PANEL_TITLES = {
   'animation-timeline': '动画时间线',
   'flow-graph': '流程图',
   'graph-editor': '图节点编辑器',
+  'visual-scripting': '可视化脚本',
   'ui-editor': '界面编辑器',
   'global-search': '全局搜索',
   'physics-view': '物理视图',
@@ -481,6 +482,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     exportFlowGraphEventSheet,
     exportBehaviorTreeJson,
     exportVisualScriptGraph,
+    exportVisualScriptEditorSession,
     validateVisualScriptGraph,
     runVisualScript,
     exportUILayoutJson,
@@ -715,6 +717,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       'animation-timeline': renderPanel('animation-timeline', renderTimeline()),
       'flow-graph': renderPanel('flow-graph', renderFlowGraph()),
       'graph-editor': renderPanel('graph-editor', renderGraphEditor()),
+      'visual-scripting': renderPanel('visual-scripting', renderGraphEditor()),
       'ui-editor': renderPanel('ui-editor', renderUIEditor()),
       'global-search': renderPanel('global-search', renderGlobalSearch()),
       'physics-view': renderPanel('physics-view', renderPhysicsView()),
@@ -1120,6 +1123,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       },
       exportVisualScriptGraph() {
         return exportVisualScriptGraph();
+      },
+      exportVisualScriptEditorSession(options = {}) {
+        return exportVisualScriptEditorSession(options);
       },
       validateVisualScriptGraph(options = {}) {
         return validateVisualScriptGraph(options);
@@ -3250,6 +3256,52 @@ export function createEditorApp(root = document.querySelector('#app'), {
     emit('editor:visual-script-run', report);
     update(current);
     return report;
+  }
+
+  function exportVisualScriptEditorSession(options = {}) {
+    const graph = exportVisualScriptGraph();
+    const validation = current.visualScriptValidation || new VisualScriptGraphRuntime({
+      graph,
+      actions: createVisualScriptActions(options.actions),
+      signals: options.signals,
+      maxSteps: options.maxSteps
+    }).validate();
+    const report = current.visualScriptTrace || { event: null, trace: [], events: [], variables: {} };
+    const traceRows = options.includeTrace === false
+      ? []
+      : (Array.isArray(report.trace) ? report.trace : []).map((entry, index) => ({
+        index,
+        nodeId: entry.nodeId || 'unknown',
+        type: entry.type || 'node',
+        text: formatVisualScriptTraceEntry(entry),
+        raw: cloneState(entry)
+      }));
+    return {
+      format: 'OmniCore.VisualScriptEditorSession',
+      version: 1,
+      graph,
+      validation,
+      palette: createVisualScriptPaletteModel(),
+      selectors: {
+        panel: '[data-visual-script-panel="runtime"]',
+        runStart: '[data-visual-script-run="start"]',
+        validate: '[data-visual-script-validate="true"]',
+        trace: '[data-visual-script-trace="true"]'
+      },
+      status: {
+        runnable: validation.ok,
+        nodeCount: graph.nodes.length,
+        edgeCount: graph.edges.length,
+        traceCount: traceRows.length
+      },
+      lastRun: {
+        event: report.event || null,
+        variables: cloneState(report.variables || {}),
+        events: cloneState(report.events || []),
+        traceRows
+      },
+      beginnerChecklist: createVisualScriptBeginnerChecklist({ graph, validation, traceRows })
+    };
   }
 
   function exportUILayoutJson() {
@@ -6233,6 +6285,63 @@ function createVisualScriptActions(customActions = {}) {
     ...builtIns,
     ...(customActions || {})
   };
+}
+
+function createVisualScriptPaletteModel() {
+  return {
+    groups: [
+      {
+        id: 'flow',
+        label: '流程',
+        nodes: [
+          { type: 'event', label: '开始事件', defaultData: { event: 'start' } },
+          { type: 'action', label: '执行动作', defaultData: { op: 'log', message: 'hello' } }
+        ]
+      },
+      {
+        id: 'logic',
+        label: '逻辑',
+        nodes: [
+          { type: 'condition', label: '条件分支', defaultData: { op: 'truthy', left: '$variables.flag' } },
+          { type: 'action', label: '设置变量', defaultData: { op: 'set', target: 'variables.flag', value: true } }
+        ]
+      },
+      {
+        id: 'runtime',
+        label: '运行时',
+        nodes: [
+          { type: 'action', label: '播放动画', defaultData: { op: 'playAnimation', clip: 'Idle' } },
+          { type: 'action', label: '发出信号', defaultData: { op: 'emit', event: 'gameplay:event' } }
+        ]
+      }
+    ]
+  };
+}
+
+function createVisualScriptBeginnerChecklist({ graph = {}, validation = {}, traceRows = [] } = {}) {
+  const nodeTypes = new Set((graph.nodes || []).map((node) => node.type));
+  return [
+    {
+      id: 'add-event',
+      label: '添加开始事件',
+      done: nodeTypes.has('event')
+    },
+    {
+      id: 'connect-node',
+      label: '连接节点',
+      done: (graph.edges || []).length > 0
+    },
+    {
+      id: 'validate-graph',
+      label: '检查节点图',
+      done: validation.ok === true
+    },
+    {
+      id: 'run-start',
+      label: '运行并查看 trace',
+      done: traceRows.length > 0
+    }
+  ];
 }
 
 function formatVisualScriptTraceEntry(entry = {}) {

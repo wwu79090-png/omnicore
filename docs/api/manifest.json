@@ -1164,6 +1164,13 @@
       ]
     },
     {
+      "path": "dimension3d/Scene3DKit.js",
+      "summary": "Full 3D authoring kit for scene composition, free cameras, lights, shadows, PBR materials, GLTF/GLB animation metadata, post effects, and asset validation.",
+      "exports": [
+        "Scene3DKit"
+      ]
+    },
+    {
       "path": "dimension3d/ThreePhysicsBridge.js",
       "summary": "",
       "exports": [
@@ -1943,7 +1950,8 @@
       "summary": "",
       "exports": [
         "PhysicsBackend",
-        "normalizeBodyState"
+        "normalizeBodyState",
+        "normalizeConstraintState"
       ]
     },
     {
@@ -2473,6 +2481,8 @@
         "createWebGPUInstancingDescriptor",
         "createWebGPUTextureArrayBatch",
         "createWebGPUComputeDispatchPlan",
+        "createWebGPUResourceLifecyclePlan",
+        "createWebGPUFrameBudgetReport",
         "collectDrawInstructions",
         "buildGPUBatches"
       ]

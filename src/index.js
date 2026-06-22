@@ -102,8 +102,10 @@ import PixiRenderer from './renderer/PixiRenderer.js';
 import WebGPURenderer, {
   createWebGPUComputeParticleDescriptor,
   createWebGPUComputeDispatchPlan,
+  createWebGPUFrameBudgetReport,
   createWebGPUHardwareEvidencePayload,
   createWebGPUInstancingDescriptor,
+  createWebGPUResourceLifecyclePlan,
   createWebGPUShaderVariantRegistry,
   createWebGPUTextureArrayBatch,
   createWebGPUTextureAtlasDescriptor
@@ -274,6 +276,7 @@ import RuntimeConfigFlags from './platform/RuntimeConfigFlags.js';
 import SystemMenuModel from './platform/SystemMenuModel.js';
 import ElectronNativeBridge from './platform/ElectronNativeBridge.js';
 import Dimension3D from './dimension3d/Dimension3D.js';
+import Scene3DKit from './dimension3d/Scene3DKit.js';
 import ThreePhysicsBridge from './dimension3d/ThreePhysicsBridge.js';
 import { detectEnvironment, detectPlatformAndMergeDefaults, safeInitialize } from './core/Bootstrap.js';
 import TimeGuard from './core/TimeGuard.js';
@@ -1122,6 +1125,7 @@ const OmniCore = {
   Templates,
   Backend,
   Dimension3D,
+  Scene3DKit,
   ThreePhysicsBridge,
   Deprecation,
   Store,
@@ -1178,8 +1182,10 @@ const OmniCore = {
   WebGPURenderer,
   createWebGPUComputeParticleDescriptor,
   createWebGPUComputeDispatchPlan,
+  createWebGPUFrameBudgetReport,
   createWebGPUHardwareEvidencePayload,
   createWebGPUInstancingDescriptor,
+  createWebGPUResourceLifecyclePlan,
   createWebGPUShaderVariantRegistry,
   createWebGPUTextureArrayBatch,
   createWebGPUTextureAtlasDescriptor,
@@ -1554,6 +1560,7 @@ export {
   distance,
   Deprecation,
   Dimension3D,
+  Scene3DKit,
   ThreePhysicsBridge,
   DeterministicReplay,
   DragonBonesAdapter,
@@ -1890,8 +1897,10 @@ export {
   conicGradientFill,
   createWebGPUComputeParticleDescriptor,
   createWebGPUComputeDispatchPlan,
+  createWebGPUFrameBudgetReport,
   createWebGPUHardwareEvidencePayload,
   createWebGPUInstancingDescriptor,
+  createWebGPUResourceLifecyclePlan,
   createWebGPUShaderVariantRegistry,
   createWebGPUTextureArrayBatch,
   createWebGPUTextureAtlasDescriptor,

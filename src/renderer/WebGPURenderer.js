@@ -530,6 +530,82 @@ export function createWebGPUComputeDispatchPlan({
   };
 }
 
+export function createWebGPUResourceLifecyclePlan({
+  currentFrame = 0,
+  idleFrameLimit = 120,
+  memoryBudgetMB = 128,
+  textures = [],
+  buffers = []
+} = {}) {
+  const frame = Math.max(0, Number(currentFrame) || 0);
+  const idleLimit = Math.max(1, Number(idleFrameLimit) || 120);
+  const normalizedTextures = textures.map((texture) => normalizeGpuResource(texture, frame));
+  const normalizedBuffers = buffers.map((buffer) => normalizeGpuResource(buffer, frame));
+  const totalMemoryMB = round2(
+    [...normalizedTextures, ...normalizedBuffers].reduce((sum, resource) => sum + resource.sizeMB, 0)
+  );
+  const toEvict = normalizedTextures
+    .filter((texture) => texture.idleFrames > idleLimit)
+    .map((texture) => texture.id);
+  const mappedBuffers = normalizedBuffers.filter((buffer) => buffer.mapped).map((buffer) => buffer.id);
+  const warnings = [];
+  if (toEvict.length) warnings.push('texture-idle');
+  if (totalMemoryMB > Number(memoryBudgetMB)) warnings.push('memory-budget');
+  if (mappedBuffers.length) warnings.push('mapped-buffer-residency');
+  return {
+    format: 'OmniCore.WebGPUResourceLifecyclePlan',
+    currentFrame: frame,
+    totalMemoryMB,
+    memoryBudgetMB: Number(memoryBudgetMB),
+    textures: normalizedTextures,
+    buffers: normalizedBuffers,
+    toEvict,
+    warnings,
+    recommendations: [
+      ...toEvict.map((id) => `evictTexture:${id}`),
+      ...mappedBuffers.map((id) => `unmapBuffer:${id}`),
+      ...(totalMemoryMB > Number(memoryBudgetMB) ? ['reduceAtlasSizeOrStreamingBudget'] : [])
+    ]
+  };
+}
+
+export function createWebGPUFrameBudgetReport({
+  frameBudgetMs = 16.6,
+  passes = [],
+  drawCalls = 0,
+  batchCount = 0,
+  pipelineCache = {},
+  deviceLost = false,
+  fallbackOrder = ['webgpu', 'pixi', 'canvas']
+} = {}) {
+  const normalizedPasses = passes.map((pass) => ({
+    name: String(pass.name || 'pass'),
+    ms: round2(pass.ms)
+  }));
+  const totalMs = round2(normalizedPasses.reduce((sum, pass) => sum + pass.ms, 0));
+  const budget = Number(frameBudgetMs) || 16.6;
+  const hits = Math.max(0, Number(pipelineCache.hits) || 0);
+  const misses = Math.max(0, Number(pipelineCache.misses) || 0);
+  const pipelineCacheHitRate = hits + misses > 0 ? Math.round((hits / (hits + misses)) * 100) : 100;
+  const warnings = [];
+  if (totalMs > budget) warnings.push('frame-budget-exceeded');
+  if (deviceLost) warnings.push('device-lost');
+  if (pipelineCacheHitRate < 80) warnings.push('pipeline-cache-cold');
+  return {
+    format: 'OmniCore.WebGPUFrameBudgetReport',
+    frameBudgetMs: budget,
+    totalMs,
+    passes: normalizedPasses,
+    drawCalls: Math.max(0, Number(drawCalls) || 0),
+    batchCount: Math.max(0, Number(batchCount) || 0),
+    pipelineCache: { hits, misses },
+    pipelineCacheHitRate,
+    fallbackNext: deviceLost ? fallbackOrder.find((backend) => backend !== 'webgpu') || null : null,
+    warnings,
+    recommendations: buildFrameBudgetRecommendations({ totalMs, budget, deviceLost, pipelineCacheHitRate })
+  };
+}
+
 function normalizeAdapterInfo(adapter = null) {
   if (!adapter) return {};
   const info = adapter.info || adapter.adapterInfo || adapter;
@@ -695,6 +771,36 @@ function packColorChannel(color, channel) {
 function finiteNumber(value, fallback) {
   const numeric = Number(value ?? fallback);
   return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function normalizeGpuResource(resource = {}, currentFrame = 0) {
+  const lastUsedFrame = Math.max(0, Number(resource.lastUsedFrame ?? currentFrame) || 0);
+  return {
+    id: String(resource.id || resource.name || 'resource'),
+    sizeMB: round2(resource.sizeMB),
+    lastUsedFrame,
+    idleFrames: Math.max(0, currentFrame - lastUsedFrame),
+    mapped: Boolean(resource.mapped),
+    label: resource.label || null
+  };
+}
+
+function buildFrameBudgetRecommendations({
+  totalMs,
+  budget,
+  deviceLost,
+  pipelineCacheHitRate
+}) {
+  const recommendations = [];
+  if (totalMs > budget) recommendations.push('splitUploadPassOrReduceDrawCalls');
+  if (pipelineCacheHitRate < 80) recommendations.push('prewarmPipelines');
+  if (deviceLost) recommendations.push('fallbackRenderer:pixi');
+  return recommendations;
+}
+
+function round2(value) {
+  const number = Number(value) || 0;
+  return Math.round(number * 100) / 100;
 }
 
 export default WebGPURenderer;
