@@ -2578,6 +2578,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "SceneStreamingDirector"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "SceneTransitionStack"
       },
       {
@@ -3444,6 +3449,7 @@
       "SceneDocument",
       "SceneLifecycle",
       "SceneObservableHub",
+      "SceneStreamingDirector",
       "SceneTransitionStack",
       "ScreenFlowController",
       "SeededRandom",

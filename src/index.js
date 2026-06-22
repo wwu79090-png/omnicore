@@ -70,6 +70,7 @@ import ComposerSceneFlow from './scene/ComposerSceneFlow.js';
 import RoomExitGraph from './scene/RoomExitGraph.js';
 import RoomHotspotMap from './scene/RoomHotspotMap.js';
 import ScreenFlowController from './scene/ScreenFlowController.js';
+import SceneStreamingDirector from './scene/SceneStreamingDirector.js';
 import WorldPartitionGrid from './scene/WorldPartitionGrid.js';
 import TileSprite from './scene/TileSprite.js';
 import Text from './text/Text.js';
@@ -1039,6 +1040,7 @@ const OmniCore = {
   RoomExitGraph,
   RoomHotspotMap,
   ScreenFlowController,
+  SceneStreamingDirector,
   WorldPartitionGrid,
   SceneDocument,
   assertValidSceneDocument,
@@ -1701,6 +1703,7 @@ export {
   RoomExitGraph,
   RoomHotspotMap,
   ScreenFlowController,
+  SceneStreamingDirector,
   WorldPartitionGrid,
   Sandbox,
   SandboxBus,

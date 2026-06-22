@@ -2404,6 +2404,14 @@
       ]
     },
     {
+      "path": "scene/SceneStreamingDirector.js",
+      "summary": "High-level scene streaming planner for world partition cells, additive scenes, threaded assets, and bundles.",
+      "exports": [
+        "SCENE_STREAMING_DIRECTOR_REPORT_SCHEMA",
+        "SceneStreamingDirector"
+      ]
+    },
+    {
       "path": "scene/SceneTransitionStack.js",
       "summary": "",
       "exports": [
