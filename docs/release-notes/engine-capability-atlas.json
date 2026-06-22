@@ -247,7 +247,8 @@
         "src/assets/AssetImportMetadata.js",
         "src/assets/AssetImportProfile.js",
         "src/assets/AssetImportPreview.js",
-        "src/assets/AssetImportTransaction.js"
+        "src/assets/AssetImportTransaction.js",
+        "src/assets/AssetImportSession.js"
       ],
       "priority": "P0",
       "command": "npm test",
@@ -258,8 +259,8 @@
         "Cocos Creator"
       ],
       "evidenceStatus": {
-        "presentCount": 6,
-        "totalCount": 6,
+        "presentCount": 7,
+        "totalCount": 7,
         "missing": [],
         "checks": [
           {
@@ -284,6 +285,10 @@
           },
           {
             "file": "src/assets/AssetImportTransaction.js",
+            "present": true
+          },
+          {
+            "file": "src/assets/AssetImportSession.js",
             "present": true
           }
         ]

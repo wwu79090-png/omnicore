@@ -304,6 +304,7 @@ import AssetPatchManager from './assets/AssetPatchManager.js';
 import AssetImportMetadata from './assets/AssetImportMetadata.js';
 import AssetImportPreview from './assets/AssetImportPreview.js';
 import AssetImportProfile from './assets/AssetImportProfile.js';
+import AssetImportSession from './assets/AssetImportSession.js';
 import AssetImportTransaction from './assets/AssetImportTransaction.js';
 import AssetPipelineGate, { createAssetPipelineReport } from './assets/AssetPipelineGate.js';
 import PlatformVariantResolver from './assets/PlatformVariantResolver.js';
@@ -1206,6 +1207,7 @@ const OmniCore = {
   AssetImportMetadata,
   AssetImportPreview,
   AssetImportProfile,
+  AssetImportSession,
   AssetImportTransaction,
   AssetManifestGraph,
   AssetPipelineGate,
@@ -1437,6 +1439,7 @@ export {
   AssetImportMetadata,
   AssetImportPreview,
   AssetImportProfile,
+  AssetImportSession,
   AssetImportTransaction,
   AICommandService,
   AIImporter,
