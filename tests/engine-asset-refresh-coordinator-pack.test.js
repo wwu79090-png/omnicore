@@ -35,7 +35,10 @@ describe('engine asset refresh coordinator pack', () => {
       runtimeFailedCount: 0,
       editorEventCount: 2,
       editorFailedCount: 0,
-      hmrSent: true
+      hmrSent: true,
+      severity: 'ok',
+      traceEventCount: 7,
+      panelRowCount: 4
     });
     expect(runtimeCalls).toEqual([
       ['reload', 'texture.hero', 'modified'],
@@ -85,6 +88,104 @@ describe('engine asset refresh coordinator pack', () => {
         message: 'texture upload failed'
       }
     ]);
+  });
+
+  it('emits editor panel snapshots, replay packets, and trace events for closed-loop asset refresh UX', async () => {
+    const plan = createTextureChangePlan();
+    const coordinator = new AssetRefreshCoordinator({
+      handlers: {
+        reloadAsset: async () => ({ uploaded: true }),
+        preloadAsset: async () => ({ queued: true }),
+        refreshAsset: async () => ({ invalidated: true })
+      },
+      editorBus: {
+        emit: async () => {}
+      },
+      websocket: {
+        send: async () => {}
+      }
+    });
+
+    const result = await coordinator.apply(plan);
+
+    expect(result.summary).toMatchObject({
+      severity: 'ok',
+      traceEventCount: 7,
+      panelRowCount: 4
+    });
+    expect(result.editorPanel).toMatchObject({
+      schema: 'omnicore.asset-refresh-editor-panel.v1',
+      source: 'editor-watch-hmr',
+      counters: {
+        directAssetCount: 2,
+        affectedAssetCount: 2,
+        runtimeActionCount: 4,
+        editorEventCount: 2,
+        failureCount: 0
+      }
+    });
+    expect(result.editorPanel.rows).toEqual([
+      expect.objectContaining({
+        asset: 'prefab.hero',
+        role: 'affected',
+        runtimeActionTypes: ['refreshAsset'],
+        runtimeStatus: 'applied',
+        changeKind: null
+      }),
+      expect.objectContaining({
+        asset: 'scene.main',
+        role: 'affected',
+        runtimeActionTypes: ['refreshAsset'],
+        runtimeStatus: 'applied',
+        changeKind: null
+      }),
+      expect.objectContaining({
+        asset: 'texture.enemy',
+        role: 'direct',
+        runtimeActionTypes: ['preloadAsset'],
+        editorEventTypes: ['asset:imported'],
+        runtimeStatus: 'applied',
+        changeKind: 'imported'
+      }),
+      expect.objectContaining({
+        asset: 'texture.hero',
+        role: 'direct',
+        runtimeActionTypes: ['reloadAsset'],
+        editorEventTypes: ['asset:changed'],
+        runtimeStatus: 'applied',
+        changeKind: 'modified'
+      })
+    ]);
+    expect(result.trace.map((event) => event.phase)).toEqual([
+      'runtime',
+      'runtime',
+      'runtime',
+      'runtime',
+      'editor',
+      'editor',
+      'hmr'
+    ]);
+    expect(result.trace[0]).toMatchObject({
+      sequence: 1,
+      phase: 'runtime',
+      status: 'applied',
+      asset: 'texture.hero',
+      actionType: 'reloadAsset'
+    });
+    expect(result.replayPacket).toMatchObject({
+      schema: 'omnicore.asset-refresh-replay.v1',
+      source: 'editor-watch-hmr',
+      planSchema: 'omnicore.asset-registry-change-plan.v1',
+      hmrPayload: {
+        type: 'assets:hot-update'
+      }
+    });
+    expect(result.replayPacket.trace).toEqual(result.trace);
+    expect(result.crossEngineProfile.capabilities).toEqual(expect.arrayContaining([
+      'editor-panel-refresh-snapshot',
+      'replayable-refresh-trace',
+      'severity-gated-refresh-report'
+    ]));
   });
 
   it('lets HMR clients apply change plans through a refresh coordinator while preserving patch output', async () => {
