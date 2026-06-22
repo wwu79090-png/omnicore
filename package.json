@@ -116,6 +116,7 @@
     "quality:engine": "node scripts/engine-quality-gate.js",
     "acceptance:core-experience": "node scripts/core-experience-acceptance.js",
     "improvements": "node scripts/engine-improvements.js",
+    "capabilities": "node scripts/engine-capability-atlas.js",
     "market:compare": "node scripts/market-engine-compare.js",
     "doctor": "node scripts/engine-doctor.js",
     "benchmark": "node scripts/benchmark.js",
@@ -161,10 +162,11 @@
     "three": "^0.184.0"
   },
   "devDependencies": {
-    "@omnicore/core-wasm": "file:packages/omnicore-core-wasm",
     "@commitlint/cli": "^21.0.2",
     "@commitlint/config-conventional": "^21.0.2",
-    "eslint": "^10.5.0",
+    "@omnicore/core-wasm": "file:packages/omnicore-core-wasm",
+    "@vitest/coverage-v8": "^4.1.9",
+    "eslint": "^8.57.1",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.32.0",
     "husky": "^9.1.7",

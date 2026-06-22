@@ -138,7 +138,7 @@ describe('industrial editor polish pass', () => {
     expect(root.querySelector('[data-material-field="colorTint"]').type).toBe('color');
     expect(root.querySelector('[data-material-field="alphaClip"]').type).toBe('number');
     expect(root.querySelector('[data-profiler-history]')?.textContent).toContain('128MB');
-    expect(root.querySelector('[data-profiler-history]')?.textContent).toContain('44 calls');
+    expect(root.querySelector('[data-profiler-history]')?.textContent).toContain('44 次调用');
     app.destroy();
   });
 });

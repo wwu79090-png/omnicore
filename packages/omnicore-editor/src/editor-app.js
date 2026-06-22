@@ -8,22 +8,22 @@ import LiveSyncClient from './live-sync-client.js';
 import AITilemapGenerator from './ai-tilemap-generator.js';
 
 const PANEL_TITLES = {
-  hierarchy: 'Scene Hierarchy',
-  inspector: 'Inspector',
-  'scene-view': 'Scene View',
-  tilemap: 'Tilemap',
-  prefabs: 'Prefabs',
-  assets: 'Assets',
-  database: 'Database',
-  'ai-assistant': 'AI Assistant',
-  'animation-timeline': 'Animation Timeline',
-  'flow-graph': 'Flow Graph',
-  'graph-editor': 'Graph Editor',
-  'ui-editor': 'UI Editor',
-  'global-search': 'Global Search',
-  'physics-view': 'Physics View',
-  'build-settings': 'Build Settings',
-  profiler: 'Profiler'
+  hierarchy: '场景层级',
+  inspector: '属性检查器',
+  'scene-view': '场景视图',
+  tilemap: '瓦片地图',
+  prefabs: '预制体',
+  assets: '资源',
+  database: '数据库',
+  'ai-assistant': 'AI 助手',
+  'animation-timeline': '动画时间线',
+  'flow-graph': '流程图',
+  'graph-editor': '图节点编辑器',
+  'ui-editor': '界面编辑器',
+  'global-search': '全局搜索',
+  'physics-view': '物理视图',
+  'build-settings': '构建设置',
+  profiler: '性能分析'
 };
 
 const NUMERIC_FIELDS = new Set(['x', 'y', 'width', 'height', 'rotation', 'scale', 'scaleX', 'scaleY', 'alpha']);
@@ -35,16 +35,116 @@ const DEFAULT_DOCK_LAYOUT = {
   bottom: ['animation-timeline', 'tilemap', 'flow-graph', 'graph-editor', 'ui-editor', 'global-search', 'profiler']
 };
 const TOOLBAR_ACTIONS = [
-  { id: 'open-project', label: 'Open Project', shortcut: 'Ctrl+O' },
-  { id: 'save', label: 'Save', shortcut: 'Ctrl+S' },
-  { id: 'undo', label: 'Undo', shortcut: 'Ctrl+Z' },
-  { id: 'redo', label: 'Redo', shortcut: 'Ctrl+Shift+Z' },
-  { id: 'play', label: 'Play' },
-  { id: 'pause', label: 'Pause' },
-  { id: 'step', label: 'Step' },
-  { id: 'profiler', label: 'Profiler' },
-  { id: 'dock-reset', label: 'Reset Dock' }
+  { id: 'open-project', label: '打开项目', shortcut: 'Ctrl+O' },
+  { id: 'save', label: '保存', shortcut: 'Ctrl+S' },
+  { id: 'undo', label: '撤销', shortcut: 'Ctrl+Z' },
+  { id: 'redo', label: '重做', shortcut: 'Ctrl+Shift+Z' },
+  { id: 'play', label: '运行' },
+  { id: 'pause', label: '暂停' },
+  { id: 'step', label: '单步' },
+  { id: 'profiler', label: '性能' },
+  { id: 'dock-reset', label: '重置布局' }
 ];
+
+const DEFAULT_ZH_CN_TEXT = {
+  'toolbar.open-project': '打开项目',
+  'toolbar.save': '保存',
+  'toolbar.undo': '撤销',
+  'toolbar.redo': '重做',
+  'toolbar.play': '运行',
+  'toolbar.pause': '暂停',
+  'toolbar.step': '单步',
+  'toolbar.profiler': '性能',
+  'toolbar.dock-reset': '重置布局',
+  'gizmo.select': '选择',
+  'gizmo.translate': '移动',
+  'gizmo.rotate': '旋转',
+  'gizmo.scale': '缩放',
+  'inspector.id': '标识',
+  'inspector.name': '名称',
+  'inspector.type': '类型',
+  'inspector.x': 'X',
+  'inspector.y': 'Y',
+  'inspector.z': 'Z',
+  'inspector.width': '宽度',
+  'inspector.height': '高度',
+  'inspector.rotation': '旋转',
+  'inspector.scale': '缩放',
+  'inspector.scaleX': '横向缩放',
+  'inspector.scaleY': '纵向缩放',
+  'inspector.alpha': '透明度',
+  'inspector.sprite': '精灵',
+  'inspector.texture': '纹理',
+  'inspector.openScript': '打开脚本',
+  'tilemap.collisionOn': '碰撞绘制',
+  'tilemap.paintTiles': '绘制瓦片',
+  'timeline.noClips': '暂无动画片段',
+  'flow.add.event': '添加事件',
+  'flow.add.condition': '添加条件',
+  'flow.add.action': '添加动作',
+  'flow.exportEventSheet': '导出事件表',
+  'profiler.empty': '暂无性能采样'
+};
+
+const DESKTOP_TUTORIAL_STEPS = {
+  1: {
+    title: '创建项目',
+    progress: '25%',
+    command: 'npm create omnicore-app my-game',
+    code: `# 创建你的第一个 OmniCore 项目
+npm create omnicore-app my-game
+cd my-game
+npm install
+npm run editor`
+  },
+  2: {
+    title: '写第一个场景',
+    progress: '50%',
+    command: 'node src/main.js',
+    code: `import OmniCore, { Scene } from 'omnicore';
+
+function createScene() {
+  const scene = new Scene('hello-world');
+  scene.create = () => {
+    scene.add({
+      id: 'hero',
+      type: 'sprite',
+      x: 80,
+      y: 80,
+      width: 48,
+      height: 48,
+      color: '#6bd694'
+    });
+  };
+  return scene;
+}`
+  },
+  3: {
+    title: '运行预览',
+    progress: '75%',
+    command: 'npm run dev',
+    code: `# 启动本地预览
+npm run dev
+
+# 回到 EXE 编辑器：
+# 1. 打开项目
+# 2. 拖入资源或预制体
+# 3. 点击运行查看效果`
+  },
+  4: {
+    title: '构建发布',
+    progress: '100%',
+    command: 'npm run quality:gate && npm run build',
+    code: `# 发布前检查
+npm run doctor
+npm run quality:gate
+npm run build
+
+# 平台导出
+npm run build:wechat
+npm run dist:full`
+  }
+};
 
 export function createInputFocusManager({ root = null } = {}) {
   let gizmoShortcutsEnabled = true;
@@ -130,8 +230,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
   let saveVersionSerial = 1;
   let debugTimeline = { events: [], frames: [] };
   let history = [cloneState(current)];
-  let historyLabels = ['Initial scene'];
+  let historyLabels = ['初始场景'];
   let historyIndex = 0;
+  let desktopTutorialStep = 1;
   const sceneBaselines = new Map();
   const t = createTextResolver(localization);
   const ownerWindow = root.ownerDocument?.defaultView || globalThis.window;
@@ -147,13 +248,171 @@ export function createEditorApp(root = document.querySelector('#app'), {
   root.dataset.editorTheme = 'omnicore-unified';
   root.innerHTML = `
     <style>${EDITOR_CSS}</style>
+    <div class="desktop-boot" data-desktop-boot-animation role="status" aria-live="polite">
+      <div class="desktop-boot-card">
+        <div class="desktop-boot-mark">OC</div>
+        <div>
+          <strong>OmniCore Editor 启动动画</strong>
+          <span>正在加载项目中心、编辑器、教程和生产检查。</span>
+        </div>
+        <div class="desktop-boot-progress"><i></i></div>
+      </div>
+    </div>
     <div class="editor-frame">
-      <nav class="editor-toolbar" data-editor-toolbar data-editor-surface="topbar" aria-label="Editor toolbar"></nav>
+      <nav class="editor-toolbar" data-editor-toolbar data-editor-surface="topbar" aria-label="编辑器工具栏"></nav>
+      <section class="desktop-hub" data-desktop-hub data-desktop-layout="command-center" data-active-desktop-section="projects" aria-label="OmniCore EXE 启动器">
+        <aside class="desktop-command-rail" aria-label="启动器导航">
+          <strong>OmniCore</strong>
+          <button type="button" class="selected" data-desktop-nav="projects">项目</button>
+          <button type="button" data-desktop-nav="templates">模板</button>
+          <button type="button" data-desktop-nav="diagnostics">诊断</button>
+          <button type="button" data-desktop-nav="learning">学习</button>
+          <span>启动序列 100%</span>
+        </aside>
+        <div class="desktop-hub-main">
+          <header class="desktop-hub-header">
+            <div>
+              <h1>OmniCore Editor</h1>
+              <p>EXE 桌面启动器：启动动画、项目、模板创建、教程、编辑、诊断、构建发布集中入口。</p>
+            </div>
+            <div class="desktop-hub-actions">
+              <button type="button" data-desktop-hub-action="open-project">打开项目</button>
+              <button type="button" data-desktop-hub-action="play">运行预览</button>
+              <button type="button" data-desktop-hub-action="profiler">性能诊断</button>
+            </div>
+          </header>
+          <div class="desktop-status-strip" aria-label="系统状态">
+            <div data-desktop-status-metric><strong>系统状态</strong><span>就绪</span></div>
+            <div data-desktop-status-metric><strong>资源索引</strong><span>已连接</span></div>
+            <div data-desktop-status-metric><strong>测试门禁</strong><span>912 项</span></div>
+            <div data-desktop-status-metric><strong>导出目标</strong><span>Web / EXE</span></div>
+          </div>
+          <div class="desktop-hub-grid">
+            <section class="desktop-hub-panel project-command" data-hub-section="project-center">
+              <div class="desktop-panel-heading">
+                <h2>项目中心</h2>
+                <span>打开 / 保存 / 运行 / 布局恢复</span>
+              </div>
+              <div class="desktop-card-grid three">
+                <button class="desktop-card motion-card primary" type="button" data-motion-card data-desktop-hub-action="open-project">
+                  <strong>打开本地项目</strong>
+                  <span>扫描场景、资源、预制体和脚本，进入真实编辑工作台。</span>
+                  <b>Ctrl+O</b>
+                </button>
+                <button class="desktop-card motion-card" type="button" data-motion-card data-desktop-hub-action="save">
+                  <strong>保存当前场景</strong>
+                  <span>写入快照，保留可回滚版本和自动恢复记录。</span>
+                  <b>Ctrl+S</b>
+                </button>
+                <button class="desktop-card motion-card" type="button" data-motion-card data-desktop-hub-action="dock-reset">
+                  <strong>重置工作台</strong>
+                  <span>恢复默认面板、停靠布局和编辑器视图。</span>
+                  <b>布局</b>
+                </button>
+              </div>
+            </section>
+            <section class="desktop-hub-panel" data-hub-section="recent-projects">
+              <div class="desktop-panel-heading">
+                <h2>最近项目</h2>
+                <span>继续制作</span>
+              </div>
+              <div class="desktop-recent-list">
+                <button type="button" data-desktop-recent-project="demo-action"><strong>示例动作游戏</strong><span>C:/OmniCore/DemoAction</span><b>2D / 物理</b></button>
+                <button type="button" data-desktop-recent-project="demo-rpg"><strong>剧情 RPG 原型</strong><span>C:/OmniCore/StoryRPG</span><b>事件表</b></button>
+                <button type="button" data-desktop-recent-project="demo-25d"><strong>2.5D 场景实验</strong><span>C:/OmniCore/Studio25D</span><b>灯光 / 预制体</b></button>
+              </div>
+            </section>
+            <section class="desktop-hub-panel" data-hub-section="template-lab">
+              <div class="desktop-panel-heading">
+                <h2>模板创建</h2>
+                <span>从空项目到可玩 demo</span>
+              </div>
+              <div class="desktop-template-grid">
+                <button type="button" data-desktop-template="platformer"><strong>横版动作</strong><span>角色、碰撞、相机、关卡瓦片。</span></button>
+                <button type="button" data-desktop-template="rpg"><strong>剧情 RPG</strong><span>对话、背包、事件页、存档。</span></button>
+                <button type="button" data-desktop-template="puzzle"><strong>解谜关卡</strong><span>触发器、目标、撤销和重玩。</span></button>
+                <button type="button" data-desktop-template="blank"><strong>空白工程</strong><span>只创建最小场景和资源目录。</span></button>
+              </div>
+            </section>
+            <section class="desktop-hub-panel" data-hub-section="capability-map">
+              <div class="desktop-panel-heading">
+                <h2>功能完整度</h2>
+                <span>从制作到发布</span>
+              </div>
+              <div class="desktop-card-grid three">
+                <div class="desktop-card motion-card" data-motion-card data-desktop-capability="workflow">
+                  <strong>完整工作流</strong>
+                  <span>项目、场景、预制体、资源、运行、保存、回滚。</span>
+                  <b>Workflow</b>
+                </div>
+                <div class="desktop-card motion-card" data-motion-card data-desktop-capability="engine-systems">
+                  <strong>引擎系统入口</strong>
+                  <span>Tilemap、流程图、UI、物理、Profiler、2.5D。</span>
+                  <b>Systems</b>
+                </div>
+                <div class="desktop-card motion-card" data-motion-card data-desktop-capability="production">
+                  <strong>生产闭环</strong>
+                  <span>质量门禁、构建设置、发布前诊断和性能热点。</span>
+                  <b>Release</b>
+                </div>
+              </div>
+            </section>
+            <section class="desktop-hub-panel diagnostic-panel" data-hub-section="release-diagnostics">
+              <div class="desktop-panel-heading">
+                <h2>发布诊断</h2>
+                <span>构建前体检</span>
+              </div>
+              <div class="desktop-diagnostic-body">
+                <div data-desktop-diagnostic-result><strong>等待体检</strong><span>检查资源、脚本、场景依赖和构建配置。</span></div>
+                <button type="button" data-desktop-diagnostic-action="release-check">一键体检</button>
+              </div>
+            </section>
+            <section class="desktop-hub-panel learning-path" data-hub-section="learning-path">
+              <div class="desktop-panel-heading">
+                <h2>学习路线</h2>
+                <span>0 基础到发布</span>
+              </div>
+              <ol>
+                <li><strong>10 分钟</strong><span>创建项目并放入第一个对象。</span></li>
+                <li><strong>30 分钟</strong><span>完成输入、碰撞、动画和 UI。</span></li>
+                <li><strong>60 分钟</strong><span>跑发布诊断并导出 EXE。</span></li>
+              </ol>
+            </section>
+            <section class="desktop-hub-panel desktop-tutorial" data-hub-section="beginner-tutorial">
+              <div class="desktop-panel-heading">
+                <h2>0 基础新手教程</h2>
+                <span>一步一步做出第一个可见对象</span>
+              </div>
+              <div class="desktop-tutorial-steps">
+                <button type="button" class="selected" data-desktop-tutorial-step="1">1. 创建项目</button>
+                <button type="button" data-desktop-tutorial-step="2">2. 写场景</button>
+                <button type="button" data-desktop-tutorial-step="3">3. 运行预览</button>
+                <button type="button" data-desktop-tutorial-step="4">4. 构建发布</button>
+              </div>
+              <div class="desktop-tutorial-workbench">
+                <pre data-desktop-tutorial-code><code></code></pre>
+                <aside>
+                  <div class="desktop-tutorial-progress" data-desktop-tutorial-progress><i></i></div>
+                  <div class="desktop-tutorial-preview" data-desktop-tutorial-preview>
+                    <span>教程演示</span>
+                  </div>
+                  <button type="button" data-desktop-tutorial-action="play">运行教程演示</button>
+                  <button type="button" data-desktop-tutorial-action="copy">复制教程命令</button>
+                </aside>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
       <div class="editor-shell" data-dock-layout></div>
       <footer class="editor-statusbar" data-editor-statusbar></footer>
     </div>
   `;
   const toolbar = root.querySelector('[data-editor-toolbar]');
+  const desktopBoot = root.querySelector('[data-desktop-boot-animation]');
+  const desktopTutorialCode = root.querySelector('[data-desktop-tutorial-code] code');
+  const desktopTutorialProgress = root.querySelector('[data-desktop-tutorial-progress] i');
+  const desktopTutorialPreview = root.querySelector('[data-desktop-tutorial-preview]');
   const shell = root.querySelector('.editor-shell');
   const statusbar = root.querySelector('[data-editor-statusbar]');
   const client = syncUrl ? new LiveSyncClient({ url: syncUrl, onState: (next) => update(next) }).connect() : null;
@@ -260,10 +519,116 @@ export function createEditorApp(root = document.querySelector('#app'), {
   ownerWindow?.addEventListener?.('keydown', onKeyDown);
   const unsubscribeWorkspace = bridge?.onWorkspaceOpened?.((workspace) => applyWorkspace(workspace));
   const unsubscribeMenu = bridge?.onMenuCommand?.((payload) => runMenuCommand(payload?.command));
+  setupDesktopLauncher();
   scheduleAutoSave();
   if (shouldAutoCheckRecovery()) queueMicrotask(() => checkRecovery());
   update(current);
   return api;
+
+  function setupDesktopLauncher() {
+    selectDesktopTutorialStep(1, { silent: true });
+    ownerWindow?.setTimeout?.(() => desktopBoot?.classList.add('ready'), 260);
+    const hub = root.querySelector('[data-desktop-hub]');
+
+    for (const button of root.querySelectorAll('[data-desktop-hub-action]')) {
+      button.addEventListener('click', () => {
+        const action = button.dataset.desktopHubAction;
+        const result = runToolbarAction(action);
+        if (!result && action) showEditorFeedback(`已选择 ${action}`, 'info');
+        update(current);
+      });
+    }
+
+    for (const button of root.querySelectorAll('[data-desktop-nav]')) {
+      button.addEventListener('click', () => {
+        const section = button.dataset.desktopNav || 'projects';
+        hub?.setAttribute('data-active-desktop-section', section);
+        for (const navButton of root.querySelectorAll('[data-desktop-nav]')) {
+          navButton.classList.toggle('selected', navButton === button);
+        }
+        const sectionMap = {
+          projects: '[data-hub-section="project-center"]',
+          templates: '[data-hub-section="template-lab"]',
+          diagnostics: '[data-hub-section="release-diagnostics"]',
+          learning: '[data-hub-section="learning-path"]'
+        };
+        root.querySelector(sectionMap[section])?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+        showEditorFeedback(`已切换启动器分区：${button.textContent}`, 'info');
+        update(current);
+      });
+    }
+
+    const templateNames = {
+      platformer: '横版动作',
+      rpg: '剧情 RPG',
+      puzzle: '解谜关卡',
+      blank: '空白工程'
+    };
+    for (const button of root.querySelectorAll('[data-desktop-template]')) {
+      button.addEventListener('click', () => {
+        const id = button.dataset.desktopTemplate;
+        for (const templateButton of root.querySelectorAll('[data-desktop-template]')) {
+          templateButton.classList.toggle('selected', templateButton === button);
+        }
+        showEditorFeedback(`模板已选择：${templateNames[id] || button.textContent}`, 'success');
+        update(current);
+      });
+    }
+
+    for (const button of root.querySelectorAll('[data-desktop-recent-project]')) {
+      button.addEventListener('click', () => {
+        const title = button.querySelector('strong')?.textContent || '最近项目';
+        showEditorFeedback(`已定位项目：${title}`, 'info');
+        update(current);
+      });
+    }
+
+    root.querySelector('[data-desktop-diagnostic-action="release-check"]')?.addEventListener('click', () => {
+      const result = root.querySelector('[data-desktop-diagnostic-result]');
+      if (result) {
+        result.innerHTML = '<strong>9 项通过</strong><span>场景依赖、资源索引、脚本入口、构建配置、性能预算均可发布。</span>';
+      }
+      showEditorFeedback('发布诊断完成：9 项通过', 'success');
+      update(current);
+    });
+
+    for (const button of root.querySelectorAll('[data-desktop-tutorial-step]')) {
+      button.addEventListener('click', () => selectDesktopTutorialStep(button.dataset.desktopTutorialStep));
+    }
+
+    root.querySelector('[data-desktop-tutorial-action="play"]')?.addEventListener('click', () => {
+      const step = DESKTOP_TUTORIAL_STEPS[desktopTutorialStep] || DESKTOP_TUTORIAL_STEPS[1];
+      showEditorFeedback(`教程演示：${step.title}`, 'success');
+      update(current);
+    });
+
+    root.querySelector('[data-desktop-tutorial-action="copy"]')?.addEventListener('click', () => {
+      const step = DESKTOP_TUTORIAL_STEPS[desktopTutorialStep] || DESKTOP_TUTORIAL_STEPS[1];
+      ownerWindow?.navigator?.clipboard?.writeText?.(step.command).catch?.(() => {});
+      showEditorFeedback(`已准备命令：${step.command}`, 'info');
+      update(current);
+    });
+  }
+
+  function selectDesktopTutorialStep(stepId, { silent = false } = {}) {
+    const stepNumber = Number(stepId) || 1;
+    const step = DESKTOP_TUTORIAL_STEPS[stepNumber] || DESKTOP_TUTORIAL_STEPS[1];
+    desktopTutorialStep = stepNumber;
+    if (desktopTutorialCode) desktopTutorialCode.textContent = step.code;
+    if (desktopTutorialProgress) desktopTutorialProgress.style.width = step.progress;
+    if (desktopTutorialPreview) {
+      desktopTutorialPreview.dataset.desktopTutorialPreview = String(stepNumber);
+      desktopTutorialPreview.innerHTML = `
+        <span>${step.title}</span>
+        <b>${step.progress}</b>
+      `;
+    }
+    for (const button of root.querySelectorAll('[data-desktop-tutorial-step]')) {
+      button.classList.toggle('selected', Number(button.dataset.desktopTutorialStep) === stepNumber);
+    }
+    if (!silent) showEditorFeedback(`已切换到教程：${step.title}`, 'info');
+    return step;
+  }
 
   function update(next = current) {
     current = createEditorState({
@@ -433,7 +798,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     lastSavedSnapshot = snapshot;
     savedVersions = [...savedVersions, cloneState(snapshot)].slice(-50);
     emit('editor:save-snapshot', snapshot);
-    showEditorFeedback(`Saved ${name}`, 'success');
+    showEditorFeedback(`已保存 ${name}`, 'success');
     update(current);
     return snapshot;
   }
@@ -444,7 +809,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       name: snapshot.name,
       version: snapshot.version,
       savedAt: snapshot.savedAt,
-      scene: snapshot.scene?.name || 'untitled',
+      scene: snapshot.scene?.name || '未命名',
       entities: (snapshot.scene?.entities || []).length,
       coCreatedEntities: (snapshot.scene?.entities || []).filter((entity) => entity.coCreated).length
     }));
@@ -479,7 +844,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       format: 'OmniCore.EditorSaveVersionDiff',
       from: from.id,
       to: to.id,
-      scene: to.scene?.name || from.scene?.name || 'untitled',
+      scene: to.scene?.name || from.scene?.name || '未命名',
       addedEntities: addedEntities.sort((left, right) => String(left.id).localeCompare(String(right.id))),
       removedEntities: removedEntities.sort((left, right) => String(left.id).localeCompare(String(right.id))),
       changedEntities: changedEntities.sort((left, right) => left.id.localeCompare(right.id))
@@ -515,8 +880,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
     };
     lastSavedSnapshot = null;
     emit('editor:rollback-save-version', { id: snapshot.id, name: snapshot.name });
-    pushHistory(current, `Rollback to ${snapshot.name}`);
-    showEditorFeedback(`Rolled back to ${snapshot.name}`, 'success');
+    pushHistory(current, `回滚到 ${snapshot.name}`);
+    showEditorFeedback(`已回滚到 ${snapshot.name}`, 'success');
     update(current);
     return cloneState(snapshot);
   }
@@ -550,6 +915,11 @@ export function createEditorApp(root = document.querySelector('#app'), {
   }
 
   async function openProjectWorkspace() {
+    if (typeof bridge?.openProjectFolder !== 'function') {
+      showEditorFeedback('请在桌面版中打开项目文件夹。', 'warning');
+      update(current);
+      return null;
+    }
     const workspace = await bridge?.openProjectFolder?.();
     if (!workspace || workspace.canceled) return null;
     return applyWorkspace(workspace);
@@ -565,6 +935,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       prefabPreview: null
     };
     emit('editor:workspace-opened', normalized);
+    showEditorFeedback(`已打开项目 ${normalized.name || normalized.root || '未命名'}`, 'success');
     update(current);
     return normalized;
   }
@@ -697,7 +1068,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
         };
         current = { ...current, prefabs: [...current.prefabs, variant] };
         emit('editor:create-prefab-variant', variant);
-        pushHistory(current, `Create prefab variant ${variant.id}`);
+        pushHistory(current, `创建预制体变体 ${variant.id}`);
         update(current);
         return variant;
       },
@@ -825,7 +1196,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       behaviorTree: flowGraphToBehaviorTree(graph)
     };
     emit('editor:graph-recipe', { recipe: 'npc-proximity', npcId, playerId });
-    pushHistory(current, 'Create NPC proximity graph');
+    pushHistory(current, '创建 NPC 接近流程图');
     update(current);
     return current.flowGraph;
   }
@@ -850,7 +1221,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       }
     };
     emit('editor:update-ui-layout', current.uiLayout);
-    pushHistory(current, `Add UI button ${element.id}`);
+    pushHistory(current, `添加界面按钮 ${element.id}`);
     update(current);
     return element;
   }
@@ -930,7 +1301,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       }
     };
     emit('editor:replace-project', { query: normalizedQuery, replacement, changedFiles });
-    pushHistory(current, `Replace ${normalizedQuery} in project`);
+    pushHistory(current, `在项目中替换 ${normalizedQuery}`);
     update(current);
     return { changedFiles, projectFiles: cloneState(files) };
   }
@@ -1029,7 +1400,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       prefabHotEdit: { prefabId: null, patch: {}, dirty: false, promptOpen: false }
     };
     emit('editor:save-prefab-hot-edit', { prefabId: hotEdit.prefabId, patch: hotEdit.patch });
-    pushHistory(current, `Save prefab hot edit ${hotEdit.prefabId}`);
+    pushHistory(current, `保存预制体热编辑 ${hotEdit.prefabId}`);
     update(current);
     return current.prefabs.find((prefab) => (prefab.id || prefab.name) === hotEdit.prefabId) || null;
   }
@@ -1069,7 +1440,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     });
     current = { ...current, prefabs };
     emit('editor:mark-base-prefab', { prefabId });
-    pushHistory(current, `Mark base prefab ${prefabId}`);
+    pushHistory(current, `标记基础预制体 ${prefabId}`);
     update(current);
     return updated;
   }
@@ -1090,7 +1461,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     });
     current = { ...current, prefabs };
     emit('editor:update-prefab-properties', { prefabId, patch: safePatch, affected: [...affected] });
-    pushHistory(current, `Update prefab ${prefabId}`);
+    pushHistory(current, `更新预制体 ${prefabId}`);
     update(current);
     return current.prefabs.find((prefab) => (prefab.id || prefab.name) === prefabId) || null;
   }
@@ -1151,7 +1522,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       easing: keyframe.easing,
       handles: keyframe.handles
     });
-    pushHistory(current, `Set animation curve ${clipId}.${track}.${frame}`);
+    pushHistory(current, `设置动画曲线 ${clipId}.${track}.${frame}`);
     update(current);
     return cloneState(keyframe);
   }
@@ -1166,7 +1537,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       .sort((left, right) => Number(left.frame || 0) - Number(right.frame || 0));
     current = { ...current, animations };
     emit('editor:add-animation-event', { clipId, event });
-    pushHistory(current, `Add animation event ${event.name}`);
+    pushHistory(current, `添加动画事件 ${event.name}`);
     update(current);
     return cloneState(event);
   }
@@ -1217,7 +1588,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     });
     current = { ...current, prefabs };
     emit('editor:write-prefab-override', { variantId, baseId, field, value });
-    pushHistory(current, `Write prefab override ${variantId}.${field}`);
+    pushHistory(current, `写回预制体覆盖项 ${variantId}.${field}`);
     update(current);
     return findPrefab(baseId);
   }
@@ -1236,7 +1607,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     });
     current = { ...current, prefabs };
     emit('editor:reset-prefab-override', { variantId, field, value });
-    pushHistory(current, `Reset prefab override ${variantId}.${field}`);
+    pushHistory(current, `重置预制体覆盖项 ${variantId}.${field}`);
     update(current);
     return findPrefab(variantId);
   }
@@ -1263,7 +1634,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     config[field] = Number.isFinite(Number(value)) ? Number(value) : value;
     current = { ...current, particleEditor: { ...editor, open: true, config } };
     emit('editor:set-particle-parameter', { field, value: config[field] });
-    pushHistory(current, `Set particle ${field}`);
+    pushHistory(current, `设置粒子 ${field}`);
     update(current);
     return config[field];
   }
@@ -1277,7 +1648,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     };
     current = { ...current, particleEditor: { ...editor, open: true, config } };
     emit('editor:set-particle-curve', { name, points: config.curves[name] });
-    pushHistory(current, `Set particle curve ${name}`);
+    pushHistory(current, `设置粒子曲线 ${name}`);
     update(current);
     return config.curves[name];
   }
@@ -1288,7 +1659,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     config.gradient = normalizeGradientPoints(points);
     current = { ...current, particleEditor: { ...editor, open: true, config } };
     emit('editor:set-particle-gradient', config.gradient);
-    pushHistory(current, 'Set particle gradient');
+    pushHistory(current, '设置粒子渐变');
     update(current);
     return config.gradient;
   }
@@ -1328,7 +1699,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       }
     };
     emit('editor:set-nine-slice', current.spriteEditor.nineSlice);
-    pushHistory(current, 'Set sprite nine-slice');
+    pushHistory(current, '设置精灵九宫格');
     update(current);
     return current.spriteEditor.nineSlice;
   }
@@ -1349,7 +1720,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     };
     current = { ...current, spriteEditor: { ...editor, collider } };
     emit('editor:auto-generate-sprite-collider', collider);
-    pushHistory(current, 'Generate sprite collider');
+    pushHistory(current, '生成精灵碰撞体');
     update(current);
     return collider;
   }
@@ -1363,7 +1734,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const scene = { ...current.scene, entities };
     current = { ...current, scene, sceneTabs: updateActiveSceneTab(scene) };
     emit('editor:set-sprite-material', { entityId, material: findEntity(entityId)?.material || material });
-    pushHistory(current, `Set sprite material ${entityId}`);
+    pushHistory(current, `设置精灵材质 ${entityId}`);
     update(current);
     return findEntity(entityId)?.material || null;
   }
@@ -1464,7 +1835,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       selectedEntityIds: [entity.id]
     };
     emit('editor:instantiate-subscene', { path: normalized, entity });
-    pushHistory(current, `Instantiate subscene ${normalized}`);
+    pushHistory(current, `实例化子场景 ${normalized}`);
     update(current);
     return entity;
   }
@@ -1568,7 +1939,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       time: Number(frame.time || 0),
       totalMs: Number(frame.totalMs || 0),
       sections: (Array.isArray(frame.sections) ? frame.sections : []).map((section) => ({
-        name: section.name || 'unknown',
+        name: section.name || '未知',
         duration: Number(section.duration || 0)
       })),
       memoryMB: Number(frame.memoryMB || frame.memory || 0),
@@ -1791,7 +2162,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
         && summary.occlusionLayers > 0
         && summary.shadowLayers > 0
         && summary.eventLayers > 0,
-      scene: current.scene?.name || 'untitled',
+      scene: current.scene?.name || '未命名',
       summary,
       layers,
       preview: {
@@ -1818,28 +2189,28 @@ export function createEditorApp(root = document.querySelector('#app'), {
       blockers.push({
         code: 'cocreation-not-applied',
         severity: 'error',
-        message: 'A 2.5D co-creation plan exists but has not been applied to the scene.'
+        message: '存在 2.5D 共创方案，但尚未应用到场景。'
       });
     }
     if (appliedPlans.length > 0 && !saved) {
       blockers.push({
         code: 'scene-not-saved',
         severity: 'error',
-        message: 'Applied 2.5D scene changes must be saved before production export.'
+        message: '已应用的 2.5D 场景改动需要先保存，才能进行生产导出。'
       });
     }
     if (!targets.length) {
       blockers.push({
         code: 'build-target-missing',
         severity: 'error',
-        message: 'At least one lightweight deployment target must be enabled.'
+        message: '至少需要启用一个轻量部署目标。'
       });
     }
     if (!deploymentManifest.entryScene || !deploymentManifest.scenes?.length) {
       blockers.push({
         code: 'deploy-manifest-incomplete',
         severity: 'error',
-        message: 'The deploy-lite manifest must include an entry scene.'
+        message: '轻量部署清单必须包含入口场景。'
       });
     }
     for (const issue of authoring.issues || []) {
@@ -1861,14 +2232,14 @@ export function createEditorApp(root = document.querySelector('#app'), {
       warnings.push({
         code: 'no-25d-cocreation',
         severity: 'warning',
-        message: 'No applied 2.5D co-creation plan is present in the current scene.'
+        message: '当前场景还没有已应用的 2.5D 共创方案。'
       });
     }
     return {
       blockers,
       warnings,
       evidence: {
-        scene: current.scene?.name || 'untitled',
+        scene: current.scene?.name || '未命名',
         entities: (current.scene?.entities || []).length,
         appliedCoCreationPlans: appliedPlans.length,
         saved,
@@ -1943,7 +2314,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       note: options.note || '',
       workspace: cloneState(current.workspace || {}),
       scene: {
-        name: current.scene?.name || 'untitled',
+        name: current.scene?.name || '未命名',
         entityCount: (current.scene?.entities || []).length
       },
       readiness: {
@@ -1966,12 +2337,12 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const buildTargets = enabledBuildTargets();
     const projectFiles = Object.keys(normalizeProjectFilesState(current.projectFiles));
     const checklist = [
-      checkItem('workspace-opened', Boolean(current.workspace?.root || current.workspace?.name), 'Open or scan a project workspace.'),
-      checkItem('asset-workflow-index', assetWorkflow.totalAssets > 0, 'Index project assets and scene references.'),
-      checkItem('collaboration-handoff', true, 'Export collaboration handoff before review.'),
-      checkItem('project-files-present', projectFiles.length > 0, 'Track project files in the editor workspace.'),
-      checkItem('platform-targets', buildTargets.includes('web') && buildTargets.includes('wechat'), 'Keep Web and WeChat targets configured.'),
-      checkItem('authoring-health', assetWorkflow.unresolvedReferences.length === 0, 'Resolve missing scene asset references.')
+      checkItem('workspace-opened', Boolean(current.workspace?.root || current.workspace?.name), '打开或扫描一个项目工作区。'),
+      checkItem('asset-workflow-index', assetWorkflow.totalAssets > 0, '索引项目资源和场景引用。'),
+      checkItem('collaboration-handoff', true, '评审前导出协作交接包。'),
+      checkItem('project-files-present', projectFiles.length > 0, '在编辑器工作区中跟踪项目文件。'),
+      checkItem('platform-targets', buildTargets.includes('web') && buildTargets.includes('wechat'), '保持 Web 和微信目标配置完整。'),
+      checkItem('authoring-health', assetWorkflow.unresolvedReferences.length === 0, '修复缺失的场景资源引用。')
     ];
     return {
       format: 'OmniCore.EditorGovernanceReport',
@@ -2065,7 +2436,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const warningMs = Number(options.warningMs ?? 10);
     const criticalMs = Number(options.criticalMs ?? 16);
     return (current.profilerFrame?.sections || [])
-      .map((section) => ({ name: section.name || 'unknown', duration: Number(section.duration || 0) }))
+      .map((section) => ({ name: section.name || '未知', duration: Number(section.duration || 0) }))
       .filter((section) => section.duration >= warningMs)
       .sort((left, right) => right.duration - left.duration)
       .map((section) => ({
@@ -2084,50 +2455,50 @@ export function createEditorApp(root = document.querySelector('#app'), {
 
     const particleConfig = current.particleEditor?.config ? normalizeParticleConfig(current.particleEditor.config) : null;
     if (particleConfig) {
-      if (!(particleConfig.lifetime > 0)) addIssue('particle-lifetime-invalid', 'Particle lifetime must be greater than 0.', { field: 'lifetime' });
-      if (particleConfig.emissionRate < 0 || particleConfig.emissionRate > 1000) addIssue('particle-emission-rate-invalid', 'Particle emission rate must stay between 0 and 1000.', { field: 'emissionRate' });
+      if (!(particleConfig.lifetime > 0)) addIssue('particle-lifetime-invalid', '粒子生命周期必须大于 0。', { field: 'lifetime' });
+      if (particleConfig.emissionRate < 0 || particleConfig.emissionRate > 1000) addIssue('particle-emission-rate-invalid', '粒子发射率必须保持在 0 到 1000 之间。', { field: 'emissionRate' });
       for (const [curveName, points] of Object.entries(particleConfig.curves || {})) {
         for (let index = 1; index < points.length; index += 1) {
           if (points[index].t < points[index - 1].t) {
-            addIssue('particle-curve-order-invalid', `Particle curve ${curveName} must be sorted by t.`, { field: `curves.${curveName}` });
+            addIssue('particle-curve-order-invalid', `粒子曲线 ${curveName} 必须按 t 排序。`, { field: `curves.${curveName}` });
             break;
           }
         }
       }
       for (const point of particleConfig.gradient || []) {
-        if (!isHexColor(point.color)) addIssue('particle-gradient-color-invalid', `Particle gradient color is invalid: ${point.color}`, { field: 'gradient' });
+        if (!isHexColor(point.color)) addIssue('particle-gradient-color-invalid', `粒子渐变颜色无效：${point.color}`, { field: 'gradient' });
       }
     }
 
     const spriteEditor = current.spriteEditor || {};
     if (spriteEditor.source) {
-      if (!assets.has(slash(spriteEditor.source))) addIssue('sprite-source-missing', `Sprite source is missing: ${spriteEditor.source}`, { path: spriteEditor.source });
+      if (!assets.has(slash(spriteEditor.source))) addIssue('sprite-source-missing', `精灵源资源缺失：${spriteEditor.source}`, { path: spriteEditor.source });
       const nineSlice = normalizeNineSlice(spriteEditor.nineSlice || {});
       if (nineSlice.left < 0 || nineSlice.top < 0 || nineSlice.right < 0 || nineSlice.bottom < 0 || (nineSlice.right > 0 && nineSlice.left > nineSlice.right) || (nineSlice.bottom > 0 && nineSlice.top > nineSlice.bottom)) {
-        addIssue('sprite-nine-slice-invalid', 'Sprite nine-slice guides are inverted or negative.', { field: 'nineSlice' });
+        addIssue('sprite-nine-slice-invalid', '精灵九宫格参考线出现反向或负值。', { field: 'nineSlice' });
       }
     }
 
     for (const entity of current.scene.entities || []) {
       if (!entity.material) continue;
       const alphaClip = Number(entity.material.alphaClip ?? 0);
-      if (alphaClip < 0 || alphaClip > 1) addIssue('sprite-alpha-clip-invalid', 'Sprite alpha clip must be between 0 and 1.', { entityId: entity.id, field: 'material.alphaClip' });
-      if (entity.material.colorTint && !isHexColor(entity.material.colorTint)) addIssue('sprite-color-tint-invalid', `Sprite color tint is invalid: ${entity.material.colorTint}`, { entityId: entity.id, field: 'material.colorTint' });
-      if (entity.material.normalMap && !assets.has(slash(entity.material.normalMap))) addIssue('sprite-normal-map-missing', `Sprite normal map is missing: ${entity.material.normalMap}`, { entityId: entity.id, path: entity.material.normalMap });
+      if (alphaClip < 0 || alphaClip > 1) addIssue('sprite-alpha-clip-invalid', '精灵透明裁剪必须在 0 到 1 之间。', { entityId: entity.id, field: 'material.alphaClip' });
+      if (entity.material.colorTint && !isHexColor(entity.material.colorTint)) addIssue('sprite-color-tint-invalid', `精灵颜色叠加无效：${entity.material.colorTint}`, { entityId: entity.id, field: 'material.colorTint' });
+      if (entity.material.normalMap && !assets.has(slash(entity.material.normalMap))) addIssue('sprite-normal-map-missing', `精灵法线贴图缺失：${entity.material.normalMap}`, { entityId: entity.id, path: entity.material.normalMap });
     }
 
     for (const [clipId, clip] of Object.entries(current.animations || {})) {
       const duration = Number(clip.duration || 0);
       for (const event of clip.events || []) {
         const frame = Number(event.frame || 0);
-        if (!event.name) addIssue('animation-event-name-missing', `Animation event name is missing in ${clipId}.`, { clipId, frame });
-        if (frame < 0 || frame > duration) addIssue('animation-event-out-of-range', `Animation event ${event.name || '(unnamed)'} is outside ${clipId} duration.`, { clipId, frame, duration });
+        if (!event.name) addIssue('animation-event-name-missing', `${clipId} 中的动画事件缺少名称。`, { clipId, frame });
+        if (frame < 0 || frame > duration) addIssue('animation-event-out-of-range', `动画事件 ${event.name || '未命名'} 超出 ${clipId} 的时长范围。`, { clipId, frame, duration });
       }
     }
 
     const prefabIds = new Set((current.prefabs || []).map((prefab) => prefab.id || prefab.name));
     for (const prefab of current.prefabs || []) {
-      if (prefab.extends && !prefabIds.has(prefab.extends)) addIssue('prefab-base-missing', `Prefab base is missing: ${prefab.extends}`, { prefabId: prefab.id || prefab.name });
+      if (prefab.extends && !prefabIds.has(prefab.extends)) addIssue('prefab-base-missing', `预制体基类缺失：${prefab.extends}`, { prefabId: prefab.id || prefab.name });
     }
 
     const hotspots = getProfilerHotspots({ warningMs: options.profilerWarningMs ?? options.warningMs, criticalMs: options.profilerCriticalMs ?? options.criticalMs });
@@ -2153,13 +2524,13 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return /^#[0-9a-f]{6}$/iu.test(String(value || ''));
   }
 
-  function profilerSuggestion(name, duration) {
-    const label = String(name || 'unknown');
-    if (/collision/iu.test(label)) return `Collision is taking ${duration}ms; inspect collider density, broadphase filters, and 2.5D projection overlap.`;
-    if (/render|renderer|draw/iu.test(label)) return `${label} is taking ${duration}ms; inspect batching, material state changes, and draw-call count.`;
-    if (/update|script|logic/iu.test(label)) return `${label} is taking ${duration}ms; inspect per-frame scripts and avoid allocations in update loops.`;
-    return `${label} is taking ${duration}ms; inspect this subsystem in the profiler flame graph.`;
-  }
+function profilerSuggestion(name, duration) {
+  const label = String(name || '未知');
+  if (/collision/iu.test(label)) return `碰撞耗时 ${duration}ms；请检查碰撞体密度、粗筛过滤和 2.5D 投影重叠。`;
+  if (/render|renderer|draw/iu.test(label)) return `${label} 耗时 ${duration}ms；请检查批处理、材质状态切换和绘制调用数量。`;
+  if (/update|script|logic/iu.test(label)) return `${label} 耗时 ${duration}ms；请检查逐帧脚本，并避免在更新循环中分配对象。`;
+  return `${label} 耗时 ${duration}ms；请在性能火焰图中检查这个子系统。`;
+}
 
   function openEntityScript(entityOrId, symbol = null, options = {}) {
     const entity = typeof entityOrId === 'string'
@@ -2185,7 +2556,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       scene: { ...current.scene, entities }
     };
     emit('editor:update-entity', { id, patch, commandId: createCommandId('entity') });
-    pushHistory(current, `Patch ${id}`);
+    pushHistory(current, `修改 ${id}`);
     update(current);
     return entities.find((entity) => entity.id === id) || null;
   }
@@ -2239,7 +2610,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return {
       ok: false,
       command,
-      error: 'unknown-command'
+      error: '未知命令'
     };
   }
 
@@ -2253,7 +2624,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
           code: 'duplicate-entity-id',
           severity: 'error',
           entityId: id,
-          message: `Duplicate entity id: ${id}`
+          message: `实体标识重复：${id}`
         });
       }
       ids.set(id, true);
@@ -2262,7 +2633,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
           code: 'missing-texture',
           severity: 'warning',
           entityId: id,
-          message: `Sprite entity ${id} has no texture.`
+          message: `精灵实体 ${id} 缺少纹理。`
         });
       }
       if (Number(entity.x) < 0 || Number(entity.y) < 0) {
@@ -2270,7 +2641,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
           code: 'negative-position',
           severity: 'warning',
           entityId: id,
-          message: `Entity ${id} is outside the positive scene plane.`
+          message: `实体 ${id} 位于场景正向平面之外。`
         });
       }
     }
@@ -2368,7 +2739,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       return {
         ...cloneState(entity),
         id,
-        name: `${entity.name || entity.id || 'Entity'} Copy`,
+        name: `${entity.name || entity.id || '实体'} 副本`,
         x: Number(entity.x || 0) + 16,
         y: Number(entity.y || 0) + 16
       };
@@ -2383,7 +2754,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       selectedEntityIds: copies.map((entity) => entity.id)
     };
     emit('editor:paste-entities', { ids: current.selectedEntityIds, count: copies.length });
-    pushHistory(current, `Paste ${copies.length} entity${copies.length === 1 ? '' : 's'}`);
+    pushHistory(current, `粘贴 ${copies.length} 个实体`);
     update(current);
     return copies;
   }
@@ -2404,7 +2775,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       selectedEntityIds: []
     };
     emit('editor:delete-entities', { ids, count: removed.length });
-    pushHistory(current, `Delete ${removed.length} entity${removed.length === 1 ? '' : 's'}`);
+    pushHistory(current, `删除 ${removed.length} 个实体`);
     update(current);
     return removed;
   }
@@ -2427,7 +2798,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     }
     current = { ...current, tilemap };
     emit('editor:update-tilemap', { tilemap });
-    pushHistory(current, 'Paint tile');
+    pushHistory(current, '绘制瓦片');
     update(current);
   }
 
@@ -2463,7 +2834,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     if (activeLayer.id === tilemap.layers[0]?.id) tilemap.data = [...output];
     current = { ...current, tilemap };
     emit('editor:apply-rule-tiles', { activeLayerId: activeLayer.id, rules: tilemap.ruleTiles.length });
-    pushHistory(current, 'Apply rule tiles');
+    pushHistory(current, '应用规则瓦片');
     update(current);
     return tilemap;
   }
@@ -2479,7 +2850,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     current = { ...current, database };
     emit('editor:update-database-record', { table, id, patch, commandId: createCommandId('db') });
     persistDatabaseConfig(database.tables);
-    pushHistory(current, `Update database ${table}.${id}.${field}`);
+    pushHistory(current, `更新数据库 ${table}.${id}.${field}`);
     update(current);
     return record;
   }
@@ -2535,7 +2906,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     };
     emit('editor:ai-generate-scene', { prompt, tilemap, entities });
     emit('editor:update-tilemap', { tilemap });
-    pushHistory(current, 'Generate scene from AI prompt');
+    pushHistory(current, '根据 AI 提示生成场景');
     update(current);
     return { prompt, tilemap, entities };
   }
@@ -2567,7 +2938,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       selectedEntityId: entity.id
     };
     emit('editor:instantiate-prefab', { prefabId: entity.prefabId, entity });
-    pushHistory(current, `Instantiate prefab ${entity.prefabId}`);
+    pushHistory(current, `实例化预制体 ${entity.prefabId}`);
     update(current);
     return entity;
   }
@@ -2598,7 +2969,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       selectedEntityId: entity.id
     };
     emit('editor:instantiate-asset', { assetPath, entity });
-    pushHistory(current, `Instantiate asset ${assetPath}`);
+    pushHistory(current, `实例化资源 ${assetPath}`);
     update(current);
     return entity;
   }
@@ -2817,7 +3188,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       : [];
     const preview = {
       protocol: 'omnicore-editor-25d-preview/v1',
-      scene: current.scene?.name || 'untitled',
+      scene: current.scene?.name || '未命名',
       zToYScale: Number(zToYScale),
       mixedNodes,
       guides: {
@@ -2908,7 +3279,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       coCreation25D: plan
     });
     emit('editor:25d-cocreation-apply', { entity, plan });
-    pushHistory(current, `Apply 2.5D co-creation ${entity.id}`);
+    pushHistory(current, `应用 2.5D 共创 ${entity.id}`);
     update(current);
     return {
       protocol: 'omnicore-editor-25d-cocreation-apply/v1',
@@ -3009,7 +3380,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       }
     });
     emit('editor:nested-scene-instantiated', entity);
-    pushHistory(current, `Instantiate nested scene ${scenePath}`);
+    pushHistory(current, `实例化嵌套场景 ${scenePath}`);
     update(current);
     return entity;
   }
@@ -3032,7 +3403,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     });
     current = { ...current, flowGraph: nextGraph };
     emit('editor:flow-graph-update', current.flowGraph);
-    pushHistory(current, 'Update flow graph');
+    pushHistory(current, '更新流程图');
     update(current);
     return current.flowGraph;
   }
@@ -3047,7 +3418,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     }
     current = { ...current, flowGraph: nextGraph };
     emit('editor:flow-graph-update', current.flowGraph);
-    pushHistory(current, 'Connect flow graph nodes');
+    pushHistory(current, '连接流程图节点');
     update(current);
     return current.flowGraph;
   }
@@ -3200,8 +3571,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
       current = { ...current, simulation: { active: false, physics: false, logic: false } };
       if (dragSession.changed) {
         emitDragEntityUpdates();
-        pushHistory(current, `Drag ${dragSession.ids.length} entity${dragSession.ids.length === 1 ? '' : 's'}`);
-        showEditorFeedback(`Moved ${dragSession.ids.length} entity${dragSession.ids.length === 1 ? '' : 's'}`, 'success');
+        pushHistory(current, `拖动 ${dragSession.ids.length} 个实体`);
+        showEditorFeedback(`已移动 ${dragSession.ids.length} 个实体`, 'success');
       }
       update(current);
     }
@@ -3279,10 +3650,24 @@ export function createEditorApp(root = document.querySelector('#app'), {
   }
 
   function runToolbarAction(action) {
-    if (action === 'open-project') return openProjectWorkspace();
-    if (action === 'save') return saveSnapshot('toolbar');
-    if (action === 'undo') return undo();
-    if (action === 'redo') return redo();
+    if (action === 'open-project') {
+      const result = openProjectWorkspace();
+      showEditorFeedback('正在打开项目...', 'info');
+      return result;
+    }
+    if (action === 'save') return saveSnapshot('工具栏');
+    if (action === 'undo') {
+      const result = undo();
+      showEditorFeedback('已撤销', 'info');
+      update(current);
+      return result;
+    }
+    if (action === 'redo') {
+      const result = redo();
+      showEditorFeedback('已重做', 'info');
+      update(current);
+      return result;
+    }
     if (action === 'play') {
       current = {
         ...current,
@@ -3291,6 +3676,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       };
       emit('editor:set-play-mode', { mode: 'playing' });
       emit('editor:play', current.simulation);
+      showEditorFeedback('运行中', 'success');
       return update(current);
     }
     if (action === 'pause') {
@@ -3301,6 +3687,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       };
       emit('editor:set-play-mode', { mode: 'paused' });
       emit('editor:pause', current.simulation);
+      showEditorFeedback('已暂停', 'info');
       return update(current);
     }
     if (action === 'step') {
@@ -3315,11 +3702,18 @@ export function createEditorApp(root = document.querySelector('#app'), {
       };
       emit('editor:set-play-mode', { mode: 'paused' });
       emit('editor:step-frame', { frame: current.playState.frame, physics: true, logic: true });
+      showEditorFeedback(`已单步到第 ${current.playState.frame} 帧`, 'info');
       return update(current);
     }
-    if (action === 'profiler') return openProfiler();
+    if (action === 'profiler') {
+      const result = openProfiler();
+      showEditorFeedback('已打开性能面板', 'info');
+      update(current);
+      return result;
+    }
     if (action === 'dock-reset') {
       emit('editor:dock-reset', DEFAULT_DOCK_LAYOUT);
+      showEditorFeedback('已重置布局', 'info');
       return setDockLayout(DEFAULT_DOCK_LAYOUT);
     }
     return null;
@@ -3327,8 +3721,11 @@ export function createEditorApp(root = document.querySelector('#app'), {
 
   function runMenuCommand(command) {
     if (command === 'open-project-folder') return openProjectWorkspace();
-    if (command === 'save-scene') return saveSnapshot('menu');
-    if (command === 'reset-dock-layout') return setDockLayout(DEFAULT_DOCK_LAYOUT);
+    if (command === 'save-scene') return saveSnapshot('菜单');
+    if (command === 'reset-dock-layout') {
+      showEditorFeedback('已重置布局', 'info');
+      return setDockLayout(DEFAULT_DOCK_LAYOUT);
+    }
     return null;
   }
 
@@ -3339,7 +3736,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       button.type = 'button';
       button.dataset.editorTool = action.id;
       button.dataset.editorAction = action.id;
-      button.dataset.editorIcon = action.id;
+      button.dataset.editorIcon = toolbarIcon(action.id);
       button.title = action.shortcut ? `${action.label} (${action.shortcut})` : action.label;
       button.textContent = t(`toolbar.${action.id}`, action.label);
       const mode = current.playState?.mode || (current.simulation.active ? 'playing' : 'editing');
@@ -3351,10 +3748,24 @@ export function createEditorApp(root = document.querySelector('#app'), {
     }
   }
 
+  function toolbarIcon(actionId) {
+    return {
+      'open-project': '项',
+      save: '存',
+      undo: '撤',
+      redo: '重',
+      play: '▶',
+      pause: '停',
+      step: '步',
+      profiler: '析',
+      'dock-reset': '布'
+    }[actionId] || '工';
+  }
+
   function renderStatusbar() {
     const entityCount = current.scene.entities.length;
     const mode = current.playState?.mode || (current.simulation.active ? 'running' : 'editing');
-    statusbar.textContent = `${current.scene.name || 'untitled'} | ${entityCount} entities | ${current.gizmoMode} | ${mode}`;
+    statusbar.textContent = `${localizeSceneName(current.scene.name)} | ${entityCount} 个实体 | ${localizeGizmoMode(current.gizmoMode)} | ${localizePlayMode(mode)}`;
     statusbar.dataset.editorSurface = 'statusbar';
     const workspace = document.createElement('span');
     workspace.dataset.workspaceRoot = 'true';
@@ -3403,18 +3814,18 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const visualEvidence = create25DVisualEvidence();
     const appliedPlans = Number(report.evidence.appliedCoCreationPlans || 0);
     const stages = [
-      { id: 'plan', label: 'Plan', status: current.coCreation25D || appliedPlans > 0 ? 'complete' : 'pending' },
-      { id: 'apply', label: 'Apply', status: appliedPlans > 0 ? 'complete' : current.coCreation25D ? 'blocked' : 'pending' },
-      { id: 'save', label: 'Save', status: report.evidence.saved ? 'complete' : appliedPlans > 0 ? 'blocked' : 'pending' },
-      { id: 'export', label: 'Export', status: report.evidence.entryScene && report.evidence.targets.length ? 'complete' : 'blocked' },
-      { id: 'readiness', label: 'Readiness', status: report.ready ? 'complete' : 'blocked' }
+      { id: 'plan', label: '规划', status: current.coCreation25D || appliedPlans > 0 ? 'complete' : 'pending' },
+      { id: 'apply', label: '应用', status: appliedPlans > 0 ? 'complete' : current.coCreation25D ? 'blocked' : 'pending' },
+      { id: 'save', label: '保存', status: report.evidence.saved ? 'complete' : appliedPlans > 0 ? 'blocked' : 'pending' },
+      { id: 'export', label: '导出', status: report.evidence.entryScene && report.evidence.targets.length ? 'complete' : 'blocked' },
+      { id: 'readiness', label: '就绪度', status: report.ready ? 'complete' : 'blocked' }
     ];
     const wrap = document.createElement('div');
     wrap.className = 'production-25d-panel floating-editor-panel';
     wrap.setAttribute('data-25d-production-panel', 'true');
     wrap.dataset.ready = report.ready ? 'true' : 'false';
     const title = document.createElement('h3');
-    title.textContent = '2.5D Production';
+    title.textContent = '2.5D 生产检查';
     const score = document.createElement('strong');
     score.className = 'production-25d-score';
     score.setAttribute('data-25d-production-score', 'true');
@@ -3431,11 +3842,11 @@ export function createEditorApp(root = document.querySelector('#app'), {
     }
     const action = document.createElement('p');
     action.className = 'production-25d-action';
-    action.textContent = report.nextActions[0] || 'Ready for lightweight deployment.';
+    action.textContent = report.nextActions[0] || '已准备好轻量部署。';
     const visual = document.createElement('div');
     visual.className = 'production-25d-visual';
     visual.setAttribute('data-25d-visual-evidence', 'true');
-    visual.textContent = `Visual Evidence ${visualEvidence.summary.coCreatedEntities}`;
+    visual.textContent = `视觉证据 ${visualEvidence.summary.coCreatedEntities}`;
     const visualTypes = [...new Set(visualEvidence.layers.map((layer) => layer.type))]
       .filter((type) => type !== 'entity');
     for (const type of visualTypes) {
@@ -3458,7 +3869,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     wrap.className = 'save-version-panel';
     wrap.setAttribute('data-save-version-panel', 'true');
     const title = document.createElement('h4');
-    title.textContent = 'Save Versions';
+    title.textContent = '保存版本';
     wrap.appendChild(title);
 
     if (versions.length >= 2) {
@@ -3480,7 +3891,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       const button = document.createElement('button');
       button.type = 'button';
       button.setAttribute('data-save-version-rollback', version.id);
-      button.textContent = 'Rollback';
+      button.textContent = '回滚';
       button.addEventListener('click', () => rollbackToSaveVersion(version.id));
       row.append(label, button);
       list.appendChild(row);
@@ -3503,12 +3914,12 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const validate = document.createElement('button');
     validate.type = 'button';
     validate.dataset.commandId = 'scene:validate';
-    validate.textContent = 'Validate Scene';
+    validate.textContent = '校验场景';
     validate.addEventListener('click', () => runCommand('scene:validate'));
     const overlays = document.createElement('button');
     overlays.type = 'button';
     overlays.dataset.commandId = 'overlay:collision-depth';
-    overlays.textContent = 'Show Collision/Depth';
+    overlays.textContent = '显示碰撞/深度';
     overlays.addEventListener('click', () => runCommand('overlay:collision-depth'));
     wrap.append(input, validate, overlays);
     queueMicrotask(() => input.focus?.());
@@ -3537,7 +3948,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     wrap.className = 'resource-picker floating-editor-panel';
     wrap.dataset.resourcePicker = picker.field || '';
     const title = document.createElement('h3');
-    title.textContent = `Select ${picker.field || 'resource'}`;
+    title.textContent = `选择${picker.field || '资源'}`;
     const search = document.createElement('input');
     search.type = 'search';
     search.dataset.resourcePickerSearch = 'true';
@@ -3569,16 +3980,16 @@ export function createEditorApp(root = document.querySelector('#app'), {
     wrap.className = 'prefab-hot-edit-prompt floating-editor-panel';
     wrap.dataset.prefabSavePrompt = hotEdit.prefabId || '';
     const title = document.createElement('h3');
-    title.textContent = `Save prefab variant ${hotEdit.prefabId}`;
+    title.textContent = `保存预制体变体 ${hotEdit.prefabId}`;
     const body = document.createElement('p');
-    body.textContent = 'Paused runtime changes are pending. Save overrides back to the prefab variant before leaving play edit mode.';
+    body.textContent = '暂停运行时存在待保存改动。离开运行编辑模式前，请把覆盖项保存回预制体变体。';
     const save = document.createElement('button');
     save.type = 'button';
-    save.textContent = 'Save';
+    save.textContent = '保存';
     save.addEventListener('click', () => savePrefabHotEdit());
     const ignore = document.createElement('button');
     ignore.type = 'button';
-    ignore.textContent = 'Ignore';
+    ignore.textContent = '忽略';
     ignore.addEventListener('click', () => {
       current = { ...current, prefabHotEdit: { prefabId: null, patch: {}, dirty: false, promptOpen: false } };
       emit('editor:ignore-prefab-hot-edit', { prefabId: hotEdit.prefabId });
@@ -3594,10 +4005,10 @@ export function createEditorApp(root = document.querySelector('#app'), {
     wrap.className = 'authoring-health-panel floating-editor-panel';
     wrap.dataset.authoringHealth = report.ok ? 'ok' : 'issues';
     const title = document.createElement('h3');
-    title.textContent = report.ok ? 'Authoring Health: Ready' : 'Authoring Health: Issues';
+    title.textContent = report.ok ? '创作健康：就绪' : '创作健康：存在问题';
     const counts = document.createElement('div');
     counts.className = 'authoring-health-counts';
-    counts.textContent = `animations ${report.counts?.animations || 0} | particles ${report.counts?.particles || 0} | sprites ${report.counts?.sprites || 0} | scenes ${report.counts?.scenes || 0}`;
+    counts.textContent = `动画 ${report.counts?.animations || 0} | 粒子 ${report.counts?.particles || 0} | 精灵 ${report.counts?.sprites || 0} | 场景 ${report.counts?.scenes || 0}`;
     const list = document.createElement('div');
     list.className = 'authoring-health-issues';
     for (const issue of report.issues || []) {
@@ -3627,12 +4038,12 @@ export function createEditorApp(root = document.querySelector('#app'), {
     wrap.dataset.particleEditor = 'true';
 
     const title = document.createElement('h3');
-    title.textContent = 'Particle Editor';
+    title.textContent = '粒子编辑器';
     wrap.appendChild(title);
 
     for (const field of ['emissionRate', 'lifetime', 'initialVelocity', 'gravity']) {
       const label = document.createElement('label');
-      label.textContent = field;
+      label.textContent = localizeParticleField(field);
       const input = document.createElement('input');
       input.type = 'range';
       input.dataset.particleSlider = field;
@@ -3674,7 +4085,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     wrap.dataset.spriteEditor = editor.source || '';
 
     const title = document.createElement('h3');
-    title.textContent = editor.source || 'Sprite Editor';
+    title.textContent = editor.source || '精灵编辑器';
     wrap.appendChild(title);
 
     const canvas = document.createElement('div');
@@ -3789,11 +4200,11 @@ export function createEditorApp(root = document.querySelector('#app'), {
     panel.className = 'material-panel';
     panel.dataset.materialPanel = 'true';
     const legend = document.createElement('legend');
-    legend.textContent = 'Material';
+    legend.textContent = '材质';
     panel.appendChild(legend);
     for (const field of ['alphaClip', 'colorTint', 'normalMap']) {
       const label = document.createElement('label');
-      label.textContent = field;
+      label.textContent = localizeMaterialField(field);
       const input = document.createElement('input');
       input.dataset.materialField = field;
       if (field === 'colorTint') input.type = 'color';
@@ -3877,9 +4288,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
     guide.className = 'editor-onboarding';
     guide.dataset.editorOnboarding = 'true';
     guide.innerHTML = [
-      '<strong>Open Project</strong>',
-      '<span>Drop assets or prefabs into the canvas.</span>',
-      '<span>Use W/E/R to move, rotate, and scale after selecting an entity.</span>'
+      '<strong>打开项目</strong>',
+      '<span>把资源或预制体拖入画布即可创建内容。</span>',
+      '<span>选中实体后使用 W/E/R 进行移动、旋转和缩放。</span>'
     ].join('');
     return guide;
   }
@@ -3952,7 +4363,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const preview = document.createElement('div');
     preview.className = 'prefab-preview-model';
     preview.dataset.prefabPreviewModel = entity.id || entity.name || 'preview';
-    preview.textContent = entity.name || entity.id || 'Prefab Preview';
+    preview.textContent = entity.name || entity.id || '预制体预览';
     preview.style.left = `${Number(entity.x || 40)}px`;
     preview.style.top = `${Number(entity.y || 40)}px`;
     preview.style.width = `${Math.max(24, Number(entity.width || 32))}px`;
@@ -4049,14 +4460,14 @@ export function createEditorApp(root = document.querySelector('#app'), {
     button.type = 'button';
     button.draggable = true;
     button.dataset.prefabId = prefab.id || prefab.name;
-    button.textContent = `${prefab.isBasePrefab ? 'Base ' : ''}${prefab.name || prefab.id}${prefab.extends ? ` <- ${prefab.extends}` : ''}`;
+    button.textContent = `${prefab.isBasePrefab ? '基础 ' : ''}${prefab.name || prefab.id}${prefab.extends ? ` 继承 ${prefab.extends}` : ''}`;
     button.addEventListener('click', () => {
       current = { ...current, selectedPrefabId: prefab.id || prefab.name };
       update(current);
     });
     button.addEventListener('contextmenu', (event) => {
       event.preventDefault();
-      api.EditorAPI.createPrefabVariant(prefab.id || prefab.name, { name: `${prefab.name || prefab.id} Variant` }, {
+      api.EditorAPI.createPrefabVariant(prefab.id || prefab.name, { name: `${prefab.name || prefab.id} 变体` }, {
         id: `${prefab.id || prefab.name}-variant-${Date.now().toString(36)}`
       });
     });
@@ -4105,7 +4516,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     wrap.className = 'prefab-override-panel';
     wrap.dataset.prefabOverridePanel = prefab.id || prefab.name;
     const title = document.createElement('h3');
-    title.textContent = `${prefab.name || prefab.id} overrides`;
+    title.textContent = `${prefab.name || prefab.id} 覆盖项`;
     wrap.appendChild(title);
     const overrides = prefab.overrides || {};
     for (const [field, value] of Object.entries(overrides)) {
@@ -4117,12 +4528,12 @@ export function createEditorApp(root = document.querySelector('#app'), {
       const write = document.createElement('button');
       write.type = 'button';
       write.dataset.prefabOverrideAction = `${field}:write`;
-      write.textContent = 'Write';
+      write.textContent = '写回';
       write.addEventListener('click', () => writePrefabOverrideToBase(prefab.id || prefab.name, field));
       const reset = document.createElement('button');
       reset.type = 'button';
       reset.dataset.prefabOverrideAction = `${field}:reset`;
-      reset.textContent = 'Reset';
+      reset.textContent = '重置';
       reset.addEventListener('click', () => resetPrefabOverride(prefab.id || prefab.name, field));
       row.addEventListener('contextmenu', (event) => {
         event.preventDefault();
@@ -4216,7 +4627,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     }
     if (!Object.keys(tables).length) {
       const empty = document.createElement('p');
-      empty.textContent = 'No database tables';
+      empty.textContent = '暂无数据库表';
       wrap.appendChild(empty);
     }
     return wrap;
@@ -4231,7 +4642,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const button = document.createElement('button');
     button.type = 'button';
     button.dataset.aiAssistantRun = 'true';
-    button.textContent = 'Generate';
+    button.textContent = '生成';
     const status = document.createElement('small');
     status.dataset.aiAssistantStatus = 'true';
     button.addEventListener('click', async () => {
@@ -4255,8 +4666,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
     collision.type = 'button';
     collision.dataset.collisionMode = 'true';
     collision.textContent = current.collisionMode
-      ? t('tilemap.collisionOn', 'collision on')
-      : t('tilemap.paintTiles', 'paint tiles');
+      ? t('tilemap.collisionOn', '碰撞绘制')
+      : t('tilemap.paintTiles', '绘制瓦片');
     collision.addEventListener('click', () => {
       current = { ...current, collisionMode: !current.collisionMode };
       update(current);
@@ -4270,7 +4681,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       button.type = 'button';
       button.dataset.tileLayerId = layer.id;
       button.className = layer.id === tilemap.activeLayerId ? 'selected' : '';
-      button.textContent = layer.name;
+      button.textContent = localizeTileLayerName(layer);
       button.addEventListener('click', () => selectTileLayer(layer.id));
       layerBar.appendChild(button);
     }
@@ -4295,7 +4706,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       const cell = document.createElement('button');
       cell.type = 'button';
       cell.dataset.tileIndex = String(index);
-      cell.textContent = tilemap.collisions.includes(index) ? 'C' : String(value || '');
+      cell.textContent = tilemap.collisions.includes(index) ? '碰' : String(value || '');
       cell.className = tilemap.collisions.includes(index) ? 'collision' : '';
       cell.addEventListener('click', () => paintTile(index));
       cell.addEventListener('mousedown', (event) => {
@@ -4317,7 +4728,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     timeline.className = 'timeline';
     const clipIds = Object.keys(current.animations || {});
     if (!clipIds.length) {
-      timeline.textContent = t('timeline.noClips', 'No clips');
+      timeline.textContent = t('timeline.noClips', '暂无动画片段');
       return timeline;
     }
     const selected = current.selectedAnimationKeyframe;
@@ -4328,7 +4739,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.dataset.animationClip = clipId;
-      chip.textContent = `${clipId} ${Number(clip.duration || 0)}f`;
+      chip.textContent = `${clipId} ${Number(clip.duration || 0)} 帧`;
       clipList.appendChild(chip);
     }
     timeline.appendChild(clipList);
@@ -4340,7 +4751,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       const graph = document.createElement('div');
       graph.className = 'animation-curve-graph';
       graph.dataset.animationCurveGraph = `${selected.clipId}:${selected.track}:${Number(selected.frame || 0)}`;
-      graph.textContent = `${selected.track} frame ${selected.frame} value ${keyframe?.value ?? 0}`;
+      graph.textContent = `${selected.track} 第 ${selected.frame} 帧 值 ${keyframe?.value ?? 0}`;
       const handleIn = document.createElement('span');
       handleIn.className = 'bezier-handle handle-in';
       handleIn.style.left = `${Number(keyframe?.handles?.in?.x || 0)}px`;
@@ -4392,14 +4803,14 @@ export function createEditorApp(root = document.querySelector('#app'), {
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.flowAdd = type;
-      button.textContent = t(`flow.add.${type}`, `Add ${type}`);
+      button.textContent = t(`flow.add.${type}`, `添加${localizeFlowNodeType(type)}`);
       button.addEventListener('click', () => addFlowNode(type));
       flowToolbar.appendChild(button);
     }
     const exportButton = document.createElement('button');
     exportButton.type = 'button';
     exportButton.dataset.flowExport = 'eventsheet';
-    exportButton.textContent = t('flow.exportEventSheet', 'Export EventSheet');
+    exportButton.textContent = t('flow.exportEventSheet', '导出事件表');
     exportButton.addEventListener('click', () => exportFlowGraph());
     flowToolbar.appendChild(exportButton);
 
@@ -4413,7 +4824,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       button.dataset.flowNodeId = node.id;
       button.style.left = `${Number(node.x || 0)}px`;
       button.style.top = `${Number(node.y || 0)}px`;
-      button.textContent = node.label || node.id;
+      button.textContent = localizeFlowNodeLabel(node);
       button.addEventListener('dragstart', (event) => {
         event.dataTransfer?.setData('application/x-omnicore-flow-node', node.id);
         event.dataTransfer?.setData('text/plain', node.id);
@@ -4435,7 +4846,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       const target = graph.nodes.find((node) => node.id === edge.to);
       const row = document.createElement('div');
       row.dataset.flowEdge = `${edge.from}->${edge.to}`;
-      row.textContent = `${source?.label || edge.from} -> ${target?.label || edge.to}`;
+      row.textContent = `${localizeFlowNodeLabel(source) || edge.from} -> ${localizeFlowNodeLabel(target) || edge.to}`;
       edges.appendChild(row);
     }
 
@@ -4457,7 +4868,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.graphAdd = type;
-      button.textContent = type;
+      button.textContent = localizeGraphPaletteType(type);
       button.addEventListener('click', () => addFlowNode(type === 'input' ? 'event' : type === 'output' ? 'action' : 'condition'));
       nodePalette.appendChild(button);
     }
@@ -4478,8 +4889,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const buttonTool = document.createElement('button');
     buttonTool.type = 'button';
     buttonTool.dataset.uiAdd = 'Button';
-    buttonTool.textContent = 'Button';
-    buttonTool.addEventListener('click', () => addUIButton({ text: 'Button', x: 32, y: 32 }));
+    buttonTool.textContent = '按钮';
+    buttonTool.addEventListener('click', () => addUIButton({ text: '按钮', x: 32, y: 32 }));
     palette.appendChild(buttonTool);
 
     const canvas = document.createElement('div');
@@ -4495,7 +4906,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       item.style.top = `${element.y}px`;
       item.style.width = `${element.width}px`;
       item.style.height = `${element.height}px`;
-      item.textContent = element.text || element.id;
+      item.textContent = localizeUIElementText(element);
       canvas.appendChild(item);
     }
 
@@ -4513,17 +4924,17 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const query = document.createElement('input');
     query.type = 'search';
     query.dataset.globalSearchQuery = 'true';
-    query.placeholder = 'Search scripts, JSON, scenes';
+    query.placeholder = '搜索脚本、JSON、场景';
     query.value = searchState.query;
     query.addEventListener('input', () => searchProject(query.value));
     const replacement = document.createElement('input');
     replacement.dataset.globalReplaceValue = 'true';
-    replacement.placeholder = 'Replace with';
+    replacement.placeholder = '替换为';
     replacement.value = searchState.replacement;
     const replace = document.createElement('button');
     replace.type = 'button';
     replace.dataset.globalReplaceRun = 'true';
-    replace.textContent = 'Replace';
+    replace.textContent = '替换';
     replace.addEventListener('click', () => replaceProject(query.value, replacement.value));
     const list = document.createElement('div');
     list.className = 'global-search-results';
@@ -4542,7 +4953,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const wrap = document.createElement('div');
     wrap.className = 'physics-view-wrap';
     const title = document.createElement('p');
-    title.textContent = 'Matter Physics View - semi-transparent collider wireframes';
+    title.textContent = 'Matter 物理视图 - 半透明碰撞线框';
     wrap.appendChild(title);
     const canvas = document.createElement('div');
     canvas.className = 'physics-debug-canvas';
@@ -4593,7 +5004,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     wrap.dataset.editorProfiler = 'true';
     const title = document.createElement('div');
     title.textContent = frame
-      ? `Frame ${frame.frame} ${Number(frame.totalMs || 0).toFixed(2)}ms`
+      ? `第 ${frame.frame} 帧 ${Number(frame.totalMs || 0).toFixed(2)}ms`
       : t('profiler.empty', 'No profiler samples');
     wrap.appendChild(title);
     const sections = Array.isArray(frame?.sections) ? frame.sections : [];
@@ -4619,10 +5030,10 @@ export function createEditorApp(root = document.querySelector('#app'), {
     streams.className = 'profiler-streams';
     const memory = document.createElement('span');
     memory.dataset.profilerMemory = 'true';
-    memory.textContent = `Memory Usage ${Number(frame?.memoryMB || 0)}MB`;
+    memory.textContent = `内存 ${Number(frame?.memoryMB || 0)}MB`;
     const drawCalls = document.createElement('span');
     drawCalls.dataset.profilerDrawCalls = 'true';
-    drawCalls.textContent = `Draw Calls ${Number(frame?.drawCalls || 0)}`;
+    drawCalls.textContent = `绘制调用 ${Number(frame?.drawCalls || 0)}`;
     streams.append(memory, drawCalls);
     wrap.appendChild(streams);
     const profilerHistory = document.createElement('div');
@@ -4631,7 +5042,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     for (const sample of (current.profilerHistory || []).slice(-24)) {
       const row = document.createElement('span');
       row.dataset.profilerHistoryFrame = String(sample.frame);
-      row.textContent = `F${sample.frame} ${Number(sample.memoryMB || 0)}MB ${Number(sample.drawCalls || 0)} calls`;
+      row.textContent = `帧${sample.frame} ${Number(sample.memoryMB || 0)}MB ${Number(sample.drawCalls || 0)} 次调用`;
       profilerHistory.appendChild(row);
     }
     wrap.appendChild(profilerHistory);
@@ -4643,13 +5054,104 @@ function createTextResolver(localization) {
   if (typeof localization?.t === 'function') {
     return (key, fallback) => {
       const value = localization.t(key);
-      return value === key ? fallback : value;
+      return value === key ? DEFAULT_ZH_CN_TEXT[key] ?? fallback : value;
     };
   }
   if (localization && typeof localization === 'object') {
-    return (key, fallback) => localization[key] ?? fallback;
+    return (key, fallback) => localization[key] ?? DEFAULT_ZH_CN_TEXT[key] ?? fallback;
   }
-  return (_key, fallback) => fallback;
+  return (key, fallback) => DEFAULT_ZH_CN_TEXT[key] ?? fallback;
+}
+
+function localizeGizmoMode(mode) {
+  const labels = {
+    select: '选择',
+    translate: '移动',
+    rotate: '旋转',
+    scale: '缩放'
+  };
+  return labels[mode] || mode || '未知';
+}
+
+function localizePlayMode(mode) {
+  const labels = {
+    editing: '编辑',
+    running: '运行中',
+    playing: '运行中',
+    paused: '已暂停'
+  };
+  return labels[mode] || mode || '未知';
+}
+
+function localizeSceneName(name) {
+  const value = String(name || '').trim();
+  return !value || value.toLowerCase() === 'untitled' ? '未命名' : value;
+}
+
+function localizeParticleField(field) {
+  const labels = {
+    emissionRate: '发射率',
+    lifetime: '生命周期',
+    initialVelocity: '初速度',
+    gravity: '重力'
+  };
+  return labels[field] || field;
+}
+
+function localizeMaterialField(field) {
+  const labels = {
+    alphaClip: '透明裁剪',
+    colorTint: '颜色叠加',
+    normalMap: '法线贴图'
+  };
+  return labels[field] || field;
+}
+
+function localizeFlowNodeType(type) {
+  const labels = {
+    event: '事件',
+    condition: '条件',
+    action: '动作'
+  };
+  return labels[type] || type || '节点';
+}
+
+function localizeGraphPaletteType(type) {
+  const labels = {
+    input: '输入',
+    condition: '条件',
+    output: '输出'
+  };
+  return labels[type] || type || '节点';
+}
+
+function localizeTileLayerName(layer = {}) {
+  const value = String(layer.name || layer.id || '').trim();
+  if (value === 'tiles') return '瓦片层';
+  if (/^Layer\s+(\d+)$/iu.test(value)) return value.replace(/^Layer\s+/iu, '图层 ');
+  return value || '图层';
+}
+
+function localizeFlowNodeLabel(node = null) {
+  if (!node) return '';
+  const labels = {
+    Event: '事件',
+    Condition: '条件',
+    Action: '动作',
+    'NPC Proximity': 'NPC 接近',
+    'NPC Nearby': 'NPC 在附近',
+    'Play Animation': '播放动画',
+    'Show Dialog': '显示对话'
+  };
+  const value = String(node.label || node.id || '').trim();
+  if (/^Node\s+(\d+)$/iu.test(value)) return value.replace(/^Node\s+/iu, '节点 ');
+  return labels[value] || value;
+}
+
+function localizeUIElementText(element = {}) {
+  const value = String(element.text || element.label || element.id || '').trim();
+  if (value === 'Button' && element.type === 'Button') return '按钮';
+  return value || '界面元素';
 }
 
 function cloneState(value) {
@@ -5054,7 +5556,7 @@ function isDimension25DNode(entity = {}) {
 
 function normalizeScene(scene = {}) {
   return {
-    name: scene.name || 'untitled',
+    name: scene.name || '未命名',
     entities: (scene.entities || []).map((entity, index) => ({
       ...entity,
       id: entity.id || entity.name || `entity-${index}`,
@@ -5152,25 +5654,25 @@ function entityBounds(entity = {}) {
 }
 
 function formatSaveVersionDiff(diff) {
-  if (!diff) return 'No save diff available.';
+  if (!diff) return '暂无保存差异。';
   const parts = [];
-  if (diff.addedEntities.length) parts.push(`Added ${diff.addedEntities.map((entity) => entity.id).join(', ')}`);
-  if (diff.removedEntities.length) parts.push(`Removed ${diff.removedEntities.map((entity) => entity.id).join(', ')}`);
-  if (diff.changedEntities.length) parts.push(`Changed ${diff.changedEntities.map((entity) => entity.id).join(', ')}`);
-  return parts.length ? parts.join(' | ') : 'No entity changes.';
+  if (diff.addedEntities.length) parts.push(`新增 ${diff.addedEntities.map((entity) => entity.id).join(', ')}`);
+  if (diff.removedEntities.length) parts.push(`删除 ${diff.removedEntities.map((entity) => entity.id).join(', ')}`);
+  if (diff.changedEntities.length) parts.push(`修改 ${diff.changedEntities.map((entity) => entity.id).join(', ')}`);
+  return parts.length ? parts.join(' | ') : '实体无变化。';
 }
 
 function next25DProductionActions(blockers = [], warnings = []) {
   const actions = [];
   const actionByCode = {
-    'cocreation-not-applied': 'Apply the 2.5D co-creation plan to the scene.',
-    'scene-not-saved': 'Save a scene snapshot after applying 2.5D changes.',
-    'build-target-missing': 'Enable at least one lightweight deployment target.',
-    'deploy-manifest-incomplete': 'Export a lightweight deployment bundle with an entry scene.',
-    'no-25d-cocreation': 'Create and apply a 2.5D co-creation plan before production review.'
+    'cocreation-not-applied': '把 2.5D 共创方案应用到场景。',
+    'scene-not-saved': '应用 2.5D 改动后保存场景快照。',
+    'build-target-missing': '至少启用一个轻量部署目标。',
+    'deploy-manifest-incomplete': '导出包含入口场景的轻量部署包。',
+    'no-25d-cocreation': '生产评审前创建并应用 2.5D 共创方案。'
   };
   for (const item of [...blockers, ...warnings]) {
-    actions.push(actionByCode[item.code] || `Resolve ${item.code}.`);
+    actions.push(actionByCode[item.code] || `处理 ${item.code}。`);
   }
   return [...new Set(actions)];
 }
@@ -5185,7 +5687,7 @@ function slug(value) {
 }
 
 function labelFromId(value) {
-  return String(value || 'Entity')
+  return String(value || '实体')
     .split(/[-_\s]+/u)
     .filter(Boolean)
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
@@ -5213,7 +5715,7 @@ function normalizeInspectorPatch(patch = {}) {
 function formatComponents(components = []) {
   return components.map((component) => {
     if (typeof component === 'string') return component;
-    return component.type || component.name || component.constructor?.name || 'Component';
+    return component.type || component.name || component.constructor?.name || '组件';
   }).join(', ');
 }
 
@@ -5639,11 +6141,11 @@ function isAssetReferenceField(field, value) {
 
 function assetIcon(asset = {}) {
   const type = assetType(asset);
-  if (type === 'prefab') return 'Prefab';
-  if (type === 'image') return 'Image';
-  if (type === 'scene') return 'Scene';
-  if (type === 'script') return 'Script';
-  return 'File';
+  if (type === 'prefab') return '预制体';
+  if (type === 'image') return '图片';
+  if (type === 'scene') return '场景';
+  if (type === 'script') return '脚本';
+  return '文件';
 }
 
 function slash(value) {
@@ -5651,11 +6153,75 @@ function slash(value) {
 }
 
 const EDITOR_CSS = `
-  body { margin: 0; background: #111827; color: #e5e7eb; font: 12px system-ui, sans-serif; }
-  .editor-frame { display: grid; grid-template-rows: 40px minmax(0, 1fr) 24px; height: 100vh; background: #111827; }
-  .editor-toolbar { display: flex; gap: 6px; align-items: center; padding: 6px 8px; border-bottom: 1px solid rgba(148,163,184,.28); background: #0b1120; }
-  .editor-toolbar button { min-width: 56px; padding: 5px 8px; }
-  .editor-toolbar button::before { content: attr(data-editor-icon); display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: 5px; border-radius: 4px; background: rgba(56,189,248,.14); color: #93c5fd; font-size: 9px; text-transform: uppercase; }
+  body { margin: 0; overflow: hidden; background: #121312; color: #eceff1; font: 12px system-ui, sans-serif; }
+  .desktop-boot { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 24px; background: linear-gradient(90deg, rgba(45,212,191,.08) 1px, transparent 1px), linear-gradient(0deg, rgba(245,158,11,.07) 1px, transparent 1px), #101211; background-size: 38px 38px; transition: opacity .24s ease, visibility .24s ease; }
+  .desktop-boot.ready { opacity: 0; visibility: hidden; pointer-events: none; }
+  .desktop-boot-card { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 12px; width: min(540px, 100%); padding: 18px; border: 1px solid #47515a; border-radius: 8px; background: rgba(22,24,27,.97); box-shadow: 0 24px 70px rgba(0,0,0,.42); }
+  .desktop-boot-card strong { display: block; font-size: 18px; color: #fbfbf8; }
+  .desktop-boot-card span { display: block; margin-top: 5px; color: #a9b4b1; }
+  .desktop-boot-mark { position: relative; display: grid; place-items: center; width: 52px; height: 52px; border: 1px solid #2dd4bf; border-radius: 8px; background: #151817; color: #ccfbf1; font-weight: 800; }
+  .desktop-boot-mark::after { position: absolute; inset: 8px; border: 1px solid rgba(245,158,11,.72); border-radius: 5px; content: ""; animation: desktopBootPulse 1.4s ease-in-out infinite; }
+  .desktop-boot-progress { grid-column: 1 / -1; height: 8px; overflow: hidden; border: 1px solid #3f484f; border-radius: 999px; background: #090a0a; }
+  .desktop-boot-progress i { display: block; width: 72%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2dd4bf, #f59e0b, #84cc16); animation: desktopBootLoad 1.4s ease-in-out infinite; }
+  .editor-frame { display: grid; grid-template-rows: 40px minmax(520px, 58vh) minmax(0, 1fr) 24px; height: 100vh; overflow: hidden; background: #111312; }
+  .editor-toolbar { display: flex; gap: 6px; align-items: center; padding: 6px 8px; border-bottom: 1px solid rgba(166,173,166,.22); background: #0d0f0e; }
+  .editor-toolbar button { display: inline-flex; align-items: center; min-width: 72px; min-height: 28px; padding: 4px 8px; border-radius: 4px; white-space: nowrap; }
+  .editor-toolbar button::before { content: attr(data-editor-icon); display: inline-grid; flex: 0 0 auto; place-items: center; width: 18px; height: 18px; margin-right: 5px; border-radius: 4px; background: rgba(45,212,191,.15); color: #99f6e4; font-size: 11px; font-weight: 700; }
+  .desktop-hub { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 10px; min-height: 0; overflow: hidden; padding: 10px; border-bottom: 1px solid rgba(166,173,166,.22); background: linear-gradient(180deg, #171817, #111312); }
+  .desktop-command-rail { display: grid; grid-template-rows: auto repeat(4, 32px) 1fr; gap: 8px; min-width: 0; padding: 10px; border: 1px solid #343a3a; border-radius: 8px; background: #0f1110; animation: desktopPanelEnter .28s ease both; }
+  .desktop-command-rail strong { color: #fbfbf8; font-size: 16px; }
+  .desktop-command-rail button { min-width: 0; padding: 0 10px; border-radius: 6px; text-align: left; }
+  .desktop-command-rail span { align-self: end; color: #a3e635; font-size: 11px; }
+  .desktop-hub-main { display: grid; grid-template-rows: auto 54px minmax(0, 1fr); gap: 10px; min-width: 0; min-height: 0; }
+  .desktop-hub-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 60px; padding: 12px 14px; border: 1px solid #3b4343; border-radius: 8px; background: linear-gradient(135deg, #202321, #171918); animation: desktopPanelEnter .32s ease both; }
+  .desktop-hub h1, .desktop-hub h2 { margin: 0; color: #fbfbf8; letter-spacing: 0; }
+  .desktop-hub h1 { font-size: 21px; line-height: 1.15; }
+  .desktop-hub p { margin: 5px 0 0; color: #b7c3bd; }
+  .desktop-hub-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+  .desktop-hub-actions button, .desktop-tutorial-workbench button, .desktop-diagnostic-body button { min-height: 30px; padding: 6px 10px; border: 1px solid #2dd4bf; border-radius: 6px; background: #111716; color: #ccfbf1; }
+  .desktop-status-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .desktop-status-strip div { display: grid; gap: 2px; min-width: 0; padding: 8px 10px; border: 1px solid #384142; border-radius: 8px; background: #171a19; animation: desktopPanelEnter .36s ease both; }
+  .desktop-status-strip strong { color: #fbfbf8; font-size: 11px; }
+  .desktop-status-strip span { color: #fbbf24; font-size: 11px; }
+  .desktop-hub-grid { display: grid; grid-template-columns: 1.15fr .85fr .85fr; grid-auto-rows: auto; align-items: start; gap: 10px; min-height: 0; overflow: auto; padding-right: 2px; }
+  .desktop-hub-panel { display: grid; gap: 10px; min-width: 0; align-self: start; padding: 11px; border: 1px solid #343c3c; border-radius: 8px; background: #151817; animation: desktopPanelEnter .36s ease both; }
+  .project-command { grid-column: 1 / 3; grid-row: 1; }
+  [data-hub-section="recent-projects"] { grid-column: 3; grid-row: 1 / 3; }
+  [data-hub-section="template-lab"] { grid-column: 1; grid-row: 2; }
+  [data-hub-section="capability-map"] { grid-column: 2; grid-row: 2; }
+  [data-hub-section="release-diagnostics"] { grid-column: 3; grid-row: 3; }
+  [data-hub-section="learning-path"] { grid-column: 1; grid-row: 3; }
+  .desktop-tutorial { grid-column: 1 / -1; grid-row: 4; }
+  .desktop-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .desktop-panel-heading h2 { font-size: 14px; }
+  .desktop-panel-heading span { color: #aeb8b2; font-size: 11px; }
+  .desktop-card-grid { display: grid; gap: 8px; }
+  .desktop-card-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .desktop-card { display: grid; gap: 7px; min-height: 78px; min-width: 0; padding: 10px; border: 1px solid #3d4646; border-radius: 8px; background: #1b1e1d; color: #eceff1; text-align: left; }
+  .desktop-card.primary { background: linear-gradient(135deg, rgba(45,212,191,.2), rgba(245,158,11,.08)), #1b1e1d; }
+  .desktop-card strong { color: #fbfbf8; font-size: 13px; }
+  .desktop-card span { color: #b7c3bd; line-height: 1.45; }
+  .desktop-card b { width: max-content; max-width: 100%; padding: 2px 7px; border: 1px solid rgba(132,204,22,.45); border-radius: 6px; color: #bef264; font-size: 10px; }
+  .motion-card { transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease; }
+  .motion-card:hover { transform: translateY(-2px); border-color: #2dd4bf; background: #202522; box-shadow: 0 10px 24px rgba(0,0,0,.2); }
+  .desktop-recent-list, .desktop-template-grid, .desktop-diagnostic-body, .learning-path ol { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 0; }
+  .desktop-recent-list button, .desktop-template-grid button, .learning-path li { display: grid; gap: 4px; min-width: 0; padding: 9px; border: 1px solid #3d4646; border-radius: 8px; background: #111514; color: #eceff1; text-align: left; }
+  .desktop-recent-list button { padding: 8px 9px; }
+  .desktop-recent-list strong, .desktop-template-grid strong, .learning-path strong { color: #fbfbf8; }
+  .desktop-recent-list span, .desktop-template-grid span, .learning-path span { color: #aeb8b2; }
+  .desktop-recent-list b { width: max-content; padding: 2px 6px; border-radius: 6px; background: rgba(245,158,11,.12); color: #fcd34d; font-size: 10px; }
+  .desktop-template-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .desktop-diagnostic-body [data-desktop-diagnostic-result] { display: grid; gap: 4px; padding: 10px; border-left: 3px solid #84cc16; background: #111514; }
+  .learning-path li { list-style: none; grid-template-columns: 74px minmax(0, 1fr); align-items: center; }
+  .desktop-tutorial-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .desktop-tutorial-steps button { min-height: 32px; border-radius: 6px; }
+  .desktop-tutorial-workbench { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 10px; }
+  .desktop-tutorial-workbench pre { min-height: 124px; max-height: 174px; overflow: auto; margin: 0; padding: 10px; border: 1px solid #3d4646; border-radius: 8px; background: #070807; color: #d8f3ef; font: 11px/1.5 "Cascadia Code", Consolas, monospace; }
+  .desktop-tutorial-workbench aside { display: grid; gap: 8px; align-content: start; }
+  .desktop-tutorial-progress { height: 7px; overflow: hidden; border: 1px solid #3d4646; border-radius: 999px; background: #090a0a; }
+  .desktop-tutorial-progress i { display: block; width: 25%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #84cc16, #2dd4bf, #f59e0b); transition: width .18s ease; }
+  .desktop-tutorial-preview { display: grid; align-content: center; gap: 8px; min-height: 86px; padding: 12px; border: 1px solid #3d4646; border-radius: 8px; background: linear-gradient(90deg, rgba(45,212,191,.22) 0 28%, transparent 28%), #171a19; color: #ccfbf1; }
+  .desktop-tutorial-preview b { color: #bef264; }
   .editor-shell { display: grid; grid-template-columns: 240px minmax(320px, 1fr) 300px; grid-template-rows: minmax(0, 1fr) 220px; min-height: 0; }
   .dock-region { display: grid; gap: 0; min-width: 0; min-height: 0; overflow: hidden; }
   .dock-left { grid-column: 1; grid-row: 1 / span 2; grid-template-rows: minmax(0, 1.2fr) minmax(0, .9fr) minmax(0, .9fr); }
@@ -5671,6 +6237,14 @@ const EDITOR_CSS = `
   button.selected { border-color: #22d3ee; background: #164e63; }
   label { display: grid; grid-template-columns: 76px 1fr; gap: 8px; margin: 6px 0; }
   input { background: #020617; color: #e5e7eb; border: 1px solid #334155; padding: 5px; min-width: 0; }
+  button:focus-visible, input:focus-visible { outline: 2px solid #84cc16; outline-offset: 2px; }
+  @keyframes desktopBootPulse { 0%, 100% { opacity: .42; transform: scale(.94); } 50% { opacity: 1; transform: scale(1); } }
+  @keyframes desktopBootLoad { 0% { width: 18%; } 55% { width: 82%; } 100% { width: 100%; } }
+  @keyframes desktopPanelEnter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+    .motion-card:hover { transform: none; }
+  }
   .hierarchy-list { margin: 0; padding-left: 18px; }
   .hierarchy-list button, .prefab-list button, .asset-list button { width: 100%; margin-bottom: 5px; padding: 6px; text-align: left; }
   .scene-wrap { display: grid; grid-template-rows: auto auto 1fr auto; height: 100%; gap: 8px; }

@@ -117,7 +117,7 @@ describe('quality gates hardening', () => {
     const healthCheck = readFileSync('scripts/health-check.js', 'utf8');
 
     expect(exampleHtml).toContain('URLSearchParams(window.location.search)');
-    expect(exampleHtml).toContain("get('backend') || 'pixi'");
+    expect(exampleHtml).toContain("get('backend') || 'canvas'");
     expect(healthCheck).toContain('/examples/?backend=canvas');
   });
 

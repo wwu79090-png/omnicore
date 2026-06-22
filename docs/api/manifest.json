@@ -113,6 +113,27 @@
       ]
     },
     {
+      "path": "assets/AddressableCatalog.js",
+      "summary": "",
+      "exports": [
+        "AddressableCatalog"
+      ]
+    },
+    {
+      "path": "assets/AssetBuildRecipe.js",
+      "summary": "",
+      "exports": [
+        "AssetBuildRecipe"
+      ]
+    },
+    {
+      "path": "assets/AssetImportMetadata.js",
+      "summary": "",
+      "exports": [
+        "AssetImportMetadata"
+      ]
+    },
+    {
       "path": "assets/AssetManifestGraph.js",
       "summary": "",
       "exports": [
@@ -133,6 +154,20 @@
         "ASSET_PIPELINE_REPORT_SCHEMA",
         "AssetPipelineGate",
         "createAssetPipelineReport"
+      ]
+    },
+    {
+      "path": "assets/AssetResidencyManager.js",
+      "summary": "",
+      "exports": [
+        "AssetResidencyManager"
+      ]
+    },
+    {
+      "path": "assets/FantasyConsoleBank.js",
+      "summary": "",
+      "exports": [
+        "FantasyConsoleBank"
       ]
     },
     {
@@ -168,6 +203,13 @@
       "summary": "",
       "exports": [
         "ResourceOwnershipGraph"
+      ]
+    },
+    {
+      "path": "assets/VirtualAssetFS.js",
+      "summary": "",
+      "exports": [
+        "VirtualAssetFS"
       ]
     },
     {
@@ -263,6 +305,13 @@
       ]
     },
     {
+      "path": "compat/phaser/PhaserRuntimeParityLayer.js",
+      "summary": "",
+      "exports": [
+        "PhaserRuntimeParityLayer"
+      ]
+    },
+    {
       "path": "compliance/AuthManager.js",
       "summary": "Real-name authentication hook facade. OmniCore does not implement a jurisdiction-specific identity provider. Games install a hook and the engine calls it consistently across platforms. @example OmniCore.System.Auth.setHook(async (profile) => provider.verify(profile)); const result = await OmniCore.System.Auth.verify({ playerId: 'u1' });",
       "exports": [
@@ -336,6 +385,13 @@
       ]
     },
     {
+      "path": "core/ApplicationStateStack.js",
+      "summary": "",
+      "exports": [
+        "ApplicationStateStack"
+      ]
+    },
+    {
       "path": "core/AssetCache.js",
       "summary": "",
       "exports": [
@@ -357,6 +413,13 @@
         "createNoopCanvasContext",
         "detectEnvironment",
         "safeInitialize"
+      ]
+    },
+    {
+      "path": "core/CallbackGameLoop.js",
+      "summary": "",
+      "exports": [
+        "CallbackGameLoop"
       ]
     },
     {
@@ -401,6 +464,13 @@
       "summary": "",
       "exports": [
         "benchmarkECSParticles"
+      ]
+    },
+    {
+      "path": "core/ECS/QueryFilter.js",
+      "summary": "",
+      "exports": [
+        "QueryFilter"
       ]
     },
     {
@@ -452,11 +522,33 @@
       ]
     },
     {
+      "path": "core/GameComponentPipeline.js",
+      "summary": "",
+      "exports": [
+        "GameComponentPipeline"
+      ]
+    },
+    {
+      "path": "core/GameplayTags.js",
+      "summary": "",
+      "exports": [
+        "GameplayTagContainer",
+        "GameplayTags"
+      ]
+    },
+    {
       "path": "core/Hook.js",
       "summary": "",
       "exports": [
         "Hook",
         "GlobalHook"
+      ]
+    },
+    {
+      "path": "core/JobDependencyGraph.js",
+      "summary": "",
+      "exports": [
+        "JobDependencyGraph"
       ]
     },
     {
@@ -472,6 +564,20 @@
       "exports": [
         "FixedMemoryPool",
         "PoolRegistry"
+      ]
+    },
+    {
+      "path": "core/MessageRouteBus.js",
+      "summary": "",
+      "exports": [
+        "MessageRouteBus"
+      ]
+    },
+    {
+      "path": "core/ModuleGemManifest.js",
+      "summary": "",
+      "exports": [
+        "ModuleGemManifest"
       ]
     },
     {
@@ -507,6 +613,13 @@
       ]
     },
     {
+      "path": "core/PluginManifest.js",
+      "summary": "",
+      "exports": [
+        "PluginManifest"
+      ]
+    },
+    {
       "path": "core/PluginPermissionSandbox.js",
       "summary": "",
       "exports": [
@@ -522,10 +635,24 @@
       ]
     },
     {
+      "path": "core/ResourceStateScheduler.js",
+      "summary": "",
+      "exports": [
+        "ResourceStateScheduler"
+      ]
+    },
+    {
       "path": "core/RuntimeErrorBoundary.js",
       "summary": "",
       "exports": [
         "OmniCoreErrorBoundary"
+      ]
+    },
+    {
+      "path": "core/RuntimeStateSerializer.js",
+      "summary": "",
+      "exports": [
+        "RuntimeStateSerializer"
       ]
     },
     {
@@ -537,10 +664,46 @@
       ]
     },
     {
+      "path": "core/SceneObservableHub.js",
+      "summary": "",
+      "exports": [
+        "SceneObservableHub"
+      ]
+    },
+    {
+      "path": "core/ServerHandleRegistry.js",
+      "summary": "",
+      "exports": [
+        "ServerHandleRegistry"
+      ]
+    },
+    {
+      "path": "core/SignalBus.js",
+      "summary": "Godot-style named signal hub for runtime objects and editor tools.",
+      "exports": [
+        "SignalBus"
+      ]
+    },
+    {
       "path": "core/Snapshot.js",
       "summary": "",
       "exports": [
         "Snapshot"
+      ]
+    },
+    {
+      "path": "core/SystemSchedule.js",
+      "summary": "",
+      "exports": [
+        "DEFAULT_SYSTEM_STAGES",
+        "SystemSchedule"
+      ]
+    },
+    {
+      "path": "core/TaskChainManager.js",
+      "summary": "",
+      "exports": [
+        "TaskChainManager"
       ]
     },
     {
@@ -587,10 +750,24 @@
       ]
     },
     {
+      "path": "data/BehaviorDefinition.js",
+      "summary": "",
+      "exports": [
+        "BehaviorDefinition"
+      ]
+    },
+    {
       "path": "data/DataAdapter.js",
       "summary": "Translates legacy JSON/config shapes into OmniCore-friendly data.",
       "exports": [
         "DataAdapter"
+      ]
+    },
+    {
+      "path": "data/DataAsset.js",
+      "summary": "",
+      "exports": [
+        "DataAsset"
       ]
     },
     {
@@ -605,6 +782,20 @@
       "summary": "",
       "exports": [
         "DataTableEditor"
+      ]
+    },
+    {
+      "path": "data/DialogueGraph.js",
+      "summary": "",
+      "exports": [
+        "DialogueGraph"
+      ]
+    },
+    {
+      "path": "data/EventCommandQueue.js",
+      "summary": "",
+      "exports": [
+        "EventCommandQueue"
       ]
     },
     {
@@ -629,10 +820,32 @@
       ]
     },
     {
+      "path": "data/NarrativeRuntime.js",
+      "summary": "",
+      "exports": [
+        "NarrativeRuntime",
+        "parseNarrativeScript"
+      ]
+    },
+    {
+      "path": "data/RpgEventPageResolver.js",
+      "summary": "",
+      "exports": [
+        "RpgEventPageResolver"
+      ]
+    },
+    {
       "path": "data/SafeParse.js",
       "summary": "",
       "exports": [
         "safeParse"
+      ]
+    },
+    {
+      "path": "data/VisualNovelScript.js",
+      "summary": "",
+      "exports": [
+        "VisualNovelScript"
       ]
     },
     {
@@ -663,6 +876,13 @@
       "summary": "WebSocket debug terminal for device logs and OmniCore events. @example const consoleSync = new DebugConsole({ events: game.events }); consoleSync.attach();",
       "exports": [
         "DebugConsole"
+      ]
+    },
+    {
+      "path": "debug/DebugProbe.js",
+      "summary": "",
+      "exports": [
+        "DebugProbe"
       ]
     },
     {
@@ -729,6 +949,13 @@
       "summary": "",
       "exports": [
         "KnowledgeBaseDiagnostics"
+      ]
+    },
+    {
+      "path": "debug/LevelValidationReport.js",
+      "summary": "",
+      "exports": [
+        "LevelValidationReport"
       ]
     },
     {
@@ -834,6 +1061,13 @@
       ]
     },
     {
+      "path": "dimension3d/ThreePhysicsBridge.js",
+      "summary": "",
+      "exports": [
+        "ThreePhysicsBridge"
+      ]
+    },
+    {
       "path": "docs/ApiDocGenerator.js",
       "summary": "Generate a small structured API documentation site from source exports.",
       "exports": [
@@ -852,6 +1086,13 @@
       "summary": "",
       "exports": [
         "AssetBrowser"
+      ]
+    },
+    {
+      "path": "editor/EditorInspectorModel.js",
+      "summary": "",
+      "exports": [
+        "EditorInspectorModel"
       ]
     },
     {
@@ -902,6 +1143,13 @@
       "exports": [
         "EDITOR_PROTOCOL_VERSION",
         "EditorProtocol"
+      ]
+    },
+    {
+      "path": "editor/EditorSceneDependencyGraph.js",
+      "summary": "",
+      "exports": [
+        "EditorSceneDependencyGraph"
       ]
     },
     {
@@ -963,6 +1211,20 @@
       ]
     },
     {
+      "path": "gameplay/AbilitySystem.js",
+      "summary": "",
+      "exports": [
+        "AbilitySystem"
+      ]
+    },
+    {
+      "path": "gameplay/QuestStateMachine.js",
+      "summary": "",
+      "exports": [
+        "QuestStateMachine"
+      ]
+    },
+    {
       "path": "graphics/Geom.js",
       "summary": "",
       "exports": [
@@ -1018,6 +1280,20 @@
       "summary": "Natural language scene importer backed by an LLM endpoint. @example const importer = new AIImporter({ endpoint: '/api/llm' }); const sceneJson = await importer.generateScene('maze with 3 monsters');",
       "exports": [
         "AIImporter"
+      ]
+    },
+    {
+      "path": "input/InputActionContextStack.js",
+      "summary": "",
+      "exports": [
+        "InputActionContextStack"
+      ]
+    },
+    {
+      "path": "input/InputDeviceMap.js",
+      "summary": "",
+      "exports": [
+        "InputDeviceMap"
       ]
     },
     {
@@ -1268,6 +1544,20 @@
       ]
     },
     {
+      "path": "net/ClientPredictionReconciler.js",
+      "summary": "",
+      "exports": [
+        "ClientPredictionReconciler"
+      ]
+    },
+    {
+      "path": "net/LagCompensationTimeline.js",
+      "summary": "",
+      "exports": [
+        "LagCompensationTimeline"
+      ]
+    },
+    {
       "path": "net/MultiplayerSession.js",
       "summary": "",
       "exports": [
@@ -1283,10 +1573,39 @@
       ]
     },
     {
+      "path": "net/NetworkSnapshotBuffer.js",
+      "summary": "",
+      "exports": [
+        "NetworkSnapshotBuffer"
+      ]
+    },
+    {
       "path": "net/RealtimeConnection.js",
       "summary": "WebSocket-compatible realtime connection wrapper.",
       "exports": [
         "RealtimeConnection"
+      ]
+    },
+    {
+      "path": "net/RemoteEventContract.js",
+      "summary": "",
+      "exports": [
+        "REMOTE_EVENT_SCHEMA",
+        "RemoteEventContract"
+      ]
+    },
+    {
+      "path": "net/ReplicationInterestGraph.js",
+      "summary": "",
+      "exports": [
+        "ReplicationInterestGraph"
+      ]
+    },
+    {
+      "path": "net/RollbackFrameStore.js",
+      "summary": "",
+      "exports": [
+        "RollbackFrameStore"
       ]
     },
     {
@@ -1371,6 +1690,69 @@
       "summary": "Runtime frame-budget scheduler for slicing non-critical work.",
       "exports": [
         "FrameBudgetScheduler"
+      ]
+    },
+    {
+      "path": "performance/FramePacingController.js",
+      "summary": "",
+      "exports": [
+        "FramePacingController"
+      ]
+    },
+    {
+      "path": "performance/PerformanceBudgetEnvelope.js",
+      "summary": "",
+      "exports": [
+        "PerformanceBudgetEnvelope"
+      ]
+    },
+    {
+      "path": "performance/PerformanceMonitorRegistry.js",
+      "summary": "",
+      "exports": [
+        "PerformanceMonitorRegistry"
+      ]
+    },
+    {
+      "path": "performance/PerformanceRegressionGuard.js",
+      "summary": "",
+      "exports": [
+        "PerformanceRegressionGuard"
+      ]
+    },
+    {
+      "path": "performance/QualityScalerProfile.js",
+      "summary": "",
+      "exports": [
+        "QualityScalerProfile"
+      ]
+    },
+    {
+      "path": "performance/RuntimeOptimizationAdvisor.js",
+      "summary": "",
+      "exports": [
+        "RuntimeOptimizationAdvisor"
+      ]
+    },
+    {
+      "path": "performance/RuntimeOptimizationController.js",
+      "summary": "",
+      "exports": [
+        "RuntimeOptimizationController"
+      ]
+    },
+    {
+      "path": "performance/ScalabilityTierMatrix.js",
+      "summary": "",
+      "exports": [
+        "ScalabilityTierMatrix"
+      ]
+    },
+    {
+      "path": "performance/ThermalPowerGovernor.js",
+      "summary": "",
+      "exports": [
+        "ThermalPowerGovernor"
       ]
     },
     {
@@ -1462,10 +1844,38 @@
       ]
     },
     {
+      "path": "platform/ExportPreset.js",
+      "summary": "",
+      "exports": [
+        "ExportPreset"
+      ]
+    },
+    {
+      "path": "platform/GameSettingsProfile.js",
+      "summary": "",
+      "exports": [
+        "GameSettingsProfile"
+      ]
+    },
+    {
       "path": "platform/PlatformAdapter.js",
       "summary": "Cross-platform adapter helpers for Web, Electron, and WeChat Mini Game. @example const files = PlatformAdapter.generateElectronFiles({ appName: 'My Game' }); const wechat = PlatformAdapter.adaptWechat(wx);",
       "exports": [
         "PlatformAdapter"
+      ]
+    },
+    {
+      "path": "platform/RuntimeConfigFlags.js",
+      "summary": "",
+      "exports": [
+        "RuntimeConfigFlags"
+      ]
+    },
+    {
+      "path": "platform/SystemMenuModel.js",
+      "summary": "",
+      "exports": [
+        "SystemMenuModel"
       ]
     },
     {
@@ -1483,6 +1893,101 @@
       ]
     },
     {
+      "path": "prefab/PrefabVariantRegistry.js",
+      "summary": "",
+      "exports": [
+        "PrefabVariantRegistry"
+      ]
+    },
+    {
+      "path": "quality/ApiSurfaceFocusLens.js",
+      "summary": "",
+      "exports": [
+        "ApiSurfaceFocusLens"
+      ]
+    },
+    {
+      "path": "quality/BottleneckSurfaceAnalyzer.js",
+      "summary": "",
+      "exports": [
+        "BottleneckSurfaceAnalyzer"
+      ]
+    },
+    {
+      "path": "quality/CompletenessClosurePlanner.js",
+      "summary": "",
+      "exports": [
+        "CompletenessClosurePlanner"
+      ]
+    },
+    {
+      "path": "quality/CompletenessGapAnalyzer.js",
+      "summary": "",
+      "exports": [
+        "CompletenessGapAnalyzer"
+      ]
+    },
+    {
+      "path": "quality/CreatorWorkflowCoach.js",
+      "summary": "",
+      "exports": [
+        "CreatorWorkflowCoach"
+      ]
+    },
+    {
+      "path": "quality/CrossEngineAdoptionPlanner.js",
+      "summary": "",
+      "exports": [
+        "CrossEngineAdoptionPlanner"
+      ]
+    },
+    {
+      "path": "quality/CrossEngineParityMatrix.js",
+      "summary": "",
+      "exports": [
+        "CROSS_ENGINE_SOURCE_DOCS",
+        "CrossEngineParityMatrix"
+      ]
+    },
+    {
+      "path": "quality/EngineAdvantageAssimilator.js",
+      "summary": "",
+      "exports": [
+        "EngineAdvantageAssimilator"
+      ]
+    },
+    {
+      "path": "quality/EngineCapabilityAtlas.js",
+      "summary": "",
+      "exports": [
+        "ENGINE_FAMILY_SOURCES",
+        "ENGINE_CAPABILITY_CATEGORIES",
+        "buildEngineCapabilityAtlas",
+        "renderEngineCapabilityMarkdown"
+      ]
+    },
+    {
+      "path": "quality/EngineCompletenessMatrix.js",
+      "summary": "",
+      "exports": [
+        "EngineCompletenessMatrix"
+      ]
+    },
+    {
+      "path": "quality/EngineFunctionQualityMatrix.js",
+      "summary": "",
+      "exports": [
+        "EngineFunctionQualityMatrix"
+      ]
+    },
+    {
+      "path": "quality/EngineLimitRegistry.js",
+      "summary": "",
+      "exports": [
+        "EngineLimitRegistry"
+      ]
+    },
+    {
       "path": "quality/EngineQualityHarness.js",
       "summary": "",
       "exports": [
@@ -1496,11 +2001,25 @@
       ]
     },
     {
+      "path": "quality/FeatureQualityAuditor.js",
+      "summary": "",
+      "exports": [
+        "FeatureQualityAuditor"
+      ]
+    },
+    {
       "path": "quality/ImprovementPlanner.js",
       "summary": "",
       "exports": [
         "buildEngineImprovementPlan",
         "formatEngineImprovementMarkdown"
+      ]
+    },
+    {
+      "path": "quality/LimitRemovalPlanner.js",
+      "summary": "",
+      "exports": [
+        "LimitRemovalPlanner"
       ]
     },
     {
@@ -1519,12 +2038,40 @@
       ]
     },
     {
+      "path": "quality/PersonalCapabilityProfile.js",
+      "summary": "",
+      "exports": [
+        "PersonalCapabilityProfile"
+      ]
+    },
+    {
+      "path": "quality/QualityOptimizationPlanner.js",
+      "summary": "",
+      "exports": [
+        "QualityOptimizationPlanner"
+      ]
+    },
+    {
       "path": "quality/RuntimeSoakHarness.js",
       "summary": "Runtime soak harness for repeated scene lifecycle and resource leak checks.",
       "exports": [
         "RUNTIME_SOAK_REPORT_SCHEMA",
         "RuntimeSoakHarness",
         "createRuntimeSoakReport"
+      ]
+    },
+    {
+      "path": "quality/SoloProductionPlanner.js",
+      "summary": "",
+      "exports": [
+        "SoloProductionPlanner"
+      ]
+    },
+    {
+      "path": "renderer/BatchAtlasDiagnostics.js",
+      "summary": "",
+      "exports": [
+        "BatchAtlasDiagnostics"
       ]
     },
     {
@@ -1560,6 +2107,13 @@
       ]
     },
     {
+      "path": "renderer/MaterialPreset.js",
+      "summary": "",
+      "exports": [
+        "MaterialPreset"
+      ]
+    },
+    {
       "path": "renderer/OffscreenCanvasRenderer.js",
       "summary": "OffscreenCanvas-backed 2D renderer. The main thread only serializes high-level draw commands. A dedicated Worker owns the canvas context after `transferControlToOffscreen()`.",
       "exports": [
@@ -1584,10 +2138,24 @@
       ]
     },
     {
+      "path": "renderer/PixiLifecycleAudit.js",
+      "summary": "",
+      "exports": [
+        "PixiLifecycleAudit"
+      ]
+    },
+    {
       "path": "renderer/PixiRenderer.js",
       "summary": "PixiJS v8 backed 2D renderer with Canvas fallback. Pixi lifecycle is sealed behind this wrapper. OmniCore does not expose Pixi's ticker; rendering is driven by OmniCore.Loop. @example const renderer = new PixiRenderer({ backend: 'pixi', canvas, width: 800, height: 600 }); await renderer.init(); renderer.applyBloom(sprite.displayObject);",
       "exports": [
         "PixiRenderer"
+      ]
+    },
+    {
+      "path": "renderer/PixiRenderHardeningProfile.js",
+      "summary": "",
+      "exports": [
+        "PixiRenderHardeningProfile"
       ]
     },
     {
@@ -1612,6 +2180,13 @@
       ]
     },
     {
+      "path": "renderer/RendererBackendContract.js",
+      "summary": "",
+      "exports": [
+        "RendererBackendContract"
+      ]
+    },
+    {
       "path": "renderer/RendererFallbackMatrix.js",
       "summary": "",
       "exports": [
@@ -1625,6 +2200,20 @@
       "summary": "Multi-backend renderer manager with automatic fallback. @example const manager = new RendererManager({ createRenderer }); const renderer = await manager.create('auto'); // webgpu -> webgl -> canvas",
       "exports": [
         "RendererManager"
+      ]
+    },
+    {
+      "path": "renderer/RenderFeatureProfile.js",
+      "summary": "",
+      "exports": [
+        "RenderFeatureProfile"
+      ]
+    },
+    {
+      "path": "renderer/RenderGraphPlanner.js",
+      "summary": "",
+      "exports": [
+        "RenderGraphPlanner"
       ]
     },
     {
@@ -1642,10 +2231,31 @@
       ]
     },
     {
+      "path": "renderer/RenderWorkerOwnership.js",
+      "summary": "",
+      "exports": [
+        "RenderWorkerOwnership"
+      ]
+    },
+    {
+      "path": "renderer/ShaderVariantCollection.js",
+      "summary": "",
+      "exports": [
+        "ShaderVariantCollection"
+      ]
+    },
+    {
       "path": "renderer/StaticBatchCompiler.js",
       "summary": "Build-time static sprite batch compiler. Converts immutable repeated sprites into deterministic vertex batches that can be loaded by renderers without spending frame time discovering merges.",
       "exports": [
         "StaticBatchCompiler"
+      ]
+    },
+    {
+      "path": "renderer/TextureStreamingBudget.js",
+      "summary": "",
+      "exports": [
+        "TextureStreamingBudget"
       ]
     },
     {
@@ -1686,10 +2296,59 @@
       ]
     },
     {
+      "path": "scene/CollectionFactory.js",
+      "summary": "",
+      "exports": [
+        "CollectionFactory"
+      ]
+    },
+    {
+      "path": "scene/ComponentTreeRuntime.js",
+      "summary": "",
+      "exports": [
+        "ComponentTreeRuntime"
+      ]
+    },
+    {
+      "path": "scene/ComposerSceneFlow.js",
+      "summary": "",
+      "exports": [
+        "ComposerSceneFlow"
+      ]
+    },
+    {
       "path": "scene/Container.js",
       "summary": "Display container with child hierarchy and world-space position helpers.",
       "exports": [
         "Container"
+      ]
+    },
+    {
+      "path": "scene/ObjectEventMap.js",
+      "summary": "",
+      "exports": [
+        "ObjectEventMap"
+      ]
+    },
+    {
+      "path": "scene/ObjectTimelineRuntime.js",
+      "summary": "",
+      "exports": [
+        "ObjectTimelineRuntime"
+      ]
+    },
+    {
+      "path": "scene/RoomExitGraph.js",
+      "summary": "",
+      "exports": [
+        "RoomExitGraph"
+      ]
+    },
+    {
+      "path": "scene/RoomHotspotMap.js",
+      "summary": "",
+      "exports": [
+        "RoomHotspotMap"
       ]
     },
     {
@@ -1708,6 +2367,7 @@
         "SCENE_DOCUMENT_VERSION",
         "SceneDocument",
         "normalizeSceneDocument",
+        "instantiateSceneDocument",
         "validateSceneDocument",
         "collectSceneDependencies",
         "assertValidSceneDocument"
@@ -1729,10 +2389,52 @@
       ]
     },
     {
+      "path": "scene/SceneServices.js",
+      "summary": "",
+      "exports": [
+        "createSceneServices"
+      ]
+    },
+    {
+      "path": "scene/SceneTransitionStack.js",
+      "summary": "",
+      "exports": [
+        "SceneTransitionStack"
+      ]
+    },
+    {
+      "path": "scene/ScreenFlowController.js",
+      "summary": "",
+      "exports": [
+        "ScreenFlowController"
+      ]
+    },
+    {
       "path": "scene/TileSprite.js",
       "summary": "",
       "exports": [
         "TileSprite"
+      ]
+    },
+    {
+      "path": "scene/WorldPartitionGrid.js",
+      "summary": "",
+      "exports": [
+        "WorldPartitionGrid"
+      ]
+    },
+    {
+      "path": "store/PersistentSaveSlot.js",
+      "summary": "",
+      "exports": [
+        "PersistentSaveSlot"
+      ]
+    },
+    {
+      "path": "store/SaveGameArchive.js",
+      "summary": "",
+      "exports": [
+        "SaveGameArchive"
       ]
     },
     {
@@ -1782,6 +2484,13 @@
       "summary": "Parser for Tiled-style JSON maps. Supports: - finite tile/object layers - grouped layers (flattened with `group/name` paths) - infinite tile layers with `chunks` - object collision shapes: rectangle / ellipse / polygon / polyline @example const map = Tilemap.parse(tiledJson); const ground = map.getTileLayer('Ground'); ground.tileAt(4, 2);",
       "exports": [
         "Tilemap"
+      ]
+    },
+    {
+      "path": "tilemap/TilemapAuthoringTools.js",
+      "summary": "",
+      "exports": [
+        "TilemapAuthoringTools"
       ]
     },
     {
@@ -1896,6 +2605,13 @@
       "summary": "Debug-only visual event graph editor. @example const graph = new VisualEventGraph({ debug: true }); graph.addNode({ id: 'check', type: 'condition', data: { op: 'equals' } }); graph.exportJSON();",
       "exports": [
         "VisualEventGraph"
+      ]
+    },
+    {
+      "path": "visualgraph/VisualScriptGraphRuntime.js",
+      "summary": "Executable visual scripting graph runtime inspired by Blueprint, Unity Visual Scripting, Godot signals, and event-sheet engines.",
+      "exports": [
+        "VisualScriptGraphRuntime"
       ]
     },
     {

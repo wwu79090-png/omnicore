@@ -1,6 +1,8 @@
 {
   "name": "omnicore-editor",
   "version": "0.1.0",
+  "description": "OmniCore desktop scene editor for visual game authoring.",
+  "author": "Shalu",
   "type": "module",
   "private": true,
   "main": "electron.main.cjs",
@@ -11,10 +13,18 @@
     "dev": "vite --host 127.0.0.1 --port 43210",
     "desktop": "electron .",
     "package:desktop": "node scripts/package-desktop.cjs",
+    "package:win": "npm run build && electron-builder --win nsis portable --x64",
+    "package:win:dir": "npm run build && electron-builder --win dir --x64",
     "build": "vite build"
   },
   "omnicoreEditor": {
     "standalone": true,
+    "desktopTargets": [
+      "omnicore-editor.exe",
+      "OmniCore Editor.app",
+      "OmniCore Editor.dmg",
+      "OmniCore Editor.AppImage"
+    ],
     "stack": {
       "view": "React",
       "graph": "React Flow",
@@ -38,22 +48,53 @@
   "build": {
     "productName": "OmniCore Editor",
     "appId": "dev.omnicore.editor",
-    "desktopTargets": [
-      "omnicore-editor.exe",
-      "OmniCore Editor.app",
-      "OmniCore Editor.dmg",
-      "OmniCore Editor.AppImage"
-    ],
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "directories": {
+      "output": "dist-installers"
+    },
+    "asar": true,
     "files": [
       "dist",
       "electron.main.cjs",
       "workspace.cjs",
       "preload.cjs",
       "package.json"
-    ]
+    ],
+    "win": {
+      "icon": "../../assets/icons/electron/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "OmniCore Editor",
+      "artifactName": "OmniCore-Editor-Setup-${version}-${arch}.${ext}",
+      "installerIcon": "../../assets/icons/electron/icon.ico",
+      "uninstallerIcon": "../../assets/icons/electron/icon.ico"
+    },
+    "portable": {
+      "artifactName": "OmniCore-Editor-Portable-${version}-${arch}.${ext}"
+    }
   },
   "devDependencies": {
     "electron": "^42.4.1",
+    "electron-builder": "^26.15.3",
     "vite": "^8.0.16"
   }
 }

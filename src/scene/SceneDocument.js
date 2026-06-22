@@ -41,9 +41,47 @@ export function normalizeSceneDocument(input = {}) {
     schema: SCENE_DOCUMENT_SCHEMA,
     schemaVersion: SCENE_DOCUMENT_VERSION,
     name: source.name || source.id || 'scene',
+    uid: source.uid || createSceneUid(source.resourcePath || source.path || source.name || source.id || 'scene'),
+    resourcePath: normalizePath(source.resourcePath || source.path || ''),
+    inherits: source.inherits ? clone(source.inherits) : null,
+    instanceOverrides: clone(source.instanceOverrides || source.overrides || {}),
     meta: clone(source.meta || {}),
     assets,
     children: normalizeArray(children).map((node, index) => normalizeSceneNode(node, `node-${index}`))
+  };
+}
+
+export function instantiateSceneDocument(input = {}, options = {}) {
+  const source = typeof input?.toJSON === 'function' ? input.toJSON() : input;
+  const document = normalizeSceneDocument(source);
+  const sceneUid = options.uid || document.uid || createSceneUid(document.resourcePath || document.name);
+  const inherited = document.inherits && typeof document.inherits === 'object'
+    ? instantiateSceneDocument(document.inherits)
+    : null;
+  const byId = new Map();
+
+  for (const child of inherited?.children || []) {
+    byId.set(child.id, rebaseInheritedNode(child, sceneUid));
+  }
+
+  for (const child of document.children || []) {
+    const materialized = materializeSceneNode(child, sceneUid);
+    const previous = byId.get(materialized.id);
+    byId.set(materialized.id, previous ? mergeSceneNodes(previous, materialized, sceneUid) : materialized);
+  }
+
+  const children = [...byId.values()].map((node) => applyInstanceOverride(node, document.instanceOverrides?.[node.id]));
+
+  return {
+    schema: document.schema,
+    schemaVersion: document.schemaVersion,
+    name: document.name,
+    uid: sceneUid,
+    resourcePath: document.resourcePath,
+    inheritedFrom: inherited?.uid || null,
+    meta: clone(document.meta || {}),
+    assets: mergeSceneAssets(inherited?.assets, document.assets),
+    children
   };
 }
 
@@ -280,6 +318,73 @@ function assetToKey(value) {
   if (value == null) return '';
   if (typeof value === 'string') return value.replace(/\\/gu, '/');
   return String(value.key || value.id || value.url || value.path || value.src || value.name || '').replace(/\\/gu, '/');
+}
+
+function createSceneUid(value) {
+  return `scene:${normalizePath(value || 'scene')}`;
+}
+
+function normalizePath(value) {
+  return String(value || '').replace(/\\/gu, '/');
+}
+
+function materializeSceneNode(node = {}, sceneUid = 'scene:scene') {
+  const materialized = clone(node);
+  materialized.uid = `${sceneUid}#${materialized.id}`;
+  materialized.children = (node.children || []).map((child) => materializeSceneNode(child, sceneUid));
+  return materialized;
+}
+
+function rebaseInheritedNode(node = {}, sceneUid = 'scene:scene') {
+  const rebased = clone(node);
+  rebased.inheritedFrom = node.uid || node.inheritedFrom || null;
+  rebased.uid = `${sceneUid}#${rebased.id}`;
+  rebased.children = (node.children || []).map((child) => rebaseInheritedNode(child, sceneUid));
+  return rebased;
+}
+
+function mergeSceneNodes(baseNode = {}, overrideNode = {}, sceneUid = 'scene:scene') {
+  const merged = deepMerge(baseNode, overrideNode);
+  merged.uid = `${sceneUid}#${merged.id}`;
+  const children = new Map();
+  for (const child of baseNode.children || []) children.set(child.id, child);
+  for (const child of overrideNode.children || []) {
+    children.set(child.id, children.has(child.id) ? mergeSceneNodes(children.get(child.id), child, sceneUid) : child);
+  }
+  merged.children = [...children.values()];
+  if (baseNode.uid && baseNode.uid !== merged.uid) merged.inheritedFrom = baseNode.inheritedFrom || baseNode.uid;
+  return merged;
+}
+
+function applyInstanceOverride(node = {}, override = null) {
+  const next = override ? deepMerge(node, override) : clone(node);
+  next.children = (next.children || []).map((child) => applyInstanceOverride(child, override?.children?.[child.id] || null));
+  return next;
+}
+
+function mergeSceneAssets(left = null, right = null) {
+  const buckets = createDependencyBuckets();
+  mergeAssetDeclarations(buckets, left || {});
+  mergeAssetDeclarations(buckets, right || {});
+  return sortDependencyBuckets(buckets);
+}
+
+function deepMerge(left = {}, right = {}) {
+  if (Array.isArray(left) || Array.isArray(right)) return clone(right ?? left);
+  if (!isPlainObject(left) || !isPlainObject(right)) return clone(right ?? left);
+  const merged = clone(left);
+  for (const [key, value] of Object.entries(right)) {
+    if (isPlainObject(value) && isPlainObject(merged[key])) {
+      merged[key] = deepMerge(merged[key], value);
+    } else {
+      merged[key] = clone(value);
+    }
+  }
+  return merged;
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 function normalizeNumber(value, fallback) {

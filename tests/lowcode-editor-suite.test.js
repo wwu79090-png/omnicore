@@ -40,7 +40,7 @@ describe('low-code editor authoring suite', () => {
     const eventSheet = app.exportFlowGraphEventSheet();
     const behaviorTree = app.exportBehaviorTreeJson();
 
-    expect(root.querySelector('[data-panel="graph-editor"]')?.textContent).toContain('Graph Editor');
+    expect(root.querySelector('[data-panel="graph-editor"]')?.textContent).toContain('图节点编辑器');
     expect(eventSheet.events[0]).toMatchObject({
       name: 'NPC Proximity',
       conditions: [expect.objectContaining({ op: 'distanceLessThan', left: 'hero', right: 'slime', value: 48 })],

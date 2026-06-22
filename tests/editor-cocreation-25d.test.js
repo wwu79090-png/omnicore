@@ -172,7 +172,7 @@ describe('OmniCore 2.5D editor co-creation', () => {
       format: 'OmniCore.Editor25DProductionReadiness',
       ready: false,
       blockers: [expect.objectContaining({ code: 'cocreation-not-applied' })],
-      nextActions: expect.arrayContaining(['Apply the 2.5D co-creation plan to the scene.'])
+      nextActions: expect.arrayContaining(['把 2.5D 共创方案应用到场景。'])
     });
 
     app.apply25DCoCreationPlan();
@@ -238,7 +238,7 @@ describe('OmniCore 2.5D editor co-creation', () => {
     app.saveSnapshot('forest-demo-production');
     app.update(app.getState());
 
-    expect(root.querySelector('[data-25d-production-panel]')?.textContent).toContain('2.5D Production');
+    expect(root.querySelector('[data-25d-production-panel]')?.textContent).toContain('2.5D 生产检查');
     expect(root.querySelector('[data-25d-production-score]')?.textContent).toContain('100');
     expect(root.querySelector('[data-25d-stage="apply"]')?.dataset.status).toBe('complete');
     expect(root.querySelector('[data-25d-stage="save"]')?.dataset.status).toBe('complete');
@@ -340,7 +340,7 @@ describe('OmniCore 2.5D editor co-creation', () => {
       })
     ]));
     app.update(app.getState());
-    expect(root.querySelector('[data-25d-visual-evidence]')?.textContent).toContain('Visual Evidence');
+    expect(root.querySelector('[data-25d-visual-evidence]')?.textContent).toContain('视觉证据');
     expect(root.querySelector('[data-25d-visual-layer="occlusion"]')).toBeTruthy();
     expect(root.querySelector('[data-25d-visual-layer="shadow"]')).toBeTruthy();
     app.destroy();
@@ -433,14 +433,14 @@ describe('OmniCore 2.5D editor co-creation', () => {
     app.update(app.getState());
 
     const panel = root.querySelector('[data-save-version-panel]');
-    expect(panel?.textContent).toContain('Save Versions');
+    expect(panel?.textContent).toContain('保存版本');
     expect(root.querySelectorAll('[data-save-version-row]')).toHaveLength(2);
-    expect(root.querySelector('[data-save-version-diff]')?.textContent).toContain('Added forest-tower');
+    expect(root.querySelector('[data-save-version-diff]')?.textContent).toContain('新增 forest-tower');
 
     root.querySelector(`[data-save-version-rollback="${before.id}"]`).click();
 
     expect(app.getState().scene.entities.map((entity) => entity.id)).toEqual(['forest']);
-    expect(root.querySelector('[data-editor-feedback]')?.textContent).toContain('Rolled back to before-cocreation');
+    expect(root.querySelector('[data-editor-feedback]')?.textContent).toContain('已回滚到 before-cocreation');
     app.destroy();
   });
 });

@@ -1,0 +1,1230 @@
+{
+  "generatedBy": "OmniCore engine capability atlas",
+  "generatedAt": "2026-06-22T00:00:00.000+08:00",
+  "engineFamilies": {
+    "unreal": {
+      "name": "Unreal",
+      "sources": [
+        "https://dev.epicgames.com/documentation/unreal-engine/replication-graph-in-unreal-engine",
+        "https://dev.epicgames.com/documentation/unreal-engine/world-partition-in-unreal-engine"
+      ]
+    },
+    "unity": {
+      "name": "Unity",
+      "sources": [
+        "https://docs.unity3d.com/6000.4/Documentation/Manual/UnityManual.html",
+        "https://unity.com/dots"
+      ]
+    },
+    "godot": {
+      "name": "Godot",
+      "sources": [
+        "https://docs.godotengine.org/en/stable/getting_started/step_by_step/signals.html",
+        "https://docs.godotengine.org/en/stable/tutorials/networking/high_level_multiplayer.html"
+      ]
+    },
+    "gamemaker": {
+      "name": "GameMaker",
+      "sources": [
+        "https://manual.gamemaker.io/",
+        "https://gamemaker.io/en/blog/gamemaker-studio-2-dot-3-new-ide-features"
+      ]
+    },
+    "rpgMaker": {
+      "name": "RPG Maker",
+      "sources": [
+        "https://rpgmakerofficial.com/product/MZ_help-en/index.html"
+      ]
+    },
+    "renpy": {
+      "name": "RenPy",
+      "sources": [
+        "https://www.renpy.org/doc/html/label.html",
+        "https://www.renpy.org/doc/html/save_load_rollback.html"
+      ]
+    },
+    "phaser": {
+      "name": "Phaser",
+      "sources": [
+        "https://docs.phaser.io/phaser/concepts/scenes",
+        "https://docs.phaser.io/phaser/concepts/physics"
+      ]
+    },
+    "defold": {
+      "name": "Defold",
+      "sources": [
+        "https://www.defold.com/manuals/introduction/",
+        "https://www.defold.com/manuals/collection-factory/"
+      ]
+    },
+    "bevy": {
+      "name": "Bevy",
+      "sources": [
+        "https://bevyengine.org/examples/",
+        "https://bevyengine.org/learn/migration-guides/0-15-to-0-16/"
+      ]
+    },
+    "monogame": {
+      "name": "MonoGame",
+      "sources": [
+        "https://docs.monogame.net/"
+      ]
+    },
+    "libgdx": {
+      "name": "libGDX",
+      "sources": [
+        "https://libgdx.com/wiki/"
+      ]
+    },
+    "cocosCreator": {
+      "name": "Cocos Creator",
+      "sources": [
+        "https://docs.cocos.com/creator/manual/en/"
+      ]
+    },
+    "construct": {
+      "name": "Construct",
+      "sources": [
+        "https://www.construct.net/en/make-games/manuals/construct-3"
+      ]
+    }
+  },
+  "summary": {
+    "engineFamilyCount": 13,
+    "categoryCount": 26,
+    "coveredCategoryCount": 26,
+    "partialCategoryCount": 0,
+    "missingCategoryCount": 0,
+    "coverageScore": 100,
+    "p0GapCount": 0
+  },
+  "categories": [
+    {
+      "id": "scene-architecture",
+      "label": "Scene architecture",
+      "inspiredBy": [
+        "unreal",
+        "unity",
+        "godot",
+        "phaser",
+        "defold"
+      ],
+      "evidence": [
+        "src/scene/Scene.js",
+        "src/scene/SceneDocument.js",
+        "src/scene/SceneTransitionStack.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unreal",
+        "Unity",
+        "Godot",
+        "Phaser",
+        "Defold"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/scene/Scene.js",
+            "present": true
+          },
+          {
+            "file": "src/scene/SceneDocument.js",
+            "present": true
+          },
+          {
+            "file": "src/scene/SceneTransitionStack.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "entity-component-ecs",
+      "label": "Entity/component/ECS",
+      "inspiredBy": [
+        "unity",
+        "bevy",
+        "godot",
+        "libgdx"
+      ],
+      "evidence": [
+        "src/core/ECS/World.js",
+        "src/core/ECS/QueryFilter.js",
+        "src/scene/ComponentTreeRuntime.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unity",
+        "Bevy",
+        "Godot",
+        "libGDX"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/core/ECS/World.js",
+            "present": true
+          },
+          {
+            "file": "src/core/ECS/QueryFilter.js",
+            "present": true
+          },
+          {
+            "file": "src/scene/ComponentTreeRuntime.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "rendering-pipeline",
+      "label": "Rendering pipeline",
+      "inspiredBy": [
+        "unreal",
+        "unity",
+        "godot",
+        "phaser",
+        "cocosCreator"
+      ],
+      "evidence": [
+        "src/renderer/RenderGraphPlanner.js",
+        "src/renderer/ShaderVariantCollection.js",
+        "src/renderer/TextureStreamingBudget.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unreal",
+        "Unity",
+        "Godot",
+        "Phaser",
+        "Cocos Creator"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/renderer/RenderGraphPlanner.js",
+            "present": true
+          },
+          {
+            "file": "src/renderer/ShaderVariantCollection.js",
+            "present": true
+          },
+          {
+            "file": "src/renderer/TextureStreamingBudget.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "asset-pipeline",
+      "label": "Asset pipeline",
+      "inspiredBy": [
+        "unity",
+        "godot",
+        "defold",
+        "cocosCreator"
+      ],
+      "evidence": [
+        "src/assets/AddressableCatalog.js",
+        "src/assets/AssetResidencyManager.js",
+        "src/assets/AssetImportMetadata.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unity",
+        "Godot",
+        "Defold",
+        "Cocos Creator"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/assets/AddressableCatalog.js",
+            "present": true
+          },
+          {
+            "file": "src/assets/AssetResidencyManager.js",
+            "present": true
+          },
+          {
+            "file": "src/assets/AssetImportMetadata.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "editor-authoring",
+      "label": "Editor authoring",
+      "inspiredBy": [
+        "unreal",
+        "unity",
+        "godot",
+        "gamemaker",
+        "cocosCreator"
+      ],
+      "evidence": [
+        "src/editor/EditorInspectorModel.js",
+        "src/editor/EditorPluginCascade.js",
+        "src/editor/RuntimeLiveSyncBridge.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unreal",
+        "Unity",
+        "Godot",
+        "GameMaker",
+        "Cocos Creator"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/editor/EditorInspectorModel.js",
+            "present": true
+          },
+          {
+            "file": "src/editor/EditorPluginCascade.js",
+            "present": true
+          },
+          {
+            "file": "src/editor/RuntimeLiveSyncBridge.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "visual-scripting",
+      "label": "Visual scripting",
+      "inspiredBy": [
+        "unreal",
+        "construct",
+        "rpgMaker",
+        "gamemaker"
+      ],
+      "evidence": [
+        "src/visualgraph/VisualEventGraph.js",
+        "src/data/EventSheet.js",
+        "src/data/EventCommandQueue.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unreal",
+        "Construct",
+        "RPG Maker",
+        "GameMaker"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/visualgraph/VisualEventGraph.js",
+            "present": true
+          },
+          {
+            "file": "src/data/EventSheet.js",
+            "present": true
+          },
+          {
+            "file": "src/data/EventCommandQueue.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "gameplay-framework",
+      "label": "Gameplay framework",
+      "inspiredBy": [
+        "unreal",
+        "unity",
+        "godot",
+        "rpgMaker"
+      ],
+      "evidence": [
+        "src/gameplay/AbilitySystem.js",
+        "src/gameplay/QuestStateMachine.js",
+        "src/core/GameplayTags.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unreal",
+        "Unity",
+        "Godot",
+        "RPG Maker"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/gameplay/AbilitySystem.js",
+            "present": true
+          },
+          {
+            "file": "src/gameplay/QuestStateMachine.js",
+            "present": true
+          },
+          {
+            "file": "src/core/GameplayTags.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "netcode",
+      "label": "Netcode",
+      "inspiredBy": [
+        "unreal",
+        "unity",
+        "godot",
+        "phaser"
+      ],
+      "evidence": [
+        "src/net/NetworkSnapshotBuffer.js",
+        "src/net/ReplicationInterestGraph.js",
+        "src/net/RemoteEventContract.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unreal",
+        "Unity",
+        "Godot",
+        "Phaser"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/net/NetworkSnapshotBuffer.js",
+            "present": true
+          },
+          {
+            "file": "src/net/ReplicationInterestGraph.js",
+            "present": true
+          },
+          {
+            "file": "src/net/RemoteEventContract.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "save-rollback",
+      "label": "Save, rollback, and persistence",
+      "inspiredBy": [
+        "renpy",
+        "unity",
+        "godot",
+        "rpgMaker"
+      ],
+      "evidence": [
+        "src/store/SaveGameArchive.js",
+        "src/store/PersistentSaveSlot.js",
+        "src/core/RuntimeStateSerializer.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "RenPy",
+        "Unity",
+        "Godot",
+        "RPG Maker"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/store/SaveGameArchive.js",
+            "present": true
+          },
+          {
+            "file": "src/store/PersistentSaveSlot.js",
+            "present": true
+          },
+          {
+            "file": "src/core/RuntimeStateSerializer.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "platform-export",
+      "label": "Platform export",
+      "inspiredBy": [
+        "unity",
+        "unreal",
+        "godot",
+        "gamemaker",
+        "cocosCreator"
+      ],
+      "evidence": [
+        "src/platform/ExportPreset.js",
+        "src/platform/GameSettingsProfile.js",
+        "src/platform/RuntimeConfigFlags.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unity",
+        "Unreal",
+        "Godot",
+        "GameMaker",
+        "Cocos Creator"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/platform/ExportPreset.js",
+            "present": true
+          },
+          {
+            "file": "src/platform/GameSettingsProfile.js",
+            "present": true
+          },
+          {
+            "file": "src/platform/RuntimeConfigFlags.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "input-stack",
+      "label": "Input stack",
+      "inspiredBy": [
+        "unity",
+        "godot",
+        "phaser",
+        "monogame",
+        "libgdx"
+      ],
+      "evidence": [
+        "src/input/InputActionContextStack.js",
+        "src/input/InputDeviceMap.js",
+        "src/input/InputManager.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unity",
+        "Godot",
+        "Phaser",
+        "MonoGame",
+        "libGDX"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/input/InputActionContextStack.js",
+            "present": true
+          },
+          {
+            "file": "src/input/InputDeviceMap.js",
+            "present": true
+          },
+          {
+            "file": "src/input/InputManager.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "physics-collision",
+      "label": "Physics and collision",
+      "inspiredBy": [
+        "unity",
+        "unreal",
+        "godot",
+        "phaser",
+        "libgdx"
+      ],
+      "evidence": [
+        "src/physics/PhysicsWorld.js",
+        "src/physics/PhysicsQuery.js",
+        "src/physics/Physics.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unity",
+        "Unreal",
+        "Godot",
+        "Phaser",
+        "libGDX"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/physics/PhysicsWorld.js",
+            "present": true
+          },
+          {
+            "file": "src/physics/PhysicsQuery.js",
+            "present": true
+          },
+          {
+            "file": "src/physics/Physics.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "animation-timeline",
+      "label": "Animation and timeline",
+      "inspiredBy": [
+        "unity",
+        "unreal",
+        "gamemaker",
+        "renpy"
+      ],
+      "evidence": [
+        "src/animation/Animation.js",
+        "src/animation/AnimationManager.js",
+        "src/timeline/Timeline.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unity",
+        "Unreal",
+        "GameMaker",
+        "RenPy"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/animation/Animation.js",
+            "present": true
+          },
+          {
+            "file": "src/animation/AnimationManager.js",
+            "present": true
+          },
+          {
+            "file": "src/timeline/Timeline.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "tilemap-worlds",
+      "label": "Tilemaps and worlds",
+      "inspiredBy": [
+        "godot",
+        "gamemaker",
+        "rpgMaker",
+        "phaser"
+      ],
+      "evidence": [
+        "src/tilemap/Tilemap.js",
+        "src/tilemap/TilemapAuthoringTools.js",
+        "src/scene/WorldPartitionGrid.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Godot",
+        "GameMaker",
+        "RPG Maker",
+        "Phaser"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/tilemap/Tilemap.js",
+            "present": true
+          },
+          {
+            "file": "src/tilemap/TilemapAuthoringTools.js",
+            "present": true
+          },
+          {
+            "file": "src/scene/WorldPartitionGrid.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "ui-dialogue-narrative",
+      "label": "UI, dialogue, and narrative",
+      "inspiredBy": [
+        "renpy",
+        "rpgMaker",
+        "godot",
+        "unity"
+      ],
+      "evidence": [
+        "src/data/DialogueGraph.js",
+        "src/data/NarrativeRuntime.js",
+        "src/data/VisualNovelScript.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "RenPy",
+        "RPG Maker",
+        "Godot",
+        "Unity"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/data/DialogueGraph.js",
+            "present": true
+          },
+          {
+            "file": "src/data/NarrativeRuntime.js",
+            "present": true
+          },
+          {
+            "file": "src/data/VisualNovelScript.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "audio-runtime",
+      "label": "Audio runtime",
+      "inspiredBy": [
+        "unity",
+        "unreal",
+        "godot",
+        "phaser"
+      ],
+      "evidence": [
+        "src/audio/AudioManager.js",
+        "src/addons/Audio.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unity",
+        "Unreal",
+        "Godot",
+        "Phaser"
+      ],
+      "evidenceStatus": {
+        "presentCount": 2,
+        "totalCount": 2,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/audio/AudioManager.js",
+            "present": true
+          },
+          {
+            "file": "src/addons/Audio.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "plugins-marketplace",
+      "label": "Plugins and marketplace",
+      "inspiredBy": [
+        "unreal",
+        "unity",
+        "godot",
+        "cocosCreator"
+      ],
+      "evidence": [
+        "src/core/PluginManifest.js",
+        "src/core/PluginPermissionSandbox.js",
+        "src/package/PackageManager.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unreal",
+        "Unity",
+        "Godot",
+        "Cocos Creator"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/core/PluginManifest.js",
+            "present": true
+          },
+          {
+            "file": "src/core/PluginPermissionSandbox.js",
+            "present": true
+          },
+          {
+            "file": "src/package/PackageManager.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "quality-profiling",
+      "label": "Quality and profiling",
+      "inspiredBy": [
+        "unreal",
+        "unity",
+        "godot",
+        "bevy"
+      ],
+      "evidence": [
+        "src/quality/EngineQualityHarness.js",
+        "scripts/engine-doctor.js",
+        "src/performance/FramePacingController.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unreal",
+        "Unity",
+        "Godot",
+        "Bevy"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/quality/EngineQualityHarness.js",
+            "present": true
+          },
+          {
+            "file": "scripts/engine-doctor.js",
+            "present": true
+          },
+          {
+            "file": "src/performance/FramePacingController.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "data-localization",
+      "label": "Data and localization",
+      "inspiredBy": [
+        "rpgMaker",
+        "renpy",
+        "unity",
+        "godot"
+      ],
+      "evidence": [
+        "src/data/DataAsset.js",
+        "src/data/DataTable.js",
+        "src/data/Localization.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "RPG Maker",
+        "RenPy",
+        "Unity",
+        "Godot"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/data/DataAsset.js",
+            "present": true
+          },
+          {
+            "file": "src/data/DataTable.js",
+            "present": true
+          },
+          {
+            "file": "src/data/Localization.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "low-code-authoring",
+      "label": "Low-code authoring",
+      "inspiredBy": [
+        "construct",
+        "rpgMaker",
+        "gamemaker",
+        "renpy"
+      ],
+      "evidence": [
+        "src/data/BehaviorDefinition.js",
+        "src/data/RpgEventPageResolver.js",
+        "src/data/EventCommandQueue.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Construct",
+        "RPG Maker",
+        "GameMaker",
+        "RenPy"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/data/BehaviorDefinition.js",
+            "present": true
+          },
+          {
+            "file": "src/data/RpgEventPageResolver.js",
+            "present": true
+          },
+          {
+            "file": "src/data/EventCommandQueue.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "prefabs-factories",
+      "label": "Prefabs and factories",
+      "inspiredBy": [
+        "unity",
+        "unreal",
+        "defold",
+        "godot"
+      ],
+      "evidence": [
+        "src/prefab/PrefabVariantRegistry.js",
+        "src/scene/CollectionFactory.js",
+        "src/assets/VirtualAssetFS.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unity",
+        "Unreal",
+        "Defold",
+        "Godot"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/prefab/PrefabVariantRegistry.js",
+            "present": true
+          },
+          {
+            "file": "src/scene/CollectionFactory.js",
+            "present": true
+          },
+          {
+            "file": "src/assets/VirtualAssetFS.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "scripting-lifecycle",
+      "label": "Scripting lifecycle",
+      "inspiredBy": [
+        "love",
+        "libgdx",
+        "monogame",
+        "phaser"
+      ],
+      "evidence": [
+        "src/core/CallbackGameLoop.js",
+        "src/scene/ScreenFlowController.js",
+        "src/core/SystemSchedule.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "love",
+        "libGDX",
+        "MonoGame",
+        "Phaser"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/core/CallbackGameLoop.js",
+            "present": true
+          },
+          {
+            "file": "src/scene/ScreenFlowController.js",
+            "present": true
+          },
+          {
+            "file": "src/core/SystemSchedule.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "commercial-monetization",
+      "label": "Commercial and monetization",
+      "inspiredBy": [
+        "unity",
+        "unreal",
+        "cocosCreator",
+        "gamemaker"
+      ],
+      "evidence": [
+        "src/commercial/ExportPaywall.js",
+        "src/addons/Payment.js",
+        "src/addons/Ad.js"
+      ],
+      "priority": "P1",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unity",
+        "Unreal",
+        "Cocos Creator",
+        "GameMaker"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/commercial/ExportPaywall.js",
+            "present": true
+          },
+          {
+            "file": "src/addons/Payment.js",
+            "present": true
+          },
+          {
+            "file": "src/addons/Ad.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "ai-authoring-procedural",
+      "label": "AI authoring and procedural tools",
+      "inspiredBy": [
+        "unreal",
+        "unity",
+        "godot",
+        "bevy"
+      ],
+      "evidence": [
+        "src/ai/AICommandService.js",
+        "src/importer/AIImporter.js",
+        "src/tilemap/AITilemapGenerator.js"
+      ],
+      "priority": "P1",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unreal",
+        "Unity",
+        "Godot",
+        "Bevy"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/ai/AICommandService.js",
+            "present": true
+          },
+          {
+            "file": "src/importer/AIImporter.js",
+            "present": true
+          },
+          {
+            "file": "src/tilemap/AITilemapGenerator.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "build-docs-ci",
+      "label": "Build, docs, and CI",
+      "inspiredBy": [
+        "unity",
+        "unreal",
+        "godot",
+        "bevy"
+      ],
+      "evidence": [
+        "scripts/build.js",
+        "scripts/generate-api-docs.js",
+        "docs/engine-handbook.md"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Unity",
+        "Unreal",
+        "Godot",
+        "Bevy"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "scripts/build.js",
+            "present": true
+          },
+          {
+            "file": "scripts/generate-api-docs.js",
+            "present": true
+          },
+          {
+            "file": "docs/engine-handbook.md",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    },
+    {
+      "id": "migration-compatibility",
+      "label": "Migration and compatibility",
+      "inspiredBy": [
+        "phaser",
+        "pixijs",
+        "unity",
+        "defold"
+      ],
+      "evidence": [
+        "src/compat/phaser/PhaserCompat.js",
+        "scripts/omni-migrate.js",
+        "src/renderer/PixiFrameworkBridge.js"
+      ],
+      "priority": "P0",
+      "command": "npm test",
+      "inspiredByLabels": [
+        "Phaser",
+        "pixijs",
+        "Unity",
+        "Defold"
+      ],
+      "evidenceStatus": {
+        "presentCount": 3,
+        "totalCount": 3,
+        "missing": [],
+        "checks": [
+          {
+            "file": "src/compat/phaser/PhaserCompat.js",
+            "present": true
+          },
+          {
+            "file": "scripts/omni-migrate.js",
+            "present": true
+          },
+          {
+            "file": "src/renderer/PixiFrameworkBridge.js",
+            "present": true
+          }
+        ]
+      },
+      "status": "covered"
+    }
+  ],
+  "gaps": [],
+  "nextActions": []
+}

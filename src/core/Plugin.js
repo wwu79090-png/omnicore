@@ -1,9 +1,13 @@
 import { createOmniError } from './OmniError.js';
+import PluginManifest from './PluginManifest.js';
 
 function normalizePlugin(plugin) {
   const candidate = plugin?.default || plugin;
   if (!candidate?.name || typeof candidate.install !== 'function') {
     throw createOmniError('Plugin', 'Plugin requires a name and install(api, options) function.');
+  }
+  if (candidate.manifest && !(candidate.manifest instanceof PluginManifest)) {
+    candidate.manifest = PluginManifest.create(candidate.manifest);
   }
   return candidate;
 }

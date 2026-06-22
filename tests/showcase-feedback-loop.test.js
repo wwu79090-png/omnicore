@@ -67,6 +67,73 @@ describe('showcase adoption and feedback loop', () => {
     expect(rootReadme).toContain('examples/market-showcase/');
   });
 
+  it('turns the example entry into a Chinese OmniCore Hub launcher without breaking backend switching', () => {
+    const examples = readFileSync('examples/index.html', 'utf8');
+    const rootIndex = readFileSync('index.html', 'utf8');
+
+    expect(examples).toContain('<title>OmniCore Hub</title>');
+    expect(examples).toContain('data-omnicore-hub');
+    expect(examples).toContain('项目中心');
+    expect(examples).toContain('Demo 中心');
+    expect(examples).toContain('模板库');
+    expect(examples).toContain('诊断');
+    expect(examples).toContain('构建发布');
+    expect(examples).toContain('文档');
+    expect(examples).toContain('data-hub-section="project-center"');
+    expect(examples).toContain('data-hub-section="demo-center"');
+    expect(examples).toContain('data-hub-section="template-library"');
+    expect(examples).toContain('data-hub-section="diagnostics"');
+    expect(examples).toContain('data-hub-section="build-publish"');
+    expect(examples).toContain('data-hub-section="docs"');
+    expect(examples).toContain('data-hub-action="open-editor"');
+    expect(examples).toContain('data-hub-command="npm run editor"');
+    expect(examples).toContain('data-hub-command="npm run doctor"');
+    expect(examples).toContain('data-hub-command="npm run build:wechat"');
+    expect(examples).toContain('examples/full-game-demo/');
+    expect(examples).toContain('examples/market-showcase/');
+    expect(examples).toContain('website/playground/');
+    expect(examples).toContain('docs/api/index.html');
+    expect(examples).toContain('data-backend="pixi"');
+    expect(examples).toContain('data-backend="canvas"');
+    expect(examples).toContain('data-backend="webgl"');
+    expect(examples).toContain("get('backend') || 'canvas'");
+    expect(examples).not.toContain('<title>OmniCore Backend Switch</title>');
+    expect(rootIndex).toContain('data-root-launcher-redirect');
+    expect(rootIndex).toContain('正在打开 OmniCore Hub');
+    expect(rootIndex).toContain('window.location.replace');
+    expect(rootIndex).toContain('/examples/');
+    expect(rootIndex).not.toContain('assets/index-');
+  });
+
+  it('adds a complete animated Hub onboarding layer for zero-experience creators', () => {
+    const examples = readFileSync('examples/index.html', 'utf8');
+
+    expect(examples).toContain('data-boot-animation');
+    expect(examples).toContain('data-boot-progress');
+    expect(examples).toContain('data-boot-stage="runtime"');
+    expect(examples).toContain('data-motion-card');
+    expect(examples).toContain('data-capability-section="complete-workflow"');
+    expect(examples).toContain('data-capability-section="engine-systems"');
+    expect(examples).toContain('data-capability-section="production-checks"');
+    expect(examples).toContain('data-beginner-tutorial');
+    expect(examples).toContain('0 基础新手教程');
+    expect(examples).toContain('data-tutorial-step="1"');
+    expect(examples).toContain('data-tutorial-step="2"');
+    expect(examples).toContain('data-tutorial-step="3"');
+    expect(examples).toContain('data-tutorial-step="4"');
+    expect(examples).toContain('data-tutorial-progress');
+    expect(examples).toContain('data-tutorial-code');
+    expect(examples).toContain('data-tutorial-action="play"');
+    expect(examples).toContain('data-tutorial-action="copy"');
+    expect(examples).toContain('data-tutorial-preview');
+    expect(examples).toContain('createScene');
+    expect(examples).toContain('new OmniCore.Game');
+    expect(examples).toContain('resolvePreviewBackend');
+    expect(examples).toContain('已安全降级');
+    expect(examples).toContain('requestAnimationFrame(animateHubMotion)');
+    expect(examples).toContain('prefers-reduced-motion');
+  });
+
   it('turns the benchmark page into a visual performance showroom without breaking CI output', () => {
     const html = readFileSync('tests/benchmark/benchmark.html', 'utf8');
     const js = readFileSync('tests/benchmark/benchmark.js', 'utf8');

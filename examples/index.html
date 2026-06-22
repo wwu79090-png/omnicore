@@ -4,16 +4,38 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/assets/icons/web/favicon.png" />
-    <title>OmniCore Backend Switch</title>
+    <title>OmniCore Hub</title>
     <style id="omnicore-critical-css">
+      :root {
+        color-scheme: dark;
+        --bg: #0d1117;
+        --panel: #111822;
+        --panel-strong: #151e2a;
+        --panel-soft: #0f1620;
+        --line: #263241;
+        --line-strong: #354455;
+        --text: #eef4fb;
+        --muted: #9dadbd;
+        --quiet: #748395;
+        --cyan: #48c7e8;
+        --cyan-soft: #153341;
+        --green: #6bd694;
+        --amber: #f1b858;
+        --red: #ef7777;
+        --violet: #a8a5ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       html,
       body {
         margin: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        background: #101820;
-        color: #f8fafc;
+        min-width: 320px;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
         font-family:
           Inter,
           ui-sans-serif,
@@ -24,9 +46,20 @@
           sans-serif;
       }
 
-      #game-container {
-        width: 100vw;
-        height: 100vh;
+      body {
+        min-height: 100vh;
+        overflow: auto;
+      }
+
+      button,
+      a,
+      input {
+        font: inherit;
+      }
+
+      button,
+      a {
+        -webkit-tap-highlight-color: transparent;
       }
 
       #omnicore-boot-skeleton {
@@ -34,66 +67,854 @@
         inset: 0;
         width: 100vw;
         height: 100vh;
-        z-index: 1;
+        z-index: 30;
         pointer-events: none;
+        background: var(--bg);
+      }
+
+      .boot-stage {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background:
+          linear-gradient(90deg, rgba(72, 199, 232, 0.08) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(107, 214, 148, 0.06) 1px, transparent 1px),
+          #0b1016;
+        background-size: 40px 40px;
+        transition:
+          opacity 260ms ease,
+          visibility 260ms ease;
+      }
+
+      .boot-stage.is-hidden {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      .boot-console {
+        display: grid;
+        gap: 14px;
+        width: min(560px, 100%);
+        padding: 18px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: rgba(17, 24, 34, 0.94);
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+      }
+
+      .boot-logo {
+        display: grid;
+        grid-template-columns: 54px minmax(0, 1fr);
+        gap: 12px;
+        align-items: center;
+      }
+
+      .boot-logo-mark {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 54px;
+        height: 54px;
+        border: 1px solid rgba(72, 199, 232, 0.55);
+        border-radius: 8px;
+        background: #0f1620;
+        color: #d9f8ff;
+        font-weight: 800;
+      }
+
+      .boot-logo-mark::after {
+        position: absolute;
+        inset: 7px;
+        border: 1px solid rgba(107, 214, 148, 0.5);
+        border-radius: 5px;
+        content: "";
+        animation: bootPulse 1.45s ease-in-out infinite;
+      }
+
+      .boot-logo strong {
+        display: block;
+        font-size: 18px;
+        line-height: 1.2;
+      }
+
+      .boot-logo span {
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .boot-progress-shell {
+        height: 8px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #0a0f15;
+      }
+
+      .boot-progress-bar {
+        width: 16%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--cyan), var(--green));
+        transition: width 220ms ease;
+      }
+
+      .boot-stage-list {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .boot-stage-item {
+        min-width: 0;
+        padding: 9px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #0f1620;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .boot-stage-item.is-active {
+        border-color: var(--cyan);
+        color: var(--text);
+      }
+
+      .hub-shell {
+        display: grid;
+        grid-template-columns: 230px minmax(420px, 1fr) 340px;
+        min-height: 100vh;
+        background: var(--bg);
+      }
+
+      .hub-sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 18px;
+        padding: 18px 14px;
+        border-right: 1px solid var(--line);
+        background: #0b1016;
+      }
+
+      .brand {
+        display: grid;
+        grid-template-columns: 44px 1fr;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .brand img {
+        width: 44px;
+        height: 44px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #0f1620;
+        transform: translateY(var(--hub-motion-y, 0));
+      }
+
+      .brand strong {
+        display: block;
+        font-size: 15px;
+        line-height: 1.15;
+      }
+
+      .brand span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .side-nav {
+        display: grid;
+        align-content: start;
+        gap: 6px;
+      }
+
+      .side-nav a {
+        display: grid;
+        grid-template-columns: 22px 1fr;
+        gap: 8px;
+        align-items: center;
+        min-height: 34px;
+        padding: 7px 8px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 12px;
+      }
+
+      .side-nav a:hover,
+      .side-nav a.active {
+        border-color: var(--line-strong);
+        background: var(--panel-soft);
+        color: var(--text);
+      }
+
+      .side-nav b {
+        display: grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--cyan);
+        font-size: 10px;
+      }
+
+      .sidebar-footer {
+        display: grid;
+        gap: 8px;
+        color: var(--quiet);
+        font-size: 11px;
+      }
+
+      .status-dot {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        margin-right: 6px;
+        border-radius: 99px;
+        background: var(--green);
+      }
+
+      .hub-main {
+        display: grid;
+        gap: 16px;
+        align-content: start;
+        padding: 18px;
+      }
+
+      .hub-topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: center;
+        min-height: 58px;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .hub-topbar,
+      .hub-panel,
+      .preview-panel {
+        animation: panelEnter 420ms ease both;
+      }
+
+      .hub-panel:nth-child(2),
+      .preview-panel:nth-child(2) {
+        animation-delay: 45ms;
+      }
+
+      .hub-panel:nth-child(3),
+      .preview-panel:nth-child(3) {
+        animation-delay: 90ms;
+      }
+
+      .hub-title h1 {
+        margin: 0;
+        font-size: 20px;
+        line-height: 1.2;
+        letter-spacing: 0;
+      }
+
+      .hub-title p {
+        margin: 5px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .top-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .button,
+      .top-actions a,
+      .command-button,
+      .backend-switcher button {
+        min-height: 32px;
+        padding: 7px 10px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #0f1620;
+        color: var(--text);
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 12px;
+      }
+
+      .button.primary,
+      .top-actions a.primary {
+        border-color: #4eb6d2;
+        background: var(--cyan-soft);
+        color: #d9f8ff;
+      }
+
+      .button:hover,
+      .top-actions a:hover,
+      .command-button:hover,
+      .backend-switcher button:hover,
+      .backend-switcher button.active {
+        border-color: var(--cyan);
+      }
+
+      .button:focus-visible,
+      .hub-card:focus-visible,
+      .demo-card:focus-visible,
+      .template-card:focus-visible,
+      .command-card:focus-visible,
+      .doc-card:focus-visible,
+      .quickstart-card:focus-visible,
+      .command-button:focus-visible,
+      .backend-switcher button:focus-visible,
+      .side-nav a:focus-visible {
+        outline: 2px solid var(--green);
+        outline-offset: 2px;
+      }
+
+      .hub-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .hub-panel {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .span-8 {
+        grid-column: span 8;
+      }
+
+      .span-12 {
+        grid-column: span 12;
+      }
+
+      .span-6 {
+        grid-column: span 6;
+      }
+
+      .span-4 {
+        grid-column: span 4;
+      }
+
+      .panel-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .panel-heading h2,
+      .panel-heading h3 {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.2;
+        letter-spacing: 0;
+      }
+
+      .panel-heading span {
+        color: var(--quiet);
+        font-size: 11px;
+      }
+
+      .action-grid,
+      .quickstart-grid,
+      .demo-grid,
+      .template-grid,
+      .command-grid,
+      .doc-grid,
+      .capability-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .action-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .demo-grid,
+      .template-grid,
+      .command-grid,
+      .doc-grid,
+      .quickstart-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .demo-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .capability-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .hub-card,
+      .demo-card,
+      .template-card,
+      .command-card,
+      .doc-card,
+      .health-card,
+      .quickstart-card,
+      .capability-card {
+        display: grid;
+        gap: 8px;
+        min-width: 0;
+        padding: 11px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-soft);
+        color: var(--text);
+        text-decoration: none;
+        text-align: left;
+      }
+
+      .hub-card,
+      .demo-card,
+      .template-card,
+      .command-card,
+      .doc-card,
+      .quickstart-card,
+      .capability-card {
+        min-height: 104px;
+      }
+
+      .hub-card strong,
+      .demo-card strong,
+      .template-card strong,
+      .command-card strong,
+      .doc-card strong,
+      .health-card strong,
+      .quickstart-card strong,
+      .capability-card strong {
+        font-size: 13px;
+        line-height: 1.25;
+      }
+
+      .hub-card span,
+      .demo-card span,
+      .template-card span,
+      .command-card span,
+      .doc-card span,
+      .health-card span,
+      .quickstart-card span,
+      .capability-card span {
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.45;
+      }
+
+      .motion-card {
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          background 180ms ease;
+        will-change: transform;
+      }
+
+      .hub-card[data-hub-action] {
+        border-color: #315267;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .hub-card[data-hub-action]:hover,
+      .demo-card:hover,
+      .template-card:hover,
+      .doc-card:hover,
+      .quickstart-card:hover,
+      .capability-card:hover {
+        border-color: var(--cyan);
+      }
+
+      .motion-card:hover {
+        transform: translateY(-2px);
+        background: #121c28;
+      }
+
+      .quickstart-card {
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .quickstart-card.is-active {
+        border-color: var(--green);
+        background: #122118;
+      }
+
+      .tutorial-workbench {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 260px;
+        gap: 10px;
+      }
+
+      .tutorial-code {
+        min-height: 190px;
+        margin: 0;
+        overflow: auto;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #0a0f15;
+        color: #d8eef8;
+        font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+        font-size: 11px;
+        line-height: 1.55;
+      }
+
+      .tutorial-side {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+      }
+
+      .tutorial-preview {
+        display: grid;
+        place-items: center;
+        min-height: 118px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
         background: #101820;
       }
 
-      .hud {
-        position: fixed;
-        left: 16px;
-        top: 16px;
-        display: flex;
+      .tutorial-preview canvas {
+        display: block;
+        width: 100%;
+        height: 118px;
+      }
+
+      .tutorial-progress {
+        height: 7px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #0a0f15;
+      }
+
+      .tutorial-progress i {
+        display: block;
+        width: 25%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--green), var(--cyan));
+        transition: width 180ms ease;
+      }
+
+      .tutorial-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
-        z-index: 10;
       }
 
-      .hud button {
-        border: 1px solid #64d2ff;
-        background: #16212b;
-        color: #f8fafc;
-        height: 34px;
-        padding: 0 12px;
-        cursor: pointer;
+      .system-list {
+        display: grid;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
       }
 
-      .hud button:hover {
-        background: #203141;
+      .system-list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 9px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #0f1620;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .system-list b {
+        color: var(--text);
+        font-weight: 650;
+      }
+
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .tag {
+        width: max-content;
+        max-width: 100%;
+        padding: 3px 7px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .tag.ready {
+        border-color: rgba(107, 214, 148, 0.45);
+        color: #b8f3cc;
+      }
+
+      .tag.warn {
+        border-color: rgba(241, 184, 88, 0.45);
+        color: #ffe0a3;
+      }
+
+      .hub-aside {
+        position: sticky;
+        top: 0;
+        display: grid;
+        gap: 14px;
+        align-content: start;
+        height: 100vh;
+        overflow: auto;
+        padding: 18px 18px 18px 0;
+      }
+
+      .preview-panel {
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-strong);
+      }
+
+      .preview-frame {
+        position: relative;
+        min-height: 230px;
+        overflow: hidden;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #101820;
+      }
+
+      #game-container {
+        width: 100%;
+        height: 260px;
+      }
+
+      #game-container canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+      }
+
+      .backend-switcher {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
       }
 
       #status {
-        position: fixed;
-        left: 16px;
-        bottom: 14px;
-        color: #cbd5e1;
-        font-size: 13px;
+        min-height: 32px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #0f1620;
+        color: #d7e7f5;
+        font-size: 12px;
+      }
+
+      .health-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .health-card {
+        grid-template-columns: 1fr auto;
+        align-items: start;
+      }
+
+      .metric {
+        color: var(--cyan);
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .command-output {
+        min-height: 74px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #0a0f15;
+        color: #cfe7f4;
+        font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+        font-size: 11px;
+        line-height: 1.55;
+        white-space: pre-wrap;
       }
 
       .feedback-link {
-        position: fixed;
-        right: 16px;
-        top: 16px;
-        z-index: 11;
-        border: 1px solid #64d2ff;
-        background: #16212b;
-        color: #f8fafc;
-        height: 34px;
-        padding: 7px 12px 0;
+        color: var(--cyan);
         text-decoration: none;
-        box-sizing: border-box;
+        font-size: 12px;
       }
 
       .feedback-link:hover {
-        background: #203141;
+        text-decoration: underline;
+      }
+
+      @keyframes bootPulse {
+        0%,
+        100% {
+          opacity: 0.42;
+          transform: scale(0.94);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      @keyframes panelEnter {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 1ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 1ms !important;
+        }
+
+        .motion-card:hover {
+          transform: none;
+        }
+      }
+
+      @media (max-width: 1180px) {
+        .hub-shell {
+          grid-template-columns: 210px minmax(0, 1fr);
+        }
+
+        .hub-aside {
+          position: static;
+          grid-column: 2;
+          height: auto;
+          padding: 0 18px 18px;
+        }
+
+        .demo-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 860px) {
+        .hub-shell {
+          display: block;
+        }
+
+        .hub-sidebar {
+          position: static;
+          height: auto;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .side-nav {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .hub-main,
+        .hub-aside {
+          padding: 14px;
+        }
+
+        .hub-topbar,
+        .hub-grid,
+        .action-grid,
+        .quickstart-grid,
+          .demo-grid,
+        .template-grid,
+        .command-grid,
+        .doc-grid,
+        .capability-grid,
+        .tutorial-workbench {
+          grid-template-columns: 1fr;
+        }
+
+        .span-8,
+        .span-12,
+        .span-6,
+        .span-4 {
+          grid-column: auto;
+        }
+
+        .top-actions {
+          justify-content: flex-start;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .side-nav {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .backend-switcher {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
   <body>
     <svg id="omnicore-boot-skeleton" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
-      <rect width="960" height="540" fill="#101820"></rect>
-      <rect x="72" y="92" width="150" height="150" fill="#64d2ff"></rect>
-      <rect x="72" y="270" width="220" height="28" fill="#f8fafc" opacity="0.9"></rect>
+      <rect width="960" height="540" fill="#0d1117"></rect>
+      <rect x="26" y="24" width="190" height="492" fill="#0b1016" stroke="#263241"></rect>
+      <rect x="242" y="24" width="456" height="64" rx="8" fill="#111822" stroke="#263241"></rect>
+      <rect x="242" y="112" width="220" height="156" rx="8" fill="#111822" stroke="#263241"></rect>
+      <rect x="478" y="112" width="220" height="156" rx="8" fill="#111822" stroke="#263241"></rect>
+      <rect x="724" y="24" width="210" height="290" rx="8" fill="#151e2a" stroke="#354455"></rect>
+      <rect x="268" y="48" width="180" height="18" fill="#48c7e8"></rect>
+      <rect x="750" y="56" width="120" height="120" fill="#48c7e8"></rect>
     </svg>
+    <div class="boot-stage" data-boot-animation role="status" aria-live="polite">
+      <div class="boot-console">
+        <div class="boot-logo">
+          <div class="boot-logo-mark">OC</div>
+          <div>
+            <strong>OmniCore Hub 正在准备</strong>
+            <span data-boot-status>加载运行时、Demo 和新手教程。</span>
+          </div>
+        </div>
+        <div class="boot-progress-shell" aria-label="启动进度">
+          <div class="boot-progress-bar" data-boot-progress></div>
+        </div>
+        <div class="boot-stage-list">
+          <div class="boot-stage-item is-active" data-boot-stage="runtime">运行时</div>
+          <div class="boot-stage-item" data-boot-stage="assets">资源</div>
+          <div class="boot-stage-item" data-boot-stage="tutorial">教程</div>
+        </div>
+      </div>
+    </div>
     <script id="omnicore-precompile-core">
       (() => {
         const marks = window.__OMNICORE_BOOT_METRICS__ || (window.__OMNICORE_BOOT_METRICS__ = []);
@@ -115,24 +936,332 @@
         };
       })();
     </script>
-    <div id="game-container"></div>
-    <div class="hud">
-      <button data-backend="pixi">Pixi</button>
-      <button data-backend="canvas">Canvas</button>
-      <button data-backend="webgl">WebGL</button>
-      <a href="examples/full-game-demo/" style="color:#f8fafc;border:1px solid #64d2ff;padding:5px 10px;text-decoration:none">Full Game Demo</a>
-      <a href="examples/market-showcase/" style="color:#f8fafc;border:1px solid #14b8a6;padding:5px 10px;text-decoration:none">Market Showcase</a>
-    </div>
-    <a id="feedback-link" class="feedback-link" target="_blank" rel="noreferrer">反馈</a>
-    <div id="status">OmniCore booting...</div>
+
+    <main class="hub-shell" data-omnicore-hub>
+      <aside class="hub-sidebar" aria-label="OmniCore Hub 导航">
+        <div class="brand">
+          <img src="/assets/icons/web/icon-192.png" alt="OmniCore" />
+          <div>
+            <strong>OmniCore Hub</strong>
+            <span>本地引擎启动器</span>
+          </div>
+        </div>
+        <nav class="side-nav">
+          <a href="#project-center" class="active"><b>项</b>项目中心</a>
+          <a href="#demo-center"><b>D</b>Demo 中心</a>
+          <a href="#beginner-tutorial"><b>学</b>新手教程</a>
+          <a href="#capability-map"><b>全</b>完整度</a>
+          <a href="#template-library"><b>模</b>模板库</a>
+          <a href="#diagnostics"><b>诊</b>诊断</a>
+          <a href="#build-publish"><b>构</b>构建发布</a>
+          <a href="#docs"><b>文</b>文档</a>
+        </nav>
+        <div class="sidebar-footer">
+          <div><span class="status-dot"></span>本地运行模式</div>
+          <a id="feedback-link" class="feedback-link" target="_blank" rel="noreferrer">提交反馈</a>
+        </div>
+      </aside>
+
+      <section class="hub-main" aria-label="OmniCore Hub 控制台">
+        <header class="hub-topbar">
+          <div class="hub-title">
+            <h1>OmniCore Hub</h1>
+            <p>项目、Demo、模板、诊断、构建发布集中入口。</p>
+          </div>
+          <div class="top-actions">
+            <button class="button primary" type="button" data-hub-action="open-editor" data-hub-command="npm run editor">打开编辑器</button>
+            <button class="button" type="button" data-hub-action="new-project" data-hub-command="npm create omnicore-app">新建项目</button>
+            <button class="button" type="button" data-hub-action="health-check" data-hub-command="npm run doctor">健康检查</button>
+          </div>
+        </header>
+
+        <div class="hub-grid">
+          <section id="project-center" class="hub-panel span-8" data-hub-section="project-center">
+            <div class="panel-heading">
+              <h2>项目中心</h2>
+              <span>最近项目 / 创建 / 编辑</span>
+            </div>
+            <div class="action-grid">
+              <button class="hub-card motion-card" type="button" data-motion-card data-hub-action="open-editor" data-hub-command="npm run editor">
+                <strong>打开桌面编辑器</strong>
+                <span>进入场景、预制体、Tilemap、Inspector 和 Profiler。</span>
+                <span class="tag ready">可用</span>
+              </button>
+              <button class="hub-card motion-card" type="button" data-motion-card data-hub-action="new-project" data-hub-command="npm create omnicore-app">
+                <strong>新建 OmniCore 项目</strong>
+                <span>通过脚手架创建 Web 游戏项目。</span>
+                <span class="tag warn">复制命令</span>
+              </button>
+              <button class="hub-card motion-card" type="button" data-motion-card data-hub-action="open-recent" data-hub-command="node launcher.js --open">
+                <strong>继续本地工程</strong>
+                <span>使用当前仓库启动开发环境。</span>
+                <span class="tag ready">本仓库</span>
+              </button>
+            </div>
+          </section>
+
+          <section id="diagnostics" class="hub-panel span-4" data-hub-section="diagnostics">
+            <div class="panel-heading">
+              <h2>诊断</h2>
+              <span>运行状态</span>
+            </div>
+            <div class="health-grid">
+              <div class="health-card" data-health-card="browser-backend">
+                <div>
+                  <strong>当前后端</strong>
+                  <span>健康检查会读取这个状态。</span>
+                </div>
+                <div class="metric" data-backend-metric>--</div>
+              </div>
+              <div class="health-card" data-health-card="canvas-count">
+                <div>
+                  <strong>Canvas</strong>
+                  <span>用于判断是否真实渲染。</span>
+                </div>
+                <div class="metric" data-canvas-count>0</div>
+              </div>
+            </div>
+          </section>
+
+          <section id="demo-center" class="hub-panel span-12" data-hub-section="demo-center">
+            <div class="panel-heading">
+              <h2>Demo 中心</h2>
+              <span>真实样例验证</span>
+            </div>
+            <div class="demo-grid">
+              <a class="demo-card motion-card" data-motion-card href="/examples/full-game-demo/">
+                <strong>完整游戏 Demo</strong>
+                <span>30 分钟可玩样例，验证核心 API。</span>
+                <span class="tag ready">examples/full-game-demo/</span>
+              </a>
+              <a class="demo-card motion-card" data-motion-card href="/examples/market-showcase/">
+                <strong>市场展示 Demo</strong>
+                <span>性能、2.5D 层次和 HTML UI 迁移。</span>
+                <span class="tag ready">examples/market-showcase/</span>
+              </a>
+              <a class="demo-card motion-card" data-motion-card href="/examples/2.5d-demo/">
+                <strong>2.5D 场景 Demo</strong>
+                <span>深度层、遮挡、伪阴影验证。</span>
+                <span class="tag">2.5D</span>
+              </a>
+              <a class="demo-card motion-card" data-motion-card href="/examples/editor-demo/">
+                <strong>编辑器 Demo</strong>
+                <span>验证 Inspector、资源和场景入口。</span>
+                <span class="tag">Editor</span>
+              </a>
+            </div>
+          </section>
+
+          <section id="beginner-tutorial" class="hub-panel span-12" data-beginner-tutorial>
+            <div class="panel-heading">
+              <h2>0 基础新手教程</h2>
+              <span>从启动到第一个可见对象</span>
+            </div>
+            <div class="quickstart-grid">
+              <button class="quickstart-card motion-card is-active" type="button" data-motion-card data-tutorial-step="1">
+                <strong>1. 创建项目</strong>
+                <span>复制脚手架命令，得到最小工程。</span>
+              </button>
+              <button class="quickstart-card motion-card" type="button" data-motion-card data-tutorial-step="2">
+                <strong>2. 写第一个场景</strong>
+                <span>创建 Scene，放入一个可见对象。</span>
+              </button>
+              <button class="quickstart-card motion-card" type="button" data-motion-card data-tutorial-step="3">
+                <strong>3. 运行预览</strong>
+                <span>启动 dev server 并查看实时效果。</span>
+              </button>
+              <button class="quickstart-card motion-card" type="button" data-motion-card data-tutorial-step="4">
+                <strong>4. 构建发布</strong>
+                <span>运行质量门禁和目标平台构建。</span>
+              </button>
+            </div>
+            <div class="tutorial-workbench">
+              <pre class="tutorial-code" data-tutorial-code><code></code></pre>
+              <div class="tutorial-side">
+                <div class="tutorial-progress" aria-label="教程进度" data-tutorial-progress><i></i></div>
+                <div class="tutorial-preview" data-tutorial-preview></div>
+                <div class="tutorial-actions">
+                  <button class="command-button" type="button" data-tutorial-action="play">运行演示</button>
+                  <button class="command-button" type="button" data-tutorial-action="copy">复制代码</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="capability-map" class="hub-panel span-12" data-hub-section="capability-map">
+            <div class="panel-heading">
+              <h2>功能完整度</h2>
+              <span>从入门、制作到发布的闭环</span>
+            </div>
+            <div class="capability-grid">
+              <div class="capability-card motion-card" data-motion-card data-capability-section="complete-workflow">
+                <strong>完整制作流程</strong>
+                <span>新建项目、编辑场景、运行 Demo、模板复用、构建发布、反馈提交。</span>
+                <div class="tag-row">
+                  <span class="tag ready">Project</span>
+                  <span class="tag ready">Scene</span>
+                  <span class="tag ready">Export</span>
+                </div>
+              </div>
+              <div class="capability-card motion-card" data-motion-card data-capability-section="engine-systems">
+                <strong>引擎系统入口</strong>
+                <span>渲染后端、Tilemap、Prefab、3D Bridge、Profiler、资源管线。</span>
+                <div class="tag-row">
+                  <span class="tag ready">2D</span>
+                  <span class="tag ready">3D</span>
+                  <span class="tag ready">Physics</span>
+                </div>
+              </div>
+              <div class="capability-card motion-card" data-motion-card data-capability-section="production-checks">
+                <strong>生产检查</strong>
+                <span>Doctor、质量门禁、性能预算、发布包和平台导出命令集中复制。</span>
+                <div class="tag-row">
+                  <span class="tag ready">Doctor</span>
+                  <span class="tag ready">QA</span>
+                  <span class="tag ready">Package</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="template-library" class="hub-panel span-6" data-hub-section="template-library">
+            <div class="panel-heading">
+              <h2>模板库</h2>
+              <span>快速开局</span>
+            </div>
+            <div class="template-grid">
+              <a class="template-card motion-card" data-motion-card href="/examples/template-platformer/">
+                <strong>平台跳跃模板</strong>
+                <span>输入、碰撞、场景切换。</span>
+              </a>
+              <a class="template-card motion-card" data-motion-card href="/examples/template-rpg/">
+                <strong>RPG 模板</strong>
+                <span>地图、角色、对话与存档。</span>
+              </a>
+              <a class="template-card motion-card" data-motion-card href="/examples/template-tilemap/">
+                <strong>Tilemap 模板</strong>
+                <span>瓦片绘制、碰撞层、规则瓦片。</span>
+              </a>
+              <a class="template-card motion-card" data-motion-card href="/examples/template-interactive/">
+                <strong>交互模板</strong>
+                <span>按钮、状态、UI 事件。</span>
+              </a>
+            </div>
+          </section>
+
+          <section id="build-publish" class="hub-panel span-6" data-hub-section="build-publish">
+            <div class="panel-heading">
+              <h2>构建发布</h2>
+              <span>本地命令入口</span>
+            </div>
+            <div class="command-grid">
+              <button class="command-card motion-card" type="button" data-motion-card data-hub-command="npm run build">
+                <strong>Web 构建</strong>
+                <span>生成 dist 与核心包。</span>
+              </button>
+              <button class="command-card motion-card" type="button" data-motion-card data-hub-command="npm run build:wechat">
+                <strong>微信小游戏</strong>
+                <span>生成微信导入包与报告。</span>
+              </button>
+              <button class="command-card motion-card" type="button" data-motion-card data-hub-command="npm run quality:gate">
+                <strong>质量门禁</strong>
+                <span>运行生产就绪检查。</span>
+              </button>
+              <button class="command-card motion-card" type="button" data-motion-card data-hub-command="npm run dist:full">
+                <strong>离线包</strong>
+                <span>打源码、示例、文档和素材。</span>
+              </button>
+            </div>
+          </section>
+
+          <section id="docs" class="hub-panel span-6" data-hub-section="docs">
+            <div class="panel-heading">
+              <h2>文档</h2>
+              <span>学习与排错</span>
+            </div>
+            <div class="doc-grid">
+              <a class="doc-card motion-card" data-motion-card href="/docs/api/index.html">
+                <strong>API 文档</strong>
+                <span>模块、类、导出面。</span>
+              </a>
+              <a class="doc-card motion-card" data-motion-card href="/docs/ten-minute-quickstart.md">
+                <strong>十分钟上手</strong>
+                <span>创建第一个场景。</span>
+              </a>
+              <a class="doc-card motion-card" data-motion-card href="/website/playground/">
+                <strong>浏览器 IDE</strong>
+                <span>零门槛运行 green-square.js。</span>
+              </a>
+              <a class="doc-card motion-card" data-motion-card href="/website/roadmap.html">
+                <strong>路线图</strong>
+                <span>已完成、开发中、规划中。</span>
+              </a>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <aside class="hub-aside" aria-label="实时预览和命令">
+        <section class="preview-panel">
+          <div class="panel-heading">
+            <h2>实时后端预览</h2>
+            <span>Pixi / Canvas / WebGL</span>
+          </div>
+          <div class="preview-frame">
+            <div id="game-container"></div>
+          </div>
+          <div class="backend-switcher" aria-label="渲染后端切换">
+            <button type="button" data-backend="pixi">Pixi</button>
+            <button type="button" data-backend="canvas">Canvas</button>
+            <button type="button" data-backend="webgl">WebGL</button>
+          </div>
+          <div id="status">OmniCore Hub 正在启动...</div>
+        </section>
+
+        <section class="preview-panel">
+          <div class="panel-heading">
+            <h2>命令面板</h2>
+            <span>点击卡片复制</span>
+          </div>
+          <div class="command-output" data-command-output>选择一个项目或构建动作。</div>
+          <button class="command-button" type="button" data-copy-current-command>复制当前命令</button>
+        </section>
+
+        <section class="preview-panel">
+          <div class="panel-heading">
+            <h2>能力雷达</h2>
+            <span>当前覆盖</span>
+          </div>
+          <div class="tag-row">
+            <span class="tag ready">2D Scene</span>
+            <span class="tag ready">Pixi 渲染</span>
+            <span class="tag ready">Tilemap</span>
+            <span class="tag ready">Prefab</span>
+            <span class="tag ready">3D Bridge</span>
+            <span class="tag ready">Profiler</span>
+            <span class="tag warn">联网发布需凭据</span>
+          </div>
+        </section>
+      </aside>
+    </main>
+
     <script type="module">
       import OmniCore, { Scene } from '/src/index.js';
 
       const container = document.querySelector('#game-container');
       const status = document.querySelector('#status');
       const feedback = document.querySelector('#feedback-link');
+      const commandOutput = document.querySelector('[data-command-output]');
+      const backendMetric = document.querySelector('[data-backend-metric]');
+      const canvasCount = document.querySelector('[data-canvas-count]');
+      const bootStage = document.querySelector('[data-boot-animation]');
+      const bootProgress = document.querySelector('[data-boot-progress]');
+      const bootStatus = document.querySelector('[data-boot-status]');
+      const tutorialCode = document.querySelector('[data-tutorial-code] code');
+      const tutorialPreview = document.querySelector('[data-tutorial-preview]');
+      const tutorialProgress = document.querySelector('[data-tutorial-progress] i');
       const engineVersion = '0.2.0';
-      const initialBackend = new URLSearchParams(window.location.search).get('backend') || 'pixi';
+      const initialBackend = new URLSearchParams(window.location.search).get('backend') || 'canvas';
       const changelogUrl = new URL('/CHANGELOG.md', window.location.origin).href;
       const issueUrl = new URL('https://github.com/omnicorejs/omnicore/issues/new');
       issueUrl.searchParams.set('title', `[OmniCore ${engineVersion}] 示例反馈`);
@@ -142,6 +1271,69 @@
       );
       feedback.href = issueUrl.href;
       let currentGame = null;
+      let currentCommand = '';
+      let currentTutorialStep = 1;
+
+      const tutorialSteps = {
+        1: {
+          command: 'npm create omnicore-app my-game',
+          progress: '25%',
+          code: `# 创建一个新游戏项目
+npm create omnicore-app my-game
+cd my-game
+npm install
+npm run dev`
+        },
+        2: {
+          command: 'node src/main.js',
+          progress: '50%',
+          code: `import OmniCore, { Scene } from 'omnicore';
+
+function createScene() {
+  const scene = new Scene('hello-world');
+  scene.create = () => {
+    scene.add({
+      render(ctx) {
+        ctx.fillStyle = '#6bd694';
+        ctx.fillRect(32, 32, 96, 96);
+        ctx.fillStyle = '#eef4fb';
+        ctx.fillText('Hello OmniCore', 32, 154);
+      }
+    });
+  };
+  return scene;
+}
+
+const game = new OmniCore.Game({ parent: '#game', width: 640, height: 360 });
+await game.init();
+game.scene.register(createScene());
+await game.scene.push('hello-world');
+game.start();`
+        },
+        3: {
+          command: 'npm run dev',
+          progress: '75%',
+          code: `# 运行本地预览
+npm run dev
+
+# 浏览器打开
+http://127.0.0.1:5173
+
+# 在 Hub 里切换 Pixi / Canvas / WebGL，确认运行时没有白屏。`
+        },
+        4: {
+          command: 'npm run quality:gate && npm run build',
+          progress: '100%',
+          code: `# 发布前检查
+npm run doctor
+npm run quality:gate
+npm run build
+
+# 平台构建
+npm run build:wechat
+npm run dist:full`
+        }
+      };
 
       class DemoPaint {
         constructor(name) {
@@ -152,29 +1344,41 @@
         }
 
         render(ctx) {
-          ctx.save();
-          ctx.fillStyle = '#1b2a33';
-          ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
-          ctx.fillStyle = '#64d2ff';
-          ctx.fillRect(72, 92, 150, 150);
-          ctx.fillStyle = '#f8fafc';
-          ctx.font = '24px system-ui, sans-serif';
-          ctx.fillText(`Backend: ${this.name}`, 72, 285);
-          ctx.restore();
+          if (!ctx) return;
+          const width = ctx?.canvas?.width || 420;
+          const height = ctx?.canvas?.height || 260;
+          const block = Math.max(52, Math.min(width, height) * 0.32);
+          ctx?.save?.();
+          ctx.fillStyle = '#101820';
+          ctx.fillRect?.(0, 0, width, height);
+          ctx.fillStyle = '#48c7e8';
+          ctx.fillRect?.(28, 30, block, block);
+          ctx.fillStyle = '#6bd694';
+          ctx.fillRect?.(38 + block, 50, Math.max(42, block * 0.45), Math.max(42, block * 0.45));
+          ctx.fillStyle = '#eef4fb';
+          ctx.font = '16px system-ui, sans-serif';
+          ctx.fillText?.(`Backend: ${this.name}`, 28, 56 + block);
+          ctx.fillStyle = '#9dadbd';
+          ctx.font = '12px system-ui, sans-serif';
+          ctx.fillText?.('OmniCore runtime preview', 28, 78 + block);
+          ctx.restore?.();
         }
 
-        toPixiObject({ Container, Graphics, Text }) {
+        toPixiObject({ Container, Graphics }) {
           const root = new Container();
           const box = new Graphics()
-            .rect(72, 92, 150, 150)
-            .fill({ color: 0x64d2ff });
-          const label = new Text({
-            text: `Backend: ${this.name}`,
-            style: { fill: 0xf8fafc, fontSize: 24, fontFamily: 'system-ui, sans-serif' }
-          });
-          label.x = 72;
-          label.y = 270;
-          root.addChild(box, label);
+            .rect(28, 30, 96, 96)
+            .fill({ color: 0x48c7e8 });
+          const accent = new Graphics()
+            .rect(136, 50, 48, 48)
+            .fill({ color: 0x6bd694 });
+          const rail = new Graphics()
+            .rect(28, 138, 156, 10)
+            .fill({ color: 0xeef4fb });
+          const subRail = new Graphics()
+            .rect(28, 162, 118, 8)
+            .fill({ color: 0x9dadbd });
+          root.addChild(box, accent, rail, subRail);
           return root;
         }
       }
@@ -188,6 +1392,14 @@
         create() {
           this.add(new DemoPaint(this.backend));
         }
+      }
+
+      function previewSize() {
+        const rect = container.getBoundingClientRect();
+        return {
+          width: Math.max(320, Math.round(rect.width || 420)),
+          height: Math.max(220, Math.round(rect.height || 260))
+        };
       }
 
       function resetWebGLState(canvases) {
@@ -207,9 +1419,112 @@
         return canvases;
       }
 
+      function updateBackendUi(backend) {
+        backendMetric.textContent = backend;
+        canvasCount.textContent = String(container.querySelectorAll('canvas').length);
+        for (const button of document.querySelectorAll('[data-backend]')) {
+          button.classList.toggle('active', button.dataset.backend === backend);
+        }
+      }
+
+      function canUseWebGLPreview() {
+        if (/HeadlessChrome/i.test(navigator.userAgent)) return false;
+        const probe = document.createElement('canvas');
+        let gl = null;
+        try {
+          gl = probe.getContext('webgl', {
+            alpha: false,
+            antialias: true,
+            stencil: true,
+            powerPreference: 'high-performance'
+          }) || probe.getContext('experimental-webgl', { stencil: true });
+          return Boolean(gl?.getContextAttributes?.().stencil);
+        } catch {
+          return false;
+        } finally {
+          gl?.getExtension?.('WEBGL_lose_context')?.loseContext?.();
+          probe.remove();
+        }
+      }
+
+      function resolvePreviewBackend(requestedBackend) {
+        if ((requestedBackend === 'pixi' || requestedBackend === 'webgl') && !canUseWebGLPreview()) {
+          return {
+            backend: 'canvas',
+            note: `${requestedBackend} 当前环境不适合稳定预览，已安全降级到 Canvas。`
+          };
+        }
+        return { backend: requestedBackend, note: '' };
+      }
+
+      function setBootProgress(stage, width, text) {
+        if (bootProgress) bootProgress.style.width = width;
+        if (bootStatus) bootStatus.textContent = text;
+        for (const item of document.querySelectorAll('[data-boot-stage]')) {
+          item.classList.toggle('is-active', item.dataset.bootStage === stage);
+        }
+      }
+
+      function hideBootStage() {
+        setBootProgress('tutorial', '100%', 'OmniCore Hub 已就绪。');
+        window.setTimeout(() => {
+          bootStage?.classList.add('is-hidden');
+          document.querySelector('#omnicore-boot-skeleton')?.remove();
+        }, 180);
+      }
+
+      function drawTutorialPreview(step = currentTutorialStep) {
+        tutorialPreview.textContent = '';
+        const canvas = document.createElement('canvas');
+        canvas.width = 260;
+        canvas.height = 118;
+        tutorialPreview.append(canvas);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        ctx.fillStyle = '#101820';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#263241';
+        ctx.strokeRect(0.5, 0.5, canvas.width - 1, canvas.height - 1);
+        ctx.fillStyle = step >= 2 ? '#6bd694' : '#48c7e8';
+        ctx.fillRect(28 + step * 5, 28, 58, 58);
+        ctx.fillStyle = step >= 3 ? '#f1b858' : '#354455';
+        ctx.fillRect(112, 44, 34 + step * 6, 24);
+        ctx.fillStyle = '#eef4fb';
+        ctx.font = '13px system-ui, sans-serif';
+        ctx.fillText(`Step ${step}: ${tutorialSteps[step].command}`, 18, 104);
+      }
+
+      function selectTutorialStep(step) {
+        currentTutorialStep = Number(step);
+        const detail = tutorialSteps[currentTutorialStep];
+        if (!detail) return;
+        tutorialCode.textContent = detail.code;
+        tutorialProgress.style.width = detail.progress;
+        setCommand(detail.command);
+        for (const card of document.querySelectorAll('[data-tutorial-step]')) {
+          card.classList.toggle('is-active', Number(card.dataset.tutorialStep) === currentTutorialStep);
+        }
+        drawTutorialPreview(currentTutorialStep);
+      }
+
+      function animateHubMotion(time = 0) {
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduced) {
+          document.documentElement.style.setProperty('--hub-motion-y', '0px');
+          return;
+        }
+        const y = Math.sin(time / 900) * 1.8;
+        document.documentElement.style.setProperty('--hub-motion-y', `${y}px`);
+        requestAnimationFrame(animateHubMotion);
+      }
+
       async function switchEngine(backend) {
+        const preview = resolvePreviewBackend(backend);
+        const effectiveBackend = preview.backend;
         window.__OMNICORE_PRECOMPILE_GAME__?.(OmniCore);
-        status.textContent = `切换到 ${backend} 中...`;
+        setBootProgress('runtime', '34%', `初始化 ${backend} 运行时。`);
+        status.textContent = preview.note || `切换到 ${effectiveBackend} 中...`;
         console.log(`[OmniCore example] switchStart -> ${backend}`);
 
         if (currentGame) {
@@ -219,12 +1534,13 @@
 
         const removedCanvases = clearCanvasContainer();
         resetWebGLState(removedCanvases);
+        const size = previewSize();
 
         const game = new OmniCore.Game({
           parent: '#game-container',
-          width: window.innerWidth,
-          height: window.innerHeight,
-          renderer: backend,
+          width: size.width,
+          height: size.height,
+          renderer: effectiveBackend,
           autoResize: true,
           autoStart: false,
           switchStart: (next) => {
@@ -236,14 +1552,46 @@
         });
 
         currentGame = await game.init();
-        currentGame.scene.register(new DemoScene(backend));
+        setBootProgress('assets', '68%', '挂载预览场景和交互资源。');
+        const actualBackend = currentGame.renderer?.backend || effectiveBackend;
+        currentGame.scene.register(new DemoScene(actualBackend));
         await currentGame.scene.push('backend-demo');
         currentGame.renderer.renderScene(currentGame.scene.current);
-        document.querySelector('#omnicore-boot-skeleton')?.remove();
-        currentGame.hooks.switchComplete?.(backend, currentGame);
+        currentGame.hooks.switchComplete?.(actualBackend, currentGame);
         currentGame.start();
+        if (preview.note) status.textContent = `当前后端：${actualBackend}（${backend} 已安全降级）`;
+        updateBackendUi(actualBackend);
+        hideBootStage();
 
-        console.log(`[OmniCore example] switchComplete -> ${backend}`, currentGame);
+        console.log(`[OmniCore example] switchComplete -> ${actualBackend}`, currentGame);
+      }
+
+      function setCommand(command) {
+        currentCommand = command;
+        commandOutput.textContent = `${command}\n\n在终端执行该命令。当前浏览器页面只负责展示和复制。`;
+      }
+
+      async function copyCommand(command = currentCommand) {
+        if (!command) {
+          commandOutput.textContent = '请先选择一个命令。';
+          return;
+        }
+        try {
+          await navigator.clipboard?.writeText(command);
+          commandOutput.textContent = `${command}\n\n已复制到剪贴板。`;
+        } catch {
+          commandOutput.textContent = `${command}\n\n浏览器未允许自动复制，请手动复制。`;
+        }
+      }
+
+      async function copyTutorialCode() {
+        const code = tutorialSteps[currentTutorialStep].code;
+        try {
+          await navigator.clipboard?.writeText(code);
+          commandOutput.textContent = `${tutorialSteps[currentTutorialStep].command}\n\n教程代码已复制。`;
+        } catch {
+          commandOutput.textContent = `${tutorialSteps[currentTutorialStep].command}\n\n浏览器未允许自动复制，请在教程代码框内手动复制。`;
+        }
       }
 
       window.switchEngine = switchEngine;
@@ -252,6 +1600,41 @@
         button.addEventListener('click', () => switchEngine(button.dataset.backend));
       }
 
+      for (const trigger of document.querySelectorAll('[data-hub-command]')) {
+        trigger.addEventListener('click', () => {
+          const command = trigger.dataset.hubCommand;
+          setCommand(command);
+          copyCommand(command);
+        });
+      }
+
+      document.querySelector('[data-copy-current-command]')?.addEventListener('click', () => copyCommand());
+
+      for (const card of document.querySelectorAll('[data-tutorial-step]')) {
+        card.addEventListener('click', () => selectTutorialStep(card.dataset.tutorialStep));
+      }
+
+      document.querySelector('[data-tutorial-action="play"]')?.addEventListener('click', () => {
+        drawTutorialPreview(currentTutorialStep);
+        commandOutput.textContent = `${tutorialSteps[currentTutorialStep].command}\n\n教程演示已刷新。`;
+      });
+
+      document.querySelector('[data-tutorial-action="copy"]')?.addEventListener('click', () => {
+        copyTutorialCode();
+      });
+
+      for (const item of document.querySelectorAll('.side-nav a')) {
+        item.addEventListener('click', () => {
+          document.querySelectorAll('.side-nav a').forEach((link) => link.classList.remove('active'));
+          item.classList.add('active');
+        });
+      }
+
+      selectTutorialStep(1);
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        requestAnimationFrame(animateHubMotion);
+      }
+      setCommand('npm run editor');
       await switchEngine(initialBackend);
     </script>
   </body>

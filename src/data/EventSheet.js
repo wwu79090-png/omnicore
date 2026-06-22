@@ -75,8 +75,9 @@ function normalizeConditionValue(value) {
 }
 
 export class EventSheet {
-  constructor(events = [], { debug = DEFAULT_DEBUG, scope = {}, watch = [], compile = false } = {}) {
+  constructor(events = [], { debug = DEFAULT_DEBUG, scope = {}, watch = [], compile = false, functions = {} } = {}) {
     this.events = events;
+    this.functions = normalizeFunctionEvents(functions);
     this.debug = debug;
     this.compileNative = Boolean(compile);
     this.compiledNativeFunctions = 0;
@@ -109,7 +110,13 @@ export class EventSheet {
         events.push(event);
       }
     }
-    const sheet = new EventSheet(events, { debug, scope: json.scope || {}, watch: json.watch || [], compile });
+    const sheet = new EventSheet(events, {
+      debug,
+      scope: json.scope || {},
+      watch: json.watch || [],
+      compile,
+      functions: json.functions || {}
+    });
     if (json.states) sheet.behaviorTree = new StateBehaviorTree(json);
     return sheet;
   }
@@ -139,6 +146,7 @@ export class EventSheet {
     const result = this._runWithRuleDepth(this._eventPosition('run'), () => {
       for (let index = 0; index < this.events.length; index += 1) {
         const event = this.events[index];
+        if (event.enabled === false) continue;
         const scopedRuntime = this._createScopedRuntime(runtime, event);
         scopedRuntime.__eventSheetErrors = [];
 
@@ -152,6 +160,29 @@ export class EventSheet {
       return this;
     });
     return result === false ? this : result;
+  }
+
+  runWithTrace(runtime = {}) {
+    this._errors.length = 0;
+    this._enterFrame(runtime);
+    const trace = { events: [], errors: this._errors };
+    this._runWithRuleDepth(this._eventPosition('runWithTrace'), () => {
+      for (let index = 0; index < this.events.length; index += 1) {
+        const event = this.events[index];
+        const group = event.group || event.name || `event-${index}`;
+        if (event.enabled === false) {
+          trace.events.push({ index, group, passed: false, skipped: true });
+          continue;
+        }
+        const scopedRuntime = this._createScopedRuntime(runtime, event);
+        scopedRuntime.__eventSheetErrors = [];
+        const passed = this._conditionsPass(event.conditions || [], scopedRuntime);
+        trace.events.push({ index, group, passed, skipped: false });
+        if (passed) this._runActions(event.actions || [], scopedRuntime, { index });
+        this._errors.push(...scopedRuntime.__eventSheetErrors);
+      }
+    });
+    return trace;
   }
 
   attach({ store, events, entity } = {}) {
@@ -375,6 +406,12 @@ export class EventSheet {
     if (action.op === 'execute') {
       this._runWithRuleDepth(this._eventPosition('execute', eventInfo.index, actionIndex, action.op), () => {
         this._executeStoreFunction(action.name, runtime, eventInfo);
+      });
+      return;
+    }
+    if (action.op === 'function') {
+      this._runWithRuleDepth(this._eventPosition('function', eventInfo.index, actionIndex, action.name), () => {
+        this._runActions(this.functions[action.name] || [], runtime, eventInfo);
       });
       return;
     }
@@ -609,6 +646,13 @@ function conditionToNode(condition) {
 
 function actionToNode(action) {
   return { type: 'action', ...action };
+}
+
+function normalizeFunctionEvents(functions = {}) {
+  return Object.fromEntries(Object.entries(functions || {}).map(([name, value]) => [
+    name,
+    Array.isArray(value) ? value : value?.actions || []
+  ]));
 }
 
 export default EventSheet;

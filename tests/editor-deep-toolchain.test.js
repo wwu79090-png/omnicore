@@ -33,7 +33,7 @@ describe('editor deep toolchain', () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F', ctrlKey: true, shiftKey: true }));
     const results = app.EditorAPI.searchProject('Slime');
 
-    expect(root.querySelector('[data-panel="global-search"]')?.textContent).toContain('Global Search');
+    expect(root.querySelector('[data-panel="global-search"]')?.textContent).toContain('全局搜索');
     expect(results).toHaveLength(2);
     expect(app.EditorAPI.replaceProject('Slime', 'Blob').changedFiles).toEqual(['src/npc.js', 'scenes/level.json']);
     expect(app.getState().projectFiles['src/npc.js']).toContain('Blob');
@@ -106,7 +106,7 @@ describe('editor deep toolchain', () => {
     app.EditorAPI.setBuildTarget('itch', true);
     const config = app.EditorAPI.exportBuildSettings();
 
-    expect(root.querySelector('[data-panel="build-settings"]')?.textContent).toContain('Build Settings');
+    expect(root.querySelector('[data-panel="build-settings"]')?.textContent).toContain('构建设置');
     expect(config.targets.steam).toMatchObject({ enabled: true, compression: 'store', iconSize: 256 });
     expect(config.targets.itch).toMatchObject({ enabled: true, compression: 'brotli', configStrategy: 'portable' });
     app.destroy();
