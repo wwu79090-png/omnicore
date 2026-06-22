@@ -111,4 +111,99 @@ describe('editor deep toolchain', () => {
     expect(config.targets.itch).toMatchObject({ enabled: true, compression: 'brotli', configStrategy: 'portable' });
     app.destroy();
   });
+
+  it('closes the editor loop across dependencies, resources, hot reload, and runtime debug', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        scene: {
+          name: 'main',
+          entities: [
+            {
+              id: 'hero',
+              name: 'Hero',
+              type: 'sprite',
+              sprite: 'assets/hero.webp',
+              prefabId: 'hero-base',
+              script: 'scripts/hero.js',
+              material: { normalMap: 'assets/hero-normal.webp' }
+            },
+            {
+              id: 'door',
+              name: 'Door',
+              type: 'sprite',
+              sprite: 'assets/missing-door.webp',
+              prefabId: 'door-base',
+              scene: 'scenes/room.json'
+            }
+          ]
+        },
+        selectedEntityId: 'hero',
+        assets: [
+          { path: 'assets/hero.webp', type: 'image' },
+          { path: 'assets/hero-normal.webp', type: 'image' },
+          { path: 'scenes/room.json', type: 'scene' },
+          { path: 'prefabs/hero.json', type: 'prefab' },
+          { path: 'scripts/hero.js', type: 'script' }
+        ],
+        prefabs: [
+          { id: 'hero-base', name: 'HeroBase', sprite: 'assets/hero.webp', script: 'scripts/hero.js' },
+          { id: 'door-base', name: 'DoorBase', sprite: 'assets/missing-door.webp', overrides: { scene: 'scenes/room.json' } }
+        ],
+        projectFiles: {
+          'scenes/main.json': '{"hero":"assets/hero.webp","door":"assets/missing-door.webp","prefab":"prefabs/hero.json"}',
+          'prefabs/door.json': '{"sprite":"assets/missing-door.webp","scene":"scenes/room.json"}',
+          'scripts/hero.js': 'export function update() {}'
+        },
+        dockLayout: {
+          left: ['hierarchy', 'prefabs', 'assets'],
+          center: ['scene-view'],
+          right: ['inspector'],
+          bottom: ['runtime-debug', 'profiler']
+        },
+        profilerFrame: {
+          frame: 1,
+          totalMs: 12,
+          at: 10000,
+          sections: [{ name: 'scene.update', duration: 7 }]
+        }
+      })
+    });
+
+    const report = app.EditorAPI.createEditorClosureReport({ changedFiles: ['scenes/main.json'], now: 11000 });
+    expect(report.missingAssets.map((asset) => asset.path)).toContain('assets/missing-door.webp');
+    expect(report.sceneDependencies).toEqual(expect.arrayContaining([
+      expect.objectContaining({ source: 'entity:door', field: 'sprite', path: 'assets/missing-door.webp' })
+    ]));
+    expect(report.prefabDependencies).toEqual(expect.arrayContaining([
+      expect.objectContaining({ prefabId: 'door-base', path: 'assets/missing-door.webp' })
+    ]));
+    expect(report.propertyPanel).toMatchObject({ entityId: 'hero', prefabId: 'hero-base' });
+    expect(report.propertyPanel.fields.map((field) => field.key)).toEqual(expect.arrayContaining(['sprite', 'prefabId', 'script']));
+    expect(report.resourceDatabase.find((asset) => asset.path === 'assets/missing-door.webp')).toMatchObject({
+      missing: true,
+      referenceCount: expect.any(Number)
+    });
+
+    const reload = app.EditorAPI.queueHotReload(['scenes/main.json', 'prefabs/door.json']);
+    expect(reload.hotReloadManifest.affectedAssets).toEqual(expect.arrayContaining([
+      'assets/missing-door.webp',
+      'prefabs/hero.json'
+    ]));
+    app.recordDebugEvent({ type: 'trace', name: 'spawnHero', entityId: 'hero', at: 10500 });
+
+    expect(app.exportDebugTimeline({ now: 11000 }).events[0]).toMatchObject({ name: 'spawnHero', entityId: 'hero' });
+    expect(root.querySelector('[data-panel="runtime-debug"]')?.textContent).toContain('运行时调试');
+    expect(root.querySelector('[data-runtime-debug-event="spawnHero"]')).not.toBeNull();
+    expect(root.querySelector('[data-runtime-debug-missing="assets/missing-door.webp"]')).not.toBeNull();
+    expect(root.querySelector('[data-runtime-debug-property-panel]')?.textContent).toContain('hero-base');
+
+    const fixes = app.EditorAPI.applyEditorClosureFixes({ registerMissing: true });
+    expect(fixes.registeredAssets).toEqual(expect.arrayContaining(['assets/missing-door.webp']));
+    expect(app.getState().assets.map((asset) => asset.path)).toContain('assets/missing-door.webp');
+    expect(app.EditorAPI.createEditorClosureReport().missingAssets).toHaveLength(0);
+    expect(root.querySelector('[data-runtime-debug-resource="assets/missing-door.webp"]')?.textContent).toContain('缺失占位');
+    app.destroy();
+  });
 });

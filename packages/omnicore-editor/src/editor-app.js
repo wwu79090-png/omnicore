@@ -24,6 +24,7 @@ const PANEL_TITLES = {
   'global-search': '全局搜索',
   'physics-view': '物理视图',
   'build-settings': '构建设置',
+  'runtime-debug': '运行时调试',
   profiler: '性能分析'
 };
 
@@ -33,7 +34,7 @@ const DEFAULT_DOCK_LAYOUT = {
   left: ['hierarchy', 'prefabs', 'assets'],
   center: ['scene-view'],
   right: ['inspector', 'build-settings'],
-  bottom: ['animation-timeline', 'tilemap', 'flow-graph', 'graph-editor', 'ui-editor', 'global-search', 'profiler']
+  bottom: ['animation-timeline', 'tilemap', 'flow-graph', 'graph-editor', 'ui-editor', 'global-search', 'runtime-debug', 'profiler']
 };
 const TOOLBAR_ACTIONS = [
   { id: 'open-project', label: '打开项目', shortcut: 'Ctrl+O' },
@@ -84,6 +85,7 @@ const DEFAULT_ZH_CN_TEXT = {
   'flow.add.condition': '添加条件',
   'flow.add.action': '添加动作',
   'flow.exportEventSheet': '导出事件表',
+  'runtimeDebug.empty': '暂无运行时事件',
   'profiler.empty': '暂无性能采样'
 };
 
@@ -495,6 +497,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
     buildAssetDependencyGraph,
     replaceAssetReferences,
     runIncrementalCompile,
+    createEditorClosureReport,
+    applyEditorClosureFixes,
+    queueHotReload,
     recordDebugEvent,
     exportDebugTimeline,
     exportAnimationStateMachine,
@@ -675,6 +680,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
       sceneTabs: next.sceneTabs || current.sceneTabs,
       activeSceneTabPath: next.activeSceneTabPath ?? current.activeSceneTabPath,
       authoringHealth: next.authoringHealth || current.authoringHealth,
+      editorClosure: next.editorClosure || current.editorClosure,
+      hotReload: next.hotReload || current.hotReload,
       autoSave: normalizeAutoSaveState(next.autoSave || current.autoSave)
     });
     renderToolbar();
@@ -695,6 +702,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       'global-search': renderPanel('global-search', renderGlobalSearch()),
       'physics-view': renderPanel('physics-view', renderPhysicsView()),
       'build-settings': renderPanel('build-settings', renderBuildSettings()),
+      'runtime-debug': renderPanel('runtime-debug', renderRuntimeDebugPanel()),
       profiler: renderPanel('profiler', renderProfiler())
     };
     for (const region of DOCK_REGIONS) {
@@ -1143,6 +1151,21 @@ export function createEditorApp(root = document.querySelector('#app'), {
       },
       exportBuildSettings() {
         return exportBuildSettings();
+      },
+      createEditorClosureReport(options = {}) {
+        return createEditorClosureReport(options);
+      },
+      applyEditorClosureFixes(options = {}) {
+        return applyEditorClosureFixes(options);
+      },
+      queueHotReload(changedFiles = []) {
+        return queueHotReload(changedFiles);
+      },
+      recordDebugEvent(event = {}) {
+        return recordDebugEvent(event);
+      },
+      exportDebugTimeline(options = {}) {
+        return exportDebugTimeline(options);
       },
       generateWithAI(prompt, options = {}) {
         return generateWithAI(prompt, options);
@@ -3156,67 +3179,158 @@ export function createEditorApp(root = document.querySelector('#app'), {
   function buildAssetDependencyGraph() {
     const nodes = new Map();
     const edges = [];
+    const edgeKeys = new Set();
     const addNode = (id, type) => {
       if (id && !nodes.has(id)) nodes.set(id, { id, type });
     };
-    for (const asset of current.assets || []) addNode(asset.path, asset.type || 'asset');
+    const addEdge = (from, to, type) => {
+      if (!from || !to) return;
+      const key = `${from}->${to}:${type || 'reference'}`;
+      if (edgeKeys.has(key)) return;
+      edgeKeys.add(key);
+      edges.push({ from, to, type: type || 'reference' });
+    };
+    for (const asset of collectKnownEditorAssets(current)) addNode(asset.path, asset.type || 'asset');
     for (const [file, source] of Object.entries(current.projectFiles || {})) {
       addNode(file, 'file');
       for (const asset of current.assets || []) {
-        if (String(source).includes(asset.path)) edges.push({ from: file, to: asset.path, type: 'reference' });
+        const assetPath = normalizeResourcePath(asset);
+        if (assetPath && String(source).includes(assetPath)) addEdge(file, assetPath, 'reference');
       }
     }
+    for (const prefab of current.prefabs || []) addNode(`prefab:${prefab.id || prefab.name}`, 'prefab');
     for (const entity of current.scene?.entities || []) {
       addNode(`entity:${entity.id || entity.name}`, 'entity');
-      if (entity.sprite) {
-        addNode(entity.sprite, 'asset');
-        edges.push({ from: `entity:${entity.id || entity.name}`, to: entity.sprite, type: 'sprite' });
-      }
-      if (entity.scene) {
-        addNode(entity.scene, 'scene');
-        edges.push({ from: `entity:${entity.id || entity.name}`, to: entity.scene, type: 'nested-scene' });
-      }
+    }
+    for (const reference of collectEditorClosureReferences(current).references) {
+      addNode(reference.source, reference.sourceType || 'reference');
+      addNode(reference.path, assetType(reference.path));
+      addEdge(reference.source, reference.path, reference.field || reference.type || 'reference');
     }
     return { nodes: [...nodes.values()], edges };
   }
 
   function replaceAssetReferences(from, to) {
+    const normalizedFrom = slash(from || '');
+    const normalizedTo = slash(to || '');
+    if (!normalizedFrom || !normalizedTo) return { from: normalizedFrom, to: normalizedTo, changedFiles: [] };
     const projectFiles = { ...(current.projectFiles || {}) };
     const changedFiles = [];
     for (const [file, source] of Object.entries(projectFiles)) {
-      if (!String(source).includes(from)) continue;
-      projectFiles[file] = String(source).split(from).join(to);
+      if (!String(source).includes(normalizedFrom)) continue;
+      projectFiles[file] = String(source).split(normalizedFrom).join(normalizedTo);
       changedFiles.push(file);
     }
-    const scene = {
-      ...current.scene,
-      entities: (current.scene?.entities || []).map((entity) => (
-        entity.sprite === from ? { ...entity, sprite: to } : entity
-      ))
-    };
-    current = createEditorState({ ...current, projectFiles, scene });
-    emit('editor:asset-references-replaced', { from, to, changedFiles });
+    const scene = replaceReferenceValue(current.scene, normalizedFrom, normalizedTo);
+    const prefabs = replaceReferenceValue(current.prefabs, normalizedFrom, normalizedTo);
+    const sceneTabs = replaceReferenceValue(current.sceneTabs, normalizedFrom, normalizedTo);
+    current = createEditorState({ ...current, projectFiles, scene, prefabs, sceneTabs });
+    emit('editor:asset-references-replaced', { from: normalizedFrom, to: normalizedTo, changedFiles });
     update(current);
-    return { from, to, changedFiles };
+    return { from: normalizedFrom, to: normalizedTo, changedFiles };
   }
 
-  function runIncrementalCompile(changedFiles = []) {
-    const files = [...new Set(changedFiles)];
+  function createHotReloadCompile(changedFiles = []) {
+    const files = [...new Set((Array.isArray(changedFiles) ? changedFiles : [changedFiles])
+      .map((file) => slash(file || ''))
+      .filter(Boolean))];
     const graph = buildAssetDependencyGraph();
     const hotReloadManifest = {
       protocol: 'omnicore-hot-reload/v1',
       changedFiles: files,
-      affectedAssets: graph.edges.filter((edge) => files.includes(edge.from)).map((edge) => edge.to),
+      affectedAssets: [...new Set(graph.edges.filter((edge) => files.includes(edge.from)).map((edge) => edge.to))],
       eventSheet: exportFlowGraphEventSheet(),
       behaviorTree: exportBehaviorTreeJson()
     };
-    emit('editor:incremental-compile', hotReloadManifest);
     return {
       ok: true,
       compiledAt: new Date().toISOString(),
       changedFiles: files,
-      hotReloadManifest
+      hotReloadManifest,
+      graph
     };
+  }
+
+  function runIncrementalCompile(changedFiles = []) {
+    const compile = createHotReloadCompile(changedFiles);
+    current = createEditorState({ ...current, hotReload: compile });
+    emit('editor:incremental-compile', compile.hotReloadManifest);
+    emit('editor:hot-reload', compile);
+    update(current);
+    return compile;
+  }
+
+  function queueHotReload(changedFiles = []) {
+    const compile = runIncrementalCompile(changedFiles);
+    const report = createEditorClosureReport({ changedFiles: compile.changedFiles, hotReload: compile });
+    return { ...compile, report };
+  }
+
+  function buildCurrentEditorClosureReport(options = {}) {
+    const timeline = exportDebugTimeline({
+      now: Number(options.now ?? latestDebugTimestamp()),
+      windowMs: Number(options.windowMs || 10000)
+    });
+    return buildEditorClosureReport(current, {
+      ...options,
+      hotReload: options.hotReload || current.hotReload || null,
+      debugTimeline: timeline,
+      generatedAt: options.generatedAt || new Date().toISOString()
+    });
+  }
+
+  function latestDebugTimestamp() {
+    const values = [];
+    for (const event of debugTimeline.events || []) values.push(Number(event.at || 0));
+    for (const frame of current.profilerHistory || []) values.push(Number(frame.at || frame.frameStartedAt || 0));
+    if (current.profilerFrame) values.push(Number(current.profilerFrame.at || current.profilerFrame.frameStartedAt || 0));
+    const finite = values.filter((value) => Number.isFinite(value) && value > 0);
+    return finite.length ? Math.max(...finite) : Date.now();
+  }
+
+  function createEditorClosureReport(options = {}) {
+    const report = buildCurrentEditorClosureReport(options);
+    if (options.persist === false) return report;
+    current = createEditorState({
+      ...current,
+      editorClosure: report,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'runtime-debug', 'bottom')
+    });
+    emit('editor:closure-report', report);
+    update(current);
+    return report;
+  }
+
+  function applyEditorClosureFixes({ replacements = {}, registerMissing = false } = {}) {
+    const replacementResults = [];
+    for (const [from, to] of Object.entries(replacements || {})) {
+      replacementResults.push(replaceAssetReferences(from, to));
+    }
+    const reportBefore = buildCurrentEditorClosureReport({ persist: false });
+    const existingAssets = new Set(collectKnownEditorAssets(current).map((asset) => asset.path));
+    const registeredAssets = [];
+    if (registerMissing) {
+      const additions = [];
+      for (const missing of reportBefore.missingAssets || []) {
+        if (!missing.path || existingAssets.has(missing.path)) continue;
+        existingAssets.add(missing.path);
+        registeredAssets.push(missing.path);
+        additions.push({
+          path: missing.path,
+          name: missing.path.split('/').pop() || missing.path,
+          type: assetType(missing.path),
+          missingStub: true,
+          repairedAt: new Date().toISOString()
+        });
+      }
+      if (additions.length) {
+        current = createEditorState({ ...current, assets: [...(current.assets || []), ...additions] });
+      }
+    }
+    const report = createEditorClosureReport();
+    if (registeredAssets.length || replacementResults.length) pushHistory(current, '修复编辑器闭环资源');
+    emit('editor:closure-fixes-applied', { registeredAssets, replacements: replacementResults });
+    return { registeredAssets, replacements: replacementResults, report };
   }
 
   function create25DPreview({ zToYScale = 16, showReferenceLines = true, showDepthMappingLines = true } = {}) {
@@ -3394,10 +3508,13 @@ export function createEditorApp(root = document.querySelector('#app'), {
   }
 
   function recordDebugEvent(event = {}) {
+    const normalizedEvent = { ...event, at: Number(event.at ?? Date.now()) };
     debugTimeline = {
       ...debugTimeline,
-      events: [...debugTimeline.events, { ...event, at: Number(event.at ?? Date.now()) }]
+      events: [...debugTimeline.events, normalizedEvent]
     };
+    emit('editor:debug-event', normalizedEvent);
+    update(current);
     return debugTimeline;
   }
 
@@ -5146,6 +5263,159 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return wrap;
   }
 
+  function renderRuntimeDebugPanel() {
+    const report = buildCurrentEditorClosureReport({ persist: false });
+    const wrap = document.createElement('div');
+    wrap.className = 'runtime-debug-wrap';
+    wrap.dataset.runtimeDebugPanel = 'true';
+
+    const actions = document.createElement('div');
+    actions.className = 'runtime-debug-actions';
+    const refresh = document.createElement('button');
+    refresh.type = 'button';
+    refresh.dataset.runtimeDebugAction = 'report';
+    refresh.textContent = '诊断闭环';
+    refresh.addEventListener('click', () => createEditorClosureReport());
+    const repair = document.createElement('button');
+    repair.type = 'button';
+    repair.dataset.runtimeDebugAction = 'repair-missing';
+    repair.textContent = '注册缺失资源';
+    repair.addEventListener('click', () => applyEditorClosureFixes({ registerMissing: true }));
+    const reload = document.createElement('button');
+    reload.type = 'button';
+    reload.dataset.runtimeDebugAction = 'hot-reload';
+    reload.textContent = '热重载';
+    reload.addEventListener('click', () => queueHotReload(Object.keys(current.projectFiles || {}).slice(0, 8)));
+    actions.append(refresh, repair, reload);
+    wrap.appendChild(actions);
+
+    const propertyPanel = document.createElement('section');
+    propertyPanel.className = 'runtime-debug-section';
+    propertyPanel.dataset.runtimeDebugPropertyPanel = 'true';
+    const propertyTitle = document.createElement('h3');
+    propertyTitle.textContent = `属性面板 ${report.propertyPanel?.entityId || '未选择'}`;
+    propertyPanel.appendChild(propertyTitle);
+    const propertyList = document.createElement('div');
+    propertyList.className = 'runtime-debug-list';
+    for (const field of report.propertyPanel?.fields || []) {
+      const row = document.createElement('span');
+      row.dataset.runtimeDebugProperty = field.key;
+      row.textContent = `${field.label}: ${String(field.value ?? '')}`;
+      propertyList.appendChild(row);
+    }
+    propertyPanel.appendChild(propertyList);
+    wrap.appendChild(propertyPanel);
+
+    const missingSection = document.createElement('section');
+    missingSection.className = 'runtime-debug-section';
+    const missingTitle = document.createElement('h3');
+    missingTitle.textContent = `缺失资源 ${report.missingAssets.length}`;
+    missingSection.appendChild(missingTitle);
+    const missingList = document.createElement('div');
+    missingList.className = 'runtime-debug-list';
+    for (const asset of report.missingAssets) {
+      const row = document.createElement('span');
+      row.dataset.runtimeDebugMissing = asset.path;
+      row.textContent = `${asset.path} / 引用 ${asset.referenceCount}`;
+      missingList.appendChild(row);
+    }
+    if (!report.missingAssets.length) {
+      const empty = document.createElement('span');
+      empty.textContent = '无缺失资源';
+      missingList.appendChild(empty);
+    }
+    missingSection.appendChild(missingList);
+    wrap.appendChild(missingSection);
+
+    const databaseSection = document.createElement('section');
+    databaseSection.className = 'runtime-debug-section runtime-debug-wide';
+    const databaseTitle = document.createElement('h3');
+    databaseTitle.textContent = `资源数据库 ${report.resourceDatabase.length}`;
+    databaseSection.appendChild(databaseTitle);
+    const databaseList = document.createElement('div');
+    databaseList.className = 'runtime-debug-list runtime-debug-resource-list';
+    for (const asset of report.resourceDatabase.slice(0, 18)) {
+      const row = document.createElement('span');
+      row.dataset.runtimeDebugResource = asset.path;
+      row.textContent = `${asset.missingStub ? '缺失占位 ' : ''}${asset.missing ? '缺失 ' : ''}${asset.path} / ${asset.type} / ${asset.referenceCount}`;
+      databaseList.appendChild(row);
+    }
+    databaseSection.appendChild(databaseList);
+    wrap.appendChild(databaseSection);
+
+    const dependencies = document.createElement('section');
+    dependencies.className = 'runtime-debug-section runtime-debug-wide';
+    const dependencyTitle = document.createElement('h3');
+    dependencyTitle.textContent = `依赖 ${report.sceneDependencies.length + report.prefabDependencies.length}`;
+    dependencies.appendChild(dependencyTitle);
+    const dependencyList = document.createElement('div');
+    dependencyList.className = 'runtime-debug-list';
+    for (const item of report.sceneDependencies.slice(0, 12)) {
+      const row = document.createElement('span');
+      row.dataset.sceneDependency = item.path;
+      row.textContent = `${item.source} -> ${item.path}`;
+      dependencyList.appendChild(row);
+    }
+    for (const item of report.prefabDependencies.slice(0, 12)) {
+      const row = document.createElement('span');
+      row.dataset.prefabDependency = item.path;
+      row.textContent = `${item.prefabId} -> ${item.path}`;
+      dependencyList.appendChild(row);
+    }
+    dependencies.appendChild(dependencyList);
+    wrap.appendChild(dependencies);
+
+    const hotReload = document.createElement('section');
+    hotReload.className = 'runtime-debug-section';
+    hotReload.dataset.runtimeDebugHotReload = 'true';
+    const hotReloadTitle = document.createElement('h3');
+    hotReloadTitle.textContent = '热重载队列';
+    hotReload.appendChild(hotReloadTitle);
+    const hotReloadList = document.createElement('div');
+    hotReloadList.className = 'runtime-debug-list';
+    for (const file of report.hotReload?.changedFiles || []) {
+      const row = document.createElement('span');
+      row.dataset.hotReloadFile = file;
+      row.textContent = file;
+      hotReloadList.appendChild(row);
+    }
+    for (const asset of report.hotReload?.hotReloadManifest?.affectedAssets || []) {
+      const row = document.createElement('span');
+      row.dataset.hotReloadAsset = asset;
+      row.textContent = `影响 ${asset}`;
+      hotReloadList.appendChild(row);
+    }
+    if (!hotReloadList.childNodes.length) {
+      const empty = document.createElement('span');
+      empty.textContent = '等待文件变化';
+      hotReloadList.appendChild(empty);
+    }
+    hotReload.appendChild(hotReloadList);
+    wrap.appendChild(hotReload);
+
+    const events = document.createElement('section');
+    events.className = 'runtime-debug-section';
+    const eventsTitle = document.createElement('h3');
+    eventsTitle.textContent = '运行时 Trace';
+    events.appendChild(eventsTitle);
+    const eventList = document.createElement('div');
+    eventList.className = 'runtime-debug-list';
+    for (const event of report.debugTimeline?.events || []) {
+      const row = document.createElement('span');
+      row.dataset.runtimeDebugEvent = event.name || event.type || 'event';
+      row.textContent = `${event.name || event.type || 'event'} ${event.entityId || ''}`.trim();
+      eventList.appendChild(row);
+    }
+    if (!eventList.childNodes.length) {
+      const empty = document.createElement('span');
+      empty.textContent = t('runtimeDebug.empty', 'No runtime events');
+      eventList.appendChild(empty);
+    }
+    events.appendChild(eventList);
+    wrap.appendChild(events);
+    return wrap;
+  }
+
   function renderProfiler() {
     const frame = current.profilerFrame;
     const wrap = document.createElement('div');
@@ -6408,6 +6678,10 @@ function assetType(asset = {}) {
   if (/(^|\/)prefabs\/.+\.json$/iu.test(entryPath)) return 'prefab';
   if (/(^|\/)scenes\/.+\.json$/iu.test(entryPath) || /\.scene\.json$/iu.test(entryPath)) return 'scene';
   if (/\.(png|jpg|jpeg|webp|gif|svg)$/iu.test(entryPath)) return 'image';
+  if (/\.(js|mjs|cjs|ts|tsx)$/iu.test(entryPath)) return 'script';
+  if (/\.(glb|gltf|fbx|obj|mtl)$/iu.test(entryPath)) return 'model';
+  if (/\.(mp3|wav|ogg|m4a)$/iu.test(entryPath)) return 'audio';
+  if (/\.(ttf|otf|woff|woff2)$/iu.test(entryPath)) return 'font';
   if (/\.json$/iu.test(entryPath)) return 'json';
   return 'file';
 }
@@ -6419,9 +6693,249 @@ function isSceneAsset(asset = {}) {
 
 function isAssetReferenceField(field, value) {
   if (typeof value !== 'string' || !value) return false;
-  if (!/(^|\/)(assets|sprites|audio|textures|ui|scenes)\//iu.test(value)) return false;
-  return /^(texture|sprite|image|asset|source|normalMap|atlas|audio|scene|background)$/iu.test(field)
-    || /asset|texture|image|sprite|map|scene|source/iu.test(field);
+  if (!looksLikeResourceReference(value)) return false;
+  return /^(texture|sprite|image|asset|source|normalMap|atlas|audio|scene|background|script|prefab)$/iu.test(field)
+    || /asset|texture|image|sprite|map|scene|source|script|prefab/iu.test(field);
+}
+
+function buildEditorClosureReport(state = {}, options = {}) {
+  const collected = collectEditorClosureReferences(state);
+  const knownAssets = collectKnownEditorAssets(state);
+  const resourceDatabase = buildEditorResourceDatabase(knownAssets, collected.references);
+  const missingAssets = resourceDatabase.filter((asset) => asset.missing && asset.referenceCount > 0);
+  const sceneDependencies = collected.references
+    .filter((reference) => ['scene', 'scene-tab', 'scene-file', 'file', 'entity'].includes(reference.sourceType))
+    .map((reference) => ({ ...reference }));
+  const prefabDependencies = collected.references
+    .filter((reference) => ['prefab', 'prefab-file'].includes(reference.sourceType))
+    .map((reference) => ({ ...reference }));
+  return {
+    protocol: 'omnicore-editor-closure/v1',
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    scene: {
+      name: state.scene?.name || 'untitled',
+      entityCount: (state.scene?.entities || []).length,
+      activeSceneTabPath: state.activeSceneTabPath || null
+    },
+    propertyPanel: createPropertyPanelSummary(state),
+    sceneDependencies,
+    prefabDependencies,
+    resourceDatabase,
+    missingAssets,
+    hotReload: options.hotReload || null,
+    debugTimeline: options.debugTimeline || null,
+    changedFiles: (Array.isArray(options.changedFiles) ? options.changedFiles : [])
+      .map((file) => slash(file || ''))
+      .filter(Boolean)
+  };
+}
+
+function collectEditorClosureReferences(state = {}) {
+  const references = [];
+  const seen = new Set();
+  const addReference = (reference = {}) => {
+    const path = normalizeResourcePath(reference.path);
+    if (!path || !looksLikeResourceReference(path)) return;
+    const source = reference.source || 'unknown';
+    const field = reference.field || 'reference';
+    const key = `${source}:${field}:${path}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    references.push({
+      source,
+      sourceType: reference.sourceType || 'reference',
+      field,
+      path,
+      entityId: reference.entityId || null,
+      prefabId: reference.prefabId || null,
+      filePath: reference.filePath || null,
+      type: assetType(path)
+    });
+  };
+
+  for (const entity of state.scene?.entities || []) {
+    const entityId = entity.id || entity.name || 'entity';
+    collectResourceReferencesFromValue(entity, {
+      source: `entity:${entityId}`,
+      sourceType: 'entity',
+      entityId
+    }, addReference);
+  }
+
+  for (const tab of state.sceneTabs || []) {
+    collectResourceReferencesFromValue(tab.scene || {}, {
+      source: tab.path || 'scene-tab',
+      sourceType: 'scene-tab',
+      filePath: tab.path || null
+    }, addReference);
+  }
+
+  for (const prefab of state.prefabs || []) {
+    const prefabId = prefab.id || prefab.name || 'prefab';
+    collectResourceReferencesFromValue(prefab, {
+      source: `prefab:${prefabId}`,
+      sourceType: 'prefab',
+      prefabId
+    }, addReference);
+  }
+
+  for (const [filePath, source] of Object.entries(state.projectFiles || {})) {
+    const normalizedFile = slash(filePath);
+    const sourceType = /(^|\/)prefabs\//iu.test(normalizedFile)
+      ? 'prefab-file'
+      : /(^|\/)scenes\//iu.test(normalizedFile)
+        ? 'scene-file'
+        : 'file';
+    for (const path of extractResourceReferencesFromText(source)) {
+      addReference({
+        source: normalizedFile,
+        sourceType,
+        field: 'source',
+        path,
+        prefabId: sourceType === 'prefab-file' ? normalizedFile.split('/').pop()?.replace(/\.json$/iu, '') : null,
+        filePath: normalizedFile
+      });
+    }
+  }
+
+  return { references };
+}
+
+function collectResourceReferencesFromValue(value, context, addReference, fieldPath = '') {
+  if (value == null) return;
+  if (typeof value === 'string') {
+    const field = fieldPath.split('.').pop() || fieldPath || 'value';
+    if (looksLikeResourceReference(value) || isAssetReferenceField(field, value)) {
+      addReference({ ...context, field: fieldPath || field, path: value });
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => collectResourceReferencesFromValue(item, context, addReference, `${fieldPath}.${index}`.replace(/^\./u, '')));
+    return;
+  }
+  if (typeof value !== 'object') return;
+  for (const [key, child] of Object.entries(value)) {
+    if (key === 'parent' || key === 'game' || key === 'displayObject') continue;
+    collectResourceReferencesFromValue(child, context, addReference, `${fieldPath}.${key}`.replace(/^\./u, ''));
+  }
+}
+
+function extractResourceReferencesFromText(source = '') {
+  const refs = new Set();
+  const pattern = /((?:assets|sprites|audio|textures|ui|scenes|prefabs|scripts|models|materials|fonts)\/[^\s"'`<>),}\]]+)/giu;
+  for (const match of String(source).matchAll(pattern)) refs.add(slash(match[1]));
+  return [...refs];
+}
+
+function collectKnownEditorAssets(state = {}) {
+  const entries = [];
+  const seen = new Set();
+  const addAsset = (asset, fallback = {}) => {
+    const path = normalizeResourcePath(asset);
+    if (!path || seen.has(path)) return;
+    seen.add(path);
+    const entry = normalizeAssetEntry(typeof asset === 'object' ? asset : { path, ...fallback });
+    entries.push({
+      ...entry,
+      ...fallback,
+      path,
+      type: fallback.type || entry.type,
+      missingStub: Boolean(asset?.missingStub || fallback.missingStub)
+    });
+  };
+  for (const asset of state.assets || []) addAsset(asset);
+  for (const asset of state.workspace?.assets || []) addAsset(asset);
+  for (const asset of state.workspace?.sourceFiles || []) addAsset(asset);
+  for (const asset of state.workspace?.scenes || []) addAsset(asset, { type: 'scene' });
+  for (const filePath of Object.keys(state.projectFiles || {})) {
+    addAsset({ path: filePath, type: assetType(filePath), projectFile: true });
+  }
+  for (const tab of state.sceneTabs || []) {
+    if (tab.path) addAsset({ path: tab.path, type: 'scene', sceneTab: true });
+  }
+  for (const prefab of state.prefabs || []) {
+    const path = normalizeResourcePath(prefab.path || prefab.file || prefab.source || prefab.url || '');
+    if (path) addAsset({ path, type: 'prefab', prefabId: prefab.id || prefab.name });
+  }
+  return entries;
+}
+
+function buildEditorResourceDatabase(knownAssets = [], references = []) {
+  const rows = new Map();
+  const ensureRow = (path, defaults = {}) => {
+    if (!rows.has(path)) {
+      rows.set(path, {
+        path,
+        type: defaults.type || assetType(path),
+        name: defaults.name || path.split('/').pop() || path,
+        missing: Boolean(defaults.missing),
+        missingStub: Boolean(defaults.missingStub),
+        referenceCount: 0,
+        sources: []
+      });
+    }
+    const row = rows.get(path);
+    if (defaults.missing === false) row.missing = false;
+    if (defaults.missingStub) row.missingStub = true;
+    if (defaults.type) row.type = defaults.type;
+    return row;
+  };
+  for (const asset of knownAssets) {
+    ensureRow(asset.path, {
+      type: asset.type,
+      name: asset.name,
+      missing: false,
+      missingStub: asset.missingStub
+    });
+  }
+  for (const reference of references) {
+    const row = ensureRow(reference.path, { type: reference.type, missing: true });
+    row.referenceCount += 1;
+    const source = `${reference.source}:${reference.field}`;
+    if (!row.sources.includes(source)) row.sources.push(source);
+  }
+  return [...rows.values()].sort((left, right) => {
+    if (left.missing !== right.missing) return left.missing ? -1 : 1;
+    return left.path.localeCompare(right.path);
+  });
+}
+
+function createPropertyPanelSummary(state = {}) {
+  const selected = findSelectedEntity(state) || state.scene?.entities?.[0] || null;
+  if (!selected) {
+    return { entityId: null, prefabId: null, fields: [] };
+  }
+  return {
+    entityId: selected.id || null,
+    prefabId: selected.prefabId || null,
+    type: selected.type || null,
+    fields: inspectorFields(selected).map((key) => ({
+      key,
+      label: key,
+      value: selected[key] ?? null,
+      valueType: selected[key] == null ? 'empty' : typeof selected[key]
+    }))
+  };
+}
+
+function replaceReferenceValue(value, from, to) {
+  if (typeof value === 'string') return value.split(from).join(to);
+  if (Array.isArray(value)) return value.map((item) => replaceReferenceValue(item, from, to));
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, replaceReferenceValue(child, from, to)]));
+}
+
+function normalizeResourcePath(value = '') {
+  if (typeof value === 'string') return slash(value.trim());
+  if (!value || typeof value !== 'object') return '';
+  return slash(value.path || value.url || value.name || value.file || value.source || '');
+}
+
+function looksLikeResourceReference(value = '') {
+  const path = slash(value || '').trim();
+  return /^(assets|sprites|audio|textures|ui|scenes|prefabs|scripts|models|materials|fonts)\//iu.test(path)
+    || /\.(png|jpg|jpeg|webp|gif|svg|json|scene|prefab|atlas|mp3|wav|ogg|m4a|js|mjs|cjs|ts|tsx|glb|gltf|fbx|obj|mtl|ttf|otf|woff|woff2)$/iu.test(path);
 }
 
 function assetIcon(asset = {}) {
@@ -6664,6 +7178,18 @@ const EDITOR_CSS = `
   .database-wrap input { width: 100%; box-sizing: border-box; }
   .ai-assistant-wrap { display: grid; gap: 8px; }
   .ai-assistant-wrap button { width: max-content; padding: 5px 8px; }
+  .runtime-debug-wrap { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; min-height: 0; }
+  .runtime-debug-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+  .runtime-debug-actions button { min-height: 28px; padding: 5px 8px; border-color: #2dd4bf; color: #ccfbf1; }
+  .runtime-debug-section { display: grid; align-content: start; gap: 5px; min-width: 0; padding: 7px; border: 1px solid #334155; background: #020617; }
+  .runtime-debug-wide { grid-column: 1 / -1; }
+  .runtime-debug-section h3 { margin: 0; color: #bfdbfe; font-size: 11px; letter-spacing: 0; }
+  .runtime-debug-list { display: grid; gap: 4px; max-height: 116px; overflow: auto; }
+  .runtime-debug-list span { min-width: 0; padding: 3px 5px; overflow: hidden; border-left: 2px solid #334155; background: #0f172a; color: #cbd5e1; text-overflow: ellipsis; white-space: nowrap; }
+  .runtime-debug-resource-list { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .runtime-debug-list [data-runtime-debug-missing] { border-left-color: #f59e0b; color: #fde68a; }
+  .runtime-debug-list [data-runtime-debug-event] { border-left-color: #84cc16; color: #dcfce7; }
+  .runtime-debug-list [data-hot-reload-asset] { border-left-color: #22d3ee; color: #cffafe; }
   .profiler-wrap { display: grid; gap: 5px; }
   .profiler-flamegraph { display: grid; gap: 4px; padding: 6px; border: 1px solid #334155; background: #020617; }
   .profiler-row { display: grid; grid-template-columns: 132px 1fr 56px; gap: 6px; align-items: center; }

@@ -46,6 +46,8 @@ export function createEditorState(initial = {}) {
     sceneTabs: normalizeSceneTabs(initial.sceneTabs),
     activeSceneTabPath: initial.activeSceneTabPath || null,
     authoringHealth: normalizeAuthoringHealth(initial.authoringHealth),
+    editorClosure: normalizeEditorClosure(initial.editorClosure),
+    hotReload: normalizeHotReload(initial.hotReload),
     preview25D: initial.preview25D || null,
     coCreation25D: initial.coCreation25D || null,
     livingWorldPreview25D: initial.livingWorldPreview25D || null,
@@ -95,6 +97,8 @@ export function applyLiveSyncMessage(state = createEditorState(), message = {}) 
   if (message.type === 'editor:grid-snap') next.gridSnap = normalizeGridSnap(message.payload);
   if (message.type === 'editor:scene-overlays') next.sceneOverlays = normalizeSceneOverlays(message.payload);
   if (message.type === 'editor:scene-validation') next.sceneValidation = normalizeSceneValidation(message.payload);
+  if (message.type === 'editor:closure-report') next.editorClosure = normalizeEditorClosure(message.payload);
+  if (message.type === 'editor:hot-reload') next.hotReload = normalizeHotReload(message.payload);
   if (message.type === 'editor:visual-script-validation') {
     next.visualScriptValidation = normalizeVisualScriptValidation(message.payload);
   }
@@ -250,6 +254,16 @@ function normalizeAuthoringHealth(value = {}) {
     hotspots: Array.isArray(value.hotspots) ? value.hotspots.map((hotspot) => ({ ...hotspot })) : [],
     counts: value.counts && typeof value.counts === 'object' ? { ...value.counts } : {}
   };
+}
+
+function normalizeEditorClosure(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return clonePlain(value);
+}
+
+function normalizeHotReload(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return clonePlain(value);
 }
 
 function normalizeCurvePoints(points = []) {
