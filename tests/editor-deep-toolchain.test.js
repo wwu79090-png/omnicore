@@ -360,6 +360,78 @@ describe('editor deep toolchain', () => {
     app.destroy();
   });
 
+  it('surfaces render frame budget diagnostics as an actionable editor panel', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        dockLayout: {
+          left: ['assets'],
+          center: ['scene-view'],
+          right: ['inspector'],
+          bottom: ['profiler']
+        }
+      })
+    });
+
+    const panel = app.EditorAPI.refreshRenderDiagnosticsPanel({
+      budgets: {
+        frameBudgetMs: 16.67,
+        drawCallBudget: 4,
+        textureUploadBudget: 2,
+        filterPassBudget: 3
+      },
+      frame: { index: 7, cpuMs: 19, gpuMs: 12, fps: 50 },
+      backend: {
+        selected: 'webgl2',
+        fallbackChain: ['webgpu', 'webgl2'],
+        rejected: [{ id: 'webgpu', reason: 'adapter-missing' }]
+      },
+      draws: [
+        { id: 'hero', texture: 'hero.png', material: 'lit', blendMode: 'normal' },
+        { id: 'enemy', texture: 'enemy.png', material: 'lit', blendMode: 'normal' },
+        { id: 'coin', texture: 'coin.png', material: 'lit', blendMode: 'normal' },
+        { id: 'spark', texture: 'fx.png', material: 'additive', blendMode: 'add' },
+        { id: 'ui', texture: 'ui.png', material: 'ui', blendMode: 'normal', dynamic: true }
+      ],
+      textureUploads: [
+        { id: 'hero', bytes: 1024 },
+        { id: 'enemy', bytes: 2048 },
+        { id: 'ui', bytes: 4096 }
+      ],
+      filterPasses: [
+        { id: 'bloom', passes: 2, estimatedMs: 1.4 },
+        { id: 'blur', passes: 2, estimatedMs: 2.1 }
+      ]
+    });
+
+    expect(panel.schema).toBe('omnicore.editor-render-diagnostics-panel.v1');
+    expect(panel.report.schema).toBe('omnicore.render-frame-budget-report.v1');
+    expect(panel.summary).toMatchObject({
+      frameIndex: 7,
+      severity: 'warning',
+      cpuMs: 19,
+      textureUploadCount: 3,
+      filterPassCount: 4,
+      backend: 'webgl2'
+    });
+    expect(panel.quickFixes.map((action) => action.id)).toEqual(expect.arrayContaining([
+      'createAtlas:lit|normal',
+      'deferTextureUploads',
+      'flattenFilterChain',
+      'preferWebGPUWhenAvailable'
+    ]));
+    expect(app.getState().renderDiagnosticsPanel.summary.frameIndex).toBe(7);
+    expect(app.getDockLayout().bottom).toContain('render-diagnostics');
+    expect(root.querySelector('[data-render-diagnostics-panel]')?.textContent).toContain('渲染诊断');
+    expect(root.querySelector('[data-render-diagnostics-panel]')?.textContent).toContain('CPU 19ms');
+    expect(root.querySelector('[data-render-diagnostics-panel]')?.textContent).toContain('纹理上传 3');
+    expect(root.querySelector('[data-render-diagnostics-panel]')?.textContent).toContain('WebGPU');
+    expect(root.querySelector('[data-render-diagnostics-issue="texture-upload-spike"]')).toBeTruthy();
+    expect(root.querySelector('[data-render-diagnostics-action="deferTextureUploads"]')?.textContent).toContain('延后纹理上传');
+    app.destroy();
+  });
+
   it('surfaces missing dependency repair actions in the editor resource panel', () => {
     const root = document.createElement('main');
     document.body.appendChild(root);

@@ -49,6 +49,7 @@ export function createEditorState(initial = {}) {
     editorClosure: normalizeEditorClosure(initial.editorClosure),
     hotReload: normalizeHotReload(initial.hotReload),
     assetRegistryPanel: normalizeAssetRegistryPanel(initial.assetRegistryPanel),
+    renderDiagnosticsPanel: normalizeRenderDiagnosticsPanel(initial.renderDiagnosticsPanel),
     assetRefresh: normalizeAssetRefresh(initial.assetRefresh),
     hotReloadEvents: normalizeHotReloadEvents(initial.hotReloadEvents),
     preview25D: initial.preview25D || null,
@@ -281,6 +282,11 @@ function normalizeHotReload(value = null) {
 }
 
 function normalizeAssetRegistryPanel(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return clonePlain(value);
+}
+
+function normalizeRenderDiagnosticsPanel(value = null) {
   if (!value || typeof value !== 'object') return null;
   return clonePlain(value);
 }

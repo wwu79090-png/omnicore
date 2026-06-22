@@ -52,6 +52,7 @@ import {
 import {
   AssetRegistry,
   AssetRegistryChangeSet,
+  BatchAtlasDiagnostics,
   VisualScriptGraphRuntime
 } from './editor-runtime-adapters.js';
 import {
@@ -81,6 +82,7 @@ const PANEL_TITLES = {
   'physics-view': '物理视图',
   'build-settings': '构建设置',
   'runtime-debug': '运行时调试',
+  'render-diagnostics': '渲染诊断',
   profiler: '性能分析'
 };
 
@@ -1131,6 +1133,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     applyEditorClosureFixes,
     queueHotReload,
     refreshAssetRegistryPanel,
+    refreshRenderDiagnosticsPanel,
     applyAssetRegistryChanges,
     applyAssetRegistryQuickFix,
     exportHotReloadEventStream,
@@ -1714,10 +1717,53 @@ export function createEditorApp(root = document.querySelector('#app'), {
       memoryMB: 128,
       drawCalls: 24
     });
-    movePanelToRegion('profiler', 'bottom');
-    showEditorFeedback(`已生成${labels[command] || '渲染'}诊断采样`, 'info');
+    const panel = refreshRenderDiagnosticsPanel(createDesktopRenderDiagnosticPayload(command, frame));
+    showEditorFeedback(`已生成${labels[command] || '渲染'}诊断面板：${panel.quickFixes.length} 个优化动作`, 'info');
     update(current);
-    return frame;
+    return { frame, panel };
+  }
+
+  function createDesktopRenderDiagnosticPayload(command, frame = {}) {
+    const isWebGpu = command === 'webgpu-diagnostics';
+    const isFilter = command === 'filter-cost';
+    const isTexture = command === 'texture-lifecycle';
+    const isFrameBudget = command === 'frame-budget';
+    return {
+      source: `desktop-launcher:${command}`,
+      budgets: {
+        frameBudgetMs: 16.67,
+        drawCallBudget: 4,
+        textureUploadBudget: isTexture ? 1 : 2,
+        filterPassBudget: isFilter ? 2 : 3
+      },
+      frame: {
+        index: frame.frame || 1,
+        cpuMs: isFrameBudget ? 19.2 : Number(frame.totalMs || 12.4),
+        gpuMs: isFilter ? 17.1 : 12,
+        fps: isFrameBudget ? 50 : 60
+      },
+      backend: {
+        selected: isWebGpu ? 'webgl2' : 'webgpu',
+        fallbackChain: isWebGpu ? ['webgpu', 'webgl2'] : ['webgpu'],
+        rejected: isWebGpu ? [{ id: 'webgpu', reason: 'adapter-missing' }] : []
+      },
+      draws: [
+        { id: 'hero', texture: 'hero.png', material: 'lit', blendMode: 'normal' },
+        { id: 'enemy', texture: 'enemy.png', material: 'lit', blendMode: 'normal' },
+        { id: 'coin', texture: 'coin.png', material: 'lit', blendMode: 'normal' },
+        { id: 'spark', texture: 'fx.png', material: 'additive', blendMode: 'add' },
+        { id: 'ui', texture: 'ui.png', material: 'ui', blendMode: 'normal', dynamic: true }
+      ],
+      textureUploads: [
+        { id: 'hero', bytes: 1024, reason: 'visible-first-frame' },
+        { id: 'enemy', bytes: 2048, reason: 'late-bind' },
+        { id: 'ui', bytes: 4096, reason: 'atlas-miss' }
+      ],
+      filterPasses: [
+        { id: 'bloom', passes: isFilter ? 3 : 2, estimatedMs: 1.4 },
+        { id: 'blur', passes: 2, estimatedMs: 2.1 }
+      ]
+    };
   }
 
   function desktopPublishFeedback(command) {
@@ -1797,6 +1843,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       editorClosure: next.editorClosure || current.editorClosure,
       hotReload: next.hotReload || current.hotReload,
       assetRegistryPanel: next.assetRegistryPanel || current.assetRegistryPanel,
+      renderDiagnosticsPanel: next.renderDiagnosticsPanel || current.renderDiagnosticsPanel,
       assetRefresh: next.assetRefresh || current.assetRefresh,
       hotReloadEvents: next.hotReloadEvents || current.hotReloadEvents,
       autoSave: normalizeAutoSaveState(next.autoSave || current.autoSave)
@@ -1829,6 +1876,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       'physics-view': renderPanel('physics-view', renderPhysicsView()),
       'build-settings': renderPanel('build-settings', renderBuildSettings()),
       'runtime-debug': renderPanel('runtime-debug', renderRuntimeDebugPanel()),
+      'render-diagnostics': renderPanel('render-diagnostics', renderRenderDiagnosticsPanel()),
       profiler: renderPanel('profiler', renderProfiler())
     };
     for (const region of DOCK_REGIONS) {
@@ -2340,6 +2388,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       },
       refreshAssetRegistryPanel(options = {}) {
         return refreshAssetRegistryPanel(options);
+      },
+      refreshRenderDiagnosticsPanel(options = {}) {
+        return refreshRenderDiagnosticsPanel(options);
       },
       applyAssetRegistryChanges(changes = [], options = {}) {
         return applyAssetRegistryChanges(changes, options);
@@ -4659,6 +4710,18 @@ export function createEditorApp(root = document.querySelector('#app'), {
       dockLayout: ensurePanelInDock(current.dockLayout, 'assets', 'left')
     });
     emit('editor:asset-registry-panel', panel);
+    update(current);
+    return panel;
+  }
+
+  function refreshRenderDiagnosticsPanel(options = {}) {
+    const panel = buildRenderDiagnosticsPanelState(current, options);
+    current = createEditorState({
+      ...current,
+      renderDiagnosticsPanel: panel,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'render-diagnostics', 'bottom')
+    });
+    emit('editor:render-diagnostics-panel', panel);
     update(current);
     return panel;
   }
@@ -6998,6 +7061,96 @@ export function createEditorApp(root = document.querySelector('#app'), {
     wrap.appendChild(profilerHistory);
     return wrap;
   }
+
+  function renderRenderDiagnosticsPanel() {
+    const panel = current.renderDiagnosticsPanel || buildRenderDiagnosticsPanelState(current);
+    const summary = panel.summary || {};
+    const report = panel.report || {};
+    const wrap = document.createElement('div');
+    wrap.className = 'render-diagnostics-wrap';
+    wrap.dataset.renderDiagnosticsPanel = 'true';
+
+    const header = document.createElement('div');
+    header.className = 'render-diagnostics-header';
+    const title = document.createElement('strong');
+    title.textContent = `渲染诊断 · 帧 ${summary.frameIndex ?? 0}`;
+    const badge = document.createElement('span');
+    badge.dataset.renderDiagnosticsSeverity = summary.severity || 'ok';
+    badge.textContent = localizeRenderSeverity(summary.severity);
+    const refresh = document.createElement('button');
+    refresh.type = 'button';
+    refresh.dataset.renderDiagnosticsRefresh = 'true';
+    refresh.textContent = '刷新';
+    refresh.addEventListener('click', () => refreshRenderDiagnosticsPanel(panel.input || {}));
+    header.append(title, badge, refresh);
+    wrap.appendChild(header);
+
+    const metrics = document.createElement('div');
+    metrics.className = 'render-diagnostics-metrics';
+    const metricItems = [
+      ['cpu', 'CPU', `${formatRenderMetric(summary.cpuMs)}ms`],
+      ['gpu', 'GPU', `${formatRenderMetric(summary.gpuMs)}ms`],
+      ['fps', 'FPS', formatRenderMetric(summary.fps)],
+      ['draws', 'Draw', `${summary.drawCallsBefore || 0} -> ${summary.predictedDrawCallsAfter || 0}`],
+      ['uploads', '纹理上传', String(summary.textureUploadCount || 0)],
+      ['filters', 'Filter', `${summary.filterPassCount || 0} pass`]
+    ];
+    for (const [id, label, value] of metricItems) {
+      const item = document.createElement('span');
+      item.dataset.renderDiagnosticsMetric = id;
+      const labelNode = document.createElement('b');
+      labelNode.textContent = label;
+      const valueNode = document.createElement('strong');
+      valueNode.textContent = value;
+      item.append(labelNode, document.createTextNode(' '), valueNode);
+      metrics.appendChild(item);
+    }
+    wrap.appendChild(metrics);
+
+    const backend = document.createElement('div');
+    backend.className = 'render-diagnostics-backend';
+    backend.dataset.renderDiagnosticsBackend = report.backend?.selected || '';
+    const chain = (report.backend?.fallbackChain || []).map(formatRenderBackendName).join(' -> ');
+    const rejected = (report.backend?.rejected || [])
+      .map((entry) => `${formatRenderBackendName(entry.id)} ${entry.reason}`)
+      .join(' / ');
+    backend.textContent = `后端 ${formatRenderBackendName(report.backend?.selected)}${chain ? ` · ${chain}` : ''}${rejected ? ` · ${rejected}` : ''}`;
+    wrap.appendChild(backend);
+
+    const issues = document.createElement('div');
+    issues.className = 'render-diagnostics-issues';
+    for (const issue of panel.issues || []) {
+      const row = document.createElement('span');
+      row.dataset.renderDiagnosticsIssue = issue.type;
+      row.textContent = `${localizeRenderIssue(issue.type)} ${formatRenderMetric(issue.value)} / ${formatRenderMetric(issue.budget)}${issue.reason ? ` · ${issue.reason}` : ''}`;
+      issues.appendChild(row);
+    }
+    if (!issues.childNodes.length) {
+      const empty = document.createElement('span');
+      empty.dataset.renderDiagnosticsIssue = 'ok';
+      empty.textContent = '当前帧预算未发现阻塞项';
+      issues.appendChild(empty);
+    }
+    wrap.appendChild(issues);
+
+    const actions = document.createElement('div');
+    actions.className = 'render-diagnostics-actions';
+    for (const action of panel.quickFixes || []) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.renderDiagnosticsAction = action.id;
+      button.textContent = action.label;
+      button.addEventListener('click', () => showEditorFeedback(`已定位渲染优化动作：${action.label}`, 'info'));
+      actions.appendChild(button);
+    }
+    if (!actions.childNodes.length) {
+      const empty = document.createElement('span');
+      empty.textContent = '暂无需要执行的渲染修复动作';
+      actions.appendChild(empty);
+    }
+    wrap.appendChild(actions);
+    return wrap;
+  }
 }
 
 function createTextResolver(localization) {
@@ -8708,6 +8861,161 @@ function buildAssetRegistryPanelState(state = {}, options = {}) {
   };
 }
 
+function buildRenderDiagnosticsPanelState(state = {}, options = {}) {
+  const input = resolveRenderDiagnosticsInput(state, options);
+  const diagnostics = new BatchAtlasDiagnostics(options.budgets || state.renderDiagnosticsPanel?.budgets || {});
+  const report = diagnostics.createFrameBudgetReport(input);
+  const quickFixes = report.recommendations.map((recommendation) => renderDiagnosticsQuickFix(recommendation, report));
+  return {
+    schema: 'omnicore.editor-render-diagnostics-panel.v1',
+    source: options.source || input.source || 'editor-render-diagnostics',
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    budgets: {
+      frameBudgetMs: diagnostics.frameBudgetMs,
+      drawCallBudget: diagnostics.drawCallBudget,
+      textureUploadBudget: diagnostics.textureUploadBudget,
+      textureUploadByteBudget: Number.isFinite(diagnostics.textureUploadByteBudget) ? diagnostics.textureUploadByteBudget : null,
+      filterPassBudget: diagnostics.filterPassBudget
+    },
+    input: cloneState(input),
+    report,
+    summary: {
+      ...report.summary,
+      issueCount: report.issues.length,
+      quickFixCount: quickFixes.length
+    },
+    issues: cloneState(report.issues),
+    quickFixes,
+    rows: [
+      { id: 'frame-budget', label: '帧预算', value: `${report.summary.cpuMs}ms CPU / ${report.summary.gpuMs}ms GPU`, severity: report.summary.severity },
+      { id: 'batch', label: 'Batch', value: `${report.summary.drawCallsBefore} -> ${report.summary.predictedDrawCallsAfter}`, severity: report.batch.batchBreaks.length ? 'warning' : 'ok' },
+      { id: 'texture-uploads', label: '纹理上传', value: String(report.summary.textureUploadCount), severity: report.textureUploads.length > diagnostics.textureUploadBudget ? 'warning' : 'ok' },
+      { id: 'filter-costs', label: 'Filter', value: `${report.summary.filterPassCount} pass / ${report.summary.filterMs}ms`, severity: report.summary.filterPassCount > diagnostics.filterPassBudget ? 'warning' : 'ok' },
+      { id: 'backend-fallback', label: '后端', value: report.backend.selected || '未选择', severity: report.backend.rejected.length ? 'info' : 'ok' }
+    ],
+    crossEngineProfile: report.crossEngineProfile
+  };
+}
+
+function resolveRenderDiagnosticsInput(state = {}, options = {}) {
+  const previous = state.renderDiagnosticsPanel?.input || {};
+  return {
+    source: options.source || previous.source || 'editor',
+    frame: options.frame || previous.frame || profilerFrameToRenderFrame(state.profilerFrame),
+    backend: options.backend || previous.backend || {
+      selected: 'webgl2',
+      fallbackChain: ['webgpu', 'webgl2'],
+      rejected: []
+    },
+    draws: options.draws || previous.draws || sceneEntitiesToRenderDraws(state),
+    textureUploads: options.textureUploads || previous.textureUploads || [],
+    filterPasses: options.filterPasses || previous.filterPasses || []
+  };
+}
+
+function profilerFrameToRenderFrame(frame = {}) {
+  const sample = frame || {};
+  const totalMs = Number(sample.totalMs || 0);
+  const renderSection = (sample.sections || []).find((section) => /render|绘制|渲染/iu.test(section.name || '')) || sample.sections?.[0] || {};
+  return {
+    index: Number(sample.frame || sample.index || 0),
+    cpuMs: totalMs,
+    gpuMs: Number(renderSection.duration || 0),
+    fps: totalMs > 0 ? Math.round(1000 / totalMs) : 0
+  };
+}
+
+function sceneEntitiesToRenderDraws(state = {}) {
+  return (state.scene?.entities || []).map((entity, index) => {
+    const material = entity.material && typeof entity.material === 'object' ? entity.material : {};
+    return {
+      id: entity.id || entity.name || `entity-${index + 1}`,
+      texture: entity.sprite || entity.texture || material.texture || material.albedo || 'texture',
+      material: material.shader || material.name || material.type || entity.material || entity.type || 'default',
+      blendMode: entity.blendMode || material.blendMode || 'normal',
+      dynamic: Boolean(entity.animation || entity.animated || entity.video || entity.physics)
+    };
+  });
+}
+
+function renderDiagnosticsQuickFix(recommendation, report = {}) {
+  const id = String(recommendation || '');
+  return {
+    id,
+    type: renderDiagnosticActionType(id),
+    label: renderDiagnosticActionLabel(id),
+    recommendation: id,
+    issueTypes: (report.issues || []).map((issue) => issue.type)
+  };
+}
+
+function renderDiagnosticActionType(recommendation = '') {
+  if (recommendation.startsWith('createAtlas:')) return 'createAtlas';
+  if (recommendation === 'deferTextureUploads') return 'scheduleTextureUploads';
+  if (recommendation === 'flattenFilterChain') return 'optimizeFilters';
+  if (recommendation === 'preferWebGPUWhenAvailable') return 'reviewBackendFallback';
+  if (recommendation === 'sortByMaterialTexture') return 'sortRenderQueue';
+  if (recommendation === 'keepDynamicSpritesOutOfStaticBatches') return 'splitDynamicSprites';
+  return 'inspect';
+}
+
+function renderDiagnosticActionLabel(recommendation = '') {
+  if (recommendation.startsWith('createAtlas:')) return `创建图集 ${recommendation.slice('createAtlas:'.length)}`;
+  const labels = {
+    deferTextureUploads: '延后纹理上传到预热或分帧队列',
+    flattenFilterChain: '合并 Filter 链并减少后处理 Pass',
+    preferWebGPUWhenAvailable: '检查 WebGPU fallback 条件',
+    profileCpuFrame: '打开 CPU 帧采样',
+    profileGpuPasses: '检查 GPU Pass 成本',
+    sortByMaterialTexture: '按材质和纹理排序渲染队列',
+    keepDynamicSpritesOutOfStaticBatches: '把动态精灵移出静态 Batch',
+    reviewBackendFallback: '复核渲染后端 fallback 原因'
+  };
+  return labels[recommendation] || `检查建议 ${recommendation}`;
+}
+
+function localizeRenderSeverity(severity = 'ok') {
+  const labels = {
+    ok: '正常',
+    info: '提示',
+    warning: '预警',
+    error: '阻塞'
+  };
+  return labels[severity] || labels.ok;
+}
+
+function localizeRenderIssue(type = '') {
+  const labels = {
+    'cpu-budget-exceeded': 'CPU 超预算',
+    'gpu-budget-exceeded': 'GPU 超预算',
+    'draw-call-budget-exceeded': 'Draw Call 超预算',
+    'texture-upload-spike': '纹理上传峰值',
+    'texture-upload-bytes-exceeded': '纹理上传体积',
+    'filter-pass-budget-exceeded': 'Filter Pass 超预算',
+    'backend-fallback': '后端 fallback'
+  };
+  return labels[type] || type || '未知问题';
+}
+
+function formatRenderMetric(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '-';
+  if (Number.isInteger(number)) return String(number);
+  return number.toFixed(2).replace(/\.?0+$/u, '');
+}
+
+function formatRenderBackendName(value = '') {
+  const normalized = String(value || '').toLowerCase();
+  const labels = {
+    webgpu: 'WebGPU',
+    webgl2: 'WebGL2',
+    webgl: 'WebGL',
+    pixi: 'PixiJS',
+    canvas: 'Canvas'
+  };
+  return labels[normalized] || value || '未选择';
+}
+
 function buildAssetRegistryDiagnostics(registryState = {}, state = {}) {
   const auditMissing = Array.isArray(registryState.audit?.missingReferences)
     ? registryState.audit.missingReferences
@@ -9391,6 +9699,24 @@ const EDITOR_CSS = `
   .runtime-debug-list [data-runtime-debug-missing] { border-left-color: #f59e0b; color: #fde68a; }
   .runtime-debug-list [data-runtime-debug-event] { border-left-color: #84cc16; color: #dcfce7; }
   .runtime-debug-list [data-hot-reload-asset] { border-left-color: #22d3ee; color: #cffafe; }
+  .render-diagnostics-wrap { display: grid; gap: 7px; min-width: 0; }
+  .render-diagnostics-header { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; }
+  .render-diagnostics-header strong { min-width: 0; color: #e0f2fe; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .render-diagnostics-header span { padding: 2px 7px; border: 1px solid #3f4b53; border-radius: 999px; color: #fde68a; background: #141817; font-size: 10px; }
+  .render-diagnostics-header [data-render-diagnostics-severity="ok"] { color: #bbf7d0; }
+  .render-diagnostics-header button { min-height: 26px; padding: 3px 8px; border-radius: 6px; color: #ccfbf1; }
+  .render-diagnostics-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(94px, 1fr)); gap: 6px; }
+  .render-diagnostics-metrics span { display: grid; gap: 2px; min-width: 0; padding: 6px 7px; border: 1px solid #334155; border-radius: 6px; background: #020617; }
+  .render-diagnostics-metrics b { color: #94a3b8; font-size: 10px; font-weight: 700; }
+  .render-diagnostics-metrics strong { color: #f8fafc; font-size: 12px; overflow-wrap: anywhere; }
+  .render-diagnostics-backend { min-width: 0; padding: 6px 7px; border: 1px solid #334155; border-radius: 6px; background: #101615; color: #cbd5e1; overflow-wrap: anywhere; }
+  .render-diagnostics-issues { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 5px; }
+  .render-diagnostics-issues span { min-width: 0; padding: 5px 7px; border-left: 3px solid #f59e0b; background: #111514; color: #e5e7eb; overflow-wrap: anywhere; }
+  .render-diagnostics-issues [data-render-diagnostics-issue="backend-fallback"] { border-left-color: #38bdf8; color: #dbeafe; }
+  .render-diagnostics-issues [data-render-diagnostics-issue="ok"] { border-left-color: #84cc16; color: #dcfce7; }
+  .render-diagnostics-actions { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+  .render-diagnostics-actions button { min-height: 28px; padding: 5px 8px; border-color: #2dd4bf; border-radius: 6px; color: #ccfbf1; background: #0f1f1d; }
+  .render-diagnostics-actions span { color: #94a3b8; }
   .profiler-wrap { display: grid; gap: 5px; }
   .profiler-flamegraph { display: grid; gap: 4px; padding: 6px; border: 1px solid #334155; background: #020617; }
   .profiler-row { display: grid; grid-template-columns: 132px 1fr 56px; gap: 6px; align-items: center; }
