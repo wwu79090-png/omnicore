@@ -21,6 +21,7 @@
     "./dist/omnicore.esm.js": "./dist/omnicore.esm.js",
     "./src": "./src/index.js",
     "./src/index.js": "./src/index.js",
+    "./src/*": "./src/*",
     "./livingworld": "./src/livingworld/index.js",
     "./livingworld.js": "./livingworld.js",
     "./src/livingworld/index.js": "./src/livingworld/index.js",

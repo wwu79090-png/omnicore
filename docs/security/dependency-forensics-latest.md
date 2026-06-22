@@ -2,8 +2,8 @@
 
 - Generated: 2026-06-20T00:00:00.000Z
 - Root: C:\Users\39120\Documents\引擎开发
-- Packages scanned: 673
-- Packages with lifecycle scripts: 193
+- Packages scanned: 864
+- Packages with lifecycle scripts: 245
 - High-risk findings: 0
 
 ## HIGH RISK
@@ -14,29 +14,55 @@ No HIGH RISK findings detected.
 
 - @bramus/specificity@2.4.2: prepublish
 - ajv@8.20.0: prepublish
+- @electron/asar@3.4.1: prepare
+- @electron/fuses@1.8.0: prepare, prepublishOnly
 - @electron/get@5.0.0: prepare, prepublishOnly
+- @electron/notarize@2.5.0: prepare
+- @electron/osx-sign@1.3.3: prepublishOnly
+- isbinaryfile@4.0.10: prepare, prepublishOnly
+- @electron/rebuild@4.0.4: prepare
+- @electron/universal@2.0.3: prepare, prepublishOnly
+- minimatch@9.0.9: prepare, prepublishOnly
+- @electron/windows-sign@1.2.2: prepublishOnly
 - @electron-internal/extract-zip@1.0.3: prepublishOnly
 - @eslint/eslintrc@2.1.4: prepare
 - @humanwhocodes/config-array@0.13.0: prepublish
 - @humanwhocodes/module-importer@1.0.1: prepare
+- @isaacs/fs-minipass@4.0.1: prepare, prepublishOnly
 - @jridgewell/resolve-uri@3.1.2: prepublishOnly
 - @jridgewell/sourcemap-codec@1.5.5: prepublishOnly
 - @jridgewell/trace-mapping@0.3.31: prepublishOnly
+- @malept/cross-spawn-promise@2.0.0: prepare
+- @peculiar/json-schema@1.1.12: prepare
 - earcut@2.2.4: prepublishOnly
 - eventemitter3@4.0.7: prepublishOnly
+- @sindresorhus/is@4.6.0: prepare
+- @szmarczak/http-timer@4.0.6: prepare
 - acorn@8.17.0: prepare
 - ajv@6.15.0: prepublish
+- @electron/get@3.1.0: prepublishOnly
+- ajv@8.20.0: prepublish
+- balanced-match@4.0.4: prepare, prepublishOnly
+- brace-expansion@5.0.6: prepare, prepublishOnly
+- ci-info@4.3.1: prepare
+- isexe@3.1.5: prepare, prepublishOnly
+- json5@2.2.3: prepublishOnly
+- minimatch@10.2.5: prepare, prepublishOnly
 - array-buffer-byte-length@1.0.2: prepublish, prepublishOnly
 - array-includes@3.1.9: prepublish, prepublishOnly
 - array.prototype.findlastindex@1.2.6: prepublish, prepublishOnly
 - array.prototype.flat@1.3.3: prepublish, prepublishOnly
 - array.prototype.flatmap@1.3.3: prepublish, prepublishOnly
 - arraybuffer.prototype.slice@1.0.4: prepublish, prepublishOnly
+- asn1js@3.0.10: prepublishOnly
 - async-function@1.0.0: prepublish, prepublishOnly
 - available-typed-arrays@1.0.7: prepublish, prepublishOnly
+- bluebird@3.7.2: prepublish
 - call-bind@1.0.9: prepublish, prepublishOnly
 - call-bind-apply-helpers@1.0.2: prepublish, prepublishOnly
 - call-bound@1.0.4: prepublish, prepublishOnly
+- chownr@3.0.0: prepare, prepublishOnly
+- ci-info@4.4.0: prepare
 - cliui@9.0.1: prepare
 - resolve@1.22.12: prepublish, prepublishOnly
 - yargs-parser@20.2.9: prepare
@@ -50,10 +76,16 @@ No HIGH RISK findings detected.
 - data-view-buffer@1.0.2: prepublish, prepublishOnly
 - data-view-byte-length@1.0.2: prepublish, prepublishOnly
 - data-view-byte-offset@1.0.1: prepublish, prepublishOnly
+- defer-to-connect@2.0.1: prepare
 - define-data-property@1.1.4: prepublish, prepublishOnly
 - define-properties@1.2.1: prepublish, prepublishOnly
+- dir-compare@4.2.0: prepublishOnly
 - dunder-proto@1.0.1: prepublish, prepublishOnly
 - earcut@3.0.2: prepublishOnly
+- cliui@8.0.1: prepare
+- yargs@17.7.3: prepare
+- yargs-parser@21.1.1: prepare
+- electron-winstaller@5.4.0: install, prepublish
 - entities@8.0.0: prepublishOnly
 - es-abstract@1.24.2: prepublish, prepublishOnly
 - es-abstract-get@1.0.0: prepublish, prepublishOnly
@@ -63,6 +95,7 @@ No HIGH RISK findings detected.
 - es-set-tostringtag@2.1.0: prepublish, prepublishOnly
 - es-shim-unscopables@1.1.0: prepublish, prepublishOnly
 - es-to-primitive@1.3.1: prepublish, prepublishOnly
+- es6-error@4.1.1: prepublishOnly
 - eslint-config-airbnb-base@15.0.0: prepublish, prepublishOnly
 - eslint-import-resolver-node@0.3.10: prepublishOnly
 - eslint-module-utils@2.13.0: prepublishOnly
@@ -76,6 +109,8 @@ No HIGH RISK findings detected.
 - fast-deep-equal@3.1.3: prepublish
 - fast-levenshtein@2.0.6: prepublish
 - fdir@6.5.0: prepublishOnly
+- minimatch@5.1.9: prepublishOnly
+- form-data@4.0.6: prepublish
 - function-bind@1.1.2: prepublish, prepublishOnly
 - function.prototype.name@1.2.0: prepublish, prepublishOnly
 - functions-have-names@1.2.3: prepublish, prepublishOnly
@@ -94,6 +129,7 @@ No HIGH RISK findings detected.
 - glob@7.2.3: prepublish
 - globalthis@1.0.4: prepublish, prepublishOnly
 - gopd@1.2.0: prepublish, prepublishOnly
+- got@11.8.6: prepare
 - graphemer@1.4.0: prepublishOnly
 - has-bigints@1.1.0: prepublish, prepublishOnly
 - has-property-descriptors@1.0.2: prepublish, prepublishOnly
@@ -128,6 +164,7 @@ No HIGH RISK findings detected.
 - is-weakmap@2.0.2: prepublish, prepublishOnly
 - is-weakref@1.1.1: prepublish, prepublishOnly
 - is-weakset@2.0.4: prepublish, prepublishOnly
+- isbinaryfile@5.0.7: prepare, prepublishOnly
 - ismobilejs@1.1.1: prepare
 - istanbul-reports@3.2.0: prepare
 - jsdom@29.1.1: prepare
@@ -143,8 +180,14 @@ No HIGH RISK findings detected.
 - math-intrinsics@1.1.0: prepublish, prepublishOnly
 - mdurl@2.0.0: prepublishOnly
 - meow@13.2.0: prepare
+- mime@2.6.0: prepare
 - minimist@1.2.8: prepublish, prepublishOnly
+- minipass@7.1.3: prepare, prepublishOnly
+- minizlib@3.1.0: prepare, prepublishOnly
+- node-abi@4.31.0: prepare
 - node-exports-info@1.6.0: prepublish, prepublishOnly
+- isexe@4.0.0: prepare, prepublishOnly
+- undici@6.27.0: prepare
 - normalize-package-data@3.0.3: prepublishOnly
 - npm-check-updates@22.2.7: prepare, prepublishOnly
 - object-inspect@1.13.4: prepublish, prepublishOnly
@@ -156,7 +199,9 @@ No HIGH RISK findings detected.
 - own-keys@1.0.1: prepublish, prepublishOnly
 - parse-svg-path@0.2.0: prepublishOnly
 - pixi.js@8.19.0: prepare
+- pkijs@3.4.0: prepublishOnly
 - possible-typed-array-names@1.1.0: prepublish, prepublishOnly
+- pvutils@1.1.5: prepare
 - q@1.5.1: prepublish
 - qs@6.15.2: prepublish, prepublishOnly
 - resolve@1.22.12: prepublish, prepublishOnly
@@ -173,14 +218,20 @@ No HIGH RISK findings detected.
 - side-channel-list@1.0.1: prepublish, prepublishOnly
 - side-channel-map@1.0.1: prepublish, prepublishOnly
 - side-channel-weakmap@1.0.2: prepublish, prepublishOnly
+- signal-exit@3.0.7: prepublishOnly
+- simple-update-notifier@2.0.0: prepare
+- source-map-support@0.5.21: prepublish
 - cliui@7.0.4: prepare
 - yargs@16.2.0: prepare
 - yargs-parser@20.2.9: prepare
+- stat-mode@1.0.0: prepublishOnly
 - stop-iteration-iterator@1.1.0: prepublish, prepublishOnly
 - string.prototype.trim@1.2.11: prepublish, prepublishOnly
 - string.prototype.trimend@1.0.10: prepublish, prepublishOnly
 - string.prototype.trimstart@1.0.8: prepublish, prepublishOnly
 - supports-preserve-symlinks-flag@1.0.0: prepublish, prepublishOnly
+- tar@7.5.16: prepare, prepublishOnly
+- yallist@5.0.0: prepare, prepublishOnly
 - tiny-lru@11.4.7: prepare
 - tinyexec@1.2.4: prepare
 - tr46@6.0.0: prepublish
@@ -200,6 +251,7 @@ No HIGH RISK findings detected.
 - which-builtin-type@1.2.1: prepublish, prepublishOnly
 - which-collection@1.0.2: prepublish, prepublishOnly
 - which-typed-array@1.1.22: prepublish, prepublishOnly
+- xmlbuilder@15.1.1: prepublishOnly
 - xmlchars@2.2.0: prepublishOnly
 - y18n@5.0.8: prepare
 - yaml@2.9.0: prepublishOnly

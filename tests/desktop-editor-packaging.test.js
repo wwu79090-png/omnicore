@@ -35,6 +35,7 @@ describe('standalone desktop-grade OmniCore Editor', () => {
     expect(editorPackage.devDependencies['electron-builder']).toMatch(/^\^\d+\.\d+\.\d+/);
     expect(editorPackage.scripts['package:win']).toContain('electron-builder --win');
     expect(editorPackage.scripts['package:win:dir']).toContain('electron-builder --win dir');
+    expect(editorPackage.dependencies['lucide-static']).toMatch(/^\^\d+\.\d+\.\d+/);
     expect(editorPackage.build.directories.output).toBe('dist-installers');
     expect(editorPackage.build.win.icon).toBe('../../assets/icons/electron/icon.ico');
     expect(editorPackage.build.win.target).toEqual([
@@ -197,7 +198,9 @@ describe('standalone desktop-grade OmniCore Editor', () => {
     const hub = root.querySelector('[data-desktop-hub]');
     expect(hub?.getAttribute('data-desktop-layout')).toBe('command-center');
     expect(root.querySelector('[data-desktop-nav="projects"]')).toBeTruthy();
-    expect(root.querySelector('[data-desktop-nav="templates"]')).toBeTruthy();
+    expect(root.querySelector('[data-desktop-nav="editor"]')).toBeTruthy();
+    expect(root.querySelector('[data-desktop-nav="assets"]')).toBeTruthy();
+    expect(root.querySelector('[data-desktop-command="template-platformer"]')).toBeTruthy();
     expect(root.querySelector('[data-desktop-nav="diagnostics"]')).toBeTruthy();
     expect(root.querySelector('[data-hub-section="recent-projects"]')).toBeTruthy();
     expect(root.querySelector('[data-hub-section="template-lab"]')).toBeTruthy();
@@ -225,6 +228,99 @@ describe('standalone desktop-grade OmniCore Editor', () => {
 
     root.querySelector('[data-desktop-nav="diagnostics"]').click();
     expect(hub?.getAttribute('data-active-desktop-section')).toBe('diagnostics');
+
+    app.destroy();
+  });
+
+  it('organizes the EXE launcher into complete uniform command groups with useful actions', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const app = createEditorApp(root, {
+      state: {
+        scene: {
+          entities: []
+        }
+      }
+    });
+
+    const navButtons = [...root.querySelectorAll('[data-desktop-nav]')];
+    expect(navButtons.map((button) => button.dataset.desktopNav)).toEqual([
+      'projects',
+      'editor',
+      'assets',
+      'systems',
+      'render',
+      'publish',
+      'learning',
+      'diagnostics'
+    ]);
+    for (const button of navButtons) {
+      expect(button.querySelector('[data-desktop-icon-source="lucide-static"] svg')).toBeTruthy();
+    }
+
+    const launchSplash = root.querySelector('.desktop-launch-splash');
+    expect(launchSplash).toBeTruthy();
+    expect(launchSplash.querySelector('[data-desktop-icon-source="lucide-static"] svg')).toBeTruthy();
+    expect(launchSplash.textContent).toContain('启动资源库');
+
+    expect([...root.querySelectorAll('[data-desktop-feature-group]')].map((section) => section.dataset.desktopFeatureGroup)).toEqual([
+      'projects',
+      'editor-workbench',
+      'assets-scenes',
+      'systems-2d-3d-physics',
+      'render-performance',
+      'platform-publish',
+      'learning',
+      'diagnostics'
+    ]);
+
+    const cards = [...root.querySelectorAll('[data-desktop-command-card]')];
+    expect(cards.length).toBeGreaterThanOrEqual(32);
+    for (const card of cards) {
+      expect(card.classList.contains('desktop-command-card')).toBe(true);
+      const icon = card.querySelector('[data-desktop-command-icon]');
+      expect(icon?.dataset.desktopIconSource).toBe('lucide-static');
+      expect(icon?.querySelector('svg')).toBeTruthy();
+      expect(icon?.textContent.trim()).toBe('');
+      expect(card.querySelector('[data-desktop-command-title]')?.textContent.trim()).not.toBe('');
+      expect(card.querySelector('[data-desktop-command-purpose]')?.textContent.trim()).not.toBe('');
+      expect(card.querySelector('[data-desktop-command-status]')?.textContent.trim()).not.toBe('');
+      expect(card.dataset.desktopCommand).toBeTruthy();
+    }
+
+    for (const button of root.querySelectorAll('.desktop-hub-actions [data-desktop-command]')) {
+      expect(button.querySelector('[data-desktop-icon-source="lucide-static"] svg')).toBeTruthy();
+    }
+
+    const usefulCommands = [
+      'scene-view',
+      'inspector',
+      'assets',
+      'prefabs',
+      'visual-scripting',
+      'physics-view',
+      'profiler',
+      'build-settings',
+      'webgpu-diagnostics',
+      'wechat-export',
+      'beginner-tutorial',
+      'release-check'
+    ];
+    for (const command of usefulCommands) {
+      expect(root.querySelector(`[data-desktop-command="${command}"]`)).toBeTruthy();
+    }
+
+    root.querySelector('[data-desktop-command="assets"]').click();
+    expect(app.getDockLayout().left).toContain('assets');
+    expect(root.querySelector('[data-editor-feedback]')?.textContent).toContain('资源库');
+
+    root.querySelector('[data-desktop-command="visual-scripting"]').click();
+    expect(app.getDockLayout().center).toContain('visual-scripting');
+    expect(root.querySelector('[data-editor-feedback]')?.textContent).toContain('可视化脚本');
+
+    root.querySelector('[data-desktop-command="profiler"]').click();
+    expect(app.getState().profilerOpen).toBe(true);
+    expect(root.querySelector('[data-desktop-hub]')?.dataset.lastDesktopCommand).toBe('profiler');
 
     app.destroy();
   });

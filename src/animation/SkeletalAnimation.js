@@ -1,3 +1,4 @@
+import * as DefaultPIXI from 'pixi.js';
 import { createOmniError } from '../core/OmniError.js';
 
 /**
@@ -93,7 +94,7 @@ export class SpinePixiRuntimeAdapter {
   } = {}) {
     if (!skeleton) throw createOmniError('SpinePixi', 'Spine skeleton 文件不能为空。');
     if (!atlas) throw createOmniError('SpinePixi', 'Spine atlas 文件不能为空。');
-    const PIXI = this.pixi || await import('pixi.js');
+    const PIXI = this.pixi || DefaultPIXI;
     const spineRuntime = this.spine || await import('@esotericsoftware/spine-pixi');
     const SpineClass = spineRuntime.Spine || spineRuntime.default?.Spine || spineRuntime.default;
     if (typeof SpineClass !== 'function') {
