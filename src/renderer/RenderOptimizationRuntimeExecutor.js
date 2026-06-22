@@ -55,9 +55,38 @@ export class RenderOptimizationRuntimeExecutor {
     const textureUploadBatches = batchTextureUploads(textureUploadActions, maxUploadsPerFrame);
     const applied = [];
     const skipped = [];
+    const failed = [];
     const auditTrail = [];
     const dryRun = Boolean(options.dryRun);
+    const rollbackOnFailure = Boolean(options.rollbackOnFailure);
     const rollbackActions = buildRollbackActions(runtimeActions);
+    const appliedRollbackActions = [];
+    let rollbackReport = null;
+
+    const applyResult = (action, result) => {
+      if (result.applied) {
+        applied.push(result.record);
+        if (!dryRun) appliedRollbackActions.push(...buildRollbackActions([action]));
+        auditTrail.push(auditEntry(dryRun ? 'dry-run' : 'apply', action, result.record));
+        return false;
+      }
+      if (result.failed) {
+        failed.push(result.record);
+        auditTrail.push(auditEntry('error', action, result.record));
+        if (rollbackOnFailure && !dryRun) {
+          rollbackReport = this.rollback({
+            sourcePlanId: sourcePlanId(plan),
+            rollbackActions: appliedRollbackActions
+          });
+          auditTrail.push(...rollbackReport.auditTrail);
+          return true;
+        }
+        return false;
+      }
+      skipped.push(result.record);
+      auditTrail.push(auditEntry(dryRun ? 'dry-run' : 'apply', action, result.record));
+      return false;
+    };
 
     for (const action of runtimeActions) {
       if (action.type === 'scheduleTextureUpload') continue;
@@ -65,9 +94,23 @@ export class RenderOptimizationRuntimeExecutor {
       const result = dryRun
         ? dryRunActionResult(action)
         : this.#applyAction(action);
-      if (result.applied) applied.push(result.record);
-      else skipped.push(result.record);
-      auditTrail.push(auditEntry(dryRun ? 'dry-run' : 'apply', action, result.record));
+      if (applyResult(action, result)) {
+        return buildApplyReport({
+          plan,
+          dryRun,
+          rollbackOnFailure,
+          applied,
+          skipped,
+          failed,
+          textureUploadBatches,
+          renderQueue: null,
+          rollbackActions: appliedRollbackActions,
+          rollbackReport,
+          auditTrail,
+          runtimeActions,
+          status: 'rolled-back'
+        });
+      }
     }
 
     for (const batch of textureUploadBatches) {
@@ -79,7 +122,7 @@ export class RenderOptimizationRuntimeExecutor {
             maxUploadsPerFrame,
             plan
           });
-        const record = {
+        const uploadRecord = {
           type: 'scheduleTextureUpload',
           id: upload.id,
           frameOffset: batch.frameOffset,
@@ -87,9 +130,29 @@ export class RenderOptimizationRuntimeExecutor {
           adapter: result.method || null,
           result: result.value ?? null
         };
-        if (result.called) applied.push(record);
-        else skipped.push({ ...record, reason: 'texture-manager-missing-scheduleUpload' });
-        auditTrail.push(auditEntry(dryRun ? 'dry-run' : 'apply', upload, record));
+        const actionResult = adapterResultToActionResult(
+          upload,
+          result,
+          uploadRecord,
+          'texture-manager-missing-scheduleUpload'
+        );
+        if (applyResult({ ...upload, type: 'scheduleTextureUpload' }, actionResult)) {
+          return buildApplyReport({
+            plan,
+            dryRun,
+            rollbackOnFailure,
+            applied,
+            skipped,
+            failed,
+            textureUploadBatches,
+            renderQueue: null,
+            rollbackActions: appliedRollbackActions,
+            rollbackReport,
+            auditTrail,
+            runtimeActions,
+            status: 'rolled-back'
+          });
+        }
       }
     }
 
@@ -105,30 +168,25 @@ export class RenderOptimizationRuntimeExecutor {
         savedDrawCalls: renderQueue.savedDrawCalls
       };
       applied.push(record);
+      if (!dryRun) appliedRollbackActions.push(...buildRollbackActions([{ type: 'sortRenderQueueGroup' }]));
       auditTrail.push(auditEntry(dryRun ? 'dry-run' : 'apply', { type: 'sortRenderQueueGroup' }, record));
     }
 
-    return {
-      schema: 'omnicore.render-optimization-apply-report.v1',
-      sourcePlanId: sourcePlanId(plan),
+    return buildApplyReport({
+      plan,
       dryRun,
+      rollbackOnFailure,
       applied,
       skipped,
+      failed,
       textureUploadBatches,
       renderQueue,
-      rollbackActions,
+      rollbackActions: dryRun || failed.length === 0 ? rollbackActions : appliedRollbackActions,
+      rollbackReport,
       auditTrail,
-      summary: {
-        actionCount: runtimeActions.length,
-        appliedCount: applied.length,
-        skippedCount: skipped.length,
-        dryRun,
-        textureUploadBatchCount: textureUploadBatches.length,
-        rollbackActionCount: rollbackActions.length,
-        savedDrawCalls: renderQueue?.savedDrawCalls || 0
-      },
-      crossEngineProfile: runtimeExecutionCrossEngineProfile()
-    };
+      runtimeActions,
+      status: failed.length ? 'failed' : (dryRun ? 'dry-run' : 'applied')
+    });
   }
 
   rollback(report = {}) {
@@ -249,6 +307,50 @@ function batchTextureUploads(actions = [], maxUploadsPerFrame = 1) {
   return batches;
 }
 
+function buildApplyReport({
+  plan,
+  dryRun,
+  rollbackOnFailure,
+  applied,
+  skipped,
+  failed,
+  textureUploadBatches,
+  renderQueue,
+  rollbackActions,
+  rollbackReport,
+  auditTrail,
+  runtimeActions,
+  status
+}) {
+  return {
+    schema: 'omnicore.render-optimization-apply-report.v1',
+    sourcePlanId: sourcePlanId(plan),
+    status,
+    dryRun,
+    applied,
+    skipped,
+    failed,
+    textureUploadBatches,
+    renderQueue,
+    rollbackActions,
+    rollbackReport,
+    auditTrail,
+    summary: {
+      actionCount: runtimeActions.length,
+      appliedCount: applied.length,
+      skippedCount: skipped.length,
+      failedCount: failed.length,
+      dryRun,
+      rollbackOnFailure,
+      autoRollback: Boolean(rollbackReport),
+      textureUploadBatchCount: textureUploadBatches.length,
+      rollbackActionCount: rollbackActions.length,
+      savedDrawCalls: renderQueue?.savedDrawCalls || 0
+    },
+    crossEngineProfile: runtimeExecutionCrossEngineProfile()
+  };
+}
+
 function dryRunActionResult(action = {}) {
   return {
     applied: true,
@@ -259,6 +361,36 @@ function dryRunActionResult(action = {}) {
       dryRun: true,
       adapter: 'dryRun',
       result: null
+    }
+  };
+}
+
+function adapterResultToActionResult(action = {}, adapterResult = {}, baseRecord = {}, missingReason = 'adapter-missing') {
+  const record = {
+    ...baseRecord,
+    type: baseRecord.type || action.type,
+    id: baseRecord.id || action.id || null,
+    key: baseRecord.key || action.key || null,
+    adapter: adapterResult.method || baseRecord.adapter || null,
+    result: adapterResult.value ?? baseRecord.result ?? null
+  };
+  if (adapterResult.error) {
+    return {
+      applied: false,
+      failed: true,
+      record: {
+        ...record,
+        reason: adapterErrorReason(adapterResult.error),
+        errorName: adapterResult.error.name || 'Error'
+      }
+    };
+  }
+  if (adapterResult.called) return { applied: true, record };
+  return {
+    applied: false,
+    record: {
+      ...record,
+      reason: missingReason
     }
   };
 }
@@ -309,11 +441,20 @@ function callAdapter(target, methods = [], ...args) {
   if (!target) return { called: false, method: null, value: null };
   for (const method of methods) {
     if (typeof target[method] !== 'function') continue;
-    return {
-      called: true,
-      method,
-      value: target[method](...args)
-    };
+    try {
+      return {
+        called: true,
+        method,
+        value: target[method](...args)
+      };
+    } catch (error) {
+      return {
+        called: false,
+        method,
+        value: null,
+        error
+      };
+    }
   }
   return { called: false, method: null, value: null };
 }
@@ -336,6 +477,17 @@ function actionRecord(action, adapterResult, missingReason) {
     result: adapterResult.value ?? null
   };
   if (adapterResult.called) return { applied: true, record };
+  if (adapterResult.error) {
+    return {
+      applied: false,
+      failed: true,
+      record: {
+        ...record,
+        reason: adapterErrorReason(adapterResult.error),
+        errorName: adapterResult.error.name || 'Error'
+      }
+    };
+  }
   return {
     applied: false,
     record: {
@@ -343,6 +495,11 @@ function actionRecord(action, adapterResult, missingReason) {
       reason: missingReason
     }
   };
+}
+
+function adapterErrorReason(error) {
+  if (!error) return 'adapter-error';
+  return String(error.message || error.reason || error.name || 'adapter-error');
 }
 
 function auditEntry(phase, action = {}, record = {}) {

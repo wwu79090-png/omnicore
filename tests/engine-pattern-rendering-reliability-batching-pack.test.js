@@ -397,4 +397,75 @@ describe('engine pattern rendering reliability batching pack', () => {
       { kind: 'restoreBackend', backend: 'webgl2' }
     ]));
   });
+
+  it('auto-rolls back applied render optimization actions when a later adapter fails', () => {
+    const calls = [];
+    const executor = new RenderOptimizationRuntimeExecutor({
+      renderer: {
+        buildAtlas: (atlas) => {
+          calls.push({ kind: 'atlas', key: atlas.key });
+          return { atlasId: `atlas://${atlas.key}` };
+        },
+        destroyAtlas: (rollback) => {
+          calls.push({ kind: 'destroyAtlas', key: rollback.key });
+          return { destroyed: rollback.key };
+        }
+      },
+      filterPipeline: {
+        flattenFilter: (filter) => {
+          calls.push({ kind: 'filter', id: filter.id });
+          throw new Error('filter pipeline offline');
+        },
+        restoreFilter: (rollback) => {
+          calls.push({ kind: 'restoreFilter', id: rollback.id });
+          return { restored: rollback.id };
+        }
+      }
+    });
+
+    const report = executor.applyPlan({
+      sourcePlanId: 'render-plan-transaction',
+      runtimeActions: [
+        { type: 'buildAtlas', key: 'lit|normal', textures: ['a.png', 'b.png'] },
+        { type: 'flattenFilter', id: 'bloom', passes: 2, targetPasses: 1 }
+      ]
+    }, { rollbackOnFailure: true });
+
+    expect(report).toMatchObject({
+      schema: 'omnicore.render-optimization-apply-report.v1',
+      sourcePlanId: 'render-plan-transaction',
+      status: 'rolled-back',
+      summary: {
+        failedCount: 1,
+        rollbackOnFailure: true,
+        autoRollback: true
+      }
+    });
+    expect(report.failed[0]).toMatchObject({
+      type: 'flattenFilter',
+      id: 'bloom',
+      reason: 'filter pipeline offline'
+    });
+    expect(report.rollbackReport).toMatchObject({
+      schema: 'omnicore.render-optimization-rollback-report.v1',
+      summary: {
+        rollbackCount: 1,
+        restoredCount: 1,
+        failedCount: 0
+      }
+    });
+    expect(report.rollbackActions).toEqual([
+      expect.objectContaining({ type: 'destroyAtlas', key: 'lit|normal' })
+    ]);
+    expect(calls).toEqual([
+      { kind: 'atlas', key: 'lit|normal' },
+      { kind: 'filter', id: 'bloom' },
+      { kind: 'destroyAtlas', key: 'lit|normal' }
+    ]);
+    expect(report.auditTrail.map((entry) => entry.phase)).toEqual(expect.arrayContaining([
+      'apply',
+      'error',
+      'rollback'
+    ]));
+  });
 });
