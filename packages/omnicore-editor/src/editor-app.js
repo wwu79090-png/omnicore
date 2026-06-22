@@ -1,3 +1,4 @@
+import { VisualScriptGraphRuntime } from 'omnicore';
 import {
   EditorCoCreator25D,
   SocialAwareness25D,
@@ -477,6 +478,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
     exportTiledJson,
     exportFlowGraphEventSheet,
     exportBehaviorTreeJson,
+    exportVisualScriptGraph,
+    validateVisualScriptGraph,
+    runVisualScript,
     exportUILayoutJson,
     exportDataJson,
     createRuntimeSyncPayload,
@@ -535,7 +539,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
         const action = button.dataset.desktopHubAction;
         const result = runToolbarAction(action);
         if (!result && action) showEditorFeedback(`已选择 ${action}`, 'info');
-        update(current);
+        update();
       });
     }
 
@@ -554,7 +558,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
         };
         root.querySelector(sectionMap[section])?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
         showEditorFeedback(`已切换启动器分区：${button.textContent}`, 'info');
-        update(current);
+        update();
       });
     }
 
@@ -571,7 +575,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
           templateButton.classList.toggle('selected', templateButton === button);
         }
         showEditorFeedback(`模板已选择：${templateNames[id] || button.textContent}`, 'success');
-        update(current);
+        update();
       });
     }
 
@@ -579,7 +583,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       button.addEventListener('click', () => {
         const title = button.querySelector('strong')?.textContent || '最近项目';
         showEditorFeedback(`已定位项目：${title}`, 'info');
-        update(current);
+        update();
       });
     }
 
@@ -638,6 +642,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
       workspace: normalizeWorkspaceState(next.workspace || current.workspace),
       tilemap: next.tilemap || current.tilemap,
       flowGraph: normalizeFlowGraph(next.flowGraph || current.flowGraph),
+      visualScriptTrace: next.visualScriptTrace || current.visualScriptTrace,
+      visualScriptValidation: next.visualScriptValidation || current.visualScriptValidation,
       prefabs: next.prefabs || current.prefabs,
       assets: next.assets || current.assets,
       assetPreview: next.assetPreview ?? current.assetPreview,
@@ -1080,6 +1086,21 @@ export function createEditorApp(root = document.querySelector('#app'), {
       },
       createNPCProximityRecipe(options = {}) {
         return createNPCProximityRecipe(options);
+      },
+      addVisualScriptNode(type, options = {}) {
+        return addVisualScriptNode(type, options);
+      },
+      connectVisualScriptNodes(from, to, options = {}) {
+        return connectVisualScriptNodes(from, to, options);
+      },
+      exportVisualScriptGraph() {
+        return exportVisualScriptGraph();
+      },
+      validateVisualScriptGraph(options = {}) {
+        return validateVisualScriptGraph(options);
+      },
+      runVisualScript(eventName = 'start', payload = {}, options = {}) {
+        return runVisualScript(eventName, payload, options);
       },
       addUIButton(button = {}) {
         return addUIButton(button);
@@ -2524,13 +2545,13 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return /^#[0-9a-f]{6}$/iu.test(String(value || ''));
   }
 
-function profilerSuggestion(name, duration) {
-  const label = String(name || '未知');
-  if (/collision/iu.test(label)) return `碰撞耗时 ${duration}ms；请检查碰撞体密度、粗筛过滤和 2.5D 投影重叠。`;
-  if (/render|renderer|draw/iu.test(label)) return `${label} 耗时 ${duration}ms；请检查批处理、材质状态切换和绘制调用数量。`;
-  if (/update|script|logic/iu.test(label)) return `${label} 耗时 ${duration}ms；请检查逐帧脚本，并避免在更新循环中分配对象。`;
-  return `${label} 耗时 ${duration}ms；请在性能火焰图中检查这个子系统。`;
-}
+  function profilerSuggestion(name, duration) {
+    const label = String(name || '未知');
+    if (/collision/iu.test(label)) return `碰撞耗时 ${duration}ms；请检查碰撞体密度、粗筛过滤和 2.5D 投影重叠。`;
+    if (/render|renderer|draw/iu.test(label)) return `${label} 耗时 ${duration}ms；请检查批处理、材质状态切换和绘制调用数量。`;
+    if (/update|script|logic/iu.test(label)) return `${label} 耗时 ${duration}ms；请检查逐帧脚本，并避免在更新循环中分配对象。`;
+    return `${label} 耗时 ${duration}ms；请在性能火焰图中检查这个子系统。`;
+  }
 
   function openEntityScript(entityOrId, symbol = null, options = {}) {
     const entity = typeof entityOrId === 'string'
@@ -3047,6 +3068,55 @@ function profilerSuggestion(name, duration) {
     return cloneState(current.behaviorTree || flowGraphToBehaviorTree(current.flowGraph));
   }
 
+  function exportVisualScriptGraph() {
+    return flowGraphToVisualScriptGraph(current.flowGraph);
+  }
+
+  function validateVisualScriptGraph(options = {}) {
+    const runtime = new VisualScriptGraphRuntime({
+      graph: exportVisualScriptGraph(),
+      actions: createVisualScriptActions(options.actions),
+      signals: options.signals,
+      maxSteps: options.maxSteps
+    });
+    const validation = runtime.validate();
+    current = createEditorState({
+      ...current,
+      visualScriptValidation: validation
+    });
+    emit('editor:visual-script-validation', validation);
+    update(current);
+    return validation;
+  }
+
+  function runVisualScript(eventName = 'start', payload = {}, options = {}) {
+    const graph = exportVisualScriptGraph();
+    const runtime = new VisualScriptGraphRuntime({
+      graph,
+      actions: createVisualScriptActions(options.actions),
+      signals: options.signals,
+      maxSteps: options.maxSteps
+    });
+    const validation = runtime.validate();
+    const result = validation.ok || options.force
+      ? runtime.trigger(eventName, payload, options)
+      : { event: eventName, payload, variables: {}, events: [], trace: [] };
+    const report = {
+      ...result,
+      graph,
+      validation,
+      ranAt: new Date().toISOString()
+    };
+    current = createEditorState({
+      ...current,
+      visualScriptTrace: report,
+      visualScriptValidation: validation
+    });
+    emit('editor:visual-script-run', report);
+    update(current);
+    return report;
+  }
+
   function exportUILayoutJson() {
     return cloneState(normalizeUILayoutState(current.uiLayout));
   }
@@ -3062,6 +3132,8 @@ function profilerSuggestion(name, duration) {
       scene: cloneState(current.scene),
       eventSheet: exportFlowGraphEventSheet(),
       behaviorTree: exportBehaviorTreeJson(),
+      visualScriptGraph: exportVisualScriptGraph(),
+      visualScriptTrace: cloneState(current.visualScriptTrace),
       uiLayout: exportUILayoutJson()
     };
   }
@@ -3071,6 +3143,8 @@ function profilerSuggestion(name, duration) {
       ...current,
       scene: payload.scene || current.scene,
       behaviorTree: payload.behaviorTree || current.behaviorTree,
+      visualScriptTrace: payload.visualScriptTrace || current.visualScriptTrace,
+      visualScriptValidation: payload.visualScriptTrace?.validation || current.visualScriptValidation,
       uiLayout: payload.uiLayout || current.uiLayout,
       flowGraph: payload.flowGraph || current.flowGraph
     });
@@ -3385,22 +3459,36 @@ function profilerSuggestion(name, duration) {
     return entity;
   }
 
-  function addFlowNode(type) {
+  function addVisualScriptNode(type, options = {}) {
+    return addFlowNode(type, options);
+  }
+
+  function connectVisualScriptNodes(from, to, options = {}) {
+    return addFlowEdge(from, to, options);
+  }
+
+  function addFlowNode(type, options = {}) {
     const nextGraph = normalizeFlowGraph(current.flowGraph);
-    const id = `${type}-${nextGraph.nodes.length + 1}`;
+    const id = String(options.id || `${type}-${nextGraph.nodes.length + 1}`);
     const presets = {
       event: { label: 'Event', data: { when: { onStart: true } } },
       condition: { label: 'Condition', data: { op: 'equals', left: 'state.flag', right: true } },
       action: { label: 'Action', data: { op: 'set', target: 'state.flag', value: true } }
     };
-    nextGraph.nodes.push({
+    const preset = presets[type] || { label: type, data: {} };
+    const hasCustomData = Object.prototype.hasOwnProperty.call(options, 'data');
+    const node = {
       id,
-      type,
-      label: presets[type]?.label || type,
-      x: 24 + nextGraph.nodes.length * 144,
-      y: 24,
-      data: presets[type]?.data || {}
-    });
+      type: options.type || type,
+      label: options.label || preset.label || type,
+      x: Number(options.x ?? 24 + nextGraph.nodes.length * 144),
+      y: Number(options.y ?? 24),
+      scope: cloneState(options.scope || {}),
+      data: hasCustomData ? { ...(options.data || {}) } : { ...(preset.data || {}) }
+    };
+    const existingIndex = nextGraph.nodes.findIndex((item) => item.id === id);
+    if (existingIndex >= 0) nextGraph.nodes[existingIndex] = node;
+    else nextGraph.nodes.push(node);
     current = { ...current, flowGraph: nextGraph };
     emit('editor:flow-graph-update', current.flowGraph);
     pushHistory(current, '更新流程图');
@@ -3408,13 +3496,18 @@ function profilerSuggestion(name, duration) {
     return current.flowGraph;
   }
 
-  function addFlowEdge(from, to) {
+  function addFlowEdge(from, to, options = {}) {
     if (!from || !to || from === to) return current.flowGraph;
     const nextGraph = normalizeFlowGraph(current.flowGraph);
     const nodeIds = new Set(nextGraph.nodes.map((node) => node.id));
     if (!nodeIds.has(from) || !nodeIds.has(to)) return current.flowGraph;
-    if (!nextGraph.edges.some((edge) => edge.from === from && edge.to === to)) {
-      nextGraph.edges.push({ from, to });
+    const pin = options.pin == null ? null : String(options.pin);
+    if (!nextGraph.edges.some((edge) => edge.from === from && edge.to === to && (edge.pin || null) === pin)) {
+      nextGraph.edges.push({
+        from,
+        to,
+        ...(pin ? { pin } : {})
+      });
     }
     current = { ...current, flowGraph: nextGraph };
     emit('editor:flow-graph-update', current.flowGraph);
@@ -4846,7 +4939,7 @@ function profilerSuggestion(name, duration) {
       const target = graph.nodes.find((node) => node.id === edge.to);
       const row = document.createElement('div');
       row.dataset.flowEdge = `${edge.from}->${edge.to}`;
-      row.textContent = `${localizeFlowNodeLabel(source) || edge.from} -> ${localizeFlowNodeLabel(target) || edge.to}`;
+      row.textContent = `${localizeFlowNodeLabel(source) || edge.from} -> ${localizeFlowNodeLabel(target) || edge.to}${edge.pin ? ` [${edge.pin}]` : ''}`;
       edges.appendChild(row);
     }
 
@@ -4873,11 +4966,67 @@ function profilerSuggestion(name, duration) {
       nodePalette.appendChild(button);
     }
     const flow = renderFlowGraph();
+    const runtimePanel = renderVisualScriptRuntimePanel();
     const behaviorPreview = document.createElement('pre');
     behaviorPreview.dataset.behaviorTreePreview = 'true';
     behaviorPreview.textContent = JSON.stringify(exportBehaviorTreeJson(), null, 2);
-    wrap.append(nodePalette, flow, behaviorPreview);
+    wrap.append(nodePalette, flow, runtimePanel, behaviorPreview);
     return wrap;
+  }
+
+  function renderVisualScriptRuntimePanel() {
+    const runtimeGraph = exportVisualScriptGraph();
+    const validation = current.visualScriptValidation || { ok: true, issues: [] };
+    const report = current.visualScriptTrace || { event: null, trace: [], events: [], variables: {} };
+    const panel = document.createElement('div');
+    panel.className = 'visual-script-runtime';
+    panel.dataset.visualScriptPanel = 'runtime';
+
+    const actions = document.createElement('div');
+    actions.className = 'visual-script-actions';
+    const runStart = document.createElement('button');
+    runStart.type = 'button';
+    runStart.dataset.visualScriptRun = 'start';
+    runStart.textContent = '运行开始';
+    runStart.addEventListener('click', () => runVisualScript('start'));
+    const validate = document.createElement('button');
+    validate.type = 'button';
+    validate.dataset.visualScriptValidate = 'true';
+    validate.textContent = '检查图';
+    validate.addEventListener('click', () => validateVisualScriptGraph());
+    const status = document.createElement('span');
+    status.dataset.visualScriptValidation = validation.ok ? 'ok' : 'error';
+    status.textContent = validation.ok
+      ? `可运行 · ${runtimeGraph.nodes.length} 节点`
+      : `需修复 · ${validation.issues.length} 个问题`;
+    actions.append(runStart, validate, status);
+
+    const trace = document.createElement('div');
+    trace.className = 'visual-script-trace';
+    trace.dataset.visualScriptTrace = 'true';
+    const entries = Array.isArray(report.trace) ? report.trace : [];
+    if (entries.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'visual-script-trace-row';
+      empty.textContent = '尚未运行，可点击运行开始查看 trace';
+      trace.appendChild(empty);
+    } else {
+      for (const entry of entries) {
+        const row = document.createElement('div');
+        row.className = 'visual-script-trace-row';
+        row.dataset.visualScriptTraceNode = entry.nodeId || 'unknown';
+        row.textContent = formatVisualScriptTraceEntry(entry);
+        trace.appendChild(row);
+      }
+    }
+
+    const preview = document.createElement('pre');
+    preview.className = 'visual-script-runtime-json';
+    preview.dataset.visualScriptRuntime = 'true';
+    preview.textContent = JSON.stringify(runtimeGraph, null, 2);
+
+    panel.append(actions, trace, preview);
+    return panel;
   }
 
   function renderUIEditor() {
@@ -5387,6 +5536,137 @@ function flowGraphToBehaviorTree(flowGraph = {}) {
   };
 }
 
+function flowGraphToVisualScriptGraph(flowGraph = {}) {
+  const normalized = normalizeFlowGraph(flowGraph);
+  return {
+    format: 'OmniCore.VisualScriptGraph',
+    version: 1,
+    variables: cloneState(normalized.variables || {}),
+    nodes: normalized.nodes.map((node) => flowNodeToVisualScriptNode(node)),
+    edges: normalized.edges.map((edge) => ({
+      from: String(edge.from),
+      to: String(edge.to),
+      ...(edge.pin ? { pin: String(edge.pin) } : {})
+    }))
+  };
+}
+
+function flowNodeToVisualScriptNode(node = {}) {
+  const base = {
+    id: String(node.id),
+    label: node.label || node.id,
+    sourceType: node.type,
+    data: cloneState(node.data || {})
+  };
+  if (isFlowEventNode(node)) {
+    return {
+      ...base,
+      type: 'event',
+      event: inferVisualScriptEventName(node)
+    };
+  }
+  if (isFlowConditionNode(node)) {
+    return {
+      ...base,
+      type: 'branch',
+      condition: normalizeVisualScriptCondition(node.data)
+    };
+  }
+  return flowActionNodeToVisualScriptNode(node, base);
+}
+
+function flowActionNodeToVisualScriptNode(node = {}, base = {}) {
+  const data = node.data || {};
+  const op = data.op || data.action || node.action;
+  if (op === 'set') {
+    return {
+      ...base,
+      type: 'set',
+      target: data.target || data.path || 'state.value',
+      value: data.value ?? data.args?.value ?? true
+    };
+  }
+  if (op === 'emit') {
+    return {
+      ...base,
+      type: 'emit',
+      event: data.event || data.name || node.label || node.id,
+      payload: cloneState(data.payload || data.args || {})
+    };
+  }
+  return {
+    ...base,
+    type: 'call',
+    action: String(data.action || data.op || node.label || node.id),
+    args: normalizeVisualScriptArgs(data)
+  };
+}
+
+function inferVisualScriptEventName(node = {}) {
+  const data = node.data || {};
+  if (data.event) return String(data.event);
+  if (data.name) return String(data.name);
+  if (data.when?.onStart) return 'start';
+  if (data.when?.onUpdate) return 'update';
+  if (data.when?.onLoad) return 'load';
+  if (data.when?.onReady) return 'ready';
+  return String(node.event || node.label || node.id || 'start');
+}
+
+function normalizeVisualScriptCondition(data = {}) {
+  if (data.condition && typeof data.condition === 'object') return cloneState(data.condition);
+  if (data.op) return cloneState(data);
+  if (Object.prototype.hasOwnProperty.call(data, 'left') || Object.prototype.hasOwnProperty.call(data, 'right')) {
+    return { op: 'equals', left: data.left, right: data.right };
+  }
+  return { op: 'truthy', left: true };
+}
+
+function normalizeVisualScriptArgs(data = {}) {
+  if (data.args && typeof data.args === 'object' && !Array.isArray(data.args)) return cloneState(data.args);
+  if (Object.prototype.hasOwnProperty.call(data, 'args')) return { value: data.args };
+  return cloneState(Object.fromEntries(
+    Object.entries(data).filter(([key]) => !['action', 'op', 'condition', 'when'].includes(key))
+  ));
+}
+
+function createVisualScriptActions(customActions = {}) {
+  const builtIns = {
+    playAnimation: ({ args }) => ({ ok: true, type: 'playAnimation', ...args }),
+    showDialog: ({ args }) => ({ ok: true, type: 'showDialog', ...args }),
+    openDoor: ({ args }) => ({ ok: true, type: 'openDoor', ...args }),
+    spawn: ({ args }) => ({ ok: true, type: 'spawn', ...args }),
+    setProperty: ({ runtime, args }) => runtime.set(args.target || args.path || 'state.value', args.value),
+    log: ({ args }) => args.message ?? args.value ?? args
+  };
+  return {
+    ...builtIns,
+    ...(customActions || {})
+  };
+}
+
+function formatVisualScriptTraceEntry(entry = {}) {
+  const label = [entry.nodeId || 'unknown', entry.type || 'node'].join(' · ');
+  if (Object.prototype.hasOwnProperty.call(entry, 'result')) {
+    return `${label} => ${formatTraceValue(entry.result)}`;
+  }
+  if (Object.prototype.hasOwnProperty.call(entry, 'value')) {
+    return `${label} = ${formatTraceValue(entry.value)}`;
+  }
+  if (Object.prototype.hasOwnProperty.call(entry, 'event')) {
+    return `${label} @ ${entry.event}`;
+  }
+  if (Object.prototype.hasOwnProperty.call(entry, 'reason')) {
+    return `${label} / ${entry.reason}`;
+  }
+  return label;
+}
+
+function formatTraceValue(value) {
+  if (typeof value === 'string') return value;
+  return JSON.stringify(value);
+}
+
 function buildFlowEventTree(root, childrenBySource) {
   if (isFlowEventNode(root)) {
     const children = childrenBySource.get(root.id) || [];
@@ -5721,9 +6001,10 @@ function formatComponents(components = []) {
 
 function normalizeFlowGraph(flowGraph = {}) {
   return {
+    variables: { ...(flowGraph.variables || {}) },
     nodes: (flowGraph.nodes || []).map((node, index) => ({
-      id: node.id || `node-${index + 1}`,
-      type: node.type || 'action',
+      id: String(node.id || `node-${index + 1}`),
+      type: String(node.type || 'action'),
       label: node.label || node.id || `Node ${index + 1}`,
       x: Number(node.x || 0),
       y: Number(node.y || 0),
@@ -5732,7 +6013,11 @@ function normalizeFlowGraph(flowGraph = {}) {
     })),
     edges: (flowGraph.edges || [])
       .filter((edge) => edge?.from && edge?.to)
-      .map((edge) => ({ from: edge.from, to: edge.to }))
+      .map((edge) => ({
+        from: String(edge.from),
+        to: String(edge.to),
+        ...(edge.pin ? { pin: String(edge.pin) } : {})
+      }))
   };
 }
 
@@ -6332,6 +6617,15 @@ const EDITOR_CSS = `
   .graph-node-palette button { padding: 5px 8px; text-align: left; }
   .graph-editor-wrap .flow-graph-wrap { grid-template-columns: minmax(240px, 1fr) 180px; }
   .graph-editor-wrap pre { grid-column: 1 / -1; max-height: 120px; overflow: auto; margin: 0; padding: 8px; border: 1px solid #334155; background: #020617; color: #bfdbfe; }
+  .visual-script-runtime { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr); gap: 8px; min-height: 0; }
+  .visual-script-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .visual-script-actions button { padding: 5px 8px; }
+  .visual-script-actions span { padding: 3px 6px; border: 1px solid #334155; color: #cbd5e1; background: #020617; }
+  .visual-script-actions span[data-visual-script-validation="ok"] { border-color: #22c55e; color: #bbf7d0; background: rgba(20,83,45,.32); }
+  .visual-script-actions span[data-visual-script-validation="error"] { border-color: #f59e0b; color: #fde68a; background: rgba(120,53,15,.32); }
+  .visual-script-trace { display: grid; align-content: start; gap: 4px; min-height: 72px; max-height: 140px; overflow: auto; padding: 6px; border: 1px solid #334155; background: #020617; color: #dbeafe; }
+  .visual-script-trace-row { min-height: 22px; padding: 3px 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-left: 3px solid #38bdf8; background: rgba(15,23,42,.78); }
+  .visual-script-runtime-json { min-height: 72px; max-height: 140px; }
   .ui-editor-wrap { display: grid; grid-template-columns: 96px minmax(220px, 1fr); gap: 8px; min-height: 0; }
   .ui-palette { display: grid; align-content: start; gap: 6px; }
   .ui-palette button { padding: 5px 8px; text-align: left; }

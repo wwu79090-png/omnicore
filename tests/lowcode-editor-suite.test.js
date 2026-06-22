@@ -56,6 +56,73 @@ describe('low-code editor authoring suite', () => {
     app.destroy();
   });
 
+  it('runs VisualScriptGraphRuntime from the editor graph with branch pins and trace output', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        dockLayout: {
+          left: ['hierarchy'],
+          center: ['scene-view'],
+          right: ['inspector'],
+          bottom: ['graph-editor']
+        }
+      })
+    });
+
+    app.EditorAPI.addVisualScriptNode('event', {
+      id: 'start',
+      label: '开始',
+      data: { event: 'start' }
+    });
+    app.EditorAPI.addVisualScriptNode('condition', {
+      id: 'has-key',
+      label: '有钥匙',
+      data: { op: 'equals', left: '$payload.hasKey', right: true }
+    });
+    app.EditorAPI.addVisualScriptNode('action', {
+      id: 'open-door',
+      label: '开门',
+      data: { action: 'openDoor', args: { target: 'door-a' } }
+    });
+    app.EditorAPI.connectVisualScriptNodes('start', 'has-key');
+    app.EditorAPI.connectVisualScriptNodes('has-key', 'open-door', { pin: 'true' });
+
+    const runtimeGraph = app.exportVisualScriptGraph();
+    expect(runtimeGraph).toMatchObject({
+      nodes: [
+        expect.objectContaining({ id: 'start', type: 'event', event: 'start' }),
+        expect.objectContaining({ id: 'has-key', type: 'branch' }),
+        expect.objectContaining({ id: 'open-door', type: 'call', action: 'openDoor' })
+      ],
+      edges: [
+        expect.objectContaining({ from: 'start', to: 'has-key' }),
+        expect.objectContaining({ from: 'has-key', to: 'open-door', pin: 'true' })
+      ]
+    });
+
+    const report = app.EditorAPI.runVisualScript('start', { hasKey: true }, {
+      actions: {
+        openDoor: ({ args }) => `opened:${args.target}`
+      }
+    });
+
+    expect(report.validation.ok).toBe(true);
+    expect(report.trace.map((entry) => entry.nodeId)).toEqual(['start', 'has-key', 'open-door']);
+    expect(report.trace.at(-1)).toMatchObject({
+      nodeId: 'open-door',
+      action: 'openDoor',
+      result: 'opened:door-a'
+    });
+    expect(app.getState().visualScriptTrace.trace).toEqual(report.trace);
+    expect(root.querySelector('[data-visual-script-runtime]')?.textContent).toContain('"action": "openDoor"');
+    expect(root.querySelector('[data-visual-script-trace-node="open-door"]')?.textContent).toContain('opened:door-a');
+
+    root.querySelector('[data-visual-script-run="start"]').click();
+    expect(app.getState().visualScriptTrace.event).toBe('start');
+    app.destroy();
+  });
+
   it('drags menu buttons into UI Editor and exports UI_Layout.json compatible with runtime UI', () => {
     const root = document.createElement('main');
     document.body.appendChild(root);

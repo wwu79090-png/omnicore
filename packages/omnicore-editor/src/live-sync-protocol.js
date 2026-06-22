@@ -25,6 +25,8 @@ export function createEditorState(initial = {}) {
     lastCommandError: initial.lastCommandError || null,
     flowGraph: normalizeFlowGraph(initial.flowGraph),
     behaviorTree: initial.behaviorTree || null,
+    visualScriptTrace: normalizeVisualScriptTrace(initial.visualScriptTrace),
+    visualScriptValidation: normalizeVisualScriptValidation(initial.visualScriptValidation || initial.visualScriptTrace?.validation),
     uiLayout: normalizeUILayout(initial.uiLayout),
     tilemap: normalizeTilemap(initial.tilemap),
     dockLayout: normalizeDockLayout(initial.dockLayout),
@@ -93,6 +95,13 @@ export function applyLiveSyncMessage(state = createEditorState(), message = {}) 
   if (message.type === 'editor:grid-snap') next.gridSnap = normalizeGridSnap(message.payload);
   if (message.type === 'editor:scene-overlays') next.sceneOverlays = normalizeSceneOverlays(message.payload);
   if (message.type === 'editor:scene-validation') next.sceneValidation = normalizeSceneValidation(message.payload);
+  if (message.type === 'editor:visual-script-validation') {
+    next.visualScriptValidation = normalizeVisualScriptValidation(message.payload);
+  }
+  if (message.type === 'editor:visual-script-run' || message.type === 'runtime:visual-script-trace') {
+    next.visualScriptTrace = normalizeVisualScriptTrace(message.payload);
+    next.visualScriptValidation = normalizeVisualScriptValidation(message.payload?.validation);
+  }
   return next;
 }
 
@@ -117,6 +126,53 @@ function normalizeSceneValidation(value = null) {
     ...value,
     ok: issues.length === 0,
     issues
+  };
+}
+
+function normalizeVisualScriptValidation(value = null) {
+  if (!value || typeof value !== 'object') {
+    return {
+      ok: true,
+      summary: { nodeCount: 0, edgeCount: 0, eventCount: 0, issueCount: 0 },
+      issues: []
+    };
+  }
+  const issues = Array.isArray(value.issues) ? value.issues.map((issue) => ({ ...issue })) : [];
+  return {
+    ...value,
+    ok: issues.length === 0 && value.ok !== false,
+    summary: {
+      nodeCount: Number(value.summary?.nodeCount || 0),
+      edgeCount: Number(value.summary?.edgeCount || 0),
+      eventCount: Number(value.summary?.eventCount || 0),
+      issueCount: Number(value.summary?.issueCount ?? issues.length)
+    },
+    issues
+  };
+}
+
+function normalizeVisualScriptTrace(value = null) {
+  if (!value || typeof value !== 'object') {
+    return {
+      event: null,
+      payload: {},
+      variables: {},
+      events: [],
+      trace: [],
+      graph: null,
+      validation: normalizeVisualScriptValidation(),
+      ranAt: null
+    };
+  }
+  return {
+    event: value.event || null,
+    payload: clonePlain(value.payload || {}),
+    variables: clonePlain(value.variables || {}),
+    events: Array.isArray(value.events) ? value.events.map((event) => clonePlain(event)) : [],
+    trace: Array.isArray(value.trace) ? value.trace.map((entry) => clonePlain(entry)) : [],
+    graph: value.graph ? clonePlain(value.graph) : null,
+    validation: normalizeVisualScriptValidation(value.validation),
+    ranAt: value.ranAt || null
   };
 }
 
@@ -576,9 +632,10 @@ function normalizeDockLayout(layout = {}) {
 
 function normalizeFlowGraph(flowGraph = {}) {
   return {
+    variables: { ...(flowGraph.variables || {}) },
     nodes: (flowGraph.nodes || []).map((node, index) => ({
-      id: node.id || `node-${index + 1}`,
-      type: node.type || 'action',
+      id: String(node.id || `node-${index + 1}`),
+      type: String(node.type || 'action'),
       label: node.label || node.id || `Node ${index + 1}`,
       x: Number(node.x || 0),
       y: Number(node.y || 0),
@@ -587,6 +644,10 @@ function normalizeFlowGraph(flowGraph = {}) {
     })),
     edges: (flowGraph.edges || [])
       .filter((edge) => edge?.from && edge?.to)
-      .map((edge) => ({ from: edge.from, to: edge.to }))
+      .map((edge) => ({
+        from: String(edge.from),
+        to: String(edge.to),
+        ...(edge.pin ? { pin: String(edge.pin) } : {})
+      }))
   };
 }
