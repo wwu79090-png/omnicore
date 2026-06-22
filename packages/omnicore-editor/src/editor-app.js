@@ -1,4 +1,4 @@
-import { VisualScriptGraphRuntime } from 'omnicore';
+import { AssetRegistry, AssetRegistryChangeSet, VisualScriptGraphRuntime } from 'omnicore';
 import {
   EditorCoCreator25D,
   SocialAwareness25D,
@@ -500,6 +500,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
     createEditorClosureReport,
     applyEditorClosureFixes,
     queueHotReload,
+    refreshAssetRegistryPanel,
+    applyAssetRegistryChanges,
+    exportHotReloadEventStream,
     recordDebugEvent,
     exportDebugTimeline,
     exportAnimationStateMachine,
@@ -682,6 +685,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       authoringHealth: next.authoringHealth || current.authoringHealth,
       editorClosure: next.editorClosure || current.editorClosure,
       hotReload: next.hotReload || current.hotReload,
+      assetRegistryPanel: next.assetRegistryPanel || current.assetRegistryPanel,
+      assetRefresh: next.assetRefresh || current.assetRefresh,
+      hotReloadEvents: next.hotReloadEvents || current.hotReloadEvents,
       autoSave: normalizeAutoSaveState(next.autoSave || current.autoSave)
     });
     renderToolbar();
@@ -1160,6 +1166,15 @@ export function createEditorApp(root = document.querySelector('#app'), {
       },
       queueHotReload(changedFiles = []) {
         return queueHotReload(changedFiles);
+      },
+      refreshAssetRegistryPanel(options = {}) {
+        return refreshAssetRegistryPanel(options);
+      },
+      applyAssetRegistryChanges(changes = [], options = {}) {
+        return applyAssetRegistryChanges(changes, options);
+      },
+      exportHotReloadEventStream(options = {}) {
+        return exportHotReloadEventStream(options);
       },
       recordDebugEvent(event = {}) {
         return recordDebugEvent(event);
@@ -3333,6 +3348,106 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return { registeredAssets, replacements: replacementResults, report };
   }
 
+  function refreshAssetRegistryPanel(options = {}) {
+    const panel = buildAssetRegistryPanelState(current, options);
+    current = createEditorState({
+      ...current,
+      assetRegistryPanel: panel,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'assets', 'left')
+    });
+    emit('editor:asset-registry-panel', panel);
+    update(current);
+    return panel;
+  }
+
+  function applyAssetRegistryChanges(changes = [], options = {}) {
+    const changeList = (Array.isArray(changes) ? changes : [changes]).filter(Boolean);
+    const registryState = buildEditorAssetRegistryState(current);
+    const source = String(options.source || 'editor-resource-panel');
+    const session = new AssetRegistryChangeSet({ registry: registryState.registry, source });
+    changeList.forEach((change) => session.record(change));
+    const plan = session.plan();
+    const changedAt = new Date(Number(options.now || Date.now())).toISOString();
+    const hmrPayload = createEditorAssetHmrPayload(plan);
+    const hotReloadEvents = createAssetHotReloadEvents(plan, hmrPayload, options);
+    const statePatch = applyAssetChangeListToEditorState(current, session.changes);
+    const assetRefresh = {
+      schema: 'omnicore.editor-asset-refresh.v1',
+      source,
+      changedAt,
+      changes: cloneState(session.changes),
+      plan,
+      hmrPayload
+    };
+    current = createEditorState({
+      ...current,
+      ...statePatch,
+      assetRefresh,
+      hotReloadEvents: [...(current.hotReloadEvents || []), ...hotReloadEvents].slice(-240),
+      hotReload: {
+        ok: true,
+        compiledAt: changedAt,
+        changedFiles: [...plan.directAssets],
+        hotReloadManifest: hmrPayload,
+        hmrPayload
+      },
+      dockLayout: ensurePanelInDock(current.dockLayout, 'assets', 'left')
+    });
+    const panel = buildAssetRegistryPanelState(current, { query: options.query || '' });
+    current = createEditorState({ ...current, assetRegistryPanel: panel });
+    for (const event of hotReloadEvents) emit(event.type, event);
+    emit('editor:asset-refresh', assetRefresh);
+    emit('editor:hot-reload-event-stream', exportHotReloadEventStream());
+    update(current);
+    return {
+      plan,
+      hmrPayload,
+      events: hotReloadEvents,
+      panel
+    };
+  }
+
+  function exportHotReloadEventStream({ since = 0, limit = 100 } = {}) {
+    const minId = Number(since || 0);
+    const max = Math.max(1, Number(limit || 100));
+    const events = (current.hotReloadEvents || [])
+      .filter((event) => Number(event.id || 0) > minId)
+      .slice(-max);
+    return {
+      schema: 'omnicore.editor-hot-reload-event-stream.v1',
+      source: current.assetRefresh?.source || 'editor',
+      lastEventId: Number((current.hotReloadEvents || []).at(-1)?.id || 0),
+      events: cloneState(events)
+    };
+  }
+
+  function createAssetHotReloadEvents(plan, hmrPayload, options = {}) {
+    const at = Number(options.now || Date.now());
+    const nextId = Number((current.hotReloadEvents || []).at(-1)?.id || 0) + 1;
+    const base = {
+      source: plan.summary?.source || 'editor-resource-panel',
+      at,
+      incremental: true
+    };
+    const editorEvents = (plan.editorEvents || []).map((event, index) => ({
+      id: nextId + index,
+      ...base,
+      ...cloneState(event)
+    }));
+    return [
+      ...editorEvents,
+      {
+        id: nextId + editorEvents.length,
+        ...base,
+        type: 'assets:hot-update',
+        files: [...hmrPayload.files],
+        runtimeActions: cloneState(hmrPayload.runtimeActions),
+        editorEvents: cloneState(hmrPayload.editorEvents),
+        changePlan: cloneState(hmrPayload.changePlan)
+      }
+    ];
+  }
+
   function create25DPreview({ zToYScale = 16, showReferenceLines = true, showDepthMappingLines = true } = {}) {
     const entities = current.scene?.entities || [];
     const mixedNodes = entities
@@ -4716,7 +4831,67 @@ export function createEditorApp(root = document.querySelector('#app'), {
     }
     const preview = renderAssetPreview();
     if (preview) list.appendChild(preview);
+    list.appendChild(renderAssetRegistryPanel());
     return list;
+  }
+
+  function renderAssetRegistryPanel() {
+    const panel = current.assetRegistryPanel || buildAssetRegistryPanelState(current);
+    const wrap = document.createElement('div');
+    wrap.className = 'asset-registry-panel';
+    wrap.dataset.assetRegistryPanel = 'true';
+    const header = document.createElement('div');
+    header.className = 'asset-registry-header';
+    const title = document.createElement('strong');
+    title.textContent = `AssetRegistry 资源注册表 ${panel.audit?.summary?.assetCount || 0}`;
+    const refresh = document.createElement('button');
+    refresh.type = 'button';
+    refresh.dataset.assetRegistryRefresh = 'true';
+    refresh.textContent = '刷新';
+    refresh.addEventListener('click', () => refreshAssetRegistryPanel({ query: panel.query || '' }));
+    header.append(title, refresh);
+    wrap.appendChild(header);
+
+    const status = document.createElement('div');
+    status.className = panel.audit?.summary?.ready ? 'asset-registry-status ready' : 'asset-registry-status warning';
+    status.textContent = panel.audit?.summary?.ready
+      ? '依赖完整'
+      : `缺失 ${panel.audit?.summary?.missingReferenceCount || 0} / 重复 ${panel.audit?.summary?.duplicateUidCount || 0}`;
+    wrap.appendChild(status);
+
+    const rows = document.createElement('div');
+    rows.className = 'asset-registry-rows';
+    for (const row of panel.rows || []) {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.dataset.assetRegistryRow = row.path;
+      item.dataset.assetRegistryType = row.type;
+      if (row.changeKind) item.dataset.assetRegistryChange = row.changeKind;
+      const changeLabel = localizeAssetChangeKind(row.changeKind);
+      item.textContent = `${changeLabel}${row.path} / ${row.type} / 引用 ${row.referencerCount} / 依赖 ${row.dependencyCount}`;
+      item.addEventListener('click', () => previewAsset({ path: row.path, type: row.type }));
+      rows.appendChild(item);
+    }
+    wrap.appendChild(rows);
+
+    const refreshPlan = document.createElement('div');
+    refreshPlan.className = 'asset-refresh-plan';
+    refreshPlan.dataset.assetRefreshPlan = 'true';
+    const affected = current.assetRefresh?.plan?.affectedAssets || [];
+    refreshPlan.textContent = affected.length ? `增量刷新 ${affected.join(', ')}` : '等待资源变更';
+    wrap.appendChild(refreshPlan);
+
+    const eventList = document.createElement('div');
+    eventList.className = 'asset-hot-reload-events';
+    for (const event of (current.hotReloadEvents || []).slice(-8)) {
+      const eventRow = document.createElement('span');
+      eventRow.dataset.hotReloadEvent = event.type;
+      const files = Array.isArray(event.files) ? ` ${event.files.join(', ')}` : '';
+      eventRow.textContent = `${event.type}${files || (event.asset ? ` ${event.asset}` : '')}`;
+      eventList.appendChild(eventRow);
+    }
+    wrap.appendChild(eventList);
+    return wrap;
   }
 
   function createPrefabOverridePanel() {
@@ -6901,6 +7076,352 @@ function buildEditorResourceDatabase(knownAssets = [], references = []) {
   });
 }
 
+function buildEditorAssetRegistryState(state = {}, options = {}) {
+  const report = buildEditorClosureReport(state, {
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    changedFiles: options.changedFiles || state.hotReload?.changedFiles || [],
+    hotReload: options.hotReload || state.hotReload || null,
+    debugTimeline: options.debugTimeline || state.editorClosure?.debugTimeline || null
+  });
+  const entriesByPath = new Map();
+  const ensureAsset = (asset, fallback = {}) => {
+    const path = normalizeResourcePath(asset);
+    if (!path) return null;
+    const source = typeof asset === 'object' && asset ? { ...asset } : { path };
+    const normalized = normalizeAssetEntry({ ...fallback, ...source, path });
+    const existing = entriesByPath.get(path) || {};
+    const merged = {
+      ...existing,
+      ...normalized,
+      path,
+      type: normalized.type || existing.type || fallback.type || assetType(path),
+      uid: normalized.uid || existing.uid || fallback.uid || null,
+      primaryId: normalized.primaryId || normalized.primaryAssetId || existing.primaryId || fallback.primaryId || null,
+      address: normalized.address || existing.address || fallback.address || null,
+      labels: uniqueStrings([
+        ...(existing.labels || []),
+        ...stringList(normalized.labels),
+        ...stringList(fallback.labels)
+      ]),
+      tags: {
+        ...(isPlainObject(existing.tags) ? existing.tags : {}),
+        ...(isPlainObject(normalized.tags) ? normalized.tags : {}),
+        ...(isPlainObject(fallback.tags) ? fallback.tags : {})
+      },
+      dependencies: uniqueStrings([
+        ...(existing.dependencies || []),
+        ...stringList(normalized.dependencies),
+        ...stringList(fallback.dependencies)
+      ]).sort()
+    };
+    entriesByPath.set(path, merged);
+    return merged;
+  };
+
+  collectKnownEditorAssets(state).forEach((asset) => ensureAsset(asset));
+  for (const row of report.resourceDatabase || []) {
+    if (!row.missing) ensureAsset(row);
+  }
+
+  for (const reference of collectEditorClosureReferences(state).references) {
+    const sourcePath = resolveEditorRegistrySourcePath(state, reference);
+    const dependencyPath = normalizeResourcePath(reference.path);
+    if (!sourcePath || !dependencyPath || sourcePath === dependencyPath) continue;
+    const sourceAsset = ensureAsset({ path: sourcePath, type: assetType(sourcePath) });
+    if (!sourceAsset) continue;
+    sourceAsset.dependencies = uniqueStrings([...(sourceAsset.dependencies || []), dependencyPath]).sort();
+  }
+
+  const entries = [...entriesByPath.values()]
+    .map((asset) => ({
+      ...asset,
+      dependencies: uniqueStrings(asset.dependencies || []).sort()
+    }))
+    .sort((left, right) => left.path.localeCompare(right.path));
+  const registry = new AssetRegistry({ assets: entries });
+  return {
+    registry,
+    entries,
+    report,
+    snapshot: registry.snapshot(),
+    audit: registry.audit()
+  };
+}
+
+function buildAssetRegistryPanelState(state = {}, options = {}) {
+  const registryState = buildEditorAssetRegistryState(state, options);
+  const query = String(options.query ?? state.assetRegistryPanel?.query ?? '').trim().toLowerCase();
+  const changeKinds = assetChangeKindMap(state.assetRefresh);
+  const rowByPath = new Map();
+  for (const row of registryState.report.resourceDatabase || []) {
+    rowByPath.set(row.path, row);
+  }
+  for (const asset of registryState.entries || []) {
+    if (!rowByPath.has(asset.path)) {
+      rowByPath.set(asset.path, {
+        path: asset.path,
+        name: asset.name || asset.path.split('/').pop() || asset.path,
+        type: asset.type || assetType(asset.path),
+        missing: false,
+        missingStub: Boolean(asset.missingStub),
+        referenceCount: 0,
+        sources: []
+      });
+    }
+  }
+  const rows = [...rowByPath.values()]
+    .map((row) => {
+      const dependencies = registryState.snapshot.dependencies[row.path] || [];
+      const referencers = registryState.snapshot.referencers[row.path] || [];
+      return {
+        ...cloneState(row),
+        dependencyCount: dependencies.filter((edge) => !edge.missing).length,
+        missingDependencyCount: dependencies.filter((edge) => edge.missing).length,
+        referencerCount: referencers.length,
+        dependencies: cloneState(dependencies),
+        referencers: cloneState(referencers),
+        changeKind: changeKinds.get(row.path) || null
+      };
+    })
+    .filter((row) => !query || [
+      row.path,
+      row.name,
+      row.type,
+      row.changeKind
+    ].some((value) => String(value || '').toLowerCase().includes(query)))
+    .sort((left, right) => {
+      if (left.missing !== right.missing) return left.missing ? -1 : 1;
+      if (left.changeKind !== right.changeKind) return left.changeKind ? -1 : 1;
+      return left.path.localeCompare(right.path);
+    });
+
+  return {
+    schema: 'omnicore.editor-asset-registry-panel.v1',
+    query,
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    snapshot: registryState.snapshot,
+    audit: registryState.audit,
+    rows
+  };
+}
+
+function createEditorAssetHmrPayload(plan = {}) {
+  const files = uniqueStrings([
+    ...stringList(plan.directAssets),
+    ...(plan.runtimeActions || []).map((action) => action.asset).filter(Boolean)
+  ]).sort();
+  return {
+    type: 'assets:hot-update',
+    incremental: true,
+    files,
+    changePlan: cloneState(plan),
+    runtimeActions: (plan.runtimeActions || []).map((action) => cloneState(action)),
+    editorEvents: (plan.editorEvents || []).map((event) => cloneState(event))
+  };
+}
+
+function applyAssetChangeListToEditorState(state = {}, changes = []) {
+  let assets = (Array.isArray(state.assets) ? state.assets : [])
+    .map((asset) => normalizeAssetEntry(typeof asset === 'object' ? cloneState(asset) : { path: asset }));
+  let projectFiles = normalizeProjectFilesState(state.projectFiles || {});
+  let scene = cloneState(state.scene || { name: 'untitled', entities: [] });
+  let prefabs = cloneState(state.prefabs || []);
+  let sceneTabs = cloneState(state.sceneTabs || []);
+
+  for (const change of changes || []) {
+    const assetPath = normalizeResourcePath(change.asset || change.reference || change.to || change.from);
+    if (!assetPath) continue;
+    if (change.kind === 'imported') {
+      const nextAsset = normalizeAssetFromChange(change);
+      if (nextAsset) assets = upsertEditorAssetEntry(assets, nextAsset);
+      continue;
+    }
+    if (change.kind === 'modified') {
+      assets = assets.map((asset) => (
+        assetEntryMatchesReference(asset, assetPath)
+          ? { ...asset, changed: true, changeKind: 'modified' }
+          : asset
+      ));
+      continue;
+    }
+    if (change.kind === 'deleted') {
+      assets = assets.filter((asset) => !assetEntryMatchesReference(asset, assetPath));
+      continue;
+    }
+    if (change.kind === 'moved') {
+      const from = normalizeResourcePath(change.from || change.asset);
+      const to = normalizeResourcePath(change.to || change.reference);
+      if (!from || !to) continue;
+      assets = assets.map((asset) => {
+        if (!assetEntryMatchesReference(asset, from)) return asset;
+        return normalizeAssetEntry({ ...asset, path: to, movedFrom: from, changeKind: 'moved' });
+      });
+      projectFiles = renameProjectFileReference(projectFiles, from, to);
+      scene = replaceReferenceValue(scene, from, to);
+      prefabs = replaceReferenceValue(prefabs, from, to);
+      sceneTabs = replaceReferenceValue(sceneTabs, from, to);
+    }
+  }
+
+  return {
+    assets,
+    projectFiles,
+    scene,
+    prefabs,
+    sceneTabs
+  };
+}
+
+function localizeAssetChangeKind(kind = '') {
+  if (kind === 'imported') return '新增 ';
+  if (kind === 'modified') return '变更 ';
+  if (kind === 'moved') return '移动 ';
+  if (kind === 'deleted') return '删除 ';
+  return '';
+}
+
+function resolveEditorRegistrySourcePath(state = {}, reference = {}) {
+  const filePath = normalizeResourcePath(reference.filePath);
+  if (filePath) return filePath;
+  if (['scene-file', 'prefab-file', 'file'].includes(reference.sourceType)) {
+    const sourcePath = normalizeResourcePath(reference.source);
+    if (sourcePath) return sourcePath;
+  }
+  if (reference.sourceType === 'prefab') {
+    return resolveEditorPrefabPath(state, reference.prefabId || String(reference.source || '').replace(/^prefab:/iu, ''));
+  }
+  if (['entity', 'scene', 'scene-tab'].includes(reference.sourceType)) {
+    return resolveEditorScenePath(state, reference);
+  }
+  return looksLikeResourceReference(reference.source) ? normalizeResourcePath(reference.source) : null;
+}
+
+function resolveEditorPrefabPath(state = {}, prefabId = '') {
+  const normalizedId = String(prefabId || '').trim();
+  const prefab = (state.prefabs || []).find((item) => (
+    item.id === normalizedId
+    || item.name === normalizedId
+    || normalizeResourcePath(item.path || item.file || item.source || item.url) === normalizedId
+  ));
+  const prefabPath = normalizeResourcePath(prefab?.path || prefab?.file || prefab?.source || prefab?.url || '');
+  if (prefabPath) return prefabPath;
+  const known = collectKnownEditorAssets(state).find((asset) => isPrefabAsset(asset) && (
+    asset.prefabId === normalizedId
+    || asset.name === normalizedId
+    || normalizeResourcePath(asset.path) === normalizedId
+  ));
+  if (known?.path) return known.path;
+  return normalizedId ? `prefabs/${normalizedId}.json` : null;
+}
+
+function resolveEditorScenePath(state = {}, reference = {}) {
+  const referencedFile = normalizeResourcePath(reference.filePath);
+  if (referencedFile) return referencedFile;
+  const activePath = normalizeResourcePath(state.activeSceneTabPath || '');
+  if (activePath) return activePath;
+  const projectFilePaths = Object.keys(state.projectFiles || {}).map(slash);
+  const sceneName = String(state.scene?.name || '').trim().toLowerCase();
+  const namedScene = projectFilePaths.find((filePath) => (
+    /(^|\/)scenes\//iu.test(filePath)
+    && (!sceneName || filePath.toLowerCase().includes(`/${sceneName}.`))
+  ));
+  if (namedScene) return namedScene;
+  const firstSceneFile = projectFilePaths.find((filePath) => /(^|\/)scenes\//iu.test(filePath) || /\.scene\.json$/iu.test(filePath));
+  if (firstSceneFile) return firstSceneFile;
+  const knownScene = collectKnownEditorAssets(state).find((asset) => isSceneAsset(asset));
+  if (knownScene?.path) return knownScene.path;
+  return `scene:${state.scene?.name || 'current'}`;
+}
+
+function assetChangeKindMap(assetRefresh = {}) {
+  const changes = new Map();
+  for (const change of assetRefresh?.changes || []) {
+    const path = normalizeResourcePath(change.asset || change.reference || change.to || change.from);
+    if (path) changes.set(path, change.kind || 'modified');
+  }
+  for (const event of assetRefresh?.plan?.editorEvents || []) {
+    const path = normalizeResourcePath(event.asset || event.to || event.from);
+    if (!path || changes.has(path)) continue;
+    if (event.type === 'asset:imported') changes.set(path, 'imported');
+    else if (event.type === 'asset:moved') changes.set(path, 'moved');
+    else if (event.type === 'asset:deleted') changes.set(path, 'deleted');
+    else if (event.type === 'asset:changed') changes.set(path, 'modified');
+  }
+  return changes;
+}
+
+function normalizeAssetFromChange(change = {}) {
+  const rawAsset = isPlainObject(change.rawAsset) ? cloneState(change.rawAsset) : {};
+  const path = normalizeResourcePath(rawAsset.path || change.to || change.asset || change.reference);
+  if (!path) return null;
+  return normalizeAssetEntry({
+    ...rawAsset,
+    path,
+    type: rawAsset.type || assetType(path),
+    imported: change.kind === 'imported' || Boolean(rawAsset.imported),
+    changeKind: change.kind || rawAsset.changeKind || null
+  });
+}
+
+function upsertEditorAssetEntry(assets = [], nextAsset = {}) {
+  const path = normalizeResourcePath(nextAsset);
+  if (!path) return assets;
+  const index = assets.findIndex((asset) => assetEntryMatchesReference(asset, path));
+  if (index < 0) return [...assets, normalizeAssetEntry(nextAsset)];
+  const merged = normalizeAssetEntry({
+    ...assets[index],
+    ...nextAsset,
+    path,
+    labels: uniqueStrings([
+      ...stringList(assets[index].labels),
+      ...stringList(nextAsset.labels)
+    ])
+  });
+  return assets.map((asset, assetIndex) => (assetIndex === index ? merged : asset));
+}
+
+function assetEntryMatchesReference(asset = {}, reference = '') {
+  const target = slash(reference || '').trim();
+  if (!target) return false;
+  const entry = typeof asset === 'object' && asset ? asset : { path: asset };
+  return [
+    entry.path,
+    entry.url,
+    entry.name,
+    entry.file,
+    entry.source,
+    entry.uid,
+    entry.address,
+    entry.primaryId,
+    entry.primaryAssetId,
+    entry.id,
+    entry.key
+  ].some((value) => slash(value || '').trim() === target);
+}
+
+function renameProjectFileReference(projectFiles = {}, from = '', to = '') {
+  const next = {};
+  for (const [filePath, source] of Object.entries(projectFiles || {})) {
+    const nextFilePath = filePath === from ? to : filePath;
+    next[nextFilePath] = String(source).split(from).join(to);
+  }
+  return next;
+}
+
+function stringList(value = []) {
+  if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+  if (value == null) return [];
+  return [String(value).trim()].filter(Boolean);
+}
+
+function uniqueStrings(values = []) {
+  return [...new Set(stringList(values))];
+}
+
+function isPlainObject(value) {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
 function createPropertyPanelSummary(state = {}) {
   const selected = findSelectedEntity(state) || state.scene?.entities?.[0] || null;
   if (!selected) {
@@ -7171,6 +7692,21 @@ const EDITOR_CSS = `
   .asset-preview { margin-top: 8px; padding: 8px; border: 1px solid #334155; background: #020617; }
   .asset-preview img { display: block; max-width: 100%; max-height: 180px; object-fit: contain; background: #111827; }
   .asset-preview pre { max-height: 180px; overflow: auto; margin: 0; color: #bfdbfe; }
+  .asset-registry-panel { display: grid; gap: 7px; margin-top: 10px; padding: 8px; border: 1px solid #334155; background: #020617; }
+  .asset-registry-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+  .asset-registry-header strong { min-width: 0; overflow: hidden; color: #bfdbfe; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+  .asset-registry-header button { width: auto; min-height: 26px; margin: 0; padding: 4px 7px; border-color: #22d3ee; color: #cffafe; }
+  .asset-registry-status { padding: 4px 6px; border-left: 3px solid #84cc16; background: rgba(22,101,52,.34); color: #dcfce7; }
+  .asset-registry-status.warning { border-left-color: #f59e0b; background: rgba(120,53,15,.44); color: #fde68a; }
+  .asset-registry-rows { display: grid; gap: 4px; max-height: 180px; overflow: auto; }
+  .asset-registry-rows button { display: block; min-width: 0; margin: 0; border-left: 3px solid #475569; background: #0f172a; color: #dbeafe; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .asset-registry-rows [data-asset-registry-change="imported"] { border-left-color: #84cc16; color: #dcfce7; }
+  .asset-registry-rows [data-asset-registry-change="modified"] { border-left-color: #22d3ee; color: #cffafe; }
+  .asset-registry-rows [data-asset-registry-change="moved"] { border-left-color: #facc15; color: #fef3c7; }
+  .asset-registry-rows [data-asset-registry-change="deleted"] { border-left-color: #f87171; color: #fecaca; }
+  .asset-refresh-plan, .asset-hot-reload-events { display: grid; gap: 4px; min-width: 0; padding: 5px 6px; border: 1px solid #1e293b; background: #0f172a; color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .asset-hot-reload-events { max-height: 92px; overflow: auto; white-space: normal; }
+  .asset-hot-reload-events span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .database-wrap { display: grid; gap: 8px; }
   .database-wrap table { width: 100%; border-collapse: collapse; }
   .database-wrap caption { text-align: left; color: #bfdbfe; margin-bottom: 4px; }

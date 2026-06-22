@@ -48,6 +48,9 @@ export function createEditorState(initial = {}) {
     authoringHealth: normalizeAuthoringHealth(initial.authoringHealth),
     editorClosure: normalizeEditorClosure(initial.editorClosure),
     hotReload: normalizeHotReload(initial.hotReload),
+    assetRegistryPanel: normalizeAssetRegistryPanel(initial.assetRegistryPanel),
+    assetRefresh: normalizeAssetRefresh(initial.assetRefresh),
+    hotReloadEvents: normalizeHotReloadEvents(initial.hotReloadEvents),
     preview25D: initial.preview25D || null,
     coCreation25D: initial.coCreation25D || null,
     livingWorldPreview25D: initial.livingWorldPreview25D || null,
@@ -99,6 +102,9 @@ export function applyLiveSyncMessage(state = createEditorState(), message = {}) 
   if (message.type === 'editor:scene-validation') next.sceneValidation = normalizeSceneValidation(message.payload);
   if (message.type === 'editor:closure-report') next.editorClosure = normalizeEditorClosure(message.payload);
   if (message.type === 'editor:hot-reload') next.hotReload = normalizeHotReload(message.payload);
+  if (message.type === 'editor:asset-registry-panel') next.assetRegistryPanel = normalizeAssetRegistryPanel(message.payload);
+  if (message.type === 'editor:asset-refresh') next.assetRefresh = normalizeAssetRefresh(message.payload);
+  if (message.type === 'editor:hot-reload-event-stream') next.hotReloadEvents = normalizeHotReloadEvents(message.payload?.events || message.payload);
   if (message.type === 'editor:visual-script-validation') {
     next.visualScriptValidation = normalizeVisualScriptValidation(message.payload);
   }
@@ -264,6 +270,20 @@ function normalizeEditorClosure(value = null) {
 function normalizeHotReload(value = null) {
   if (!value || typeof value !== 'object') return null;
   return clonePlain(value);
+}
+
+function normalizeAssetRegistryPanel(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return clonePlain(value);
+}
+
+function normalizeAssetRefresh(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return clonePlain(value);
+}
+
+function normalizeHotReloadEvents(value = []) {
+  return (Array.isArray(value) ? value : []).map((event) => clonePlain(event));
 }
 
 function normalizeCurvePoints(points = []) {

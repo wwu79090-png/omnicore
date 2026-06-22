@@ -206,4 +206,82 @@ describe('editor deep toolchain', () => {
     expect(root.querySelector('[data-runtime-debug-resource="assets/missing-door.webp"]')?.textContent).toContain('缺失占位');
     app.destroy();
   });
+
+  it('drives the resource panel from AssetRegistry change plans and hot reload events', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        scene: {
+          name: 'main',
+          entities: [
+            { id: 'hero', name: 'Hero', sprite: 'assets/hero.png', prefabId: 'hero-prefab' }
+          ]
+        },
+        assets: [
+          { path: 'assets/hero.png', type: 'image', uid: 'uid://hero-texture' },
+          { path: 'prefabs/hero.json', type: 'prefab', uid: 'uid://hero-prefab' },
+          { path: 'scenes/main.json', type: 'scene', uid: 'uid://main-scene' }
+        ],
+        prefabs: [
+          { id: 'hero-prefab', path: 'prefabs/hero.json', sprite: 'assets/hero.png' }
+        ],
+        projectFiles: {
+          'scenes/main.json': '{"prefab":"prefabs/hero.json","texture":"assets/hero.png"}',
+          'prefabs/hero.json': '{"sprite":"assets/hero.png"}'
+        },
+        dockLayout: {
+          left: ['assets'],
+          center: ['scene-view'],
+          right: ['inspector'],
+          bottom: ['runtime-debug']
+        }
+      })
+    });
+
+    const snapshot = app.EditorAPI.refreshAssetRegistryPanel({ query: 'hero' });
+    expect(snapshot.audit.summary.ready).toBe(true);
+    expect(snapshot.snapshot.referencers['assets/hero.png'].map((edge) => edge.asset)).toEqual(expect.arrayContaining([
+      'prefabs/hero.json',
+      'scenes/main.json'
+    ]));
+    expect(root.querySelector('[data-asset-registry-panel]')?.textContent).toContain('AssetRegistry');
+    expect(root.querySelector('[data-asset-registry-row="assets/hero.png"]')?.textContent).toContain('引用 2');
+
+    const refresh = app.EditorAPI.applyAssetRegistryChanges([
+      { kind: 'modified', reference: 'assets/hero.png' },
+      {
+        kind: 'imported',
+        asset: { path: 'assets/enemy.png', type: 'image', uid: 'uid://enemy-texture', labels: ['enemy'] }
+      }
+    ], { source: 'editor-file-watch', now: 20000 });
+
+    expect(refresh.plan.summary).toMatchObject({
+      source: 'editor-file-watch',
+      changeCount: 2,
+      affectedAssetCount: 2
+    });
+    expect(refresh.plan.runtimeActions).toEqual(expect.arrayContaining([
+      { type: 'reloadAsset', asset: 'assets/hero.png', reason: 'modified' },
+      { type: 'preloadAsset', asset: 'assets/enemy.png', reason: 'imported' },
+      { type: 'refreshAsset', asset: 'prefabs/hero.json', reason: 'depends-on:assets/hero.png' },
+      { type: 'refreshAsset', asset: 'scenes/main.json', reason: 'depends-on:assets/hero.png' }
+    ]));
+    expect(app.getState().assets.map((asset) => asset.path)).toContain('assets/enemy.png');
+
+    const stream = app.EditorAPI.exportHotReloadEventStream({ since: 0 });
+    expect(stream.events.map((event) => event.type)).toEqual(expect.arrayContaining([
+      'asset:changed',
+      'asset:imported',
+      'assets:hot-update'
+    ]));
+    expect(stream.events.find((event) => event.type === 'assets:hot-update')).toMatchObject({
+      incremental: true,
+      files: expect.arrayContaining(['assets/enemy.png', 'assets/hero.png'])
+    });
+    expect(root.querySelector('[data-asset-registry-row="assets/enemy.png"]')?.textContent).toContain('新增');
+    expect(root.querySelector('[data-hot-reload-event="assets:hot-update"]')?.textContent).toContain('assets/hero.png');
+    expect(root.querySelector('[data-asset-refresh-plan]')?.textContent).toContain('prefabs/hero.json');
+    app.destroy();
+  });
 });
