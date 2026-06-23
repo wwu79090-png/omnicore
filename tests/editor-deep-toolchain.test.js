@@ -87,6 +87,83 @@ describe('editor deep toolchain', () => {
     app.destroy();
   });
 
+  it('surfaces physics runtime diagnostics with debug draw and live sync', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const messages = [];
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        dockLayout: { left: ['hierarchy'], center: ['scene-view'], right: ['inspector'], bottom: ['physics-view'] }
+      }),
+      transport: {
+        send: (message) => messages.push(JSON.parse(message))
+      }
+    });
+
+    const diagnostics = app.EditorAPI.refreshPhysicsDiagnosticsPanel({
+      backend: 'matter',
+      bodies: [
+        {
+          id: 'hero',
+          type: 'dynamic',
+          x: 0,
+          y: 0,
+          vx: 8,
+          vy: 0,
+          collider: { shape: 'box', width: 16, height: 24 },
+          material: 'player'
+        },
+        {
+          id: 'goal-trigger',
+          type: 'static',
+          x: 20,
+          y: 0,
+          sensor: true,
+          collider: { shape: 'box', width: 8, height: 24, sensor: true }
+        }
+      ],
+      constraints: [{
+        id: 'hero-goal-link',
+        type: 'distance',
+        bodyA: 'hero',
+        bodyB: 'goal-trigger',
+        limits: { min: 4, max: 40 }
+      }],
+      raycasts: [{
+        id: 'forward-probe',
+        origin: { x: -12, y: 8 },
+        direction: { x: 1, y: 0 },
+        maxDistance: 80
+      }]
+    });
+
+    expect(diagnostics).toMatchObject({
+      schema: 'omnicore.editor-physics-diagnostics.v1',
+      snapshot: {
+        schema: 'omnicore.physics-diagnostics-snapshot.v1',
+        summary: {
+          bodyCount: 2,
+          sensorCount: 1,
+          constraintCount: 1,
+          raycastHitCount: 1,
+          debugColliderCount: 2
+        }
+      }
+    });
+    expect(root.querySelector('[data-panel="physics-view"]')?.textContent).toContain('物理诊断');
+    expect(root.querySelector('[data-physics-diagnostics]')?.textContent).toContain('后端 matter');
+    expect(root.querySelector('[data-physics-debug-collider="hero"]')).not.toBeNull();
+    expect(root.querySelector('[data-physics-raycast="forward-probe"]')?.textContent).toContain('命中 hero');
+    expect(app.createRuntimeSyncPayload().physicsView.diagnostics.snapshot.summary.constraintCount).toBe(1);
+    expect(messages.map((message) => message.type)).toContain('editor:physics-diagnostics');
+    const syncedState = applyLiveSyncMessage(createEditorState(), {
+      type: 'editor:physics-diagnostics',
+      payload: diagnostics
+    });
+    expect(syncedState.physicsView.diagnostics.snapshot.summary.bodyCount).toBe(2);
+    app.destroy();
+  });
+
   it('configures multi-platform build settings with strategy defaults', () => {
     const root = document.createElement('main');
     document.body.appendChild(root);

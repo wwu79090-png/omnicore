@@ -1059,12 +1059,30 @@ Lean Addon 覆盖：
 
 - `Renderer`：Pixi/global-PIXI 优先，失败无感降级 Canvas 2D，内置绘制耗时/FPS 统计。
 - `Audio`：Web Audio 外部音效和 `playSynth()` 合成器。
-- `Physics`：`rectIntersects()`、`ptInRect()` 和外部物理库延迟加载。
+- `Physics`：`rectIntersects()`、`ptInRect()`、外部物理库延迟加载，以及 `@omnicore/physics` 提供的状态化 arcade 世界、sensor、constraint、raycast、debug draw 和 Rapier/Box2D 适配槽。
 - `Scene`：节点树、场景栈、生命钩子和可视过渡。
 - `Resources`：`loadBundle()`、HMR 入口、图集描述生成和资源审计入口。
 - `Input`：`EventTarget + AbortController` 原生输入，支持键盘、鼠标、触控、动作映射和 gamepad 快照。
 - `DevTools`：`~` 控制台、对象树、性能面板和 WebSocket 日志转发入口。
 - `Storage`：localStorage/内存适配、多存档、快照、回滚、版本迁移和自动修复。
+
+独立物理包 `@omnicore/physics` 可用于编辑器预览和轻量玩法原型：
+
+```js
+import { createPhysicsWorld } from '@omnicore/physics';
+
+const world = createPhysicsWorld({ backend: 'arcade' });
+world.addBody({ id: 'hero', type: 'dynamic', x: 0, y: 0, width: 16, height: 24, velocity: { x: 80, y: 0 } });
+world.addSensor({ id: 'goal', x: 120, y: 0, width: 24, height: 32 });
+world.addConstraint({ id: 'rope', bodyA: 'hero', bodyB: 'goal', limits: { min: 8, max: 160 } });
+world.step(1 / 60);
+
+const diagnostics = world.createDiagnosticsSnapshot({
+  raycasts: [{ id: 'forward', origin: { x: -12, y: 8 }, direction: { x: 1, y: 0 }, maxDistance: 240 }]
+});
+```
+
+桌面编辑器的 `EditorAPI.refreshPhysicsDiagnosticsPanel()` 会把 `PhysicsWorld` 诊断写入物理视图，显示刚体、sensor、constraint、raycast 命中和 debug draw；可运行示例在 [`examples/physics-debug-draw-demo`](examples/physics-debug-draw-demo/)。
 
 ## 一键启动与生成器
 

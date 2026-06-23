@@ -49,7 +49,7 @@ import {
   Workflow,
   Zap
 } from 'lucide-static';
-import { Scene3DKit } from 'omnicore';
+import { PhysicsWorld, Scene3DKit } from 'omnicore';
 import {
   AssetRegistry,
   AssetRegistryChangeSet,
@@ -1129,6 +1129,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     refreshScene3DReadinessPanel,
     createScene3DReadinessFixPlan,
     applyScene3DReadinessFixPlan,
+    refreshPhysicsDiagnosticsPanel,
     createRuntimeSyncPayload,
     applyRuntimeSyncPayload,
     create25DPreview,
@@ -2404,6 +2405,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       openPhysicsView() {
         return openPhysicsView();
       },
+      refreshPhysicsDiagnosticsPanel(input = {}, options = {}) {
+        return refreshPhysicsDiagnosticsPanel(input, options);
+      },
       editPrefabVariantRuntime(prefabId, patch = {}) {
         return editPrefabVariantRuntime(prefabId, patch);
       },
@@ -2671,12 +2675,33 @@ export function createEditorApp(root = document.querySelector('#app'), {
   function openPhysicsView() {
     current = {
       ...current,
-      physicsView: { open: true },
+      physicsView: {
+        ...normalizePhysicsViewState(current.physicsView),
+        open: true
+      },
       dockLayout: ensurePanelInDock(current.dockLayout, 'physics-view', 'center')
     };
     emit('editor:open-physics-view', { bodies: physicsBodies(current).length });
     update(current);
     return current.physicsView;
+  }
+
+  function refreshPhysicsDiagnosticsPanel(input = {}, options = {}) {
+    const diagnostics = createEditorPhysicsDiagnostics(input, options);
+    current = {
+      ...current,
+      physicsView: {
+        ...normalizePhysicsViewState(current.physicsView),
+        open: true,
+        backend: diagnostics.backend,
+        diagnostics
+      },
+      dockLayout: ensurePanelInDock(current.dockLayout, 'physics-view', 'bottom')
+    };
+    emit('editor:physics-diagnostics', diagnostics);
+    showEditorFeedback(`物理诊断已刷新：${diagnostics.snapshot.summary.bodyCount} 个刚体`, 'success');
+    update(current);
+    return diagnostics;
   }
 
   function editPrefabVariantRuntime(prefabId, patch = {}) {
@@ -4831,6 +4856,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       behaviorTree: exportBehaviorTreeJson(),
       visualScriptGraph: exportVisualScriptGraph(),
       visualScriptTrace: cloneState(current.visualScriptTrace),
+      physicsView: cloneState(current.physicsView),
       uiLayout: exportUILayoutJson(),
       renderOptimizationPlan: cloneState(current.renderOptimizationPlan),
       renderOptimizationVerification: cloneState(current.renderOptimizationVerification),
@@ -4851,6 +4877,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       behaviorTree: payload.behaviorTree || current.behaviorTree,
       visualScriptTrace: payload.visualScriptTrace || current.visualScriptTrace,
       visualScriptValidation: payload.visualScriptTrace?.validation || current.visualScriptValidation,
+      physicsView: payload.physicsView || current.physicsView,
       uiLayout: payload.uiLayout || current.uiLayout,
       renderOptimizationPlan: payload.renderOptimizationPlan || payload.renderOptimizationRuntime?.sourcePlan || current.renderOptimizationPlan,
       renderOptimizationVerification: payload.renderOptimizationVerification || current.renderOptimizationVerification,
@@ -7245,8 +7272,51 @@ export function createEditorApp(root = document.querySelector('#app'), {
     const wrap = document.createElement('div');
     wrap.className = 'physics-view-wrap';
     const title = document.createElement('p');
-    title.textContent = 'Matter 物理视图 - 半透明碰撞线框';
+    title.textContent = 'Matter 物理视图 - 半透明碰撞线框 / 物理诊断';
     wrap.appendChild(title);
+    const diagnostics = current.physicsView?.diagnostics || null;
+    if (diagnostics?.snapshot) {
+      const diagnosticPanel = document.createElement('section');
+      diagnosticPanel.className = 'physics-diagnostics-panel';
+      diagnosticPanel.dataset.physicsDiagnostics = 'true';
+      const summary = diagnostics.snapshot.summary || {};
+      const heading = document.createElement('h3');
+      heading.textContent = `物理诊断 / 后端 ${diagnostics.backend || diagnostics.snapshot.backend || 'local'}`;
+      diagnosticPanel.appendChild(heading);
+      const metrics = document.createElement('div');
+      metrics.className = 'physics-diagnostics-metrics';
+      for (const [label, value] of [
+        ['刚体', summary.bodyCount || 0],
+        ['传感器', summary.sensorCount || 0],
+        ['约束', summary.constraintCount || 0],
+        ['Raycast 命中', summary.raycastHitCount || 0],
+        ['Debug Collider', summary.debugColliderCount || 0]
+      ]) {
+        const metric = document.createElement('span');
+        metric.textContent = `${label} ${value}`;
+        metrics.appendChild(metric);
+      }
+      diagnosticPanel.appendChild(metrics);
+      const colliderList = document.createElement('div');
+      colliderList.className = 'physics-diagnostics-list';
+      for (const collider of diagnostics.snapshot.debugDraw?.colliders || []) {
+        const item = document.createElement('span');
+        item.dataset.physicsDebugCollider = collider.id;
+        item.textContent = `${collider.id} / ${collider.shape || 'box'} / ${collider.sensor ? 'sensor' : collider.type || 'body'}`;
+        colliderList.appendChild(item);
+      }
+      diagnosticPanel.appendChild(colliderList);
+      const raycastList = document.createElement('div');
+      raycastList.className = 'physics-diagnostics-list';
+      for (const raycast of diagnostics.snapshot.raycasts || []) {
+        const item = document.createElement('span');
+        item.dataset.physicsRaycast = raycast.id;
+        item.textContent = `${raycast.id} / ${raycast.hit ? `命中 ${raycast.hit.bodyId}` : '未命中'}`;
+        raycastList.appendChild(item);
+      }
+      diagnosticPanel.appendChild(raycastList);
+      wrap.appendChild(diagnosticPanel);
+    }
     const canvas = document.createElement('div');
     canvas.className = 'physics-debug-canvas';
     for (const body of physicsBodies(current)) {
@@ -7912,9 +7982,87 @@ function normalizeResourcePickerState(value = {}) {
   };
 }
 
+function createEditorPhysicsDiagnostics(input = {}, options = {}) {
+  const world = new PhysicsWorld();
+  const bodies = Array.isArray(input.bodies)
+    ? input.bodies
+    : physicsBodies({ scene: input.scene || { entities: [] } }).map((body) => ({
+      ...body,
+      type: 'static',
+      collider: { shape: body.shape, width: body.width, height: body.height }
+    }));
+  for (const [index, body] of bodies.entries()) {
+    world.createRigidBody(normalizeEditorPhysicsBody(body, index));
+  }
+  for (const constraint of input.constraints || []) {
+    world.createConstraint(constraint);
+  }
+  const snapshot = world.createDiagnosticsSnapshot({
+    raycasts: input.raycasts || []
+  });
+  const backend = input.backend || snapshot.backend || 'local';
+  const normalizedSnapshot = {
+    ...snapshot,
+    backend,
+    backendCapabilities: {
+      ...snapshot.backendCapabilities,
+      active: backend,
+      capabilities: snapshot.backendCapabilities?.capabilities || [
+        'rigid-bodies',
+        'colliders',
+        'sensors',
+        'constraints',
+        'raycast',
+        'debug-draw'
+      ]
+    }
+  };
+  return {
+    schema: 'omnicore.editor-physics-diagnostics.v1',
+    backend,
+    generatedAt: options.generatedAt || input.generatedAt || new Date().toISOString(),
+    snapshot: normalizedSnapshot,
+    recommendations: createEditorPhysicsRecommendations(normalizedSnapshot)
+  };
+}
+
+function normalizeEditorPhysicsBody(body = {}, index = 0) {
+  const collider = body.collider || {};
+  return {
+    ...cloneState(body),
+    id: body.id || `body-${index + 1}`,
+    type: body.type || (body.sensor || collider.sensor ? 'static' : 'dynamic'),
+    x: Number(body.x ?? body.position?.x ?? 0),
+    y: Number(body.y ?? body.position?.y ?? 0),
+    vx: Number(body.vx ?? body.velocity?.x ?? 0),
+    vy: Number(body.vy ?? body.velocity?.y ?? 0),
+    sensor: Boolean(body.sensor || collider.sensor),
+    collider: {
+      ...cloneState(collider),
+      shape: collider.shape || body.shape || 'box',
+      width: Number(collider.width ?? body.width ?? 32),
+      height: Number(collider.height ?? body.height ?? 32),
+      radius: Number(collider.radius ?? body.radius ?? 0),
+      sensor: Boolean(body.sensor || collider.sensor)
+    }
+  };
+}
+
+function createEditorPhysicsRecommendations(snapshot = {}) {
+  const summary = snapshot.summary || {};
+  const recommendations = [];
+  if (!summary.bodyCount) recommendations.push('添加刚体或碰撞体后再运行物理调试。');
+  if (summary.sensorCount && !summary.raycastCount) recommendations.push('为传感器区域添加 raycast 探针，验证触发距离。');
+  if (summary.constraintCount) recommendations.push('检查约束端点是否稳定绑定到刚体。');
+  if (summary.debugColliderCount) recommendations.push('保留 debug draw 叠层，方便调试碰撞体尺寸。');
+  return recommendations;
+}
+
 function normalizePhysicsViewState(value = {}) {
   return {
-    open: Boolean(value.open)
+    open: Boolean(value.open),
+    backend: value.backend || value.diagnostics?.backend || value.diagnostics?.snapshot?.backend || null,
+    diagnostics: value.diagnostics ? cloneState(value.diagnostics) : null
   };
 }
 

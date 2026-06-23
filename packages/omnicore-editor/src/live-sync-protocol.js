@@ -135,6 +135,13 @@ export function applyLiveSyncMessage(state = createEditorState(), message = {}) 
   if (message.type === 'editor:scene-3d-readiness-fix-apply-report') {
     next.scene3DFixApplyReport = normalizeScene3DFixApplyReport(message.payload);
   }
+  if (message.type === 'editor:physics-diagnostics') {
+    next.physicsView = normalizePhysicsView({
+      ...next.physicsView,
+      open: true,
+      diagnostics: message.payload
+    });
+  }
   if (message.type === 'editor:render-optimization-runtime-plan') {
     next.renderOptimizationPlan = normalizeRenderOptimizationPlan(message.payload?.sourcePlan);
   }
@@ -776,7 +783,9 @@ function normalizeResourcePicker(value = {}) {
 
 function normalizePhysicsView(value = {}) {
   return {
-    open: Boolean(value.open)
+    open: Boolean(value.open),
+    backend: value.backend || value.diagnostics?.backend || value.diagnostics?.snapshot?.backend || null,
+    diagnostics: value.diagnostics ? clonePlain(value.diagnostics) : null
   };
 }
 
