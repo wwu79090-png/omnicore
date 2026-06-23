@@ -56,6 +56,7 @@ import {
   BatchAtlasDiagnostics,
   VisualScriptGraphRuntime
 } from './editor-runtime-adapters.js';
+import { createEditorAuthoringModules } from './editor-authoring-modules.js';
 import {
   EditorCoCreator25D,
   SocialAwareness25D,
@@ -1064,10 +1065,12 @@ export function createEditorApp(root = document.querySelector('#app'), {
   const statusbar = root.querySelector('[data-editor-statusbar]');
   const client = syncUrl ? new LiveSyncClient({ url: syncUrl, onState: (next) => update(next) }).connect() : null;
   const inputFocusManager = createInputFocusManager({ root });
+  const authoringModules = createEditorAuthoringModules();
 
   const api = {
     update,
     getState: () => current,
+    getAuthoringModules: () => cloneState(authoringModules),
     getDockLayout: () => cloneState(current.dockLayout),
     setDockLayout,
     movePanelToRegion,

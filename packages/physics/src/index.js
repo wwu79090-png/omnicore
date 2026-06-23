@@ -79,6 +79,20 @@ export function createAdapterBackend(id, options = {}) {
   };
 }
 
+export function createExternalPhysicsBackend(id, options = {}) {
+  if (!id) throw new Error('external physics backend id is required');
+  return {
+    id: String(id),
+    kind: options.kind || 'external',
+    purpose: options.purpose || `${id} external physics backend bridge.`,
+    capabilities: options.capabilities || DEFAULT_CAPABILITIES,
+    available: options.available ?? Boolean(options.module),
+    fallback: options.fallback || 'arcade',
+    module: options.module || null,
+    external: true
+  };
+}
+
 export function createNoopBackend() {
   return {
     id: 'noop',
@@ -110,6 +124,9 @@ export function createPhysicsWorld({ backend = 'arcade-lite', gravity = {}, back
     gravity: normalizeVector(gravity),
     bodies: new Map(),
     constraints: new Map(),
+    externalWorlds: new Map(),
+    externalBodyHandles: new Map(),
+    externalConstraintHandles: new Map(),
     lastStep: null,
     lastRaycasts: []
   };
@@ -119,17 +136,20 @@ export function createPhysicsWorld({ backend = 'arcade-lite', gravity = {}, back
     addBody(body = {}) {
       const normalized = normalizeBody(body, state.bodies.size);
       state.bodies.set(normalized.id, normalized);
+      syncBodyToExternalBackend(normalized);
       return clone(normalized);
     },
     addSensor(sensor = {}) {
       const normalized = normalizeBody({ ...sensor, sensor: true, type: sensor.type || 'static' }, state.bodies.size);
       normalized.collider.sensor = true;
       state.bodies.set(normalized.id, normalized);
+      syncBodyToExternalBackend(normalized);
       return clone(normalized);
     },
     addConstraint(constraint = {}) {
       const normalized = normalizeConstraint(constraint, state.constraints.size);
       state.constraints.set(normalized.id, normalized);
+      syncConstraintToExternalBackend(normalized);
       return clone(normalized);
     },
     getBody(id) {
@@ -155,6 +175,24 @@ export function createPhysicsWorld({ backend = 'arcade-lite', gravity = {}, back
         state.lastStep = { stepped: false, backend: 'noop', delta: 0, contacts: [], sensors: [], constraints: [] };
         return clone(state.lastStep);
       }
+      const externalRuntime = getExternalRuntime(active);
+      if (externalRuntime) {
+        hydrateExternalBackend(externalRuntime);
+        const result = callExternal(active, 'step', externalRuntime.world, delta, createExternalContext());
+        state.lastStep = {
+          stepped: true,
+          backend: active.id,
+          delta,
+          contacts: clone(result?.contacts || []),
+          sensors: clone(result?.sensors || []),
+          constraints: [...state.constraints.values()].map(clone),
+          external: {
+            kind: active.kind,
+            worldId: getExternalWorldId(externalRuntime.world)
+          }
+        };
+        return clone(state.lastStep);
+      }
 
       for (const body of state.bodies.values()) {
         if (body.type !== 'dynamic') continue;
@@ -176,11 +214,34 @@ export function createPhysicsWorld({ backend = 'arcade-lite', gravity = {}, back
       return clone(state.lastStep);
     },
     raycast(origin = {}, direction = {}, maxDistance = Number.POSITIVE_INFINITY) {
+      const active = registry.getActiveBackend();
+      const externalRuntime = getExternalRuntime(active);
+      if (externalRuntime && hasExternal(active, 'raycast')) {
+        hydrateExternalBackend(externalRuntime);
+        const ray = {
+          origin: normalizeVector(origin),
+          direction: normalizeDirection(direction),
+          maxDistance
+        };
+        const hit = callExternal(active, 'raycast', externalRuntime.world, ray, createExternalContext());
+        state.lastRaycasts.push({ ...ray, hit });
+        return hit ? clone(hit) : null;
+      }
       const hit = raycastBodies([...state.bodies.values()], origin, direction, maxDistance);
       state.lastRaycasts.push({ origin: normalizeVector(origin), direction: normalizeVector(direction, { x: 1, y: 0 }), maxDistance, hit });
       return hit ? clone(hit) : null;
     },
     debugDraw() {
+      const active = registry.getActiveBackend();
+      const externalRuntime = getExternalRuntime(active);
+      if (externalRuntime && hasExternal(active, 'debugDraw')) {
+        hydrateExternalBackend(externalRuntime);
+        return normalizeExternalDebugDraw(
+          callExternal(active, 'debugDraw', externalRuntime.world, createExternalContext()),
+          [...state.bodies.values()],
+          [...state.constraints.values()]
+        );
+      }
       return createDebugDrawPayload([...state.bodies.values()], [...state.constraints.values()]);
     },
     createDiagnosticsSnapshot({ raycasts = [] } = {}) {
@@ -197,7 +258,7 @@ export function createPhysicsWorld({ backend = 'arcade-lite', gravity = {}, back
       });
       const bodies = [...state.bodies.values()].map(clone);
       const constraints = [...state.constraints.values()].map(clone);
-      const debugDraw = createDebugDrawPayload(bodies, constraints);
+      const debugDraw = api.debugDraw();
       return {
         schema: 'omnicore.physics-runtime-diagnostics.v1',
         backend: api.activeBackend,
@@ -233,7 +294,10 @@ export function createPhysicsWorld({ backend = 'arcade-lite', gravity = {}, back
       };
     },
     switchBackend(id) {
-      return registry.useBackend(id);
+      const selected = registry.useBackend(id);
+      const externalRuntime = getExternalRuntime(selected);
+      if (externalRuntime) hydrateExternalBackend(externalRuntime);
+      return selected;
     },
     listBackends() {
       return registry.listBackends();
@@ -243,6 +307,69 @@ export function createPhysicsWorld({ backend = 'arcade-lite', gravity = {}, back
     }
   };
 
+  function syncBodyToExternalBackend(body) {
+    const externalRuntime = getExternalRuntime();
+    if (!externalRuntime) return null;
+    return createExternalBodyHandle(externalRuntime, body);
+  }
+
+  function syncConstraintToExternalBackend(constraint) {
+    const externalRuntime = getExternalRuntime();
+    if (!externalRuntime) return null;
+    return createExternalConstraintHandle(externalRuntime, constraint);
+  }
+
+  function getExternalRuntime(backendDescriptor = registry.getActiveBackend()) {
+    if (!backendDescriptor?.module) return null;
+    if (!state.externalWorlds.has(backendDescriptor.id)) {
+      const world = callExternal(backendDescriptor, 'createWorld', createExternalContext()) || {
+        id: `${backendDescriptor.id}-world`
+      };
+      state.externalWorlds.set(backendDescriptor.id, world);
+    }
+    return {
+      backend: backendDescriptor,
+      world: state.externalWorlds.get(backendDescriptor.id)
+    };
+  }
+
+  function hydrateExternalBackend(externalRuntime) {
+    for (const body of state.bodies.values()) createExternalBodyHandle(externalRuntime, body);
+    for (const constraint of state.constraints.values()) createExternalConstraintHandle(externalRuntime, constraint);
+  }
+
+  function createExternalBodyHandle(externalRuntime, body) {
+    const key = `${externalRuntime.backend.id}:${body.id}`;
+    if (state.externalBodyHandles.has(key)) return state.externalBodyHandles.get(key);
+    const handle = (
+      callExternal(externalRuntime.backend, 'createRigidBody', externalRuntime.world, clone(body), createExternalContext())
+      || callExternal(externalRuntime.backend, 'createBody', externalRuntime.world, clone(body), createExternalContext())
+      || { id: body.id }
+    );
+    state.externalBodyHandles.set(key, handle);
+    return handle;
+  }
+
+  function createExternalConstraintHandle(externalRuntime, constraint) {
+    const key = `${externalRuntime.backend.id}:${constraint.id}`;
+    if (state.externalConstraintHandles.has(key)) return state.externalConstraintHandles.get(key);
+    const handle = (
+      callExternal(externalRuntime.backend, 'createJoint', externalRuntime.world, clone(constraint), createExternalContext())
+      || callExternal(externalRuntime.backend, 'createConstraint', externalRuntime.world, clone(constraint), createExternalContext())
+      || { id: constraint.id }
+    );
+    state.externalConstraintHandles.set(key, handle);
+    return handle;
+  }
+
+  function createExternalContext() {
+    return {
+      gravity: clone(state.gravity),
+      bodies: [...state.bodies.values()].map(clone),
+      constraints: [...state.constraints.values()].map(clone)
+    };
+  }
+
   return api;
 }
 
@@ -251,6 +378,41 @@ function normalizeBackendDescriptor(backend) {
     ...backend,
     capabilities: Array.isArray(backend.capabilities) ? backend.capabilities.map(String) : [],
     available: backend.available !== false
+  };
+}
+
+function hasExternal(backend, method) {
+  return typeof backend?.module?.[method] === 'function';
+}
+
+function callExternal(backend, method, ...args) {
+  if (!hasExternal(backend, method)) return null;
+  return backend.module[method](...args);
+}
+
+function getExternalWorldId(world) {
+  return world?.id || world?.handle || world?.name || null;
+}
+
+function normalizeExternalDebugDraw(payload = {}, bodies = [], constraints = []) {
+  return {
+    schema: 'omnicore.physics-debug-draw.v1',
+    source: 'external-backend',
+    colliders: Array.isArray(payload.colliders)
+      ? payload.colliders.map((collider) => ({
+        id: String(collider.id || collider.bodyId || 'collider'),
+        bodyId: collider.bodyId || collider.id || null,
+        shape: collider.shape || collider.type || 'box',
+        ...clone(collider)
+      }))
+      : createDebugDrawPayload(bodies, constraints).colliders,
+    constraints: Array.isArray(payload.constraints)
+      ? payload.constraints.map((constraint) => ({
+        id: String(constraint.id || constraint.jointId || 'constraint'),
+        type: constraint.type || 'joint',
+        ...clone(constraint)
+      }))
+      : createDebugDrawPayload(bodies, constraints).constraints
   };
 }
 

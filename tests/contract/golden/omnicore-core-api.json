@@ -1188,6 +1188,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "WebGPUPipelineRuntime"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "WebGPURenderer"
       },
       {
@@ -1229,6 +1234,7 @@
       "StaticBatchCompiler",
       "TextureStreamingBudget",
       "WebGLContextManager",
+      "WebGPUPipelineRuntime",
       "WebGPURenderer",
       "createRendererFallbackMatrix",
       "optimizeRenderQueueForBatching",
@@ -2595,6 +2601,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "Runtime3DScene"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "RuntimeConfigFlags"
       },
       {
@@ -3651,6 +3662,7 @@
       "RoomExitGraph",
       "RoomHotspotMap",
       "RpgEventPageResolver",
+      "Runtime3DScene",
       "RuntimeConfigFlags",
       "RuntimeLiveSyncBridge",
       "RuntimeOptimizationAdvisor",

@@ -110,6 +110,7 @@ import WebGPURenderer, {
   createWebGPUTextureArrayBatch,
   createWebGPUTextureAtlasDescriptor
 } from './renderer/WebGPURenderer.js';
+import WebGPUPipelineRuntime from './renderer/WebGPUPipelineRuntime.js';
 import * as RendererBackend from './renderer/RendererBackend.js';
 import { RendererContract, assertRendererBackend, createRendererPerformanceSandbox } from './renderer/RendererBackend.js';
 import OffscreenCanvasRenderer from './renderer/OffscreenCanvasRenderer.js';
@@ -278,6 +279,7 @@ import SystemMenuModel from './platform/SystemMenuModel.js';
 import ElectronNativeBridge from './platform/ElectronNativeBridge.js';
 import Dimension3D from './dimension3d/Dimension3D.js';
 import Scene3DKit from './dimension3d/Scene3DKit.js';
+import Runtime3DScene from './dimension3d/Runtime3DScene.js';
 import ThreePhysicsBridge from './dimension3d/ThreePhysicsBridge.js';
 import { detectEnvironment, detectPlatformAndMergeDefaults, safeInitialize } from './core/Bootstrap.js';
 import TimeGuard from './core/TimeGuard.js';
@@ -1127,6 +1129,7 @@ const OmniCore = {
   Backend,
   Dimension3D,
   Scene3DKit,
+  Runtime3DScene,
   ThreePhysicsBridge,
   Deprecation,
   Store,
@@ -1141,7 +1144,7 @@ const OmniCore = {
   AssetBuildRecipe,
   FantasyConsoleBank,
   VirtualAssetFS,
-  Renderer: { PixiRenderer, WebGPURenderer, RendererBackend, OffscreenCanvasRenderer, RendererBackendContract, RenderWorkerBridge, RenderWorkerOwnership, Filters, WebGLContextManager, RendererManager, RenderLayerManager, PixiBatchAdapter, CommandBuffer, StaticBatchCompiler, MaterialPreset, RenderFeatureProfile, RenderGraphPlanner, ShaderVariantCollection, TextureStreamingBudget, BatchAtlasDiagnostics, RenderOptimizationRuntimeExecutor, PixiLifecycleAudit, PixiRenderHardeningProfile, createRendererFallbackMatrix, resolveRendererFallbackPlan, optimizeRenderQueueForBatching },
+  Renderer: { PixiRenderer, WebGPURenderer, WebGPUPipelineRuntime, RendererBackend, OffscreenCanvasRenderer, RendererBackendContract, RenderWorkerBridge, RenderWorkerOwnership, Filters, WebGLContextManager, RendererManager, RenderLayerManager, PixiBatchAdapter, CommandBuffer, StaticBatchCompiler, MaterialPreset, RenderFeatureProfile, RenderGraphPlanner, ShaderVariantCollection, TextureStreamingBudget, BatchAtlasDiagnostics, RenderOptimizationRuntimeExecutor, PixiLifecycleAudit, PixiRenderHardeningProfile, createRendererFallbackMatrix, resolveRendererFallbackPlan, optimizeRenderQueueForBatching },
   diagnoseBatchBreaks,
   optimizeRenderQueueForBatching,
   createBezierPrimitive,
@@ -1563,6 +1566,7 @@ export {
   Deprecation,
   Dimension3D,
   Scene3DKit,
+  Runtime3DScene,
   ThreePhysicsBridge,
   DeterministicReplay,
   DragonBonesAdapter,
@@ -1869,6 +1873,7 @@ export {
   WasmLoader,
   WebGLContextManager,
   WebGPURenderer,
+  WebGPUPipelineRuntime,
   WebTransportConnection,
   WechatMiniGameMonetization,
   WorkerManager,

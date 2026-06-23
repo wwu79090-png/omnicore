@@ -333,7 +333,7 @@ const sequence = new OmniCore.Input.Sequence({ events: game.events });
 sequence.define('dash', ['KeyA', 'KeyD', 'Space']);
 ```
 
-`renderer: 'auto'` 在 WebGPU 可用时优先尝试 WebGPU，然后回退 Pixi/Canvas；`renderer: 'webgpu'` 可显式请求 WebGPU。当前 WebGPU Worker 管线是 MVP：主线程生成绘制指令，OffscreenCanvas Worker 桥负责跨线程提交消息，后续可替换为真实纹理上传和 GPU command encoding。
+`renderer: 'auto'` 在 WebGPU 可用时优先尝试 WebGPU，然后回退 Pixi/Canvas；`renderer: 'webgpu'` 可显式请求 WebGPU。WebGPU Worker 桥仍负责跨线程提交消息；新增 `WebGPUPipelineRuntime` 用于真实管线闭环的资源描述和诊断，覆盖纹理上传队列、buffer 生命周期、bind group、pipeline cache、command buffer 编码记录和 device lost 恢复。
 
 ## Optional MicroKernel
 
@@ -568,13 +568,15 @@ dimension.render(1 / 60);
 
 `Scene3DKit` 面向更完整的 3D 场景声明和调试闭环：`createReadinessReport({ availableAssets, budgets })` 会检查活动相机、GLTF/GLB 资源、PBR 材质引用、动态刚体碰撞体绑定、阴影贴图预算和后处理预算，并输出 `gates`、`issues`、`recommendations` 与 `debugDraw`。这用于把 Godot/Unity/Unreal 常见的场景体检、物理可视化和预算门禁带进 OmniCore 的 3D 落地流程。
 
+`Runtime3DScene` 是新增的可运行 3D 场景契约：可添加 Camera3D 控制、Light3D、PBR 材质、GLTF/GLB 模型、动画播放、3D collider、rigid body 元数据和物理后端绑定，并通过 `createRuntimeSnapshot()` 输出 `omnicore.runtime-3d-scene.v1` 快照与 debug draw。它让编辑器、测试和后续 Three/Rapier/Box2D 集成拥有稳定数据面，而不是只停在 readiness 报告。
+
 `createReadinessFixPlan(report)` 会把 readiness 问题转成可执行动作；`applyReadinessFixPlan(plan)` 只自动处理安全项，例如创建占位材质、补默认碰撞体、限制阴影贴图和压缩后处理预算。缺失模型或贴图仍保留为手动导入动作，避免用假数据掩盖真实资源问题。
 
 桌面编辑器已接入 `scene-3d-readiness` 面板：`EditorAPI.refreshScene3DReadinessPanel()` 会打开 3D 场景体检，`createScene3DReadinessFixPlan()` 生成修复计划，`applyScene3DReadinessFixPlan()` 应用安全修复并自动复验。
 
 桌面编辑器也新增了 `scene-3d-viewport` 视口面板：`EditorAPI.openScene3DViewport()` 会把 Camera3D、Light、PBR 材质、GLTF/GLB 模型、动画列表和碰撞体叠层整理成可视化检查视图，并通过 runtime sync 暴露给调试窗口。
 
-2.5D 能力边界是固定的：只提供装饰性多模型渲染、基础遮罩排序、预设 `AnimationMixer` 动画播放和 `Raycaster` 点击事件。它拒绝提供全 3D 物理、自由 3D 摄像机控制、OrbitControls、PointerLockControls 或 3D 玩法框架；需要这些能力时应接入专门 3D 引擎，而不是把 OmniCore 的 2.5D 层扩展成完整 3D 运行时。
+2.5D 装饰层的能力边界仍是固定的：只负责多模型背景、基础遮罩排序、预设 `AnimationMixer` 动画播放和 `Raycaster` 点击事件。完整 3D 玩法应走 `Runtime3DScene`、`Scene3DKit`、`ThreePhysicsBridge` 与外部物理后端桥接，不再把 2.5D 装饰层硬扩成 3D 引擎。
 
 ## 跨平台
 
@@ -1061,7 +1063,7 @@ Lean Addon 覆盖：
 
 - `Renderer`：Pixi/global-PIXI 优先，失败无感降级 Canvas 2D，内置绘制耗时/FPS 统计。
 - `Audio`：Web Audio 外部音效和 `playSynth()` 合成器。
-- `Physics`：`rectIntersects()`、`ptInRect()`、外部物理库延迟加载，以及 `@omnicore/physics` 提供的状态化 arcade 世界、sensor、constraint、raycast、debug draw 和 Rapier/Box2D 适配槽。
+- `Physics`：`rectIntersects()`、`ptInRect()`、外部物理库延迟加载，以及 `@omnicore/physics` 提供的状态化 arcade 世界、sensor、constraint、raycast、debug draw 和 Rapier/Box2D 外部后端桥。
 - `Scene`：节点树、场景栈、生命钩子和可视过渡。
 - `Resources`：`loadBundle()`、HMR 入口、图集描述生成和资源审计入口。
 - `Input`：`EventTarget + AbortController` 原生输入，支持键盘、鼠标、触控、动作映射和 gamepad 快照。
@@ -1084,6 +1086,19 @@ const diagnostics = world.createDiagnosticsSnapshot({
 });
 ```
 
+真实 Rapier、Box2D 或 WASM 后端可通过 `createExternalPhysicsBackend()` 接入；OmniCore 会把 `createWorld()`、`createRigidBody()`、`createJoint()`、`step()`、`raycast()` 和 `debugDraw()` 委托给外部模块，同时保留统一 diagnostics 快照：
+
+```js
+import { createExternalPhysicsBackend, createPhysicsWorld } from '@omnicore/physics';
+
+const rapierBackend = createExternalPhysicsBackend('rapier-real', {
+  kind: 'rapier',
+  module: rapierRuntimeModule
+});
+
+const world = createPhysicsWorld({ backend: 'rapier-real', backends: [rapierBackend] });
+```
+
 桌面编辑器的 `EditorAPI.refreshPhysicsDiagnosticsPanel()` 会把 `PhysicsWorld` 诊断写入物理视图，显示刚体、sensor、constraint、raycast 命中和 debug draw；可运行示例在 [`examples/physics-debug-draw-demo`](examples/physics-debug-draw-demo/)。
 
 编辑器闭环继续扩展到四个高频生产入口：
@@ -1092,6 +1107,8 @@ const diagnostics = world.createDiagnosticsSnapshot({
 - `EditorAPI.selectScene3DModel()`、`previewScene3DAnimation()`、`updateScene3DMaterial()`：让 3D 视口从静态检查升级为可选中模型、预览动画并编辑材质参数。
 - `EditorAPI.refreshPrefabDependencyGraph()`、`applyPrefabDependencyRepair()`：生成 `prefab-dependency-graph`，显示场景实体、Prefab 继承、嵌套 Prefab、资源引用、缺失资源，并把一键修复动作落到资源数据库占位注册。
 - `EditorAPI.refreshWebGPUPipelinePanel()`、`applyWebGPURecoveryAction()`：生成 `webgpu-pipeline`，检查纹理上传、buffer 生命周期、bind group、pipeline cache、device lost 和 WebGPU/WebGL fallback，并支持刷新纹理上传、预热 pipeline cache、重建设备等恢复动作。
+
+编辑器架构也新增 `createEditorAuthoringModules()` 模块边界，把 `visualScript`、`scene3DViewport`、`prefabDependencyGraph`、`webgpuPipeline`、`dockWindow` 和 `runtimeSync` 的面板归属、能力和 runtime sync key 独立出来；`createEditorApp().getAuthoringModules()` 可直接读取，后续拆分 `editor-app.js` 时有稳定迁移表。
 
 ## 一键启动与生成器
 
