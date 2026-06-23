@@ -566,6 +566,8 @@ dimension.render(1 / 60);
 
 `Dimension3D` 拥有单独 canvas、scene 和 renderer；销毁或切换 2D 后端不会影响 3D 背景。该层是纯装饰能力，`capabilities.decorativeOnly === true`，可通过 `addModel(name, glbPath, position, scale)` 同时加载多个 glTF/GLB 模型。返回的模型对象提供 `playAnimation(name)`、`rotateY(speed)` 和 `on('click', callback)`，用于预设动画播放、简单旋转和把 3D 点击转回 2D 游戏交互。`sortModelsForMasking()` 会按模型 `y + z * zToYScale` 写入稳定 `renderOrder`，服务于 2D/2.5D 混排时的基础遮罩排序。
 
+`Scene3DKit` 面向更完整的 3D 场景声明和调试闭环：`createReadinessReport({ availableAssets, budgets })` 会检查活动相机、GLTF/GLB 资源、PBR 材质引用、动态刚体碰撞体绑定、阴影贴图预算和后处理预算，并输出 `gates`、`issues`、`recommendations` 与 `debugDraw`。这用于把 Godot/Unity/Unreal 常见的场景体检、物理可视化和预算门禁带进 OmniCore 的 3D 落地流程。
+
 2.5D 能力边界是固定的：只提供装饰性多模型渲染、基础遮罩排序、预设 `AnimationMixer` 动画播放和 `Raycaster` 点击事件。它拒绝提供全 3D 物理、自由 3D 摄像机控制、OrbitControls、PointerLockControls 或 3D 玩法框架；需要这些能力时应接入专门 3D 引擎，而不是把 OmniCore 的 2.5D 层扩展成完整 3D 运行时。
 
 ## 跨平台

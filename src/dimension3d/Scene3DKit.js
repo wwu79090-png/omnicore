@@ -146,6 +146,133 @@ export class Scene3DKit {
     };
   }
 
+  createReadinessReport({ availableAssets = [], budgets = {} } = {}) {
+    const validation = this.validateAssets({ availableAssets });
+    const activeCamera = this.cameras.get(this.activeCameraId) || null;
+    const models = [...this.models.values()];
+    const lights = [...this.lights.values()];
+    const enabledPostprocess = this.postprocess.filter((pass) => pass.enabled);
+    const postprocessMs = roundSceneNumber(enabledPostprocess.reduce((total, pass) => total + numberOr(pass.budgetMs, 0), 0));
+    const maxShadowMapSize = numberOrNull(budgets.maxShadowMapSize);
+    const postprocessBudgetMs = numberOrNull(budgets.postprocessMs);
+    const issues = [];
+
+    for (const asset of validation.requiredAssets) {
+      if (!validation.missingAssets.includes(asset.path)) continue;
+      issues.push({
+        id: `missing-asset:${asset.path}`,
+        severity: 'error',
+        type: 'missing-asset',
+        path: asset.path,
+        owner: asset.owner,
+        assetType: asset.type,
+        message: `3D asset is missing: ${asset.path}`
+      });
+    }
+
+    for (const model of models) {
+      if (model.material && !this.materials.has(model.material)) {
+        issues.push({
+          id: `missing-material:${model.id}:${model.material}`,
+          severity: 'error',
+          type: 'missing-material',
+          modelId: model.id,
+          materialId: model.material,
+          message: `3D model ${model.id} references missing material ${model.material}.`
+        });
+      }
+      if (model.physics.rigidBody && !model.physics.collider) {
+        issues.push({
+          id: `missing-collider:${model.id}`,
+          severity: 'warning',
+          type: 'missing-collider',
+          modelId: model.id,
+          rigidBodyType: model.physics.rigidBody.type,
+          message: `3D model ${model.id} has a rigid body but no collider.`
+        });
+      }
+    }
+
+    for (const light of lights) {
+      if (maxShadowMapSize !== null && light.castShadow && light.shadow.mapSize > maxShadowMapSize) {
+        issues.push({
+          id: `shadow-map-budget:${light.id}`,
+          severity: 'warning',
+          type: 'shadow-map-budget',
+          lightId: light.id,
+          mapSize: light.shadow.mapSize,
+          budget: maxShadowMapSize,
+          message: `Shadow map ${light.id} is ${light.shadow.mapSize}, above budget ${maxShadowMapSize}.`
+        });
+      }
+    }
+
+    if (postprocessBudgetMs !== null && postprocessMs > postprocessBudgetMs) {
+      issues.push({
+        id: 'postprocess-budget',
+        severity: 'warning',
+        type: 'postprocess-budget',
+        postprocessMs,
+        budget: postprocessBudgetMs,
+        passes: enabledPostprocess.map((pass) => pass.id),
+        message: `Postprocess cost ${postprocessMs}ms exceeds budget ${postprocessBudgetMs}ms.`
+      });
+    }
+
+    const missingMaterialCount = issues.filter((issue) => issue.type === 'missing-material').length;
+    const missingColliderCount = issues.filter((issue) => issue.type === 'missing-collider').length;
+    const shadowBudgetIssueCount = issues.filter((issue) => issue.type === 'shadow-map-budget').length;
+    const postprocessBudgetIssueCount = issues.filter((issue) => issue.type === 'postprocess-budget').length;
+    const colliderCount = models.filter((model) => model.physics.collider).length;
+    const dynamicBodyCount = models.filter((model) => model.physics.rigidBody?.type !== 'static' && model.physics.rigidBody).length;
+    const debugDemo = this.createDebugDemo();
+
+    return {
+      format: 'OmniCore.Scene3DReadinessReport',
+      ok: issues.length === 0,
+      scene: debugDemo.scene,
+      summary: {
+        cameraCount: this.cameras.size,
+        lightCount: lights.length,
+        modelCount: models.length,
+        materialCount: this.materials.size,
+        colliderCount,
+        dynamicBodyCount,
+        shadowMapMaxSize: lights.reduce((max, light) => Math.max(max, light.castShadow ? light.shadow.mapSize : 0), 0),
+        postprocessMs,
+        issueCount: issues.length
+      },
+      gates: [
+        createReadinessGate('camera', 'Active camera', Boolean(activeCamera), { cameraId: activeCamera?.id || null }),
+        createReadinessGate('assets', 'Required 3D assets', validation.missingAssets.length === 0, { missingCount: validation.missingAssets.length }),
+        createReadinessGate('materials', 'Model material references', missingMaterialCount === 0, { missingCount: missingMaterialCount }),
+        createReadinessGate('shadow-map-budget', 'Shadow map budget', shadowBudgetIssueCount === 0, { budget: maxShadowMapSize }),
+        createReadinessGate('postprocess-budget', 'Postprocess budget', postprocessBudgetIssueCount === 0, { budget: postprocessBudgetMs, totalMs: postprocessMs }),
+        createReadinessGate('physics-binding', 'Rigid body collider bindings', missingColliderCount === 0, { missingCount: missingColliderCount })
+      ],
+      issues,
+      recommendations: issues.map((issue) => createReadinessRecommendation(issue)),
+      requiredAssets: validation.requiredAssets,
+      missingAssets: validation.missingAssets,
+      debugDraw: debugDemo.debugDraw,
+      crossEngineProfile: {
+        sources: [
+          { engine: 'Godot', advantage: 'scene diagnostics should reveal missing resources and visible collision data before play' },
+          { engine: 'Unity', advantage: 'lighting, shadow, material, and physics readiness should be checked at edit time' },
+          { engine: 'Unreal', advantage: 'map checks should turn scene problems into actionable fix records' },
+          { engine: 'Three.js', advantage: 'renderer-facing budgets should stay explicit for postprocess and shadow cost' }
+        ],
+        capabilities: [
+          'scene-3d-readiness-report',
+          '3d-asset-material-audit',
+          'shadow-postprocess-budget-gates',
+          'physics-collider-binding-check',
+          'debug-draw-export'
+        ]
+      }
+    };
+  }
+
   createDebugDemo() {
     const activeCamera = this.cameras.get(this.activeCameraId) || null;
     return {
@@ -244,6 +371,33 @@ function numberOr(...values) {
     if (Number.isFinite(number)) return number;
   }
   return 0;
+}
+
+function numberOrNull(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function roundSceneNumber(value) {
+  return Number(Number(value || 0).toFixed(6));
+}
+
+function createReadinessGate(id, label, ok, details = {}) {
+  return {
+    id,
+    label,
+    ok: Boolean(ok),
+    ...details
+  };
+}
+
+function createReadinessRecommendation(issue = {}) {
+  if (issue.type === 'missing-asset') return `addAsset:${issue.path}`;
+  if (issue.type === 'missing-material') return `createMaterial:${issue.materialId}`;
+  if (issue.type === 'missing-collider') return `addCollider:${issue.modelId}`;
+  if (issue.type === 'shadow-map-budget') return `reduceShadowMap:${issue.lightId}:${issue.budget}`;
+  if (issue.type === 'postprocess-budget') return `optimizePostprocess:${issue.postprocessMs}>${issue.budget}`;
+  return `inspect3DScene:${issue.id || issue.type || 'unknown'}`;
 }
 
 export default Scene3DKit;

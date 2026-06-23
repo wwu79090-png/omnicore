@@ -78,6 +78,91 @@ describe('engine gap closure round 2', () => {
     expect(OmniCore.Scene3DKit).toBe(Scene3DKit);
   });
 
+  it('creates a 3D scene readiness report with budget gates and guided fixes', () => {
+    const scene = new Scene3DKit({ name: 'boss-room', width: 1920, height: 1080 });
+    scene.setCamera({ id: 'gameplay', mode: 'free', controls: ['orbit'] });
+    scene.addLight('key', {
+      type: 'directional',
+      intensity: 4,
+      castShadow: true,
+      shadow: { mapSize: 4096 }
+    });
+    scene.addMaterial('hero-pbr', {
+      type: 'pbr',
+      normalMap: 'assets/hero_n.png',
+      emissive: 'assets/hero_e.png'
+    });
+    scene.addGLTFModel({
+      id: 'hero',
+      url: 'models/hero.glb',
+      material: 'hero-pbr',
+      rigidBody: { type: 'dynamic' },
+      collider: { shape: 'capsule', radius: 0.4, height: 1.8 }
+    });
+    scene.addGLTFModel({
+      id: 'crate',
+      url: 'models/crate.glb',
+      material: 'missing-mat',
+      rigidBody: { type: 'dynamic' }
+    });
+    scene.addPostProcess({ id: 'bloom', type: 'bloom', budgetMs: 2.4 });
+    scene.addPostProcess({ id: 'grade', type: 'color-grading', budgetMs: 0.8 });
+
+    const report = scene.createReadinessReport({
+      availableAssets: ['models/hero.glb', 'models/crate.glb', 'assets/hero_n.png'],
+      budgets: {
+        maxShadowMapSize: 2048,
+        postprocessMs: 2,
+        maxDynamicBodies: 1
+      }
+    });
+
+    expect(report).toMatchObject({
+      format: 'OmniCore.Scene3DReadinessReport',
+      ok: false,
+      summary: {
+        cameraCount: 1,
+        modelCount: 2,
+        colliderCount: 1,
+        dynamicBodyCount: 2,
+        postprocessMs: 3.2,
+        issueCount: 5
+      }
+    });
+    expect(report.gates).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'assets', ok: false }),
+      expect.objectContaining({ id: 'materials', ok: false }),
+      expect.objectContaining({ id: 'shadow-map-budget', ok: false }),
+      expect.objectContaining({ id: 'postprocess-budget', ok: false }),
+      expect.objectContaining({ id: 'physics-binding', ok: false })
+    ]));
+    expect(report.issues.map((issue) => issue.id)).toEqual(expect.arrayContaining([
+      'missing-asset:assets/hero_e.png',
+      'missing-material:crate:missing-mat',
+      'missing-collider:crate',
+      'shadow-map-budget:key',
+      'postprocess-budget'
+    ]));
+    expect(report.recommendations).toEqual(expect.arrayContaining([
+      'addAsset:assets/hero_e.png',
+      'createMaterial:missing-mat',
+      'addCollider:crate',
+      'reduceShadowMap:key:2048',
+      'optimizePostprocess:3.2>2'
+    ]));
+    expect(report.debugDraw).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'camera-frustum', id: 'gameplay' }),
+      expect.objectContaining({ type: 'collider', id: 'hero', shape: 'capsule' }),
+      expect.objectContaining({ type: 'shadow-map', id: 'key', mapSize: 4096 })
+    ]));
+    expect(report.crossEngineProfile.sources.map((source) => source.engine)).toEqual([
+      'Godot',
+      'Unity',
+      'Unreal',
+      'Three.js'
+    ]);
+  });
+
   it('hardens physics backends with colliders, sensors, constraints, raycast, debug draw, and capability reports', async () => {
     const world = new PhysicsWorld();
     await world.setBackend('rapier');
