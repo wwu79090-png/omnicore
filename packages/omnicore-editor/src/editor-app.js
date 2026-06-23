@@ -49,6 +49,7 @@ import {
   Workflow,
   Zap
 } from 'lucide-static';
+import { Scene3DKit } from 'omnicore';
 import {
   AssetRegistry,
   AssetRegistryChangeSet,
@@ -83,6 +84,7 @@ const PANEL_TITLES = {
   'build-settings': '构建设置',
   'runtime-debug': '运行时调试',
   'render-diagnostics': '渲染诊断',
+  'scene-3d-readiness': '3D 场景体检',
   profiler: '性能分析'
 };
 
@@ -283,6 +285,7 @@ const DESKTOP_COMMAND_ICONS = {
   'release-check': ClipboardCheck,
   'scene-validate': BadgeCheck,
   'runtime-debug': Bug,
+  'scene-3d-readiness': Box,
   'recovery-check': History,
   'debug-timeline': Activity,
   'governance-report': ShieldCheck
@@ -313,7 +316,8 @@ const DESKTOP_PANEL_COMMANDS = {
   'physics-view': { panel: 'physics-view', region: 'bottom', title: '物理调试视图' },
   'runtime-debug': { panel: 'runtime-debug', region: 'bottom', title: '运行时调试' },
   'global-search': { panel: 'global-search', region: 'bottom', title: '全局搜索' },
-  'build-settings': { panel: 'build-settings', region: 'right', title: '构建设置' }
+  'build-settings': { panel: 'build-settings', region: 'right', title: '构建设置' },
+  'scene-3d-readiness': { panel: 'scene-3d-readiness', region: 'bottom', title: '3D 场景体检' }
 };
 
 const DESKTOP_TEMPLATE_NAMES = {
@@ -1122,6 +1126,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
     applyRenderOptimizationRemediation,
     applyRenderOptimizationRemediationPlan,
     reverifyRenderOptimizationRemediation,
+    refreshScene3DReadinessPanel,
+    createScene3DReadinessFixPlan,
+    applyScene3DReadinessFixPlan,
     createRuntimeSyncPayload,
     applyRuntimeSyncPayload,
     create25DPreview,
@@ -1851,6 +1858,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       assetRegistryPanel: next.assetRegistryPanel || current.assetRegistryPanel,
       renderDiagnosticsPanel: next.renderDiagnosticsPanel || current.renderDiagnosticsPanel,
       renderOptimizationPlan: next.renderOptimizationPlan || current.renderOptimizationPlan,
+      scene3DReadiness: next.scene3DReadiness || current.scene3DReadiness,
+      scene3DFixPlan: next.scene3DFixPlan || current.scene3DFixPlan,
+      scene3DFixApplyReport: next.scene3DFixApplyReport || current.scene3DFixApplyReport,
       assetRefresh: next.assetRefresh || current.assetRefresh,
       hotReloadEvents: next.hotReloadEvents || current.hotReloadEvents,
       autoSave: normalizeAutoSaveState(next.autoSave || current.autoSave)
@@ -1884,6 +1894,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       'build-settings': renderPanel('build-settings', renderBuildSettings()),
       'runtime-debug': renderPanel('runtime-debug', renderRuntimeDebugPanel()),
       'render-diagnostics': renderPanel('render-diagnostics', renderRenderDiagnosticsPanel()),
+      'scene-3d-readiness': renderPanel('scene-3d-readiness', renderScene3DReadinessPanel()),
       profiler: renderPanel('profiler', renderProfiler())
     };
     for (const region of DOCK_REGIONS) {
@@ -2356,6 +2367,15 @@ export function createEditorApp(root = document.querySelector('#app'), {
       },
       reverifyRenderOptimizationRemediation(input = {}, options = {}) {
         return reverifyRenderOptimizationRemediation(input, options);
+      },
+      refreshScene3DReadinessPanel(input = {}, options = {}) {
+        return refreshScene3DReadinessPanel(input, options);
+      },
+      createScene3DReadinessFixPlan(options = {}) {
+        return createScene3DReadinessFixPlan(options);
+      },
+      applyScene3DReadinessFixPlan(options = {}) {
+        return applyScene3DReadinessFixPlan(options);
       },
       addUIButton(button = {}) {
         return addUIButton(button);
@@ -4817,6 +4837,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       renderOptimizationRemediation: cloneState(current.renderOptimizationRemediationPlan),
       renderOptimizationRemediationReport: cloneState(current.renderOptimizationRemediationApplyReport),
       renderOptimizationRemediationReverify: cloneState(current.renderOptimizationRemediationReverifyReport),
+      scene3DReadiness: cloneState(current.scene3DReadiness),
+      scene3DFixPlan: cloneState(current.scene3DFixPlan),
+      scene3DFixApplyReport: cloneState(current.scene3DFixApplyReport),
       renderOptimizationRuntime: createRenderOptimizationRuntimePlan(current.renderOptimizationPlan, { generatedAt })
     };
   }
@@ -4834,6 +4857,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       renderOptimizationRemediationPlan: payload.renderOptimizationRemediation || payload.renderOptimizationRemediationPlan || current.renderOptimizationRemediationPlan,
       renderOptimizationRemediationApplyReport: payload.renderOptimizationRemediationReport || payload.renderOptimizationRemediationApplyReport || current.renderOptimizationRemediationApplyReport,
       renderOptimizationRemediationReverifyReport: payload.renderOptimizationRemediationReverify || payload.renderOptimizationRemediationReverifyReport || current.renderOptimizationRemediationReverifyReport,
+      scene3DReadiness: payload.scene3DReadiness || current.scene3DReadiness,
+      scene3DFixPlan: payload.scene3DFixPlan || current.scene3DFixPlan,
+      scene3DFixApplyReport: payload.scene3DFixApplyReport || current.scene3DFixApplyReport,
       flowGraph: payload.flowGraph || current.flowGraph
     });
     emit('editor:runtime-sync-applied', { protocol: payload.protocol || null });
@@ -5020,6 +5046,82 @@ export function createEditorApp(root = document.querySelector('#app'), {
     emit('editor:render-diagnostics-panel', panel);
     update(current);
     return panel;
+  }
+
+  function refreshScene3DReadinessPanel(input = {}, options = {}) {
+    const sceneKit = createEditorScene3DKit(input.scene || current.scene3DReadiness?.scene || {});
+    const availableAssets = input.availableAssets || current.scene3DReadiness?.availableAssets || collectScene3DAvailableAssets(current);
+    const budgets = input.budgets || current.scene3DReadiness?.budgets || {};
+    const report = sceneKit.createReadinessReport({ availableAssets, budgets });
+    const panel = createEditorScene3DReadinessState({
+      sceneKit,
+      availableAssets,
+      budgets,
+      report,
+      generatedAt: input.generatedAt || options.generatedAt || new Date().toISOString()
+    });
+    current = createEditorState({
+      ...current,
+      scene3DReadiness: panel,
+      scene3DFixPlan: input.resetFixPlan === false ? current.scene3DFixPlan : null,
+      scene3DFixApplyReport: input.resetApplyReport === false ? current.scene3DFixApplyReport : null,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'scene-3d-readiness', 'bottom')
+    });
+    emit('editor:scene-3d-readiness', panel);
+    update(current);
+    return panel;
+  }
+
+  function createScene3DReadinessFixPlan(options = {}) {
+    const readiness = current.scene3DReadiness || refreshScene3DReadinessPanel({}, { generatedAt: options.generatedAt });
+    const sceneKit = createEditorScene3DKit(readiness.scene || {});
+    const plan = sceneKit.createReadinessFixPlan(readiness.report, {
+      generatedAt: options.generatedAt || new Date().toISOString()
+    });
+    current = createEditorState({
+      ...current,
+      scene3DFixPlan: plan,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'scene-3d-readiness', 'bottom')
+    });
+    emit('editor:scene-3d-readiness-fix-plan', plan);
+    update(current);
+    return plan;
+  }
+
+  function applyScene3DReadinessFixPlan(options = {}) {
+    const readiness = current.scene3DReadiness || refreshScene3DReadinessPanel();
+    const plan = current.scene3DFixPlan || createScene3DReadinessFixPlan(options);
+    const sceneKit = createEditorScene3DKit(readiness.scene || {});
+    const applyReport = sceneKit.applyReadinessFixPlan(plan, {
+      appliedAt: options.appliedAt || new Date().toISOString()
+    });
+    const recheckReport = sceneKit.createReadinessReport({
+      availableAssets: readiness.availableAssets || [],
+      budgets: readiness.budgets || {}
+    });
+    const recheck = createEditorScene3DReadinessState({
+      sceneKit,
+      availableAssets: readiness.availableAssets || [],
+      budgets: readiness.budgets || {},
+      report: recheckReport,
+      generatedAt: options.recheckedAt || applyReport.appliedAt
+    });
+    const report = {
+      ...applyReport,
+      recheck
+    };
+    current = createEditorState({
+      ...current,
+      scene3DReadiness: recheck,
+      scene3DFixApplyReport: report,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'scene-3d-readiness', 'bottom')
+    });
+    emit('editor:scene-3d-readiness', recheck);
+    emit('editor:scene-3d-readiness-fix-apply-report', report);
+    pushHistory(current, `应用 3D 场景修复 ${report.summary?.appliedCount || 0}/${report.summary?.requestedCount || 0}`);
+    update(current);
+    showEditorFeedback(`3D 场景安全修复已应用 ${report.summary?.appliedCount || 0} 项`, report.status === 'failed' ? 'warning' : 'success');
+    return report;
   }
 
   function applyAssetRegistryChanges(changes = [], options = {}) {
@@ -7392,6 +7494,103 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return wrap;
   }
 
+  function renderScene3DReadinessPanel() {
+    const readiness = current.scene3DReadiness;
+    const report = readiness?.report || null;
+    const fixPlan = current.scene3DFixPlan;
+    const applyReport = current.scene3DFixApplyReport;
+    const wrap = document.createElement('div');
+    wrap.className = 'scene-3d-readiness-wrap';
+    wrap.setAttribute('data-scene-3d-readiness', 'true');
+
+    const header = document.createElement('div');
+    header.className = 'scene-3d-readiness-header';
+    const title = document.createElement('strong');
+    title.textContent = '3D 场景体检';
+    const status = document.createElement('span');
+    status.dataset.scene3DReadinessStatus = report?.ok ? 'ok' : 'warning';
+    status.textContent = report ? (report.ok ? '已通过' : `问题 ${report.summary?.issueCount || 0}`) : '未检查';
+    const refresh = document.createElement('button');
+    refresh.type = 'button';
+    refresh.dataset.scene3DReadinessRefresh = 'true';
+    refresh.textContent = '重新体检';
+    refresh.addEventListener('click', () => refreshScene3DReadinessPanel({ resetFixPlan: false, resetApplyReport: false }));
+    header.append(title, status, refresh);
+    wrap.appendChild(header);
+
+    const metrics = document.createElement('div');
+    metrics.className = 'scene-3d-readiness-metrics';
+    for (const [metricLabel, metricValue] of [
+      ['模型', report?.summary?.modelCount || 0],
+      ['碰撞体', report?.summary?.colliderCount || 0],
+      ['动态刚体', report?.summary?.dynamicBodyCount || 0],
+      ['后处理', `${Number(report?.summary?.postprocessMs || 0).toFixed(2)}ms`]
+    ]) {
+      const item = document.createElement('span');
+      const label = document.createElement('b');
+      label.textContent = metricLabel;
+      const value = document.createElement('strong');
+      value.textContent = String(metricValue);
+      item.append(label, value);
+      metrics.appendChild(item);
+    }
+    wrap.appendChild(metrics);
+
+    const issueList = document.createElement('div');
+    issueList.className = 'scene-3d-readiness-issues';
+    const issues = report?.issues || [];
+    for (const issue of issues) {
+      const row = document.createElement('span');
+      row.dataset.scene3DReadinessIssue = issue.id || issue.type || 'issue';
+      row.textContent = `${localizeScene3DIssue(issue)} · ${issue.message || issue.id}`;
+      issueList.appendChild(row);
+    }
+    if (!issueList.childNodes.length) {
+      const empty = document.createElement('span');
+      empty.dataset.scene3DReadinessIssue = 'ok';
+      empty.textContent = report ? '暂无 3D 场景问题' : '导入 3D 场景后可生成体检报告';
+      issueList.appendChild(empty);
+    }
+    wrap.appendChild(issueList);
+
+    const planBlock = document.createElement('div');
+    planBlock.className = 'scene-3d-readiness-plan';
+    planBlock.setAttribute('data-scene-3d-readiness-fix-plan', 'true');
+    const planTitle = document.createElement('strong');
+    planTitle.textContent = '修复计划';
+    const planSummary = document.createElement('span');
+    planSummary.textContent = fixPlan
+      ? `动作 ${fixPlan.summary?.actionCount || 0} · 自动 ${fixPlan.summary?.autoFixCount || 0} · 手动 ${fixPlan.summary?.manualActionCount || 0}`
+      : '尚未生成';
+    const planButton = document.createElement('button');
+    planButton.type = 'button';
+    planButton.textContent = '生成计划';
+    planButton.dataset.scene3DReadinessCreatePlan = 'true';
+    planButton.disabled = !report;
+    planButton.addEventListener('click', () => createScene3DReadinessFixPlan());
+    planBlock.append(planTitle, planSummary, planButton);
+    wrap.appendChild(planBlock);
+
+    const applyBlock = document.createElement('div');
+    applyBlock.className = 'scene-3d-readiness-apply';
+    applyBlock.setAttribute('data-scene-3d-readiness-apply', 'true');
+    const applyTitle = document.createElement('strong');
+    applyTitle.textContent = '安全修复';
+    const applySummary = document.createElement('span');
+    applySummary.textContent = applyReport
+      ? `已应用 ${applyReport.summary?.appliedCount || 0} · 跳过 ${applyReport.summary?.skippedCount || 0} · 失败 ${applyReport.summary?.failedCount || 0}`
+      : '等待执行';
+    const applyButton = document.createElement('button');
+    applyButton.type = 'button';
+    applyButton.textContent = '应用安全修复';
+    applyButton.dataset.scene3DReadinessApplyButton = 'true';
+    applyButton.disabled = !fixPlan;
+    applyButton.addEventListener('click', () => applyScene3DReadinessFixPlan());
+    applyBlock.append(applyTitle, applySummary, applyButton);
+    wrap.appendChild(applyBlock);
+    return wrap;
+  }
+
   function renderRenderDiagnosticsPanel() {
     const panel = current.renderDiagnosticsPanel || buildRenderDiagnosticsPanelState(current);
     const summary = panel.summary || {};
@@ -7620,6 +7819,17 @@ function localizeMaterialField(field) {
     normalMap: '法线贴图'
   };
   return labels[field] || field;
+}
+
+function localizeScene3DIssue(issue = {}) {
+  const labels = {
+    'missing-asset': '缺失资源',
+    'missing-material': '缺失材质',
+    'missing-collider': '缺失碰撞体',
+    'shadow-map-budget': '阴影预算',
+    'postprocess-budget': '后处理预算'
+  };
+  return labels[issue.type] || issue.type || '场景问题';
 }
 
 function localizeFlowNodeType(type) {
@@ -9271,6 +9481,81 @@ function buildAssetRegistryPanelState(state = {}, options = {}) {
     quickFixes: diagnostics.quickFixes,
     rows
   };
+}
+
+function createEditorScene3DKit(sceneInput = {}) {
+  const source = sceneInput && typeof sceneInput === 'object' ? sceneInput : {};
+  const kit = new Scene3DKit({
+    name: source.name || 'scene-3d',
+    width: source.width || 1280,
+    height: source.height || 720,
+    background: source.background || '#000000'
+  });
+  for (const camera of arrayFromValue(source.cameras || source.camera)) kit.setCamera(camera);
+  for (const light of arrayFromValue(source.lights || source.light)) {
+    kit.addLight(light.id || light.lightType || light.type || 'directional', light);
+  }
+  for (const material of arrayFromValue(source.materials || source.material)) kit.addMaterial(material.id, material);
+  for (const model of arrayFromValue(source.models || source.model)) kit.addGLTFModel(model);
+  for (const pass of arrayFromValue(source.postprocess || source.postProcess || source.passes)) kit.addPostProcess(pass);
+  return kit;
+}
+
+function createEditorScene3DReadinessState({
+  sceneKit,
+  availableAssets = [],
+  budgets = {},
+  report = null,
+  generatedAt = new Date().toISOString()
+} = {}) {
+  return {
+    schema: 'omnicore.editor-scene-3d-readiness.v1',
+    source: 'editor-scene-3d-readiness',
+    generatedAt,
+    scene: exportEditorScene3DKitState(sceneKit),
+    availableAssets: cloneState(availableAssets),
+    budgets: cloneState(budgets),
+    report: cloneState(report)
+  };
+}
+
+function exportEditorScene3DKitState(sceneKit = null) {
+  if (!sceneKit) {
+    return {
+      name: 'scene-3d',
+      width: 1280,
+      height: 720,
+      background: '#000000',
+      cameras: [],
+      lights: [],
+      materials: [],
+      models: [],
+      postprocess: []
+    };
+  }
+  return {
+    name: sceneKit.name,
+    width: sceneKit.width,
+    height: sceneKit.height,
+    background: sceneKit.background,
+    cameras: cloneState([...sceneKit.cameras.values()]),
+    lights: cloneState([...sceneKit.lights.values()]),
+    materials: cloneState([...sceneKit.materials.values()]),
+    models: cloneState([...sceneKit.models.values()]),
+    postprocess: cloneState([...sceneKit.postprocess])
+  };
+}
+
+function collectScene3DAvailableAssets(state = {}) {
+  return (state.assets || [])
+    .map((asset) => normalizeResourcePath(asset))
+    .filter((path) => /\.(gltf|glb|png|jpg|jpeg|webp|ktx|ktx2|hdr|exr)$/iu.test(path));
+}
+
+function arrayFromValue(value) {
+  if (Array.isArray(value)) return value;
+  if (value == null) return [];
+  return [value];
 }
 
 function buildRenderDiagnosticsPanelState(state = {}, options = {}) {

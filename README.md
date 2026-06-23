@@ -570,6 +570,8 @@ dimension.render(1 / 60);
 
 `createReadinessFixPlan(report)` 会把 readiness 问题转成可执行动作；`applyReadinessFixPlan(plan)` 只自动处理安全项，例如创建占位材质、补默认碰撞体、限制阴影贴图和压缩后处理预算。缺失模型或贴图仍保留为手动导入动作，避免用假数据掩盖真实资源问题。
 
+桌面编辑器已接入 `scene-3d-readiness` 面板：`EditorAPI.refreshScene3DReadinessPanel()` 会打开 3D 场景体检，`createScene3DReadinessFixPlan()` 生成修复计划，`applyScene3DReadinessFixPlan()` 应用安全修复并自动复验。
+
 2.5D 能力边界是固定的：只提供装饰性多模型渲染、基础遮罩排序、预设 `AnimationMixer` 动画播放和 `Raycaster` 点击事件。它拒绝提供全 3D 物理、自由 3D 摄像机控制、OrbitControls、PointerLockControls 或 3D 玩法框架；需要这些能力时应接入专门 3D 引擎，而不是把 OmniCore 的 2.5D 层扩展成完整 3D 运行时。
 
 ## 跨平台

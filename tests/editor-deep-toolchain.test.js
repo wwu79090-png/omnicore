@@ -1072,6 +1072,119 @@ describe('editor deep toolchain', () => {
     app.destroy();
   });
 
+  it('surfaces 3D scene readiness fixes in the editor panel and live sync', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const messages = [];
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        dockLayout: {
+          left: ['assets'],
+          center: ['scene-view'],
+          right: ['inspector'],
+          bottom: ['runtime-debug']
+        }
+      }),
+      transport: {
+        send: (message) => messages.push(JSON.parse(message))
+      }
+    });
+
+    const readiness = app.EditorAPI.refreshScene3DReadinessPanel({
+      scene: {
+        name: 'boss-room',
+        cameras: [{ id: 'gameplay', mode: 'free', controls: ['orbit'] }],
+        lights: [{
+          id: 'key',
+          type: 'directional',
+          castShadow: true,
+          shadow: { mapSize: 4096 }
+        }],
+        materials: [{
+          id: 'hero-pbr',
+          type: 'pbr',
+          normalMap: 'assets/hero_n.png',
+          emissive: 'assets/hero_e.png'
+        }],
+        models: [
+          {
+            id: 'hero',
+            url: 'models/hero.glb',
+            material: 'hero-pbr',
+            rigidBody: { type: 'dynamic' },
+            collider: { shape: 'capsule', radius: 0.4, height: 1.8 }
+          },
+          {
+            id: 'crate',
+            url: 'models/crate.glb',
+            material: 'missing-mat',
+            rigidBody: { type: 'dynamic' }
+          }
+        ],
+        postprocess: [
+          { id: 'bloom', type: 'bloom', budgetMs: 2.4 },
+          { id: 'grade', type: 'color-grading', budgetMs: 0.8 }
+        ]
+      },
+      availableAssets: ['models/hero.glb', 'models/crate.glb', 'assets/hero_n.png'],
+      budgets: { maxShadowMapSize: 2048, postprocessMs: 2 },
+      generatedAt: '2026-01-01T00:00:00.000Z'
+    });
+    const fixPlan = app.EditorAPI.createScene3DReadinessFixPlan({
+      generatedAt: '2026-01-01T00:00:01.000Z'
+    });
+    const apply = app.EditorAPI.applyScene3DReadinessFixPlan({
+      appliedAt: '2026-01-01T00:00:02.000Z'
+    });
+
+    expect(readiness).toMatchObject({
+      schema: 'omnicore.editor-scene-3d-readiness.v1',
+      report: {
+        format: 'OmniCore.Scene3DReadinessReport',
+        ok: false,
+        summary: { issueCount: 5 }
+      }
+    });
+    expect(fixPlan).toMatchObject({
+      format: 'OmniCore.Scene3DReadinessFixPlan',
+      summary: {
+        actionCount: 5,
+        autoFixCount: 4,
+        manualActionCount: 1
+      }
+    });
+    expect(apply).toMatchObject({
+      format: 'OmniCore.Scene3DReadinessFixApplyReport',
+      status: 'partial',
+      summary: {
+        appliedCount: 4,
+        skippedCount: 1
+      },
+      recheck: {
+        report: {
+          summary: { issueCount: 1 }
+        }
+      }
+    });
+    expect(app.getState().scene3DReadiness.report.issues.map((issue) => issue.id)).toEqual(['missing-asset:assets/hero_e.png']);
+    expect(root.querySelector('[data-panel="scene-3d-readiness"]')?.textContent).toContain('3D 场景体检');
+    expect(root.querySelector('[data-scene-3d-readiness]')?.textContent).toContain('问题 1');
+    expect(root.querySelector('[data-scene-3d-readiness-fix-plan]')?.textContent).toContain('自动 4');
+    expect(root.querySelector('[data-scene-3d-readiness-apply]')?.textContent).toContain('已应用 4');
+    expect(app.createRuntimeSyncPayload().scene3DReadiness.report.format).toBe('OmniCore.Scene3DReadinessReport');
+    expect(messages.map((message) => message.type)).toEqual(expect.arrayContaining([
+      'editor:scene-3d-readiness',
+      'editor:scene-3d-readiness-fix-plan',
+      'editor:scene-3d-readiness-fix-apply-report'
+    ]));
+    const syncedState = applyLiveSyncMessage(createEditorState(), {
+      type: 'editor:scene-3d-readiness-fix-apply-report',
+      payload: apply
+    });
+    expect(syncedState.scene3DFixApplyReport.status).toBe('partial');
+    app.destroy();
+  });
+
   it('surfaces missing dependency repair actions in the editor resource panel', () => {
     const root = document.createElement('main');
     document.body.appendChild(root);

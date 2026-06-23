@@ -55,6 +55,9 @@ export function createEditorState(initial = {}) {
     renderOptimizationRemediationPlan: normalizeRenderOptimizationRemediationPlan(initial.renderOptimizationRemediationPlan),
     renderOptimizationRemediationApplyReport: normalizeRenderOptimizationRemediationApplyReport(initial.renderOptimizationRemediationApplyReport),
     renderOptimizationRemediationReverifyReport: normalizeRenderOptimizationRemediationReverifyReport(initial.renderOptimizationRemediationReverifyReport),
+    scene3DReadiness: normalizeScene3DReadiness(initial.scene3DReadiness),
+    scene3DFixPlan: normalizeScene3DFixPlan(initial.scene3DFixPlan),
+    scene3DFixApplyReport: normalizeScene3DFixApplyReport(initial.scene3DFixApplyReport),
     assetRefresh: normalizeAssetRefresh(initial.assetRefresh),
     hotReloadEvents: normalizeHotReloadEvents(initial.hotReloadEvents),
     preview25D: initial.preview25D || null,
@@ -122,6 +125,15 @@ export function applyLiveSyncMessage(state = createEditorState(), message = {}) 
   }
   if (message.type === 'editor:render-optimization-remediation-reverify-report') {
     next.renderOptimizationRemediationReverifyReport = normalizeRenderOptimizationRemediationReverifyReport(message.payload);
+  }
+  if (message.type === 'editor:scene-3d-readiness') {
+    next.scene3DReadiness = normalizeScene3DReadiness(message.payload);
+  }
+  if (message.type === 'editor:scene-3d-readiness-fix-plan') {
+    next.scene3DFixPlan = normalizeScene3DFixPlan(message.payload);
+  }
+  if (message.type === 'editor:scene-3d-readiness-fix-apply-report') {
+    next.scene3DFixApplyReport = normalizeScene3DFixApplyReport(message.payload);
   }
   if (message.type === 'editor:render-optimization-runtime-plan') {
     next.renderOptimizationPlan = normalizeRenderOptimizationPlan(message.payload?.sourcePlan);
@@ -338,6 +350,21 @@ function normalizeRenderOptimizationRemediationApplyReport(value = null) {
 }
 
 function normalizeRenderOptimizationRemediationReverifyReport(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return clonePlain(value);
+}
+
+function normalizeScene3DReadiness(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return clonePlain(value);
+}
+
+function normalizeScene3DFixPlan(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return clonePlain(value);
+}
+
+function normalizeScene3DFixApplyReport(value = null) {
   if (!value || typeof value !== 'object') return null;
   return clonePlain(value);
 }
