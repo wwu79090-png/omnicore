@@ -404,6 +404,110 @@ describe('editor deep toolchain', () => {
     app.destroy();
   });
 
+  it('turns visual scripting, 3D viewport, prefab graph, and WebGPU diagnostics into actionable editor workflows', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const messages = [];
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        scene: {
+          name: 'actionable-level',
+          entities: [{ id: 'hero', prefabId: 'hero-prefab', sprite: 'assets/hero.png' }]
+        },
+        prefabs: [{ id: 'hero-prefab', sprite: 'assets/missing-hero.png' }],
+        assets: [{ path: 'assets/hero.png', type: 'image' }],
+        dockLayout: { left: ['prefabs'], center: ['scene-view'], right: ['inspector'], bottom: ['visual-scripting'] }
+      }),
+      transport: {
+        send: (message) => messages.push(JSON.parse(message))
+      }
+    });
+
+    app.EditorAPI.openVisualScriptGraphEditor();
+    app.EditorAPI.addVisualScriptNode('event', { id: 'start', data: { event: 'start' } });
+    app.EditorAPI.addVisualScriptNode('action', { id: 'set-score', data: { op: 'set', target: 'variables.score', value: 30 } });
+    app.EditorAPI.connectVisualScriptNodes('start', 'set-score');
+    app.EditorAPI.setVisualScriptBreakpoint('set-score', true);
+    const debugSession = app.EditorAPI.stepVisualScriptGraph('start', {});
+
+    expect(debugSession).toMatchObject({
+      schema: 'omnicore.editor-visual-script-debug-session.v1',
+      paused: true,
+      pausedAt: 'set-score',
+      cursor: 1
+    });
+    expect(root.querySelector('[data-visual-script-breakpoint="set-score"]')?.textContent).toContain('断点');
+    expect(root.querySelector('[data-visual-script-debug-session]')?.textContent).toContain('暂停 set-score');
+
+    app.EditorAPI.openScene3DViewport({
+      materials: [{ id: 'hero-pbr', type: 'pbr', roughness: 0.8 }],
+      models: [{ id: 'hero-model', url: 'models/hero.glb', material: 'hero-pbr', animations: ['Idle', 'Run'] }]
+    });
+    app.EditorAPI.selectScene3DModel('hero-model');
+    app.EditorAPI.previewScene3DAnimation('hero-model', 'Run');
+    const material = app.EditorAPI.updateScene3DMaterial('hero-pbr', { roughness: 0.35, metallic: 0.2 });
+
+    expect(material).toMatchObject({ id: 'hero-pbr', roughness: 0.35, metallic: 0.2 });
+    expect(root.querySelector('[data-scene-3d-model="hero-model"]')?.textContent).toContain('选中');
+    expect(root.querySelector('[data-scene-3d-model="hero-model"]')?.textContent).toContain('Run');
+    expect(root.querySelector('[data-scene-3d-material="hero-pbr"]')?.textContent).toContain('roughness 0.35');
+
+    app.EditorAPI.refreshPrefabDependencyGraph();
+    const repair = app.EditorAPI.applyPrefabDependencyRepair('repair:assets/missing-hero.png');
+
+    expect(repair).toMatchObject({
+      actionId: 'repair:assets/missing-hero.png',
+      path: 'assets/missing-hero.png',
+      applied: true
+    });
+    expect(app.getState().assets).toContainEqual(expect.objectContaining({
+      path: 'assets/missing-hero.png',
+      missingStub: true
+    }));
+    expect(app.getState().prefabDependencyGraph.summary.missingAssetCount).toBe(0);
+    expect(root.querySelector('[data-prefab-repair-report]')?.textContent).toContain('assets/missing-hero.png');
+
+    app.EditorAPI.refreshWebGPUPipelinePanel({
+      backend: { preferred: 'webgpu', active: 'webgl2', fallbackChain: ['webgpu', 'webgl2'], rejected: [{ id: 'webgpu', reason: 'device-lost' }] },
+      textures: [{ id: 'hero-normal', state: 'pending-upload' }],
+      buffers: [{ id: 'instances', bytes: 1024 }],
+      bindGroups: [{ id: 'hero-bind-group', resources: ['hero-normal', 'instances'] }],
+      pipelines: [{ id: 'hero-pipeline', cached: false }],
+      deviceEvents: [{ type: 'lost', reason: 'adapter-reset' }],
+      budgets: { textureCount: 4, bufferBytes: 4096, pipelineCacheMisses: 0 }
+    });
+    app.EditorAPI.applyWebGPURecoveryAction('flush-texture-uploads');
+    app.EditorAPI.applyWebGPURecoveryAction('warm-pipeline-cache');
+    const recovery = app.EditorAPI.applyWebGPURecoveryAction('recreate-device');
+
+    expect(recovery).toMatchObject({
+      actionId: 'recreate-device',
+      applied: true,
+      summary: {
+        pendingTextureUploads: 0,
+        pipelineCacheMisses: 0,
+        deviceLostCount: 0
+      }
+    });
+    expect(app.getState().webgpuPipelineDiagnostics.fallback.active).toBe('webgpu');
+    expect(root.querySelector('[data-webgpu-recovery-report]')?.textContent).toContain('recreate-device');
+    expect(messages.map((message) => message.type)).toEqual(expect.arrayContaining([
+      'editor:visual-script-debug-session',
+      'editor:scene-3d-viewport-action',
+      'editor:prefab-dependency-repair',
+      'editor:webgpu-recovery-action'
+    ]));
+    const debugSync = applyLiveSyncMessage(createEditorState(), messages.find((message) => message.type === 'editor:visual-script-debug-session'));
+    expect(debugSync.visualScriptEditor.debugSession.pausedAt).toBe('set-score');
+    const viewportSync = applyLiveSyncMessage(createEditorState(), messages.find((message) => message.type === 'editor:scene-3d-viewport-action'));
+    expect(viewportSync.scene3DViewport.selectedModelId).toBe('hero-model');
+    const repairSync = applyLiveSyncMessage(createEditorState(), messages.find((message) => message.type === 'editor:prefab-dependency-repair'));
+    expect(repairSync.prefabDependencyGraph.lastRepair.path).toBe('assets/missing-hero.png');
+    const recoverySync = applyLiveSyncMessage(createEditorState(), messages.find((message) => message.type === 'editor:webgpu-recovery-action'));
+    expect(recoverySync.webgpuPipelineDiagnostics.recoveryReport.actionId).toBe('flush-texture-uploads');
+    app.destroy();
+  });
+
   it('configures multi-platform build settings with strategy defaults', () => {
     const root = document.createElement('main');
     document.body.appendChild(root);

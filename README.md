@@ -1088,9 +1088,10 @@ const diagnostics = world.createDiagnosticsSnapshot({
 
 编辑器闭环继续扩展到四个高频生产入口：
 
-- `EditorAPI.openVisualScriptGraphEditor()`、`addVisualScriptNode()`、`connectVisualScriptNodes()`、`bindVisualScriptEvent()`、`runVisualScriptGraph()`：让 0 基础用户在 `visual-scripting` 面板拖节点、连线、绑定事件、运行并查看 trace。
-- `EditorAPI.refreshPrefabDependencyGraph()`：生成 `prefab-dependency-graph`，显示场景实体、Prefab 继承、嵌套 Prefab、资源引用、缺失资源和一键修复动作。
-- `EditorAPI.refreshWebGPUPipelinePanel()`：生成 `webgpu-pipeline`，检查纹理上传、buffer 生命周期、bind group、pipeline cache、device lost 和 WebGPU/WebGL fallback。
+- `EditorAPI.openVisualScriptGraphEditor()`、`addVisualScriptNode()`、`connectVisualScriptNodes()`、`bindVisualScriptEvent()`、`runVisualScriptGraph()`、`setVisualScriptBreakpoint()`、`stepVisualScriptGraph()`：让 0 基础用户在 `visual-scripting` 面板拖节点、连线、绑定事件、运行、下断点、单步并查看 trace。
+- `EditorAPI.selectScene3DModel()`、`previewScene3DAnimation()`、`updateScene3DMaterial()`：让 3D 视口从静态检查升级为可选中模型、预览动画并编辑材质参数。
+- `EditorAPI.refreshPrefabDependencyGraph()`、`applyPrefabDependencyRepair()`：生成 `prefab-dependency-graph`，显示场景实体、Prefab 继承、嵌套 Prefab、资源引用、缺失资源，并把一键修复动作落到资源数据库占位注册。
+- `EditorAPI.refreshWebGPUPipelinePanel()`、`applyWebGPURecoveryAction()`：生成 `webgpu-pipeline`，检查纹理上传、buffer 生命周期、bind group、pipeline cache、device lost 和 WebGPU/WebGL fallback，并支持刷新纹理上传、预热 pipeline cache、重建设备等恢复动作。
 
 ## 一键启动与生成器
 

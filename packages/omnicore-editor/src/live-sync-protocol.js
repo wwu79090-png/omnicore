@@ -176,13 +176,40 @@ export function applyLiveSyncMessage(state = createEditorState(), message = {}) 
       bindings: [...(next.visualScriptEditor?.bindings || []), message.payload]
     });
   }
+  if (message.type === 'editor:visual-script-breakpoint') {
+    next.visualScriptEditor = normalizeVisualScriptEditor({
+      ...next.visualScriptEditor,
+      open: true,
+      breakpoints: message.payload?.breakpoints || []
+    });
+  }
+  if (message.type === 'editor:visual-script-debug-session') {
+    next.visualScriptEditor = normalizeVisualScriptEditor({
+      ...next.visualScriptEditor,
+      open: true,
+      debugSession: message.payload
+    });
+  }
   if (message.type === 'editor:visual-script-run' || message.type === 'runtime:visual-script-trace') {
     next.visualScriptTrace = normalizeVisualScriptTrace(message.payload);
     next.visualScriptValidation = normalizeVisualScriptValidation(message.payload?.validation);
   }
   if (message.type === 'editor:scene-3d-viewport') next.scene3DViewport = normalizeScene3DViewport(message.payload);
+  if (message.type === 'editor:scene-3d-viewport-action') next.scene3DViewport = normalizeScene3DViewport(message.payload?.viewport);
   if (message.type === 'editor:prefab-dependency-graph') next.prefabDependencyGraph = normalizePrefabDependencyGraph(message.payload);
+  if (message.type === 'editor:prefab-dependency-repair') {
+    next.prefabDependencyGraph = normalizePrefabDependencyGraph({
+      ...next.prefabDependencyGraph,
+      lastRepair: message.payload
+    });
+  }
   if (message.type === 'editor:webgpu-pipeline-diagnostics') next.webgpuPipelineDiagnostics = normalizeWebGPUPipelineDiagnostics(message.payload);
+  if (message.type === 'editor:webgpu-recovery-action') {
+    next.webgpuPipelineDiagnostics = normalizeWebGPUPipelineDiagnostics({
+      ...next.webgpuPipelineDiagnostics,
+      recoveryReport: message.payload
+    });
+  }
   return next;
 }
 

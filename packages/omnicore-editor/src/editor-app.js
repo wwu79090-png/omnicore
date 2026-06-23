@@ -1129,6 +1129,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
     openVisualScriptGraphEditor,
     bindVisualScriptEvent,
     runVisualScriptGraph,
+    setVisualScriptBreakpoint,
+    stepVisualScriptGraph,
     validateVisualScriptGraph,
     runVisualScript,
     exportUILayoutJson,
@@ -1142,8 +1144,13 @@ export function createEditorApp(root = document.querySelector('#app'), {
     createScene3DReadinessFixPlan,
     applyScene3DReadinessFixPlan,
     openScene3DViewport,
+    selectScene3DModel,
+    previewScene3DAnimation,
+    updateScene3DMaterial,
     refreshPrefabDependencyGraph,
+    applyPrefabDependencyRepair,
     refreshWebGPUPipelinePanel,
+    applyWebGPURecoveryAction,
     refreshPhysicsDiagnosticsPanel,
     createRuntimeSyncPayload,
     applyRuntimeSyncPayload,
@@ -2373,6 +2380,12 @@ export function createEditorApp(root = document.querySelector('#app'), {
       runVisualScriptGraph(eventName = 'start', payload = {}, options = {}) {
         return runVisualScriptGraph(eventName, payload, options);
       },
+      setVisualScriptBreakpoint(nodeId, enabled = true) {
+        return setVisualScriptBreakpoint(nodeId, enabled);
+      },
+      stepVisualScriptGraph(eventName = 'start', payload = {}, options = {}) {
+        return stepVisualScriptGraph(eventName, payload, options);
+      },
       exportVisualScriptGraph() {
         return exportVisualScriptGraph();
       },
@@ -2412,11 +2425,26 @@ export function createEditorApp(root = document.querySelector('#app'), {
       openScene3DViewport(input = {}, options = {}) {
         return openScene3DViewport(input, options);
       },
+      selectScene3DModel(modelId) {
+        return selectScene3DModel(modelId);
+      },
+      previewScene3DAnimation(modelId, animation) {
+        return previewScene3DAnimation(modelId, animation);
+      },
+      updateScene3DMaterial(materialId, patch = {}) {
+        return updateScene3DMaterial(materialId, patch);
+      },
       refreshPrefabDependencyGraph(input = {}, options = {}) {
         return refreshPrefabDependencyGraph(input, options);
       },
+      applyPrefabDependencyRepair(actionId, options = {}) {
+        return applyPrefabDependencyRepair(actionId, options);
+      },
       refreshWebGPUPipelinePanel(input = {}, options = {}) {
         return refreshWebGPUPipelinePanel(input, options);
+      },
+      applyWebGPURecoveryAction(actionId, options = {}) {
+        return applyWebGPURecoveryAction(actionId, options);
       },
       addUIButton(button = {}) {
         return addUIButton(button);
@@ -2619,6 +2647,60 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return normalized;
   }
 
+  function setVisualScriptBreakpoint(nodeId, enabled = true) {
+    const id = String(nodeId || '');
+    if (!id) return null;
+    const editor = normalizeVisualScriptEditorState(current.visualScriptEditor);
+    const breakpoints = new Set(editor.breakpoints || []);
+    if (enabled) breakpoints.add(id);
+    else breakpoints.delete(id);
+    current = createEditorState({
+      ...current,
+      visualScriptEditor: createVisualScriptEditorState(current, {
+        open: true,
+        breakpoints: [...breakpoints]
+      }),
+      dockLayout: ensurePanelInDock(current.dockLayout, 'visual-scripting', 'center')
+    });
+    emit('editor:visual-script-breakpoint', { nodeId: id, enabled: breakpoints.has(id), breakpoints: [...breakpoints] });
+    emit('editor:visual-script-graph', current.visualScriptEditor);
+    update(current);
+    return { nodeId: id, enabled: breakpoints.has(id), breakpoints: [...breakpoints] };
+  }
+
+  function stepVisualScriptGraph(eventName = 'start', payload = {}, options = {}) {
+    const report = runVisualScript(eventName, payload, options);
+    const breakpoints = new Set(current.visualScriptEditor?.breakpoints || []);
+    const trace = Array.isArray(report.trace) ? report.trace : [];
+    const breakpointIndex = trace.findIndex((entry) => breakpoints.has(entry.nodeId));
+    const cursor = breakpointIndex >= 0 ? breakpointIndex : Math.max(0, Math.min(Number(options.cursor || 0), trace.length - 1));
+    const pausedAt = trace[cursor]?.nodeId || null;
+    const debugSession = {
+      schema: 'omnicore.editor-visual-script-debug-session.v1',
+      event: eventName,
+      paused: Boolean(pausedAt),
+      pausedAt,
+      cursor,
+      breakpointHit: breakpointIndex >= 0,
+      trace: cloneState(trace),
+      variables: cloneState(report.variables || {}),
+      ranAt: report.ranAt
+    };
+    current = createEditorState({
+      ...current,
+      visualScriptEditor: createVisualScriptEditorState(current, {
+        open: true,
+        lastRun: report,
+        debugSession,
+        breakpoints: [...breakpoints]
+      }),
+      dockLayout: ensurePanelInDock(current.dockLayout, 'visual-scripting', 'center')
+    });
+    emit('editor:visual-script-debug-session', debugSession);
+    update(current);
+    return debugSession;
+  }
+
   function addUIButton(button = {}) {
     const uiLayout = normalizeUILayoutState(current.uiLayout);
     const element = normalizeUIElement({
@@ -2799,6 +2881,65 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return viewport;
   }
 
+  function selectScene3DModel(modelId) {
+    const id = String(modelId || '');
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      selectedModelId: id,
+      models: (current.scene3DViewport?.models || []).map((model) => ({
+        ...model,
+        selected: model.id === id
+      }))
+    });
+    current = createEditorState({
+      ...current,
+      scene3DViewport: viewport,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'scene-3d-viewport', 'center')
+    });
+    emit('editor:scene-3d-viewport-action', { type: 'select-model', modelId: id, viewport });
+    update(current);
+    return viewport.models.find((model) => model.id === id) || null;
+  }
+
+  function previewScene3DAnimation(modelId, animation) {
+    const id = String(modelId || '');
+    const clip = String(animation || '');
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      models: (current.scene3DViewport?.models || []).map((model) => ({
+        ...model,
+        activeAnimation: model.id === id ? clip : model.activeAnimation
+      }))
+    });
+    current = createEditorState({
+      ...current,
+      scene3DViewport: viewport,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'scene-3d-viewport', 'center')
+    });
+    emit('editor:scene-3d-viewport-action', { type: 'preview-animation', modelId: id, animation: clip, viewport });
+    update(current);
+    return viewport.models.find((model) => model.id === id) || null;
+  }
+
+  function updateScene3DMaterial(materialId, patch = {}) {
+    const id = String(materialId || '');
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      materials: (current.scene3DViewport?.materials || []).map((material) => (
+        material.id === id ? { ...material, ...cloneState(patch) } : material
+      ))
+    });
+    current = createEditorState({
+      ...current,
+      scene3DViewport: viewport,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'scene-3d-viewport', 'center')
+    });
+    const material = viewport.materials.find((item) => item.id === id) || null;
+    emit('editor:scene-3d-viewport-action', { type: 'update-material', materialId: id, patch, material, viewport });
+    update(current);
+    return material;
+  }
+
   function refreshPrefabDependencyGraph(input = {}, options = {}) {
     const graph = createPrefabDependencyGraphState({
       scene: input.scene || current.scene,
@@ -2817,6 +2958,54 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return graph;
   }
 
+  function applyPrefabDependencyRepair(actionId, options = {}) {
+    const graph = current.prefabDependencyGraph || refreshPrefabDependencyGraph({}, { generatedAt: options.generatedAt });
+    const action = (graph.repairActions || []).find((item) => item.id === actionId || item.path === actionId || `repair:${item.path}` === actionId);
+    if (!action) return null;
+    const existingAssets = Array.isArray(current.assets) ? current.assets : [];
+    const exists = existingAssets.some((asset) => slash(asset.path || asset.url || asset.id || asset) === action.path);
+    const repairedAsset = {
+      path: action.path,
+      type: inferEditorAssetType(action.path),
+      missingStub: true,
+      repairSource: 'prefab-dependency-graph',
+      references: cloneState(action.sources || []),
+      repairedAt: options.repairedAt || new Date().toISOString()
+    };
+    const assets = exists
+      ? existingAssets.map((asset) => (slash(asset.path || asset.url || asset.id || asset) === action.path ? { ...asset, ...repairedAsset } : asset))
+      : [...existingAssets, repairedAsset];
+    const nextGraph = createPrefabDependencyGraphState({
+      scene: current.scene,
+      prefabs: current.prefabs,
+      assets,
+      generatedAt: options.generatedAt
+    });
+    const report = {
+      schema: 'omnicore.editor-prefab-dependency-repair.v1',
+      actionId: action.id,
+      path: action.path,
+      applied: true,
+      asset: repairedAsset,
+      remainingMissingAssetCount: nextGraph.summary.missingAssetCount,
+      repairedAt: repairedAsset.repairedAt
+    };
+    current = createEditorState({
+      ...current,
+      assets,
+      prefabDependencyGraph: {
+        ...nextGraph,
+        lastRepair: report
+      },
+      dockLayout: ensurePanelInDock(current.dockLayout, 'prefab-dependency-graph', 'bottom')
+    });
+    emit('editor:prefab-dependency-repair', report);
+    emit('editor:prefab-dependency-graph', current.prefabDependencyGraph);
+    showEditorFeedback(`已注册缺失资源占位：${action.path}`, 'success');
+    update(current);
+    return report;
+  }
+
   function refreshWebGPUPipelinePanel(input = {}, options = {}) {
     const report = createWebGPUPipelineDiagnosticsState(input, options);
     current = createEditorState({
@@ -2828,6 +3017,57 @@ export function createEditorApp(root = document.querySelector('#app'), {
     showEditorFeedback(`WebGPU 管线诊断：${report.summary.issueCount} 个问题`, report.summary.issueCount ? 'warning' : 'success');
     update(current);
     return report;
+  }
+
+  function applyWebGPURecoveryAction(actionId, options = {}) {
+    const id = String(actionId || '');
+    const report = current.webgpuPipelineDiagnostics || createWebGPUPipelineDiagnosticsState({});
+    let textures = report.textures || [];
+    let pipelines = report.pipelines || [];
+    let deviceEvents = report.deviceEvents || [];
+    let fallback = report.fallback || { preferred: 'webgpu', active: 'webgpu', fallbackChain: ['webgpu'], rejected: [] };
+    if (id === 'flush-texture-uploads') {
+      textures = textures.map((texture) => ({ ...texture, state: 'uploaded' }));
+    }
+    if (id === 'warm-pipeline-cache') {
+      pipelines = pipelines.map((pipeline) => ({ ...pipeline, cached: true }));
+    }
+    if (id === 'recreate-device') {
+      deviceEvents = deviceEvents.filter((event) => event.type !== 'lost');
+      fallback = {
+        ...fallback,
+        active: fallback.preferred || 'webgpu',
+        rejected: []
+      };
+    }
+    const nextReport = createWebGPUPipelineDiagnosticsState({
+      backend: fallback,
+      textures,
+      buffers: report.buffers,
+      bindGroups: report.bindGroups,
+      pipelines,
+      deviceEvents
+    }, options);
+    const recoveryReport = {
+      schema: 'omnicore.editor-webgpu-recovery-action.v1',
+      actionId: id,
+      applied: true,
+      summary: cloneState(nextReport.summary),
+      appliedAt: options.appliedAt || new Date().toISOString()
+    };
+    current = createEditorState({
+      ...current,
+      webgpuPipelineDiagnostics: {
+        ...nextReport,
+        recoveryReport
+      },
+      dockLayout: ensurePanelInDock(current.dockLayout, 'webgpu-pipeline', 'bottom')
+    });
+    emit('editor:webgpu-recovery-action', recoveryReport);
+    emit('editor:webgpu-pipeline-diagnostics', current.webgpuPipelineDiagnostics);
+    showEditorFeedback(`已应用 WebGPU 恢复动作：${id}`, 'success');
+    update(current);
+    return recoveryReport;
   }
 
   function editPrefabVariantRuntime(prefabId, patch = {}) {
@@ -7347,7 +7587,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
       item.type = 'button';
       item.className = 'visual-script-node';
       item.dataset.visualScriptNode = node.id;
-      item.textContent = `${node.label || node.id} / ${node.type}`;
+      if ((editor.breakpoints || []).includes(node.id)) item.dataset.visualScriptBreakpoint = node.id;
+      item.textContent = `${node.label || node.id} / ${node.type}${(editor.breakpoints || []).includes(node.id) ? ' / 断点' : ''}`;
       canvas.appendChild(item);
     }
     panel.appendChild(canvas);
@@ -7371,6 +7612,15 @@ export function createEditorApp(root = document.querySelector('#app'), {
       bindings.appendChild(row);
     }
     panel.appendChild(bindings);
+    if (editor.debugSession) {
+      const debug = document.createElement('div');
+      debug.className = 'visual-script-debug-session';
+      debug.dataset.visualScriptDebugSession = 'true';
+      debug.textContent = editor.debugSession.paused
+        ? `暂停 ${editor.debugSession.pausedAt} / cursor ${editor.debugSession.cursor}`
+        : '未暂停';
+      panel.appendChild(debug);
+    }
     return panel;
   }
 
@@ -7929,13 +8179,13 @@ export function createEditorApp(root = document.querySelector('#app'), {
     for (const material of viewport.materials || []) {
       const row = document.createElement('div');
       row.setAttribute('data-scene-3d-material', material.id);
-      row.textContent = `${material.id} / ${material.type} / ${material.albedo || 'no-albedo'} / ${material.normalMap || 'no-normal'}`;
+      row.textContent = `${material.id} / ${material.type} / ${material.albedo || 'no-albedo'} / ${material.normalMap || 'no-normal'} / roughness ${material.roughness ?? 'n/a'} / metallic ${material.metallic ?? 'n/a'}`;
       wrap.appendChild(row);
     }
     for (const model of viewport.models || []) {
       const row = document.createElement('div');
       row.setAttribute('data-scene-3d-model', model.id);
-      row.textContent = `${model.id} / ${model.url || 'no-model'} / ${model.material || 'no-material'} / ${model.animations.join(', ')}`;
+      row.textContent = `${model.id} / ${model.url || 'no-model'} / ${model.material || 'no-material'} / ${model.animations.join(', ')} / ${model.activeAnimation || 'no-preview'}${model.selected ? ' / 选中' : ''}`;
       wrap.appendChild(row);
     }
     for (const collider of viewport.colliders || []) {
@@ -7983,9 +8233,16 @@ export function createEditorApp(root = document.querySelector('#app'), {
       button.type = 'button';
       button.dataset.prefabMissingAsset = action.path;
       button.textContent = `${action.path} / 一键修复`;
+      button.addEventListener('click', () => applyPrefabDependencyRepair(action.id));
       missing.appendChild(button);
     }
     wrap.appendChild(missing);
+    if (graph.lastRepair) {
+      const report = document.createElement('div');
+      report.dataset.prefabRepairReport = 'true';
+      report.textContent = `${graph.lastRepair.path} / applied ${graph.lastRepair.applied} / remaining ${graph.lastRepair.remainingMissingAssetCount}`;
+      wrap.appendChild(report);
+    }
     return wrap;
   }
 
@@ -8029,7 +8286,14 @@ export function createEditorApp(root = document.querySelector('#app'), {
       button.type = 'button';
       button.dataset.webgpuRecoveryAction = action.id;
       button.textContent = action.label;
+      button.addEventListener('click', () => applyWebGPURecoveryAction(action.id));
       wrap.appendChild(button);
+    }
+    if (report.recoveryReport) {
+      const recovery = document.createElement('div');
+      recovery.dataset.webgpuRecoveryReport = 'true';
+      recovery.textContent = `${report.recoveryReport.actionId} / applied ${report.recoveryReport.applied} / issues ${report.recoveryReport.summary?.issueCount || 0}`;
+      wrap.appendChild(recovery);
     }
     return wrap;
   }
@@ -8363,6 +8627,8 @@ function createVisualScriptEditorState(state = {}, overrides = {}) {
   }).validate();
   const trace = overrides.lastRun || state.visualScriptTrace || null;
   const bindings = overrides.bindings || state.visualScriptEditor?.bindings || [];
+  const breakpoints = overrides.breakpoints || state.visualScriptEditor?.breakpoints || [];
+  const debugSession = overrides.debugSession || state.visualScriptEditor?.debugSession || null;
   const traceRows = Array.isArray(trace?.trace) ? trace.trace.map((entry, index) => ({
     index,
     nodeId: entry.nodeId || 'unknown',
@@ -8376,9 +8642,11 @@ function createVisualScriptEditorState(state = {}, overrides = {}) {
     graph,
     palette: createVisualScriptPaletteModel(),
     bindings: bindings.map((binding) => cloneState(binding)),
+    breakpoints: stringList(breakpoints),
     selectedNodeId: overrides.selectedNodeId ?? state.visualScriptEditor?.selectedNodeId ?? null,
     validation,
     lastRun: trace ? cloneState(trace) : null,
+    debugSession: debugSession ? cloneState(debugSession) : null,
     traceRows,
     beginnerChecklist: createVisualScriptBeginnerChecklist({ graph, validation, traceRows })
   };
@@ -8391,9 +8659,11 @@ function normalizeVisualScriptEditorState(value = {}) {
     graph: value.graph ? cloneState(value.graph) : null,
     palette: value.palette ? cloneState(value.palette) : createVisualScriptPaletteModel(),
     bindings: Array.isArray(value.bindings) ? value.bindings.map((binding) => cloneState(binding)) : [],
+    breakpoints: stringList(value.breakpoints),
     selectedNodeId: value.selectedNodeId || null,
     validation: value.validation || null,
     lastRun: value.lastRun ? cloneState(value.lastRun) : null,
+    debugSession: value.debugSession ? cloneState(value.debugSession) : null,
     traceRows: Array.isArray(value.traceRows) ? value.traceRows.map((row) => cloneState(row)) : [],
     beginnerChecklist: Array.isArray(value.beginnerChecklist) ? value.beginnerChecklist.map((item) => cloneState(item)) : []
   };
@@ -8490,19 +8760,25 @@ function createScene3DViewportState(input = {}, options = {}) {
     castShadow: Boolean(light.castShadow)
   }));
   const materials = arrayFromValue(input.materials || input.scene?.materials).map((material, index) => ({
+    ...cloneState(material),
     id: String(material.id || `material-${index + 1}`),
     type: material.type || 'standard',
     albedo: material.albedo || material.map || material.texture || null,
     normalMap: material.normalMap || null
   }));
-  const models = arrayFromValue(input.models || input.scene?.models).map((model, index) => ({
-    id: String(model.id || `model-${index + 1}`),
-    url: model.url || model.path || model.gltf || model.glb || null,
-    material: model.material || null,
-    animations: stringList(model.animations || model.clips),
-    collider: model.collider ? cloneState(model.collider) : null,
-    selected: (input.selectedModelId || options.selectedModelId) === model.id
-  }));
+  const models = arrayFromValue(input.models || input.scene?.models).map((model, index) => {
+    const id = String(model.id || `model-${index + 1}`);
+    return {
+      ...cloneState(model),
+      id,
+      url: model.url || model.path || model.gltf || model.glb || null,
+      material: model.material || null,
+      animations: stringList(model.animations || model.clips),
+      activeAnimation: model.activeAnimation || null,
+      collider: model.collider ? cloneState(model.collider) : null,
+      selected: (input.selectedModelId || options.selectedModelId) === id || Boolean(model.selected)
+    };
+  });
   const colliders = models
     .filter((model) => model.collider)
     .map((model) => ({
@@ -8639,6 +8915,15 @@ function collectDependencyAssetRefs(source = {}) {
   };
   visit(source);
   return [...refs].sort();
+}
+
+function inferEditorAssetType(path = '') {
+  const normalized = slash(path).toLowerCase();
+  if (/\.(png|jpe?g|webp|gif|svg)$/u.test(normalized)) return 'image';
+  if (/\.(glb|gltf)$/u.test(normalized)) return 'model';
+  if (/\.(mp3|ogg|wav)$/u.test(normalized)) return 'audio';
+  if (/\.json$/u.test(normalized)) return 'json';
+  return 'asset';
 }
 
 function createWebGPUPipelineDiagnosticsState(input = {}, options = {}) {
