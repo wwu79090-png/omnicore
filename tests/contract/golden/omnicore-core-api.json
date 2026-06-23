@@ -2854,6 +2854,11 @@
         "name": "ThreePhysicsBridge"
       },
       {
+        "arity": 0,
+        "async": false,
+        "name": "ThreeRuntimeAdapter"
+      },
+      {
         "arity": 1,
         "async": false,
         "name": "TileSprite"
@@ -3718,6 +3723,7 @@
       "TextureStreamingBudget",
       "ThermalPowerGovernor",
       "ThreePhysicsBridge",
+      "ThreeRuntimeAdapter",
       "TileSprite",
       "Tilemap",
       "TilemapAuthoringTools",

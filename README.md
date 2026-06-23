@@ -570,6 +570,8 @@ dimension.render(1 / 60);
 
 `Runtime3DScene` 是新增的可运行 3D 场景契约：可添加 Camera3D 控制、Light3D、PBR 材质、GLTF/GLB 模型、动画播放、3D collider、rigid body 元数据和物理后端绑定，并通过 `createRuntimeSnapshot()` 输出 `omnicore.runtime-3d-scene.v1` 快照与 debug draw。它让编辑器、测试和后续 Three/Rapier/Box2D 集成拥有稳定数据面，而不是只停在 readiness 报告。
 
+`ThreeRuntimeAdapter` 把 `Runtime3DScene` 真正接到 Three.js 运行时：它会创建 `Scene`、`WebGLRenderer`、`PerspectiveCamera`、`DirectionalLight`、`MeshStandardMaterial`，通过 `GLTFLoader` 加载 GLTF/GLB，使用 `AnimationMixer` 播放动画，并可接入 `EffectComposer + RenderPass` 做后处理。适合把编辑器里的 3D 场景快照直接跑成真实 Three.js 预览。
+
 `createReadinessFixPlan(report)` 会把 readiness 问题转成可执行动作；`applyReadinessFixPlan(plan)` 只自动处理安全项，例如创建占位材质、补默认碰撞体、限制阴影贴图和压缩后处理预算。缺失模型或贴图仍保留为手动导入动作，避免用假数据掩盖真实资源问题。
 
 桌面编辑器已接入 `scene-3d-readiness` 面板：`EditorAPI.refreshScene3DReadinessPanel()` 会打开 3D 场景体检，`createScene3DReadinessFixPlan()` 生成修复计划，`applyScene3DReadinessFixPlan()` 应用安全修复并自动复验。
@@ -1099,6 +1101,8 @@ const rapierBackend = createExternalPhysicsBackend('rapier-real', {
 const world = createPhysicsWorld({ backend: 'rapier-real', backends: [rapierBackend] });
 ```
 
+Rapier JS 可以直接用 `createRapierPhysicsBackend({ RAPIER })` 接入；该后端会调用 Rapier 的 `World`、`RigidBodyDesc`、`ColliderDesc`、`createImpulseJoint()`、`castRay()` 和 `debugRender()`，并把结果转回 OmniCore 的统一物理 diagnostics/debug draw 数据面。
+
 桌面编辑器的 `EditorAPI.refreshPhysicsDiagnosticsPanel()` 会把 `PhysicsWorld` 诊断写入物理视图，显示刚体、sensor、constraint、raycast 命中和 debug draw；可运行示例在 [`examples/physics-debug-draw-demo`](examples/physics-debug-draw-demo/)。
 
 编辑器闭环继续扩展到四个高频生产入口：
@@ -1109,6 +1113,8 @@ const world = createPhysicsWorld({ backend: 'rapier-real', backends: [rapierBack
 - `EditorAPI.refreshWebGPUPipelinePanel()`、`applyWebGPURecoveryAction()`：生成 `webgpu-pipeline`，检查纹理上传、buffer 生命周期、bind group、pipeline cache、device lost 和 WebGPU/WebGL fallback，并支持刷新纹理上传、预热 pipeline cache、重建设备等恢复动作。
 
 编辑器架构也新增 `createEditorAuthoringModules()` 模块边界，把 `visualScript`、`scene3DViewport`、`prefabDependencyGraph`、`webgpuPipeline`、`dockWindow` 和 `runtimeSync` 的面板归属、能力和 runtime sync key 独立出来；`createEditorApp().getAuthoringModules()` 可直接读取，后续拆分 `editor-app.js` 时有稳定迁移表。
+
+3D 视口开始拆到 `packages/omnicore-editor/src/panels/scene-3d-viewport-panel.js`：`createScene3DViewportRenderState()` 会生成 `runtimeAdapter: 'three'`、`renderMode: 'real-preview'`、GLTF 预加载队列、动画预览、材质编辑入口、灯光/阴影/碰撞体叠层状态。`EditorAPI.openScene3DViewport(input, { runtimeAdapter: 'three', renderMode: 'real-preview' })` 会把这些实渲染信息展示到编辑器面板。
 
 ## 一键启动与生成器
 

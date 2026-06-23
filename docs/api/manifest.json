@@ -1185,6 +1185,13 @@
       ]
     },
     {
+      "path": "dimension3d/ThreeRuntimeAdapter.js",
+      "summary": "",
+      "exports": [
+        "ThreeRuntimeAdapter"
+      ]
+    },
+    {
       "path": "docs/ApiDocGenerator.js",
       "summary": "Generate a small structured API documentation site from source exports.",
       "exports": [

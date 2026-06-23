@@ -280,6 +280,7 @@ import ElectronNativeBridge from './platform/ElectronNativeBridge.js';
 import Dimension3D from './dimension3d/Dimension3D.js';
 import Scene3DKit from './dimension3d/Scene3DKit.js';
 import Runtime3DScene from './dimension3d/Runtime3DScene.js';
+import ThreeRuntimeAdapter from './dimension3d/ThreeRuntimeAdapter.js';
 import ThreePhysicsBridge from './dimension3d/ThreePhysicsBridge.js';
 import { detectEnvironment, detectPlatformAndMergeDefaults, safeInitialize } from './core/Bootstrap.js';
 import TimeGuard from './core/TimeGuard.js';
@@ -1130,6 +1131,7 @@ const OmniCore = {
   Dimension3D,
   Scene3DKit,
   Runtime3DScene,
+  ThreeRuntimeAdapter,
   ThreePhysicsBridge,
   Deprecation,
   Store,
@@ -1567,6 +1569,7 @@ export {
   Dimension3D,
   Scene3DKit,
   Runtime3DScene,
+  ThreeRuntimeAdapter,
   ThreePhysicsBridge,
   DeterministicReplay,
   DragonBonesAdapter,

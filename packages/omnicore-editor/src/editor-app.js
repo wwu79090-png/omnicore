@@ -57,6 +57,7 @@ import {
   VisualScriptGraphRuntime
 } from './editor-runtime-adapters.js';
 import { createEditorAuthoringModules } from './editor-authoring-modules.js';
+import { createScene3DViewportRenderState } from './panels/scene-3d-viewport-panel.js';
 import {
   EditorCoCreator25D,
   SocialAwareness25D,
@@ -8167,6 +8168,12 @@ export function createEditorApp(root = document.querySelector('#app'), {
       metrics.appendChild(metric);
     }
     wrap.appendChild(metrics);
+    if (viewport.renderMode === 'real-preview') {
+      const realPreview = document.createElement('div');
+      realPreview.setAttribute('data-scene-3d-real-preview', 'true');
+      realPreview.textContent = `Three.js ${viewport.runtimeAdapter || 'three'} 实时预览 / GLTF ${viewport.gltfPreloadQueue?.length || 0} / 动画 ${viewport.animationPreview?.clip || '未选择'} / 碰撞体 ${viewport.overlays?.colliders ? '显示' : '隐藏'} / 阴影 ${viewport.overlays?.shadows ? '显示' : '隐藏'}`;
+      wrap.appendChild(realPreview);
+    }
     for (const camera of viewport.cameras || []) {
       const row = document.createElement('div');
       row.setAttribute('data-scene-3d-camera', camera.id);
@@ -8788,6 +8795,14 @@ function createScene3DViewportState(input = {}, options = {}) {
       modelId: model.id,
       ...cloneState(model.collider)
     }));
+  const renderState = createScene3DViewportRenderState({
+    ...input,
+    cameras,
+    lights,
+    materials,
+    models,
+    colliders
+  }, options);
   return {
     schema: 'omnicore.editor-scene-3d-viewport.v1',
     open: true,
@@ -8805,7 +8820,8 @@ function createScene3DViewportState(input = {}, options = {}) {
     lights,
     materials,
     models,
-    colliders
+    colliders,
+    ...renderState
   };
 }
 

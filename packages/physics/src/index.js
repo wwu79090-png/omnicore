@@ -7,6 +7,8 @@ const DEFAULT_CAPABILITIES = [
   'debug-draw'
 ];
 
+export { RapierPhysicsBackend, createRapierPhysicsBackend } from './RapierPhysicsBackend.js';
+
 export function createPhysicsRegistry({ backends = [] } = {}) {
   const registry = new Map();
   let activeBackend = null;
@@ -396,6 +398,7 @@ function getExternalWorldId(world) {
 
 function normalizeExternalDebugDraw(payload = {}, bodies = [], constraints = []) {
   return {
+    ...clone(payload),
     schema: 'omnicore.physics-debug-draw.v1',
     source: 'external-backend',
     colliders: Array.isArray(payload.colliders)

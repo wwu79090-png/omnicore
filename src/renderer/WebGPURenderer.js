@@ -1,6 +1,7 @@
 import { createOmniError } from '../core/OmniError.js';
 import { DEFAULT_RENDERER_CONFIG } from '../config/defaults.js';
 import RenderWorkerBridge from './RenderWorkerBridge.js';
+import WebGPUPipelineRuntime from './WebGPUPipelineRuntime.js';
 
 /**
  * MVP WebGPU renderer abstraction.
@@ -19,7 +20,8 @@ export class WebGPURenderer {
     navigatorRef = globalThis.navigator,
     gpu = navigatorRef?.gpu,
     workerFactory = null,
-    metrics = null
+    metrics = null,
+    pipelineRuntime = null
   } = {}) {
     this.backend = 'webgpu';
     this.canvas = canvas;
@@ -30,6 +32,7 @@ export class WebGPURenderer {
     this.gpu = gpu;
     this.workerFactory = workerFactory;
     this.metrics = metrics;
+    this.pipelineRuntime = pipelineRuntime || new WebGPUPipelineRuntime({ label: 'webgpu-renderer-frame' });
     this.adapter = null;
     this.device = null;
     this.context = null;
@@ -64,6 +67,10 @@ export class WebGPURenderer {
     this.adapter = await this.gpu.requestAdapter();
     if (!this.adapter?.requestDevice) throw createOmniError('Renderer', 'WebGPU adapter 不可用。');
     this.device = await this.adapter.requestDevice();
+    this.device.lost?.then?.((reason) => {
+      this.pipelineRuntime.loseDevice(reason?.message || reason?.reason || 'device-lost');
+      this.pipelineRuntime.recoverDevice({ strategy: 'recreate-device' });
+    });
     this.format = this.gpu.getPreferredCanvasFormat?.() || 'bgra8unorm';
     this.context.configure({
       device: this.device,
@@ -71,6 +78,15 @@ export class WebGPURenderer {
       alphaMode: 'premultiplied'
     });
     this.pipeline = this._createPipeline();
+    if (!this.pipelineRuntime.textures.has('swapchain')) {
+      this.pipelineRuntime.createTexture({
+        id: 'swapchain',
+        width: this.width,
+        height: this.height,
+        format: this.format,
+        usage: ['render-attachment']
+      });
+    }
     this.store?.injectBackend?.(this.backend);
     if (this.workerFactory) {
       this.workerBridge = new RenderWorkerBridge({
@@ -93,6 +109,7 @@ export class WebGPURenderer {
         ...buildGPUBatches(drawInstructions, { maxBatches: 5 })
       ];
       this.mapEntityBuffer(drawInstructions);
+      this.recordPipelineRuntimeFrame(drawInstructions);
       if (this.workerBridge) {
         this.workerBridge.frame(this.lastInstructions, {
           buffer: this.entityBuffer?.buffer || null,
@@ -109,6 +126,47 @@ export class WebGPURenderer {
 
   render(scene) {
     this.renderScene(scene);
+  }
+
+  recordPipelineRuntimeFrame(drawInstructions = []) {
+    const textureIds = [...new Set(drawInstructions.map((instruction) => instruction.texture).filter(Boolean).map(String))];
+    for (const textureId of textureIds) {
+      if (!this.pipelineRuntime.textures.has(textureId)) {
+        this.pipelineRuntime.createTexture({
+          id: textureId,
+          width: 1,
+          height: 1,
+          format: 'rgba8unorm',
+          usage: ['texture-binding', 'copy-dst']
+        });
+        this.pipelineRuntime.queueTextureUpload(textureId, {
+          bytes: 4,
+          source: textureId
+        });
+      }
+    }
+    if (textureIds.length) this.pipelineRuntime.flushTextureUploads();
+    this.pipelineRuntime.createBuffer({
+      id: 'entity-buffer',
+      size: this.entityBuffer?.bytes || Float32Array.BYTES_PER_ELEMENT * 8,
+      usage: 'vertex'
+    });
+    this.pipelineRuntime.createBindGroup({
+      id: 'frame-bind-group',
+      resources: ['entity-buffer', ...textureIds]
+    });
+    this.pipelineRuntime.createPipeline({
+      id: 'sprite-batch-pipeline',
+      layout: 'frame-bind-group',
+      vertex: 'vs_main',
+      fragment: 'fs_main'
+    });
+    this.pipelineRuntime.encodeDraw({
+      pipeline: 'sprite-batch-pipeline',
+      bindGroup: 'frame-bind-group',
+      vertexCount: Math.max(0, drawInstructions.length * 6),
+      instanceCount: Math.max(1, drawInstructions.length)
+    });
   }
 
   resize(width, height) {
