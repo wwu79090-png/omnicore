@@ -163,6 +163,96 @@ describe('engine gap closure round 2', () => {
     ]);
   });
 
+  it('plans and applies safe 3D scene readiness fixes while keeping missing assets manual', () => {
+    const scene = new Scene3DKit({ name: 'boss-room', width: 1920, height: 1080 });
+    scene.setCamera({ id: 'gameplay', mode: 'free', controls: ['orbit'] });
+    scene.addLight('key', {
+      type: 'directional',
+      castShadow: true,
+      shadow: { mapSize: 4096 }
+    });
+    scene.addMaterial('hero-pbr', {
+      type: 'pbr',
+      normalMap: 'assets/hero_n.png',
+      emissive: 'assets/hero_e.png'
+    });
+    scene.addGLTFModel({
+      id: 'hero',
+      url: 'models/hero.glb',
+      material: 'hero-pbr',
+      rigidBody: { type: 'dynamic' },
+      collider: { shape: 'capsule', radius: 0.4, height: 1.8 }
+    });
+    scene.addGLTFModel({
+      id: 'crate',
+      url: 'models/crate.glb',
+      material: 'missing-mat',
+      rigidBody: { type: 'dynamic' }
+    });
+    scene.addPostProcess({ id: 'bloom', type: 'bloom', budgetMs: 2.4 });
+    scene.addPostProcess({ id: 'grade', type: 'color-grading', budgetMs: 0.8 });
+    const readiness = scene.createReadinessReport({
+      availableAssets: ['models/hero.glb', 'models/crate.glb', 'assets/hero_n.png'],
+      budgets: { maxShadowMapSize: 2048, postprocessMs: 2 }
+    });
+
+    const plan = scene.createReadinessFixPlan(readiness, {
+      generatedAt: '2026-01-01T00:00:00.000Z'
+    });
+    const apply = scene.applyReadinessFixPlan(plan, {
+      appliedAt: '2026-01-01T00:00:01.000Z'
+    });
+    const after = scene.createReadinessReport({
+      availableAssets: ['models/hero.glb', 'models/crate.glb', 'assets/hero_n.png'],
+      budgets: { maxShadowMapSize: 2048, postprocessMs: 2 }
+    });
+
+    expect(plan).toMatchObject({
+      format: 'OmniCore.Scene3DReadinessFixPlan',
+      sourceScene: 'boss-room',
+      status: 'needs-action',
+      generatedAt: '2026-01-01T00:00:00.000Z',
+      summary: {
+        actionCount: 5,
+        autoFixCount: 4,
+        manualActionCount: 1
+      }
+    });
+    expect(plan.actions.map((action) => action.type)).toEqual([
+      'requestAsset',
+      'createPlaceholderMaterial',
+      'addDefaultCollider',
+      'capShadowMap',
+      'scalePostprocessBudget'
+    ]);
+    expect(apply).toMatchObject({
+      format: 'OmniCore.Scene3DReadinessFixApplyReport',
+      status: 'partial',
+      appliedAt: '2026-01-01T00:00:01.000Z',
+      summary: {
+        requestedCount: 5,
+        appliedCount: 4,
+        skippedCount: 1,
+        failedCount: 0
+      }
+    });
+    expect(scene.materials.get('missing-mat')).toMatchObject({
+      id: 'missing-mat',
+      placeholder: true
+    });
+    expect(scene.models.get('crate').physics.collider).toMatchObject({
+      shape: 'box',
+      generatedBy: 'readiness-fix'
+    });
+    expect(scene.lights.get('key').shadow.mapSize).toBe(2048);
+    expect(scene.postprocess.reduce((sum, pass) => sum + pass.budgetMs, 0)).toBe(2);
+    expect(after.issues.map((issue) => issue.id)).toEqual(['missing-asset:assets/hero_e.png']);
+    expect(after.gates.find((gate) => gate.id === 'materials').ok).toBe(true);
+    expect(after.gates.find((gate) => gate.id === 'physics-binding').ok).toBe(true);
+    expect(after.gates.find((gate) => gate.id === 'shadow-map-budget').ok).toBe(true);
+    expect(after.gates.find((gate) => gate.id === 'postprocess-budget').ok).toBe(true);
+  });
+
   it('hardens physics backends with colliders, sensors, constraints, raycast, debug draw, and capability reports', async () => {
     const world = new PhysicsWorld();
     await world.setBackend('rapier');

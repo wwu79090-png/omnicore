@@ -2,6 +2,8 @@
  * Full 3D authoring kit for scene composition, free cameras, lights, shadows,
  * PBR materials, GLTF/GLB animation metadata, post effects, and asset validation.
  */
+import { createOmniError } from '../core/OmniError.js';
+
 const DEFAULT_CAPABILITIES = [
   'full-3d-scene',
   'free-camera',
@@ -273,6 +275,134 @@ export class Scene3DKit {
     };
   }
 
+  createReadinessFixPlan(reportOrInput = {}, options = {}) {
+    const report = reportOrInput?.format === 'OmniCore.Scene3DReadinessReport'
+      ? reportOrInput
+      : this.createReadinessReport(reportOrInput);
+    const generatedAt = options.generatedAt || new Date().toISOString();
+    const actions = (report.issues || []).map((issue) => createReadinessFixAction(issue)).filter(Boolean);
+    return {
+      format: 'OmniCore.Scene3DReadinessFixPlan',
+      sourceScene: this.name,
+      sourceReportFormat: report.format || null,
+      generatedAt,
+      status: actions.length ? 'needs-action' : 'clean',
+      actions,
+      summary: {
+        actionCount: actions.length,
+        autoFixCount: actions.filter((action) => action.autoFix).length,
+        manualActionCount: actions.filter((action) => !action.autoFix).length
+      },
+      crossEngineProfile: {
+        sources: [
+          { engine: 'Unity', advantage: 'scene validation results can become safe auto-fix actions' },
+          { engine: 'Unreal', advantage: 'map check findings should carry direct repair commands' },
+          { engine: 'Godot', advantage: 'editor warnings stay visible while safe fixes are beginner-actionable' },
+          { engine: 'Cocos Creator', advantage: 'asset and component repair should write back to scene authoring data' }
+        ],
+        capabilities: [
+          '3d-readiness-fix-plan',
+          'safe-scene-auto-fixes',
+          'manual-asset-action-preservation',
+          'post-fix-readiness-recheck'
+        ]
+      }
+    };
+  }
+
+  applyReadinessFixPlan(plan = {}, options = {}) {
+    const actions = Array.isArray(plan.actions) ? plan.actions : [];
+    const appliedAt = options.appliedAt || new Date().toISOString();
+    const applied = [];
+    const skipped = [];
+    const failed = [];
+
+    for (const action of actions) {
+      if (!action.autoFix) {
+        skipped.push({ ...action, reason: 'manual-action-required' });
+        continue;
+      }
+      try {
+        const result = this.applyReadinessFixAction(action, { appliedAt });
+        applied.push({ ...action, appliedAt, result });
+      } catch (error) {
+        failed.push({
+          ...action,
+          errorName: error?.name || 'Error',
+          reason: String(error?.message || 'readiness-fix-failed')
+        });
+      }
+    }
+
+    return {
+      format: 'OmniCore.Scene3DReadinessFixApplyReport',
+      sourceScene: this.name,
+      sourcePlanFormat: plan.format || null,
+      appliedAt,
+      status: failed.length ? 'failed' : (skipped.length ? 'partial' : 'applied'),
+      applied,
+      skipped,
+      failed,
+      summary: {
+        requestedCount: actions.length,
+        appliedCount: applied.length,
+        skippedCount: skipped.length,
+        failedCount: failed.length
+      }
+    };
+  }
+
+  applyReadinessFixAction(action = {}, { appliedAt = new Date().toISOString() } = {}) {
+    if (action.type === 'createPlaceholderMaterial') {
+      const material = this.addMaterial(action.materialId, {
+        type: 'pbr',
+        baseColor: action.baseColor || '#ff00ff',
+        roughness: 0.8,
+        metallic: 0
+      });
+      material.placeholder = true;
+      material.generatedBy = 'readiness-fix';
+      material.generatedAt = appliedAt;
+      return { materialId: material.id };
+    }
+
+    if (action.type === 'addDefaultCollider') {
+      const model = this.models.get(action.modelId);
+      if (!model) throw createOmniError('Scene3DKit', `missing model for collider fix: ${action.modelId}`);
+      model.physics.collider = {
+        ...normalizeCollider(action.collider || { shape: 'box', width: 1, height: 1, depth: 1 }),
+        generatedBy: 'readiness-fix',
+        generatedAt: appliedAt
+      };
+      return { modelId: model.id, collider: model.physics.collider };
+    }
+
+    if (action.type === 'capShadowMap') {
+      const light = this.lights.get(action.lightId);
+      if (!light) throw createOmniError('Scene3DKit', `missing light for shadow fix: ${action.lightId}`);
+      const previousMapSize = light.shadow.mapSize;
+      light.shadow.mapSize = Math.min(previousMapSize, positiveNumber(action.targetMapSize, previousMapSize));
+      return { lightId: light.id, previousMapSize, mapSize: light.shadow.mapSize };
+    }
+
+    if (action.type === 'scalePostprocessBudget') {
+      const passIds = new Set(normalizeArray(action.passIds).map(String));
+      const passes = this.postprocess.filter((pass) => pass.enabled && (!passIds.size || passIds.has(pass.id)));
+      const previousTotalMs = roundSceneNumber(passes.reduce((total, pass) => total + numberOr(pass.budgetMs, 0), 0));
+      const targetMs = positiveNumber(action.targetMs, previousTotalMs);
+      if (passes.length && previousTotalMs > targetMs) {
+        const scale = targetMs / previousTotalMs;
+        passes.forEach((pass) => {
+          pass.budgetMs = roundSceneNumber(numberOr(pass.budgetMs, 0) * scale);
+        });
+      }
+      const totalMs = roundSceneNumber(passes.reduce((total, pass) => total + numberOr(pass.budgetMs, 0), 0));
+      return { previousTotalMs, totalMs, targetMs, passIds: passes.map((pass) => pass.id) };
+    }
+
+    throw createOmniError('Scene3DKit', `unsupported readiness fix action: ${action.type || 'unknown'}`);
+  }
+
   createDebugDemo() {
     const activeCamera = this.cameras.get(this.activeCameraId) || null;
     return {
@@ -398,6 +528,69 @@ function createReadinessRecommendation(issue = {}) {
   if (issue.type === 'shadow-map-budget') return `reduceShadowMap:${issue.lightId}:${issue.budget}`;
   if (issue.type === 'postprocess-budget') return `optimizePostprocess:${issue.postprocessMs}>${issue.budget}`;
   return `inspect3DScene:${issue.id || issue.type || 'unknown'}`;
+}
+
+function createReadinessFixAction(issue = {}) {
+  const recommendation = createReadinessRecommendation(issue);
+  if (issue.type === 'missing-asset') {
+    return {
+      id: `fix:${issue.id}`,
+      type: 'requestAsset',
+      autoFix: false,
+      path: issue.path,
+      owner: issue.owner,
+      assetType: issue.assetType,
+      recommendation,
+      reason: 'asset-file-must-be-imported'
+    };
+  }
+  if (issue.type === 'missing-material') {
+    return {
+      id: `fix:${issue.id}`,
+      type: 'createPlaceholderMaterial',
+      autoFix: true,
+      modelId: issue.modelId,
+      materialId: issue.materialId,
+      baseColor: '#ff00ff',
+      recommendation,
+      reason: 'placeholder-material-keeps-scene-renderable'
+    };
+  }
+  if (issue.type === 'missing-collider') {
+    return {
+      id: `fix:${issue.id}`,
+      type: 'addDefaultCollider',
+      autoFix: true,
+      modelId: issue.modelId,
+      collider: { shape: 'box', width: 1, height: 1, depth: 1 },
+      recommendation,
+      reason: 'rigid-body-needs-collider-for-physics-debugging'
+    };
+  }
+  if (issue.type === 'shadow-map-budget') {
+    return {
+      id: `fix:${issue.id}`,
+      type: 'capShadowMap',
+      autoFix: true,
+      lightId: issue.lightId,
+      targetMapSize: issue.budget,
+      recommendation,
+      reason: 'shadow-map-size-exceeds-scene-budget'
+    };
+  }
+  if (issue.type === 'postprocess-budget') {
+    return {
+      id: `fix:${issue.id}`,
+      type: 'scalePostprocessBudget',
+      autoFix: true,
+      targetMs: issue.budget,
+      currentMs: issue.postprocessMs,
+      passIds: normalizeArray(issue.passes),
+      recommendation,
+      reason: 'postprocess-cost-exceeds-scene-budget'
+    };
+  }
+  return null;
 }
 
 export default Scene3DKit;

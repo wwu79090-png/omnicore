@@ -568,6 +568,8 @@ dimension.render(1 / 60);
 
 `Scene3DKit` 面向更完整的 3D 场景声明和调试闭环：`createReadinessReport({ availableAssets, budgets })` 会检查活动相机、GLTF/GLB 资源、PBR 材质引用、动态刚体碰撞体绑定、阴影贴图预算和后处理预算，并输出 `gates`、`issues`、`recommendations` 与 `debugDraw`。这用于把 Godot/Unity/Unreal 常见的场景体检、物理可视化和预算门禁带进 OmniCore 的 3D 落地流程。
 
+`createReadinessFixPlan(report)` 会把 readiness 问题转成可执行动作；`applyReadinessFixPlan(plan)` 只自动处理安全项，例如创建占位材质、补默认碰撞体、限制阴影贴图和压缩后处理预算。缺失模型或贴图仍保留为手动导入动作，避免用假数据掩盖真实资源问题。
+
 2.5D 能力边界是固定的：只提供装饰性多模型渲染、基础遮罩排序、预设 `AnimationMixer` 动画播放和 `Raycaster` 点击事件。它拒绝提供全 3D 物理、自由 3D 摄像机控制、OrbitControls、PointerLockControls 或 3D 玩法框架；需要这些能力时应接入专门 3D 引擎，而不是把 OmniCore 的 2.5D 层扩展成完整 3D 运行时。
 
 ## 跨平台
