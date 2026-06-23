@@ -164,6 +164,246 @@ describe('editor deep toolchain', () => {
     app.destroy();
   });
 
+  it('connects visual script graph editor nodes, event binding, runtime trace, and live sync', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const messages = [];
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        dockLayout: { left: ['hierarchy'], center: ['scene-view'], right: ['inspector'], bottom: ['runtime-debug'] }
+      }),
+      transport: {
+        send: (message) => messages.push(JSON.parse(message))
+      }
+    });
+
+    app.EditorAPI.openVisualScriptGraphEditor();
+    app.EditorAPI.addVisualScriptNode('event', {
+      id: 'on-start',
+      label: '开始',
+      data: { event: 'start' }
+    });
+    app.EditorAPI.addVisualScriptNode('action', {
+      id: 'set-score',
+      label: '设置分数',
+      data: { op: 'set', target: 'variables.score', value: 10 }
+    });
+    app.EditorAPI.addVisualScriptNode('action', {
+      id: 'emit-ready',
+      label: '发出准备完成',
+      data: { op: 'emit', event: 'gameplay:ready', payload: { score: '$variables.score' } }
+    });
+    app.EditorAPI.connectVisualScriptNodes('on-start', 'set-score');
+    app.EditorAPI.connectVisualScriptNodes('set-score', 'emit-ready');
+    const binding = app.EditorAPI.bindVisualScriptEvent('start', {
+      target: 'scene',
+      trigger: 'onReady'
+    });
+    const report = app.EditorAPI.runVisualScriptGraph('start', { user: 'beginner' }, {
+      ranAt: '2026-01-01T00:00:00.000Z'
+    });
+
+    expect(binding).toMatchObject({
+      event: 'start',
+      target: 'scene',
+      trigger: 'onReady'
+    });
+    expect(report).toMatchObject({
+      event: 'start',
+      variables: { score: 10 },
+      events: [expect.objectContaining({ event: 'gameplay:ready' })],
+      validation: { ok: true }
+    });
+    expect(root.querySelector('[data-panel="visual-scripting"]')?.textContent).toContain('可视化脚本节点图');
+    expect(root.querySelector('[data-visual-script-node="on-start"]')?.textContent).toContain('开始');
+    expect(root.querySelector('[data-visual-script-edge="set-score->emit-ready"]')).not.toBeNull();
+    expect(root.querySelector('[data-visual-script-binding="start"]')?.textContent).toContain('onReady');
+    expect(root.querySelector('[data-visual-script-trace-node="set-score"]')?.textContent).toContain('variables.score');
+    expect(app.createRuntimeSyncPayload().visualScriptEditor.bindings[0].event).toBe('start');
+    expect(messages.map((message) => message.type)).toEqual(expect.arrayContaining([
+      'editor:visual-script-graph',
+      'editor:visual-script-event-binding',
+      'editor:visual-script-run'
+    ]));
+    const syncedState = applyLiveSyncMessage(createEditorState(), {
+      type: 'editor:visual-script-graph',
+      payload: app.getState().visualScriptEditor
+    });
+    expect(syncedState.visualScriptEditor.open).toBe(true);
+    app.destroy();
+  });
+
+  it('opens a 3D editor viewport with camera, lights, materials, animations, and collider overlays', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const messages = [];
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        dockLayout: { left: ['assets'], center: ['scene-view'], right: ['inspector'], bottom: ['scene-3d-readiness'] }
+      }),
+      transport: {
+        send: (message) => messages.push(JSON.parse(message))
+      }
+    });
+
+    const viewport = app.EditorAPI.openScene3DViewport({
+      cameras: [{ id: 'gameplay-camera', type: 'Camera3D', mode: 'free', fov: 60 }],
+      lights: [{ id: 'key-light', type: 'directional', intensity: 1.2, castShadow: true }],
+      materials: [{ id: 'hero-pbr', type: 'pbr', albedo: 'assets/hero.png', normalMap: 'assets/hero_n.png' }],
+      models: [{
+        id: 'hero-model',
+        url: 'models/hero.glb',
+        material: 'hero-pbr',
+        animations: ['Idle', 'Run'],
+        collider: { shape: 'capsule', radius: 0.4, height: 1.8 }
+      }],
+      selectedModelId: 'hero-model'
+    });
+
+    expect(viewport).toMatchObject({
+      schema: 'omnicore.editor-scene-3d-viewport.v1',
+      summary: {
+        cameraCount: 1,
+        lightCount: 1,
+        materialCount: 1,
+        modelCount: 1,
+        animationCount: 2,
+        colliderCount: 1
+      }
+    });
+    expect(root.querySelector('[data-panel="scene-3d-viewport"]')?.textContent).toContain('3D 编辑器视口');
+    expect(root.querySelector('[data-scene-3d-camera="gameplay-camera"]')?.textContent).toContain('free');
+    expect(root.querySelector('[data-scene-3d-light="key-light"]')?.textContent).toContain('directional');
+    expect(root.querySelector('[data-scene-3d-material="hero-pbr"]')?.textContent).toContain('pbr');
+    expect(root.querySelector('[data-scene-3d-model="hero-model"]')?.textContent).toContain('Idle');
+    expect(root.querySelector('[data-scene-3d-collider="hero-model"]')?.textContent).toContain('capsule');
+    expect(app.createRuntimeSyncPayload().scene3DViewport.summary.colliderCount).toBe(1);
+    expect(messages.map((message) => message.type)).toContain('editor:scene-3d-viewport');
+    const syncedState = applyLiveSyncMessage(createEditorState(), {
+      type: 'editor:scene-3d-viewport',
+      payload: viewport
+    });
+    expect(syncedState.scene3DViewport.summary.modelCount).toBe(1);
+    app.destroy();
+  });
+
+  it('builds a prefab scene dependency graph with nested prefabs and missing asset repair actions', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const messages = [];
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        scene: {
+          name: 'level-1',
+          entities: [{
+            id: 'hero',
+            prefabId: 'hero-variant',
+            sprite: 'assets/hero.png',
+            material: { normalMap: 'assets/hero_n.png' }
+          }]
+        },
+        prefabs: [
+          { id: 'hero-base', sprite: 'assets/hero.png', children: [{ id: 'weapon-slot', prefabId: 'sword' }] },
+          { id: 'hero-variant', extends: 'hero-base', overrides: { hp: 20 } },
+          { id: 'sword', sprite: 'assets/missing-sword.png' }
+        ],
+        assets: [{ path: 'assets/hero.png', type: 'image' }],
+        dockLayout: { left: ['prefabs'], center: ['scene-view'], right: ['inspector'], bottom: ['runtime-debug'] }
+      }),
+      transport: {
+        send: (message) => messages.push(JSON.parse(message))
+      }
+    });
+
+    const graph = app.EditorAPI.refreshPrefabDependencyGraph();
+
+    expect(graph).toMatchObject({
+      schema: 'omnicore.editor-prefab-dependency-graph.v1',
+      summary: {
+        sceneNodeCount: 1,
+        prefabNodeCount: 3,
+        missingAssetCount: 2,
+        repairActionCount: 2
+      }
+    });
+    expect(graph.edges).toEqual(expect.arrayContaining([
+      expect.objectContaining({ from: 'prefab:hero-variant', to: 'prefab:hero-base', type: 'extends' }),
+      expect.objectContaining({ from: 'prefab:hero-base', to: 'prefab:sword', type: 'nested-prefab' }),
+      expect.objectContaining({ from: 'prefab:sword', to: 'asset:assets/missing-sword.png', type: 'asset' })
+    ]));
+    expect(root.querySelector('[data-panel="prefab-dependency-graph"]')?.textContent).toContain('Prefab 依赖图');
+    expect(root.querySelector('[data-prefab-dependency-node="prefab:hero-variant"]')?.textContent).toContain('hero-variant');
+    expect(root.querySelector('[data-prefab-dependency-edge="prefab:hero-base->prefab:sword"]')).not.toBeNull();
+    expect(root.querySelector('[data-prefab-missing-asset="assets/missing-sword.png"]')?.textContent).toContain('一键修复');
+    expect(app.createRuntimeSyncPayload().prefabDependencyGraph.summary.missingAssetCount).toBe(2);
+    expect(messages.map((message) => message.type)).toContain('editor:prefab-dependency-graph');
+    const syncedState = applyLiveSyncMessage(createEditorState(), {
+      type: 'editor:prefab-dependency-graph',
+      payload: graph
+    });
+    expect(syncedState.prefabDependencyGraph.summary.prefabNodeCount).toBe(3);
+    app.destroy();
+  });
+
+  it('surfaces WebGPU pipeline lifecycle diagnostics with fallback and device recovery actions', () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const messages = [];
+    const app = createEditorApp(root, {
+      state: createEditorState({
+        dockLayout: { left: ['assets'], center: ['scene-view'], right: ['inspector'], bottom: ['render-diagnostics'] }
+      }),
+      transport: {
+        send: (message) => messages.push(JSON.parse(message))
+      }
+    });
+
+    const report = app.EditorAPI.refreshWebGPUPipelinePanel({
+      backend: { preferred: 'webgpu', active: 'webgl2', fallbackChain: ['webgpu', 'webgl2'], rejected: [{ id: 'webgpu', reason: 'device-lost' }] },
+      textures: [
+        { id: 'hero-albedo', width: 1024, height: 1024, format: 'rgba8unorm', state: 'uploaded' },
+        { id: 'hero-normal', width: 1024, height: 1024, format: 'rgba8unorm', state: 'pending-upload' }
+      ],
+      buffers: [{ id: 'sprite-instances', bytes: 65536, usage: 'vertex|storage', state: 'mapped' }],
+      bindGroups: [{ id: 'sprite-bind-group', layout: 'sprite-layout', resources: ['hero-albedo', 'sprite-instances'] }],
+      pipelines: [{ id: 'sprite-pipeline', shader: 'sprite.wgsl', layout: 'sprite-layout', cached: false }],
+      deviceEvents: [{ type: 'lost', reason: 'adapter-reset' }],
+      budgets: { textureCount: 1, bufferBytes: 32768, pipelineCacheMisses: 0 }
+    });
+
+    expect(report).toMatchObject({
+      schema: 'omnicore.editor-webgpu-pipeline-diagnostics.v1',
+      summary: {
+        textureCount: 2,
+        pendingTextureUploads: 1,
+        bufferCount: 1,
+        bindGroupCount: 1,
+        pipelineCount: 1,
+        pipelineCacheMisses: 1,
+        deviceLostCount: 1,
+        issueCount: 5
+      },
+      fallback: {
+        active: 'webgl2',
+        preferred: 'webgpu'
+      }
+    });
+    expect(root.querySelector('[data-panel="webgpu-pipeline"]')?.textContent).toContain('WebGPU 管线诊断');
+    expect(root.querySelector('[data-webgpu-texture="hero-normal"]')?.textContent).toContain('pending-upload');
+    expect(root.querySelector('[data-webgpu-bind-group="sprite-bind-group"]')?.textContent).toContain('hero-albedo');
+    expect(root.querySelector('[data-webgpu-pipeline="sprite-pipeline"]')?.textContent).toContain('cache miss');
+    expect(root.querySelector('[data-webgpu-device-event="lost"]')?.textContent).toContain('adapter-reset');
+    expect(root.querySelector('[data-webgpu-recovery-action="recreate-device"]')?.textContent).toContain('重建设备');
+    expect(app.createRuntimeSyncPayload().webgpuPipelineDiagnostics.summary.deviceLostCount).toBe(1);
+    expect(messages.map((message) => message.type)).toContain('editor:webgpu-pipeline-diagnostics');
+    const syncedState = applyLiveSyncMessage(createEditorState(), {
+      type: 'editor:webgpu-pipeline-diagnostics',
+      payload: report
+    });
+    expect(syncedState.webgpuPipelineDiagnostics.summary.pipelineCacheMisses).toBe(1);
+    app.destroy();
+  });
+
   it('configures multi-platform build settings with strategy defaults', () => {
     const root = document.createElement('main');
     document.body.appendChild(root);

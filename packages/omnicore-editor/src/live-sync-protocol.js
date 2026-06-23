@@ -25,6 +25,7 @@ export function createEditorState(initial = {}) {
     lastCommandError: initial.lastCommandError || null,
     flowGraph: normalizeFlowGraph(initial.flowGraph),
     behaviorTree: initial.behaviorTree || null,
+    visualScriptEditor: normalizeVisualScriptEditor(initial.visualScriptEditor),
     visualScriptTrace: normalizeVisualScriptTrace(initial.visualScriptTrace),
     visualScriptValidation: normalizeVisualScriptValidation(initial.visualScriptValidation || initial.visualScriptTrace?.validation),
     uiLayout: normalizeUILayout(initial.uiLayout),
@@ -58,6 +59,9 @@ export function createEditorState(initial = {}) {
     scene3DReadiness: normalizeScene3DReadiness(initial.scene3DReadiness),
     scene3DFixPlan: normalizeScene3DFixPlan(initial.scene3DFixPlan),
     scene3DFixApplyReport: normalizeScene3DFixApplyReport(initial.scene3DFixApplyReport),
+    scene3DViewport: normalizeScene3DViewport(initial.scene3DViewport),
+    prefabDependencyGraph: normalizePrefabDependencyGraph(initial.prefabDependencyGraph),
+    webgpuPipelineDiagnostics: normalizeWebGPUPipelineDiagnostics(initial.webgpuPipelineDiagnostics),
     assetRefresh: normalizeAssetRefresh(initial.assetRefresh),
     hotReloadEvents: normalizeHotReloadEvents(initial.hotReloadEvents),
     preview25D: initial.preview25D || null,
@@ -162,10 +166,23 @@ export function applyLiveSyncMessage(state = createEditorState(), message = {}) 
   if (message.type === 'editor:visual-script-validation') {
     next.visualScriptValidation = normalizeVisualScriptValidation(message.payload);
   }
+  if (message.type === 'editor:visual-script-graph') {
+    next.visualScriptEditor = normalizeVisualScriptEditor(message.payload);
+  }
+  if (message.type === 'editor:visual-script-event-binding') {
+    next.visualScriptEditor = normalizeVisualScriptEditor({
+      ...next.visualScriptEditor,
+      open: true,
+      bindings: [...(next.visualScriptEditor?.bindings || []), message.payload]
+    });
+  }
   if (message.type === 'editor:visual-script-run' || message.type === 'runtime:visual-script-trace') {
     next.visualScriptTrace = normalizeVisualScriptTrace(message.payload);
     next.visualScriptValidation = normalizeVisualScriptValidation(message.payload?.validation);
   }
+  if (message.type === 'editor:scene-3d-viewport') next.scene3DViewport = normalizeScene3DViewport(message.payload);
+  if (message.type === 'editor:prefab-dependency-graph') next.prefabDependencyGraph = normalizePrefabDependencyGraph(message.payload);
+  if (message.type === 'editor:webgpu-pipeline-diagnostics') next.webgpuPipelineDiagnostics = normalizeWebGPUPipelineDiagnostics(message.payload);
   return next;
 }
 
@@ -190,6 +207,22 @@ function normalizeSceneValidation(value = null) {
     ...value,
     ok: issues.length === 0,
     issues
+  };
+}
+
+function normalizeVisualScriptEditor(value = {}) {
+  if (!value || typeof value !== 'object') {
+    return {
+      open: false,
+      graph: null,
+      bindings: []
+    };
+  }
+  return {
+    ...clonePlain(value),
+    open: Boolean(value.open),
+    graph: value.graph ? clonePlain(value.graph) : null,
+    bindings: Array.isArray(value.bindings) ? value.bindings.map((binding) => clonePlain(binding)) : []
   };
 }
 
@@ -238,6 +271,54 @@ function normalizeVisualScriptTrace(value = null) {
     validation: normalizeVisualScriptValidation(value.validation),
     ranAt: value.ranAt || null
   };
+}
+
+function normalizeScene3DViewport(value = null) {
+  if (!value || typeof value !== 'object') {
+    return {
+      schema: 'omnicore.editor-scene-3d-viewport.v1',
+      open: false,
+      summary: { cameraCount: 0, lightCount: 0, materialCount: 0, modelCount: 0, animationCount: 0, colliderCount: 0 },
+      cameras: [],
+      lights: [],
+      materials: [],
+      models: [],
+      colliders: []
+    };
+  }
+  return clonePlain(value);
+}
+
+function normalizePrefabDependencyGraph(value = null) {
+  if (!value || typeof value !== 'object') {
+    return {
+      schema: 'omnicore.editor-prefab-dependency-graph.v1',
+      open: false,
+      summary: { sceneNodeCount: 0, prefabNodeCount: 0, missingAssetCount: 0, repairActionCount: 0 },
+      nodes: [],
+      edges: [],
+      missingAssets: [],
+      repairActions: []
+    };
+  }
+  return clonePlain(value);
+}
+
+function normalizeWebGPUPipelineDiagnostics(value = null) {
+  if (!value || typeof value !== 'object') {
+    return {
+      schema: 'omnicore.editor-webgpu-pipeline-diagnostics.v1',
+      open: false,
+      summary: { textureCount: 0, pendingTextureUploads: 0, bufferCount: 0, bindGroupCount: 0, pipelineCount: 0, pipelineCacheMisses: 0, deviceLostCount: 0, issueCount: 0 },
+      textures: [],
+      buffers: [],
+      bindGroups: [],
+      pipelines: [],
+      deviceEvents: [],
+      recoveryActions: []
+    };
+  }
+  return clonePlain(value);
 }
 
 function normalizePrefabHistory(value = {}) {

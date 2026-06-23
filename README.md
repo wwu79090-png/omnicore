@@ -572,6 +572,8 @@ dimension.render(1 / 60);
 
 桌面编辑器已接入 `scene-3d-readiness` 面板：`EditorAPI.refreshScene3DReadinessPanel()` 会打开 3D 场景体检，`createScene3DReadinessFixPlan()` 生成修复计划，`applyScene3DReadinessFixPlan()` 应用安全修复并自动复验。
 
+桌面编辑器也新增了 `scene-3d-viewport` 视口面板：`EditorAPI.openScene3DViewport()` 会把 Camera3D、Light、PBR 材质、GLTF/GLB 模型、动画列表和碰撞体叠层整理成可视化检查视图，并通过 runtime sync 暴露给调试窗口。
+
 2.5D 能力边界是固定的：只提供装饰性多模型渲染、基础遮罩排序、预设 `AnimationMixer` 动画播放和 `Raycaster` 点击事件。它拒绝提供全 3D 物理、自由 3D 摄像机控制、OrbitControls、PointerLockControls 或 3D 玩法框架；需要这些能力时应接入专门 3D 引擎，而不是把 OmniCore 的 2.5D 层扩展成完整 3D 运行时。
 
 ## 跨平台
@@ -1083,6 +1085,12 @@ const diagnostics = world.createDiagnosticsSnapshot({
 ```
 
 桌面编辑器的 `EditorAPI.refreshPhysicsDiagnosticsPanel()` 会把 `PhysicsWorld` 诊断写入物理视图，显示刚体、sensor、constraint、raycast 命中和 debug draw；可运行示例在 [`examples/physics-debug-draw-demo`](examples/physics-debug-draw-demo/)。
+
+编辑器闭环继续扩展到四个高频生产入口：
+
+- `EditorAPI.openVisualScriptGraphEditor()`、`addVisualScriptNode()`、`connectVisualScriptNodes()`、`bindVisualScriptEvent()`、`runVisualScriptGraph()`：让 0 基础用户在 `visual-scripting` 面板拖节点、连线、绑定事件、运行并查看 trace。
+- `EditorAPI.refreshPrefabDependencyGraph()`：生成 `prefab-dependency-graph`，显示场景实体、Prefab 继承、嵌套 Prefab、资源引用、缺失资源和一键修复动作。
+- `EditorAPI.refreshWebGPUPipelinePanel()`：生成 `webgpu-pipeline`，检查纹理上传、buffer 生命周期、bind group、pipeline cache、device lost 和 WebGPU/WebGL fallback。
 
 ## 一键启动与生成器
 

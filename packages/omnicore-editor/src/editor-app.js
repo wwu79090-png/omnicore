@@ -85,6 +85,9 @@ const PANEL_TITLES = {
   'runtime-debug': '运行时调试',
   'render-diagnostics': '渲染诊断',
   'scene-3d-readiness': '3D 场景体检',
+  'scene-3d-viewport': '3D 编辑器视口',
+  'prefab-dependency-graph': 'Prefab 依赖图',
+  'webgpu-pipeline': 'WebGPU 管线诊断',
   profiler: '性能分析'
 };
 
@@ -286,6 +289,9 @@ const DESKTOP_COMMAND_ICONS = {
   'scene-validate': BadgeCheck,
   'runtime-debug': Bug,
   'scene-3d-readiness': Box,
+  'scene-3d-viewport': Box,
+  'prefab-dependency-graph': GitBranch,
+  'webgpu-pipeline': Cpu,
   'recovery-check': History,
   'debug-timeline': Activity,
   'governance-report': ShieldCheck
@@ -317,7 +323,10 @@ const DESKTOP_PANEL_COMMANDS = {
   'runtime-debug': { panel: 'runtime-debug', region: 'bottom', title: '运行时调试' },
   'global-search': { panel: 'global-search', region: 'bottom', title: '全局搜索' },
   'build-settings': { panel: 'build-settings', region: 'right', title: '构建设置' },
-  'scene-3d-readiness': { panel: 'scene-3d-readiness', region: 'bottom', title: '3D 场景体检' }
+  'scene-3d-readiness': { panel: 'scene-3d-readiness', region: 'bottom', title: '3D 场景体检' },
+  'scene-3d-viewport': { panel: 'scene-3d-viewport', region: 'center', title: '3D 编辑器视口' },
+  'prefab-dependency-graph': { panel: 'prefab-dependency-graph', region: 'bottom', title: 'Prefab 依赖图' },
+  'webgpu-pipeline': { panel: 'webgpu-pipeline', region: 'bottom', title: 'WebGPU 管线诊断' }
 };
 
 const DESKTOP_TEMPLATE_NAMES = {
@@ -1117,6 +1126,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
     exportBehaviorTreeJson,
     exportVisualScriptGraph,
     exportVisualScriptEditorSession,
+    openVisualScriptGraphEditor,
+    bindVisualScriptEvent,
+    runVisualScriptGraph,
     validateVisualScriptGraph,
     runVisualScript,
     exportUILayoutJson,
@@ -1129,6 +1141,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
     refreshScene3DReadinessPanel,
     createScene3DReadinessFixPlan,
     applyScene3DReadinessFixPlan,
+    openScene3DViewport,
+    refreshPrefabDependencyGraph,
+    refreshWebGPUPipelinePanel,
     refreshPhysicsDiagnosticsPanel,
     createRuntimeSyncPayload,
     applyRuntimeSyncPayload,
@@ -1821,6 +1836,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       workspace: normalizeWorkspaceState(next.workspace || current.workspace),
       tilemap: next.tilemap || current.tilemap,
       flowGraph: normalizeFlowGraph(next.flowGraph || current.flowGraph),
+      visualScriptEditor: normalizeVisualScriptEditorState(next.visualScriptEditor || current.visualScriptEditor),
       visualScriptTrace: next.visualScriptTrace || current.visualScriptTrace,
       visualScriptValidation: next.visualScriptValidation || current.visualScriptValidation,
       prefabs: next.prefabs || current.prefabs,
@@ -1862,6 +1878,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       scene3DReadiness: next.scene3DReadiness || current.scene3DReadiness,
       scene3DFixPlan: next.scene3DFixPlan || current.scene3DFixPlan,
       scene3DFixApplyReport: next.scene3DFixApplyReport || current.scene3DFixApplyReport,
+      scene3DViewport: next.scene3DViewport || current.scene3DViewport,
+      prefabDependencyGraph: next.prefabDependencyGraph || current.prefabDependencyGraph,
+      webgpuPipelineDiagnostics: next.webgpuPipelineDiagnostics || current.webgpuPipelineDiagnostics,
       assetRefresh: next.assetRefresh || current.assetRefresh,
       hotReloadEvents: next.hotReloadEvents || current.hotReloadEvents,
       autoSave: normalizeAutoSaveState(next.autoSave || current.autoSave)
@@ -1896,6 +1915,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       'runtime-debug': renderPanel('runtime-debug', renderRuntimeDebugPanel()),
       'render-diagnostics': renderPanel('render-diagnostics', renderRenderDiagnosticsPanel()),
       'scene-3d-readiness': renderPanel('scene-3d-readiness', renderScene3DReadinessPanel()),
+      'scene-3d-viewport': renderPanel('scene-3d-viewport', renderScene3DViewportPanel()),
+      'prefab-dependency-graph': renderPanel('prefab-dependency-graph', renderPrefabDependencyGraphPanel()),
+      'webgpu-pipeline': renderPanel('webgpu-pipeline', renderWebGPUPipelinePanel()),
       profiler: renderPanel('profiler', renderProfiler())
     };
     for (const region of DOCK_REGIONS) {
@@ -2336,11 +2358,20 @@ export function createEditorApp(root = document.querySelector('#app'), {
       createNPCProximityRecipe(options = {}) {
         return createNPCProximityRecipe(options);
       },
+      openVisualScriptGraphEditor(options = {}) {
+        return openVisualScriptGraphEditor(options);
+      },
       addVisualScriptNode(type, options = {}) {
         return addVisualScriptNode(type, options);
       },
       connectVisualScriptNodes(from, to, options = {}) {
         return connectVisualScriptNodes(from, to, options);
+      },
+      bindVisualScriptEvent(eventName, binding = {}) {
+        return bindVisualScriptEvent(eventName, binding);
+      },
+      runVisualScriptGraph(eventName = 'start', payload = {}, options = {}) {
+        return runVisualScriptGraph(eventName, payload, options);
       },
       exportVisualScriptGraph() {
         return exportVisualScriptGraph();
@@ -2377,6 +2408,15 @@ export function createEditorApp(root = document.querySelector('#app'), {
       },
       applyScene3DReadinessFixPlan(options = {}) {
         return applyScene3DReadinessFixPlan(options);
+      },
+      openScene3DViewport(input = {}, options = {}) {
+        return openScene3DViewport(input, options);
+      },
+      refreshPrefabDependencyGraph(input = {}, options = {}) {
+        return refreshPrefabDependencyGraph(input, options);
+      },
+      refreshWebGPUPipelinePanel(input = {}, options = {}) {
+        return refreshWebGPUPipelinePanel(input, options);
       },
       addUIButton(button = {}) {
         return addUIButton(button);
@@ -2535,6 +2575,48 @@ export function createEditorApp(root = document.querySelector('#app'), {
     pushHistory(current, '创建 NPC 接近流程图');
     update(current);
     return current.flowGraph;
+  }
+
+  function openVisualScriptGraphEditor(options = {}) {
+    current = createEditorState({
+      ...current,
+      visualScriptEditor: createVisualScriptEditorState(current, {
+        open: true,
+        selectedNodeId: options.selectedNodeId || current.visualScriptEditor?.selectedNodeId || null
+      }),
+      dockLayout: ensurePanelInDock(current.dockLayout, 'visual-scripting', 'center')
+    });
+    emit('editor:visual-script-graph', current.visualScriptEditor);
+    update(current);
+    return current.visualScriptEditor;
+  }
+
+  function bindVisualScriptEvent(eventName, binding = {}) {
+    const event = String(eventName || binding.event || 'start');
+    const normalized = {
+      id: binding.id || `binding:${event}:${binding.trigger || 'event'}`,
+      event,
+      target: binding.target || 'scene',
+      trigger: binding.trigger || 'onStart',
+      payload: cloneState(binding.payload || {})
+    };
+    const existing = normalizeVisualScriptEditorState(current.visualScriptEditor);
+    const bindings = [
+      ...existing.bindings.filter((item) => item.id !== normalized.id),
+      normalized
+    ];
+    current = createEditorState({
+      ...current,
+      visualScriptEditor: createVisualScriptEditorState(current, {
+        open: true,
+        bindings
+      }),
+      dockLayout: ensurePanelInDock(current.dockLayout, 'visual-scripting', 'center')
+    });
+    emit('editor:visual-script-event-binding', normalized);
+    emit('editor:visual-script-graph', current.visualScriptEditor);
+    update(current);
+    return normalized;
   }
 
   function addUIButton(button = {}) {
@@ -2702,6 +2784,50 @@ export function createEditorApp(root = document.querySelector('#app'), {
     showEditorFeedback(`物理诊断已刷新：${diagnostics.snapshot.summary.bodyCount} 个刚体`, 'success');
     update(current);
     return diagnostics;
+  }
+
+  function openScene3DViewport(input = {}, options = {}) {
+    const viewport = createScene3DViewportState(input, options);
+    current = createEditorState({
+      ...current,
+      scene3DViewport: viewport,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'scene-3d-viewport', 'center')
+    });
+    emit('editor:scene-3d-viewport', viewport);
+    showEditorFeedback(`3D 视口已载入：${viewport.summary.modelCount} 个模型`, 'success');
+    update(current);
+    return viewport;
+  }
+
+  function refreshPrefabDependencyGraph(input = {}, options = {}) {
+    const graph = createPrefabDependencyGraphState({
+      scene: input.scene || current.scene,
+      prefabs: input.prefabs || current.prefabs,
+      assets: input.assets || current.assets,
+      generatedAt: options.generatedAt || input.generatedAt
+    });
+    current = createEditorState({
+      ...current,
+      prefabDependencyGraph: graph,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'prefab-dependency-graph', 'bottom')
+    });
+    emit('editor:prefab-dependency-graph', graph);
+    showEditorFeedback(`Prefab 依赖图已刷新：${graph.summary.missingAssetCount} 个缺失资源`, graph.summary.missingAssetCount ? 'warning' : 'success');
+    update(current);
+    return graph;
+  }
+
+  function refreshWebGPUPipelinePanel(input = {}, options = {}) {
+    const report = createWebGPUPipelineDiagnosticsState(input, options);
+    current = createEditorState({
+      ...current,
+      webgpuPipelineDiagnostics: report,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'webgpu-pipeline', 'bottom')
+    });
+    emit('editor:webgpu-pipeline-diagnostics', report);
+    showEditorFeedback(`WebGPU 管线诊断：${report.summary.issueCount} 个问题`, report.summary.issueCount ? 'warning' : 'success');
+    update(current);
+    return report;
   }
 
   function editPrefabVariantRuntime(prefabId, patch = {}) {
@@ -4526,7 +4652,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       ...result,
       graph,
       validation,
-      ranAt: new Date().toISOString()
+      ranAt: options.ranAt || new Date().toISOString()
     };
     current = createEditorState({
       ...current,
@@ -4855,6 +4981,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       eventSheet: exportFlowGraphEventSheet(),
       behaviorTree: exportBehaviorTreeJson(),
       visualScriptGraph: exportVisualScriptGraph(),
+      visualScriptEditor: cloneState(current.visualScriptEditor),
       visualScriptTrace: cloneState(current.visualScriptTrace),
       physicsView: cloneState(current.physicsView),
       uiLayout: exportUILayoutJson(),
@@ -4866,6 +4993,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       scene3DReadiness: cloneState(current.scene3DReadiness),
       scene3DFixPlan: cloneState(current.scene3DFixPlan),
       scene3DFixApplyReport: cloneState(current.scene3DFixApplyReport),
+      scene3DViewport: cloneState(current.scene3DViewport),
+      prefabDependencyGraph: cloneState(current.prefabDependencyGraph),
+      webgpuPipelineDiagnostics: cloneState(current.webgpuPipelineDiagnostics),
       renderOptimizationRuntime: createRenderOptimizationRuntimePlan(current.renderOptimizationPlan, { generatedAt })
     };
   }
@@ -4875,6 +5005,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       ...current,
       scene: payload.scene || current.scene,
       behaviorTree: payload.behaviorTree || current.behaviorTree,
+      visualScriptEditor: payload.visualScriptEditor || current.visualScriptEditor,
       visualScriptTrace: payload.visualScriptTrace || current.visualScriptTrace,
       visualScriptValidation: payload.visualScriptTrace?.validation || current.visualScriptValidation,
       physicsView: payload.physicsView || current.physicsView,
@@ -4887,6 +5018,9 @@ export function createEditorApp(root = document.querySelector('#app'), {
       scene3DReadiness: payload.scene3DReadiness || current.scene3DReadiness,
       scene3DFixPlan: payload.scene3DFixPlan || current.scene3DFixPlan,
       scene3DFixApplyReport: payload.scene3DFixApplyReport || current.scene3DFixApplyReport,
+      scene3DViewport: payload.scene3DViewport || current.scene3DViewport,
+      prefabDependencyGraph: payload.prefabDependencyGraph || current.prefabDependencyGraph,
+      webgpuPipelineDiagnostics: payload.webgpuPipelineDiagnostics || current.webgpuPipelineDiagnostics,
       flowGraph: payload.flowGraph || current.flowGraph
     });
     emit('editor:runtime-sync-applied', { protocol: payload.protocol || null });
@@ -5547,11 +5681,44 @@ export function createEditorApp(root = document.querySelector('#app'), {
   }
 
   function addVisualScriptNode(type, options = {}) {
-    return addFlowNode(type, options);
+    const graph = addFlowNode(type, options);
+    current = createEditorState({
+      ...current,
+      visualScriptEditor: createVisualScriptEditorState(current, {
+        open: true,
+        selectedNodeId: options.id || current.visualScriptEditor?.selectedNodeId || null
+      }),
+      dockLayout: ensurePanelInDock(current.dockLayout, 'visual-scripting', 'center')
+    });
+    emit('editor:visual-script-graph', current.visualScriptEditor);
+    update(current);
+    return graph;
   }
 
   function connectVisualScriptNodes(from, to, options = {}) {
-    return addFlowEdge(from, to, options);
+    const graph = addFlowEdge(from, to, options);
+    current = createEditorState({
+      ...current,
+      visualScriptEditor: createVisualScriptEditorState(current, { open: true }),
+      dockLayout: ensurePanelInDock(current.dockLayout, 'visual-scripting', 'center')
+    });
+    emit('editor:visual-script-graph', current.visualScriptEditor);
+    update(current);
+    return graph;
+  }
+
+  function runVisualScriptGraph(eventName = 'start', payload = {}, options = {}) {
+    const report = runVisualScript(eventName, payload, options);
+    current = createEditorState({
+      ...current,
+      visualScriptEditor: createVisualScriptEditorState(current, {
+        open: true,
+        lastRun: report
+      }),
+      dockLayout: ensurePanelInDock(current.dockLayout, 'visual-scripting', 'center')
+    });
+    update(current);
+    return report;
   }
 
   function addFlowNode(type, options = {}) {
@@ -7136,12 +7303,75 @@ export function createEditorApp(root = document.querySelector('#app'), {
       nodePalette.appendChild(button);
     }
     const flow = renderFlowGraph();
+    const visualGraph = renderVisualScriptGraphEditorPanel();
     const runtimePanel = renderVisualScriptRuntimePanel();
     const behaviorPreview = document.createElement('pre');
     behaviorPreview.dataset.behaviorTreePreview = 'true';
     behaviorPreview.textContent = JSON.stringify(exportBehaviorTreeJson(), null, 2);
-    wrap.append(nodePalette, flow, runtimePanel, behaviorPreview);
+    wrap.append(nodePalette, visualGraph, flow, runtimePanel, behaviorPreview);
     return wrap;
+  }
+
+  function renderVisualScriptGraphEditorPanel() {
+    const editor = createVisualScriptEditorState(current, {
+      open: current.visualScriptEditor?.open ?? true
+    });
+    const panel = document.createElement('section');
+    panel.className = 'visual-script-graph-editor';
+    panel.dataset.visualScriptPanel = 'graph-editor';
+    const title = document.createElement('h3');
+    title.textContent = '可视化脚本节点图';
+    panel.appendChild(title);
+
+    const palette = document.createElement('div');
+    palette.className = 'visual-script-palette';
+    for (const group of editor.palette.groups || []) {
+      for (const node of group.nodes || []) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.visualScriptPaletteNode = node.type;
+        button.textContent = `${group.label} / ${node.label}`;
+        button.addEventListener('click', () => addVisualScriptNode(node.type, {
+          label: node.label,
+          data: node.defaultData || {}
+        }));
+        palette.appendChild(button);
+      }
+    }
+    panel.appendChild(palette);
+
+    const canvas = document.createElement('div');
+    canvas.className = 'visual-script-node-canvas';
+    for (const node of editor.graph.nodes || []) {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'visual-script-node';
+      item.dataset.visualScriptNode = node.id;
+      item.textContent = `${node.label || node.id} / ${node.type}`;
+      canvas.appendChild(item);
+    }
+    panel.appendChild(canvas);
+
+    const edges = document.createElement('div');
+    edges.className = 'visual-script-edge-list';
+    for (const edge of editor.graph.edges || []) {
+      const row = document.createElement('span');
+      row.dataset.visualScriptEdge = `${edge.from}->${edge.to}`;
+      row.textContent = `${edge.from} -> ${edge.to}${edge.pin ? ` [${edge.pin}]` : ''}`;
+      edges.appendChild(row);
+    }
+    panel.appendChild(edges);
+
+    const bindings = document.createElement('div');
+    bindings.className = 'visual-script-binding-list';
+    for (const binding of editor.bindings || []) {
+      const row = document.createElement('span');
+      row.dataset.visualScriptBinding = binding.event;
+      row.textContent = `${binding.event} / ${binding.target} / ${binding.trigger}`;
+      bindings.appendChild(row);
+    }
+    panel.appendChild(bindings);
+    return panel;
   }
 
   function renderVisualScriptRuntimePanel() {
@@ -7661,6 +7891,149 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return wrap;
   }
 
+  function renderScene3DViewportPanel() {
+    const viewport = current.scene3DViewport || createScene3DViewportState({});
+    const wrap = document.createElement('div');
+    wrap.className = 'scene-3d-viewport-panel';
+    wrap.dataset.scene3DViewport = 'true';
+    const title = document.createElement('h3');
+    title.textContent = '3D 编辑器视口';
+    wrap.appendChild(title);
+    const metrics = document.createElement('div');
+    metrics.className = 'scene-3d-viewport-metrics';
+    for (const [label, value] of [
+      ['Camera', viewport.summary?.cameraCount || 0],
+      ['Light', viewport.summary?.lightCount || 0],
+      ['Material', viewport.summary?.materialCount || 0],
+      ['Model', viewport.summary?.modelCount || 0],
+      ['Animation', viewport.summary?.animationCount || 0],
+      ['Collider', viewport.summary?.colliderCount || 0]
+    ]) {
+      const metric = document.createElement('span');
+      metric.textContent = `${label} ${value}`;
+      metrics.appendChild(metric);
+    }
+    wrap.appendChild(metrics);
+    for (const camera of viewport.cameras || []) {
+      const row = document.createElement('div');
+      row.setAttribute('data-scene-3d-camera', camera.id);
+      row.textContent = `${camera.id} / ${camera.type} / ${camera.mode} / fov ${camera.fov}`;
+      wrap.appendChild(row);
+    }
+    for (const light of viewport.lights || []) {
+      const row = document.createElement('div');
+      row.setAttribute('data-scene-3d-light', light.id);
+      row.textContent = `${light.id} / ${light.type} / intensity ${light.intensity} / shadow ${light.castShadow}`;
+      wrap.appendChild(row);
+    }
+    for (const material of viewport.materials || []) {
+      const row = document.createElement('div');
+      row.setAttribute('data-scene-3d-material', material.id);
+      row.textContent = `${material.id} / ${material.type} / ${material.albedo || 'no-albedo'} / ${material.normalMap || 'no-normal'}`;
+      wrap.appendChild(row);
+    }
+    for (const model of viewport.models || []) {
+      const row = document.createElement('div');
+      row.setAttribute('data-scene-3d-model', model.id);
+      row.textContent = `${model.id} / ${model.url || 'no-model'} / ${model.material || 'no-material'} / ${model.animations.join(', ')}`;
+      wrap.appendChild(row);
+    }
+    for (const collider of viewport.colliders || []) {
+      const row = document.createElement('div');
+      row.setAttribute('data-scene-3d-collider', collider.modelId);
+      row.textContent = `${collider.modelId} / ${collider.shape || 'box'} / ${collider.radius || collider.width || 0}`;
+      wrap.appendChild(row);
+    }
+    return wrap;
+  }
+
+  function renderPrefabDependencyGraphPanel() {
+    const graph = current.prefabDependencyGraph || createPrefabDependencyGraphState({ scene: current.scene, prefabs: current.prefabs, assets: current.assets });
+    const wrap = document.createElement('div');
+    wrap.className = 'prefab-dependency-graph-panel';
+    wrap.dataset.prefabDependencyGraph = 'true';
+    const title = document.createElement('h3');
+    title.textContent = 'Prefab 依赖图';
+    wrap.appendChild(title);
+    const summary = document.createElement('p');
+    summary.textContent = `场景 ${graph.summary?.sceneNodeCount || 0} / Prefab ${graph.summary?.prefabNodeCount || 0} / 缺失资源 ${graph.summary?.missingAssetCount || 0}`;
+    wrap.appendChild(summary);
+    const nodes = document.createElement('div');
+    nodes.className = 'prefab-dependency-nodes';
+    for (const node of graph.nodes || []) {
+      const row = document.createElement('span');
+      row.dataset.prefabDependencyNode = node.id;
+      row.textContent = `${node.type} / ${node.label}`;
+      nodes.appendChild(row);
+    }
+    wrap.appendChild(nodes);
+    const edges = document.createElement('div');
+    edges.className = 'prefab-dependency-edges';
+    for (const edge of graph.edges || []) {
+      const row = document.createElement('span');
+      row.dataset.prefabDependencyEdge = `${edge.from}->${edge.to}`;
+      row.textContent = `${edge.from} -> ${edge.to} / ${edge.type}`;
+      edges.appendChild(row);
+    }
+    wrap.appendChild(edges);
+    const missing = document.createElement('div');
+    missing.className = 'prefab-dependency-missing';
+    for (const action of graph.repairActions || []) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.prefabMissingAsset = action.path;
+      button.textContent = `${action.path} / 一键修复`;
+      missing.appendChild(button);
+    }
+    wrap.appendChild(missing);
+    return wrap;
+  }
+
+  function renderWebGPUPipelinePanel() {
+    const report = current.webgpuPipelineDiagnostics || createWebGPUPipelineDiagnosticsState({});
+    const wrap = document.createElement('div');
+    wrap.className = 'webgpu-pipeline-panel';
+    wrap.dataset.webgpuPipeline = 'true';
+    const title = document.createElement('h3');
+    title.textContent = 'WebGPU 管线诊断';
+    wrap.appendChild(title);
+    const summary = document.createElement('p');
+    summary.textContent = `active ${report.fallback?.active || 'webgpu'} / preferred ${report.fallback?.preferred || 'webgpu'} / issues ${report.summary?.issueCount || 0}`;
+    wrap.appendChild(summary);
+    for (const texture of report.textures || []) {
+      const row = document.createElement('div');
+      row.dataset.webgpuTexture = texture.id;
+      row.textContent = `${texture.id} / ${texture.format} / ${texture.state}`;
+      wrap.appendChild(row);
+    }
+    for (const bindGroup of report.bindGroups || []) {
+      const row = document.createElement('div');
+      row.dataset.webgpuBindGroup = bindGroup.id;
+      row.textContent = `${bindGroup.id} / ${bindGroup.layout || 'no-layout'} / ${bindGroup.resources.join(', ')}`;
+      wrap.appendChild(row);
+    }
+    for (const pipeline of report.pipelines || []) {
+      const row = document.createElement('div');
+      row.dataset.webgpuPipeline = pipeline.id;
+      row.textContent = `${pipeline.id} / ${pipeline.shader || 'shader'} / ${pipeline.cached ? 'cached' : 'cache miss'}`;
+      wrap.appendChild(row);
+    }
+    for (const event of report.deviceEvents || []) {
+      const row = document.createElement('div');
+      row.dataset.webgpuDeviceEvent = event.type;
+      row.textContent = `${event.type} / ${event.reason || 'no-reason'}`;
+      wrap.appendChild(row);
+    }
+    for (const action of report.recoveryActions || []) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.webgpuRecoveryAction = action.id;
+      button.textContent = action.label;
+      wrap.appendChild(button);
+    }
+    return wrap;
+  }
+
   function renderRenderDiagnosticsPanel() {
     const panel = current.renderDiagnosticsPanel || buildRenderDiagnosticsPanelState(current);
     const summary = panel.summary || {};
@@ -7982,6 +8355,50 @@ function normalizeResourcePickerState(value = {}) {
   };
 }
 
+function createVisualScriptEditorState(state = {}, overrides = {}) {
+  const graph = flowGraphToVisualScriptGraph(state.flowGraph);
+  const validation = state.visualScriptValidation || new VisualScriptGraphRuntime({
+    graph,
+    actions: createVisualScriptActions()
+  }).validate();
+  const trace = overrides.lastRun || state.visualScriptTrace || null;
+  const bindings = overrides.bindings || state.visualScriptEditor?.bindings || [];
+  const traceRows = Array.isArray(trace?.trace) ? trace.trace.map((entry, index) => ({
+    index,
+    nodeId: entry.nodeId || 'unknown',
+    type: entry.type || 'node',
+    text: formatVisualScriptTraceEntry(entry),
+    raw: cloneState(entry)
+  })) : [];
+  return {
+    schema: 'omnicore.editor-visual-script-graph.v1',
+    open: Boolean(overrides.open ?? state.visualScriptEditor?.open),
+    graph,
+    palette: createVisualScriptPaletteModel(),
+    bindings: bindings.map((binding) => cloneState(binding)),
+    selectedNodeId: overrides.selectedNodeId ?? state.visualScriptEditor?.selectedNodeId ?? null,
+    validation,
+    lastRun: trace ? cloneState(trace) : null,
+    traceRows,
+    beginnerChecklist: createVisualScriptBeginnerChecklist({ graph, validation, traceRows })
+  };
+}
+
+function normalizeVisualScriptEditorState(value = {}) {
+  return {
+    schema: value.schema || 'omnicore.editor-visual-script-graph.v1',
+    open: Boolean(value.open),
+    graph: value.graph ? cloneState(value.graph) : null,
+    palette: value.palette ? cloneState(value.palette) : createVisualScriptPaletteModel(),
+    bindings: Array.isArray(value.bindings) ? value.bindings.map((binding) => cloneState(binding)) : [],
+    selectedNodeId: value.selectedNodeId || null,
+    validation: value.validation || null,
+    lastRun: value.lastRun ? cloneState(value.lastRun) : null,
+    traceRows: Array.isArray(value.traceRows) ? value.traceRows.map((row) => cloneState(row)) : [],
+    beginnerChecklist: Array.isArray(value.beginnerChecklist) ? value.beginnerChecklist.map((item) => cloneState(item)) : []
+  };
+}
+
 function createEditorPhysicsDiagnostics(input = {}, options = {}) {
   const world = new PhysicsWorld();
   const bodies = Array.isArray(input.bodies)
@@ -8056,6 +8473,249 @@ function createEditorPhysicsRecommendations(snapshot = {}) {
   if (summary.constraintCount) recommendations.push('检查约束端点是否稳定绑定到刚体。');
   if (summary.debugColliderCount) recommendations.push('保留 debug draw 叠层，方便调试碰撞体尺寸。');
   return recommendations;
+}
+
+function createScene3DViewportState(input = {}, options = {}) {
+  const cameras = arrayFromValue(input.cameras || input.scene?.cameras).map((camera, index) => ({
+    id: String(camera.id || `camera-${index + 1}`),
+    type: camera.type || 'Camera3D',
+    mode: camera.mode || camera.controls || 'orbit',
+    fov: Number(camera.fov || 60),
+    active: Boolean(camera.active ?? index === 0)
+  }));
+  const lights = arrayFromValue(input.lights || input.scene?.lights).map((light, index) => ({
+    id: String(light.id || `light-${index + 1}`),
+    type: light.type || 'directional',
+    intensity: Number(light.intensity ?? 1),
+    castShadow: Boolean(light.castShadow)
+  }));
+  const materials = arrayFromValue(input.materials || input.scene?.materials).map((material, index) => ({
+    id: String(material.id || `material-${index + 1}`),
+    type: material.type || 'standard',
+    albedo: material.albedo || material.map || material.texture || null,
+    normalMap: material.normalMap || null
+  }));
+  const models = arrayFromValue(input.models || input.scene?.models).map((model, index) => ({
+    id: String(model.id || `model-${index + 1}`),
+    url: model.url || model.path || model.gltf || model.glb || null,
+    material: model.material || null,
+    animations: stringList(model.animations || model.clips),
+    collider: model.collider ? cloneState(model.collider) : null,
+    selected: (input.selectedModelId || options.selectedModelId) === model.id
+  }));
+  const colliders = models
+    .filter((model) => model.collider)
+    .map((model) => ({
+      modelId: model.id,
+      ...cloneState(model.collider)
+    }));
+  return {
+    schema: 'omnicore.editor-scene-3d-viewport.v1',
+    open: true,
+    generatedAt: options.generatedAt || input.generatedAt || new Date().toISOString(),
+    selectedModelId: input.selectedModelId || options.selectedModelId || null,
+    summary: {
+      cameraCount: cameras.length,
+      lightCount: lights.length,
+      materialCount: materials.length,
+      modelCount: models.length,
+      animationCount: models.reduce((sum, model) => sum + model.animations.length, 0),
+      colliderCount: colliders.length
+    },
+    cameras,
+    lights,
+    materials,
+    models,
+    colliders
+  };
+}
+
+function createPrefabDependencyGraphState({ scene = {}, prefabs = [], assets = [], generatedAt = null } = {}) {
+  const nodes = new Map();
+  const edges = new Map();
+  const assetRefs = new Map();
+  const availableAssets = new Set(arrayFromValue(assets).map((asset) => slash(asset.path || asset.url || asset.id || asset)));
+  const addNode = (id, type, label, extra = {}) => {
+    if (!id) return;
+    nodes.set(id, { id, type, label: label || id, ...extra });
+  };
+  const addEdge = (from, to, type) => {
+    if (!from || !to) return;
+    edges.set(`${from}->${to}:${type}`, { from, to, type });
+  };
+  const addAssetRef = (from, path, type = 'asset') => {
+    const normalized = slash(path);
+    if (!normalized) return;
+    const assetId = `asset:${normalized}`;
+    addNode(assetId, 'asset', normalized, { missing: !availableAssets.has(normalized) });
+    addEdge(from, assetId, type);
+    if (!assetRefs.has(normalized)) assetRefs.set(normalized, new Set());
+    assetRefs.get(normalized).add(from);
+  };
+
+  const entities = arrayFromValue(scene.entities);
+  for (const entity of entities) {
+    const entityId = `scene:${entity.id || entity.name || `entity-${nodes.size + 1}`}`;
+    addNode(entityId, 'scene-entity', entity.id || entity.name || entityId);
+    if (entity.prefabId) {
+      const prefabId = `prefab:${entity.prefabId}`;
+      addNode(prefabId, 'prefab', entity.prefabId);
+      addEdge(entityId, prefabId, 'prefab-instance');
+    }
+    for (const path of collectDependencyAssetRefs(entity)) addAssetRef(entityId, path, 'asset');
+  }
+
+  for (const prefab of arrayFromValue(prefabs)) {
+    const id = prefab.id || prefab.name;
+    if (!id) continue;
+    const prefabId = `prefab:${id}`;
+    addNode(prefabId, 'prefab', id, { extends: prefab.extends || null });
+    if (prefab.extends) {
+      const baseId = `prefab:${prefab.extends}`;
+      addNode(baseId, 'prefab', prefab.extends);
+      addEdge(prefabId, baseId, 'extends');
+    }
+    for (const child of arrayFromValue(prefab.children)) {
+      if (!child.prefabId) continue;
+      const childId = `prefab:${child.prefabId}`;
+      addNode(childId, 'prefab', child.prefabId);
+      addEdge(prefabId, childId, 'nested-prefab');
+    }
+    for (const path of collectDependencyAssetRefs(prefab)) addAssetRef(prefabId, path, 'asset');
+  }
+
+  const missingAssets = [...assetRefs.entries()]
+    .filter(([path]) => !availableAssets.has(path))
+    .map(([path, sources]) => ({ path, sources: [...sources].sort(), referenceCount: sources.size }))
+    .sort((left, right) => left.path.localeCompare(right.path));
+  const repairActions = missingAssets.map((asset) => ({
+    id: `repair:${asset.path}`,
+    type: 'register-missing-asset',
+    label: `一键修复 ${asset.path}`,
+    path: asset.path,
+    sources: asset.sources
+  }));
+
+  return {
+    schema: 'omnicore.editor-prefab-dependency-graph.v1',
+    open: true,
+    generatedAt: generatedAt || new Date().toISOString(),
+    summary: {
+      sceneNodeCount: entities.length,
+      prefabNodeCount: arrayFromValue(prefabs).filter((prefab) => prefab.id || prefab.name).length,
+      assetNodeCount: [...nodes.values()].filter((node) => node.type === 'asset').length,
+      missingAssetCount: missingAssets.length,
+      repairActionCount: repairActions.length
+    },
+    nodes: [...nodes.values()].sort((left, right) => left.id.localeCompare(right.id)),
+    edges: [...edges.values()].sort((left, right) => `${left.from}:${left.to}:${left.type}`.localeCompare(`${right.from}:${right.to}:${right.type}`)),
+    missingAssets,
+    repairActions
+  };
+}
+
+function collectDependencyAssetRefs(source = {}) {
+  const refs = new Set();
+  const visit = (value, key = '') => {
+    if (typeof value === 'string') {
+      const normalized = slash(value);
+      if (/^(assets|models|audio|textures|sprites)\//iu.test(normalized) || /\.(png|jpe?g|webp|json|glb|gltf|mp3|ogg|wav)$/iu.test(normalized)) {
+        refs.add(normalized);
+      }
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item) => visit(item, key));
+      return;
+    }
+    if (!value || typeof value !== 'object') return;
+    for (const [childKey, child] of Object.entries(value)) {
+      if (['children', 'overrides'].includes(childKey)) {
+        visit(child, childKey);
+      } else if (!['id', 'name', 'prefabId', 'extends'].includes(childKey)) {
+        visit(child, childKey);
+      }
+    }
+  };
+  visit(source);
+  return [...refs].sort();
+}
+
+function createWebGPUPipelineDiagnosticsState(input = {}, options = {}) {
+  const textures = arrayFromValue(input.textures).map((texture, index) => ({
+    id: String(texture.id || texture.name || `texture-${index + 1}`),
+    width: Number(texture.width || 0),
+    height: Number(texture.height || 0),
+    format: texture.format || 'rgba8unorm',
+    state: texture.state || 'unknown'
+  }));
+  const buffers = arrayFromValue(input.buffers).map((buffer, index) => ({
+    id: String(buffer.id || buffer.name || `buffer-${index + 1}`),
+    bytes: Math.max(0, Number(buffer.bytes || buffer.byteLength || 0)),
+    usage: buffer.usage || 'vertex',
+    state: buffer.state || 'created'
+  }));
+  const bindGroups = arrayFromValue(input.bindGroups).map((bindGroup, index) => ({
+    id: String(bindGroup.id || `bind-group-${index + 1}`),
+    layout: bindGroup.layout || null,
+    resources: stringList(bindGroup.resources)
+  }));
+  const pipelines = arrayFromValue(input.pipelines).map((pipeline, index) => ({
+    id: String(pipeline.id || `pipeline-${index + 1}`),
+    shader: pipeline.shader || null,
+    layout: pipeline.layout || null,
+    cached: Boolean(pipeline.cached)
+  }));
+  const deviceEvents = arrayFromValue(input.deviceEvents).map((event) => ({ ...event, type: event.type || 'event' }));
+  const backend = input.backend || {};
+  const budgets = {
+    textureCount: Number(input.budgets?.textureCount ?? Number.POSITIVE_INFINITY),
+    bufferBytes: Number(input.budgets?.bufferBytes ?? Number.POSITIVE_INFINITY),
+    pipelineCacheMisses: Number(input.budgets?.pipelineCacheMisses ?? Number.POSITIVE_INFINITY)
+  };
+  const pipelineCacheMisses = pipelines.filter((pipeline) => !pipeline.cached).length;
+  const deviceLostCount = deviceEvents.filter((event) => event.type === 'lost').length;
+  const bufferBytes = buffers.reduce((sum, buffer) => sum + buffer.bytes, 0);
+  const issues = [];
+  if (textures.length > budgets.textureCount) issues.push({ type: 'texture-budget-exceeded', severity: 'warning', value: textures.length, budget: budgets.textureCount });
+  if (bufferBytes > budgets.bufferBytes) issues.push({ type: 'buffer-budget-exceeded', severity: 'warning', value: bufferBytes, budget: budgets.bufferBytes });
+  if (pipelineCacheMisses > budgets.pipelineCacheMisses) issues.push({ type: 'pipeline-cache-miss', severity: 'warning', value: pipelineCacheMisses, budget: budgets.pipelineCacheMisses });
+  if (deviceLostCount) issues.push({ type: 'device-lost', severity: 'error', value: deviceLostCount });
+  if (arrayFromValue(backend.rejected).length) issues.push({ type: 'backend-fallback', severity: 'info', value: backend.active || backend.selected || 'fallback' });
+  const recoveryActions = [];
+  if (deviceLostCount) recoveryActions.push({ id: 'recreate-device', label: '重建设备', type: 'device-recovery' });
+  if (textures.some((texture) => texture.state !== 'uploaded')) recoveryActions.push({ id: 'flush-texture-uploads', label: '刷新纹理上传', type: 'texture-upload' });
+  if (pipelineCacheMisses) recoveryActions.push({ id: 'warm-pipeline-cache', label: '预热 Pipeline Cache', type: 'pipeline-cache' });
+
+  return {
+    schema: 'omnicore.editor-webgpu-pipeline-diagnostics.v1',
+    open: true,
+    generatedAt: options.generatedAt || input.generatedAt || new Date().toISOString(),
+    fallback: {
+      preferred: backend.preferred || 'webgpu',
+      active: backend.active || backend.selected || 'webgpu',
+      fallbackChain: stringList(backend.fallbackChain),
+      rejected: arrayFromValue(backend.rejected).map((entry) => cloneState(entry))
+    },
+    summary: {
+      textureCount: textures.length,
+      pendingTextureUploads: textures.filter((texture) => texture.state !== 'uploaded').length,
+      bufferCount: buffers.length,
+      bufferBytes,
+      bindGroupCount: bindGroups.length,
+      pipelineCount: pipelines.length,
+      pipelineCacheMisses,
+      deviceLostCount,
+      issueCount: issues.length
+    },
+    textures,
+    buffers,
+    bindGroups,
+    pipelines,
+    deviceEvents,
+    issues,
+    recoveryActions
+  };
 }
 
 function normalizePhysicsViewState(value = {}) {
@@ -8432,7 +9092,8 @@ function formatVisualScriptTraceEntry(entry = {}) {
     return `${label} => ${formatTraceValue(entry.result)}`;
   }
   if (Object.prototype.hasOwnProperty.call(entry, 'value')) {
-    return `${label} = ${formatTraceValue(entry.value)}`;
+    const target = entry.target ? `${entry.target} ` : '';
+    return `${label} ${target}= ${formatTraceValue(entry.value)}`;
   }
   if (Object.prototype.hasOwnProperty.call(entry, 'event')) {
     return `${label} @ ${entry.event}`;
