@@ -1661,7 +1661,12 @@ export function createEditorApp(root = document.querySelector('#app'), {
       return command === 'scene-3d-demo' ? {
         officialDemo: 'examples/3d-runtime-demo',
         actions: ['打开官方 3D Demo', '运行 Demo', '编辑场景', '导出项目'],
-        scene3DViewport: current.scene3DViewport
+        scene3DViewport: {
+          selectedModelId: current.scene3DViewport?.selectedModelId || null,
+          renderMode: current.scene3DViewport?.renderMode || null,
+          summary: current.scene3DViewport?.summary || null
+        },
+        scene3DRuntimeSession: createDesktopScene3DSessionWindowSummary(current.scene3DRuntimeSession)
       } : current.dockLayout;
     }
     if (command === 'gltf-import') {
@@ -1673,7 +1678,14 @@ export function createEditorApp(root = document.querySelector('#app'), {
       };
       showEditorFeedback(`已进入 GLTF/GLB 模型资源检查：${panel.assets?.length || 0} 项资源`, 'info');
       update(current);
-      return { panel, workflow: current.gltfImportWorkflow };
+      return {
+        panel: {
+          source: panel.source || 'desktop-gltf-check',
+          assetCount: panel.assets?.length || 0
+        },
+        workflow: current.gltfImportWorkflow,
+        scene3DRuntimeSession: createDesktopScene3DSessionWindowSummary(current.scene3DRuntimeSession)
+      };
     }
     if (command === 'exe-package' || command === 'web-export' || command === 'wechat-export') {
       setEditorWorkspaceMode('editor');
@@ -5272,6 +5284,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       scene3DFixPlan: cloneState(current.scene3DFixPlan),
       scene3DFixApplyReport: cloneState(current.scene3DFixApplyReport),
       scene3DViewport: cloneState(current.scene3DViewport),
+      scene3DRuntimeSession: cloneState(current.scene3DRuntimeSession),
       prefabDependencyGraph: cloneState(current.prefabDependencyGraph),
       webgpuPipelineDiagnostics: cloneState(current.webgpuPipelineDiagnostics),
       renderOptimizationRuntime: createRenderOptimizationRuntimePlan(current.renderOptimizationPlan, { generatedAt })
@@ -5297,6 +5310,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       scene3DFixPlan: payload.scene3DFixPlan || current.scene3DFixPlan,
       scene3DFixApplyReport: payload.scene3DFixApplyReport || current.scene3DFixApplyReport,
       scene3DViewport: payload.scene3DViewport || current.scene3DViewport,
+      scene3DRuntimeSession: payload.scene3DRuntimeSession || current.scene3DRuntimeSession,
       prefabDependencyGraph: payload.prefabDependencyGraph || current.prefabDependencyGraph,
       webgpuPipelineDiagnostics: payload.webgpuPipelineDiagnostics || current.webgpuPipelineDiagnostics,
       flowGraph: payload.flowGraph || current.flowGraph
@@ -8911,6 +8925,35 @@ function createDesktopScene3DRuntimeSessionState({ includeImport = false } = {})
     ...session.createSnapshot(),
     savePatch,
     exportPlan
+  };
+}
+
+function createDesktopScene3DSessionWindowSummary(session = null) {
+  if (!session) return null;
+  return {
+    schema: session.schema,
+    sessionId: session.sessionId,
+    summary: session.summary,
+    importedAssets: session.importedAssets || [],
+    savePatch: {
+      schema: session.savePatch?.schema || null,
+      runtime: {
+        selectedModelId: session.savePatch?.runtime?.selectedModelId || null,
+        modelCount: arrayFromValue(session.savePatch?.runtime?.models).length,
+        materialCount: arrayFromValue(session.savePatch?.runtime?.materials).length,
+        importedAssetCount: arrayFromValue(session.savePatch?.runtime?.importedAssets).length
+      }
+    },
+    exportPlan: {
+      schema: session.exportPlan?.schema || null,
+      target: session.exportPlan?.target || null,
+      steps: arrayFromValue(session.exportPlan?.steps).map((step) => ({
+        id: step.id,
+        title: step.title,
+        status: step.status
+      }))
+    },
+    trace: arrayFromValue(session.trace).map((entry) => entry.type).filter(Boolean)
   };
 }
 
