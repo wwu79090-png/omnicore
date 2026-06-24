@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OmniCore 3D Runtime Demo</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #f7f8fb;
+        color: #172033;
+        font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      main {
+        width: min(1160px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 20px 0 28px;
+      }
+
+      header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 14px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.1;
+        letter-spacing: 0;
+      }
+
+      .status {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .status span {
+        border: 1px solid #cad2df;
+        border-radius: 999px;
+        padding: 5px 10px;
+        background: #ffffff;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.95fr);
+        gap: 14px;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        border: 1px solid #c7ceda;
+        border-radius: 8px;
+        background: #10141f;
+      }
+
+      #report {
+        display: grid;
+        gap: 10px;
+      }
+
+      .panel {
+        border: 1px solid #d2d8e3;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 12px;
+      }
+
+      .panel h2 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        letter-spacing: 0;
+      }
+
+      pre {
+        margin: 0;
+        max-height: 220px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      @media (max-width: 860px) {
+        .layout,
+        header {
+          grid-template-columns: 1fr;
+          display: grid;
+        }
+
+        .status {
+          justify-content: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body data-omnicore-3d-runtime-demo>
+    <main>
+      <header>
+        <h1>OmniCore 3D Runtime Demo</h1>
+        <div class="status" aria-label="3D runtime status">
+          <span>GLB</span>
+          <span>PBR</span>
+          <span>Rapier debug draw</span>
+          <span>WebGPU fallback</span>
+          <span>导出项目</span>
+        </div>
+      </header>
+      <section class="layout">
+        <canvas id="scene" width="1280" height="720" aria-label="3D scene canvas"></canvas>
+        <section id="report" aria-label="runtime evidence"></section>
+      </section>
+    </main>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

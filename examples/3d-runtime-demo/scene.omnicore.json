@@ -1,0 +1,63 @@
+{
+  "schema": "omnicore.scene-3d-demo.v1",
+  "name": "3d-runtime-demo",
+  "editor": {
+    "openWith": "scene-3d-viewport",
+    "renderMode": "real-preview",
+    "canvasMount": "scene-3d-viewport-canvas"
+  },
+  "runtime": {
+    "cameras": [
+      {
+        "id": "main-camera",
+        "mode": "orbit",
+        "position": { "x": 0, "y": 1.6, "z": 4.2 },
+        "target": { "x": 0, "y": 0.3, "z": 0 }
+      }
+    ],
+    "lights": [
+      {
+        "id": "sun",
+        "type": "directional",
+        "intensity": 1.8,
+        "castShadow": true,
+        "position": { "x": 3, "y": 5, "z": 2 }
+      }
+    ],
+    "materials": [
+      {
+        "id": "hero-pbr",
+        "type": "PBRMaterial",
+        "baseColor": "#338cff",
+        "metallic": 0.18,
+        "roughness": 0.42
+      }
+    ],
+    "models": [
+      {
+        "id": "hero",
+        "url": "assets/hero.glb",
+        "material": "hero-pbr",
+        "animations": ["Idle", "Run"],
+        "activeAnimation": "Idle",
+        "castShadow": true,
+        "receiveShadow": true,
+        "collider": {
+          "shape": "box",
+          "width": 1.2,
+          "height": 1.4,
+          "depth": 0.4
+        },
+        "rigidBody": {
+          "type": "dynamic",
+          "mass": 1
+        },
+        "physicsBinding": {
+          "backend": "rapier3d-compat",
+          "bodyId": "hero-body",
+          "colliderId": "hero-collider"
+        }
+      }
+    ]
+  }
+}

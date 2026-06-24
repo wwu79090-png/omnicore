@@ -7,7 +7,7 @@ const DEFAULT_CAPABILITIES = [
   'debug-draw'
 ];
 
-export { RapierPhysicsBackend, createRapierPhysicsBackend } from './RapierPhysicsBackend.js';
+export { RapierPhysicsBackend, createRapierPhysicsBackend, loadRapier3DCompatBackend } from './RapierPhysicsBackend.js';
 
 export function createPhysicsRegistry({ backends = [] } = {}) {
   const registry = new Map();

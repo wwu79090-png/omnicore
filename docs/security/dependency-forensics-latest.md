@@ -2,7 +2,7 @@
 
 - Generated: 2026-06-20T00:00:00.000Z
 - Root: C:\Users\39120\Documents\引擎开发
-- Packages scanned: 864
+- Packages scanned: 865
 - Packages with lifecycle scripts: 245
 - High-risk findings: 0
 

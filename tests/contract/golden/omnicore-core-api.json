@@ -3299,6 +3299,11 @@
         "name": "help"
       },
       {
+        "arity": 0,
+        "async": false,
+        "name": "inspectGLTFAsset"
+      },
+      {
         "arity": 2,
         "async": false,
         "name": "install"
@@ -3815,6 +3820,7 @@
       "findPath",
       "formatOmniMessage",
       "help",
+      "inspectGLTFAsset",
       "install",
       "instantiateSceneDocument",
       "isDebugBuildEnabled",

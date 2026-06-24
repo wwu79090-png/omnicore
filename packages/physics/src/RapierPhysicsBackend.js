@@ -93,9 +93,9 @@ export class RapierPhysicsBackend {
   }
 
   createRigidBodyDesc(body = {}) {
-    if (body.type === 'static' || body.static) return this.RAPIER.RigidBodyDesc.fixed();
-    if (body.type === 'kinematic') return this.RAPIER.RigidBodyDesc.kinematicPositionBased();
-    return this.RAPIER.RigidBodyDesc.dynamic();
+    if (body.type === 'static' || body.static) return createRapierDesc(this.RAPIER.RigidBodyDesc, ['fixed', 'newStatic']);
+    if (body.type === 'kinematic') return createRapierDesc(this.RAPIER.RigidBodyDesc, ['kinematicPositionBased', 'newKinematic']);
+    return createRapierDesc(this.RAPIER.RigidBodyDesc, ['dynamic', 'newDynamic']);
   }
 
   createColliderDesc(collider = {}) {
@@ -125,7 +125,8 @@ export class RapierPhysicsBackend {
 export function createRapierPhysicsBackend({
   id = 'rapier',
   RAPIER,
-  purpose = 'Rapier JS backend for rigid bodies, colliders, sensors, joints, raycasts, and debug draw.'
+  purpose = 'Rapier JS backend for rigid bodies, colliders, sensors, joints, raycasts, and debug draw.',
+  initWarnings = []
 } = {}) {
   const module = new RapierPhysicsBackend({ RAPIER });
   return {
@@ -136,8 +137,64 @@ export function createRapierPhysicsBackend({
     available: Boolean(RAPIER),
     fallback: 'arcade',
     module,
-    external: true
+    external: true,
+    diagnostics: {
+      initWarnings: initWarnings.map((warning) => ({ ...warning }))
+    }
   };
+}
+
+export async function loadRapier3DCompatBackend({
+  id = 'rapier3d-compat',
+  importRapier = () => import('@dimforge/rapier3d-compat'),
+  init = true,
+  ...options
+} = {}) {
+  const RAPIER = await importRapier();
+  const initWarnings = [];
+  if (init && typeof RAPIER.init === 'function') {
+    await initializeRapierCompat(RAPIER, options.initOptions || {}, initWarnings, options);
+  }
+  return createRapierPhysicsBackend({
+    id,
+    RAPIER,
+    purpose: options.purpose || 'Rapier 3D compat WASM backend loaded on demand for OmniCore 3D scenes.',
+    initWarnings
+  });
+}
+
+function createRapierDesc(factory = {}, names = []) {
+  for (const name of names) {
+    if (typeof factory[name] === 'function') return factory[name]();
+  }
+  return {};
+}
+
+async function initializeRapierCompat(RAPIER, initOptions, initWarnings, options = {}) {
+  const warn = globalThis.console?.warn;
+  const knownWarning = 'using deprecated parameters for the initialization function; pass a single object instead';
+  if (options.captureInitWarnings === false || typeof warn !== 'function') {
+    await RAPIER.init(initOptions);
+    return;
+  }
+
+  globalThis.console.warn = (...args) => {
+    const message = args.map(String).join(' ');
+    if (message.includes(knownWarning)) {
+      initWarnings.push({
+        source: '@dimforge/rapier3d-compat',
+        level: 'warning',
+        message
+      });
+      return;
+    }
+    warn.apply(globalThis.console, args);
+  };
+  try {
+    await RAPIER.init(initOptions);
+  } finally {
+    globalThis.console.warn = warn;
+  }
 }
 
 export default RapierPhysicsBackend;

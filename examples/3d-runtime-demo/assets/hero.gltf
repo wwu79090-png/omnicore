@@ -1,0 +1,38 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "OmniCore 3D Runtime Demo"
+  },
+  "scene": 0,
+  "scenes": [
+    { "nodes": [0] }
+  ],
+  "nodes": [
+    { "name": "Hero", "mesh": 0 }
+  ],
+  "meshes": [
+    {
+      "name": "HeroTriangle",
+      "primitives": [
+        {
+          "attributes": { "POSITION": 0 },
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "hero-pbr",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [0.2, 0.55, 1, 1],
+        "metallicFactor": 0.18,
+        "roughnessFactor": 0.42
+      }
+    }
+  ],
+  "animations": [
+    { "name": "Idle", "samplers": [], "channels": [] },
+    { "name": "Run", "samplers": [], "channels": [] }
+  ]
+}

@@ -8173,6 +8173,11 @@ export function createEditorApp(root = document.querySelector('#app'), {
       realPreview.setAttribute('data-scene-3d-real-preview', 'true');
       realPreview.textContent = `Three.js ${viewport.runtimeAdapter || 'three'} 实时预览 / GLTF ${viewport.gltfPreloadQueue?.length || 0} / 动画 ${viewport.animationPreview?.clip || '未选择'} / 碰撞体 ${viewport.overlays?.colliders ? '显示' : '隐藏'} / 阴影 ${viewport.overlays?.shadows ? '显示' : '隐藏'}`;
       wrap.appendChild(realPreview);
+      const canvasMount = document.createElement('div');
+      canvasMount.id = viewport.canvasMount?.attachTarget || 'scene-3d-viewport-canvas';
+      canvasMount.setAttribute('data-scene-3d-three-canvas', 'true');
+      canvasMount.textContent = `Three.js Canvas / renderer ${viewport.canvasMount?.renderer || 'three'} / controls ${(viewport.canvasMount?.controls || []).join(', ') || 'orbit'} / overlays ${(viewport.canvasMount?.debugOverlays || []).join(', ') || 'none'}`;
+      wrap.appendChild(canvasMount);
     }
     for (const camera of viewport.cameras || []) {
       const row = document.createElement('div');

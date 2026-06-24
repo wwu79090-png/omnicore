@@ -264,8 +264,9 @@ describe('scaffold templates, addon packaging, and website docs', () => {
     }
   });
 
-  it('documents 2D focus, Code Awakener case study, and roadmap', () => {
-    expect(readFileSync('README.md', 'utf8')).toContain('OmniCore 专注于 2D 游戏开发');
+  it('documents 2D-first positioning, production 3D path, Code Awakener case study, and roadmap', () => {
+    expect(readFileSync('README.md', 'utf8')).toContain('2D 优先');
+    expect(readFileSync('README.md', 'utf8')).toContain('生产级 3D 路径');
     expect(readFileSync('website/case-studies.md', 'utf8')).toContain('代码觉醒者');
     expect(readFileSync('website/roadmap.md', 'utf8')).toContain('开发路线图');
     expect(readFileSync('docs/api/README.zh-CN.md', 'utf8')).toContain('OmniCore API');

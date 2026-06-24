@@ -198,9 +198,9 @@ describe('OmniCore experience gap closure', () => {
   });
 
   it('ships focused getting started, WeChat publish, positioning, and example debugging docs', () => {
-    expect(readFileSync('README.md', 'utf8')).toMatch(/2D\/2\.5D/);
-    expect(readFileSync('README.md', 'utf8')).toMatch(/非全 3D|不是全 3D/);
-    expect(readFileSync('website/editor/index.html', 'utf8')).toMatch(/2D\/2\.5D|非全 3D|不是全 3D/);
+    expect(readFileSync('README.md', 'utf8')).toMatch(/2D 优先/);
+    expect(readFileSync('README.md', 'utf8')).toMatch(/生产级 3D 路径/);
+    expect(readFileSync('website/editor/index.html', 'utf8')).toMatch(/2D 优先|生产级 3D 路径/);
 
     const gettingStarted = readFileSync('docs/getting-started.md', 'utf8');
     expect(gettingStarted).toContain('10 分钟');

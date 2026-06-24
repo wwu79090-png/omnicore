@@ -1164,6 +1164,13 @@
       ]
     },
     {
+      "path": "dimension3d/GLTFAssetInspector.js",
+      "summary": "",
+      "exports": [
+        "inspectGLTFAsset"
+      ]
+    },
+    {
       "path": "dimension3d/Runtime3DScene.js",
       "summary": "",
       "exports": [

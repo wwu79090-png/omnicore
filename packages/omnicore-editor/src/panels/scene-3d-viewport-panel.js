@@ -16,6 +16,12 @@ export function createScene3DViewportRenderState(input = {}, options = {}) {
   return {
     runtimeAdapter: options.runtimeAdapter || input.runtimeAdapter || 'three',
     renderMode: options.renderMode || input.renderMode || 'inspect',
+    canvasMount: {
+      renderer: options.runtimeAdapter || input.runtimeAdapter || 'three',
+      attachTarget: 'scene-3d-viewport-canvas',
+      controls: buildControls(models, input.cameras || input.scene?.cameras),
+      debugOverlays: buildDebugOverlays({ colliders, lights, shadowLightCount })
+    },
     gltfPreloadQueue: [...new Set(models.map((model) => model.url).filter(Boolean))],
     animationPreview: animationTarget ? {
       modelId: animationTarget.id,
@@ -37,6 +43,23 @@ export function createScene3DViewportRenderState(input = {}, options = {}) {
       { id: 'collider-overlay', ok: colliders.length > 0, label: 'Collider overlay' }
     ]
   };
+}
+
+function buildControls(models, cameras) {
+  const controls = new Set(['orbit', 'select']);
+  if (models.some((model) => model.activeAnimation || model.animations?.length)) controls.add('animation-preview');
+  for (const camera of arrayFromValue(cameras)) {
+    if (camera.mode || camera.controls) controls.add(String(camera.mode || camera.controls));
+  }
+  return [...controls];
+}
+
+function buildDebugOverlays({ colliders, lights, shadowLightCount }) {
+  const overlays = [];
+  if (colliders.length) overlays.push('colliders');
+  if (lights.length) overlays.push('lights');
+  if (shadowLightCount > 0) overlays.push('shadows');
+  return overlays;
 }
 
 function arrayFromValue(value) {

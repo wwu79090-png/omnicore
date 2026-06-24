@@ -221,5 +221,8 @@
     "wechat-minigame",
     "electron"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "optionalDependencies": {
+    "@dimforge/rapier3d-compat": "^0.19.3"
+  }
 }

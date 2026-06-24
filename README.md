@@ -20,9 +20,18 @@ OmniCore: 33KB Lean Core Web 游戏引擎，1000 Sprite 演示目标 144 FPS。
 ![Security](https://img.shields.io/badge/high--risk%20deps-0-16a34a)
 ![Release](https://img.shields.io/github/v/release/wwu79090-png/omnicore?label=release)
 
-OmniCore 是一个 HTML5 2D/2.5D 优先游戏引擎骨架：默认使用 PixiJS v8 做 2D 渲染，提供 Phaser 风格场景栈和 Tween、Construct/GDevelop 风格 JSON Event Sheet、Cocos 风格 `addComponent()`，并把 Three.js 作为独立的装饰背景层延迟加载。
+OmniCore 是一个 HTML5 2D 优先、生产级 3D 路径逐步补齐的游戏引擎骨架：默认使用 PixiJS v8 做 2D 渲染，提供 Phaser 风格场景栈和 Tween、Construct/GDevelop 风格 JSON Event Sheet、Cocos 风格 `addComponent()`，同时通过 `Runtime3DScene`、`ThreeRuntimeAdapter`、`RapierPhysicsBackend`、`WebGPUPipelineRuntime` 和编辑器 `scene-3d-viewport real-preview` 提供真实 3D 预览、物理接入与 GPU 资源生命周期诊断路径。
 
-OmniCore 专注于 2D 游戏开发和有限 2.5D 表现，明确不是全 3D 引擎。`Dimension3D` 支持多个装饰性 `.gltf` / `.glb` 模型、基础遮罩排序、预设动画播放和点击事件，用来增强 2D 场景表现；2.5D 层只提供 Z 轴到 2D Y 轴的遮挡排序与投影碰撞辅助，不提供全 3D 物理、自由 3D 摄像机控制或 3D 玩法框架。
+2.5D 装饰层仍保持轻量，适合给 2D 场景叠加 `.gltf` / `.glb` 背景、遮罩排序、预设动画和点击事件；完整 3D 工作流走独立的 Runtime3D/Three/Rapier 组合，不再把 2.5D 背景层硬扩成 3D 玩法层。
+
+| 能力 | 当前状态 | 入口 |
+| --- | --- | --- |
+| 2D/2.5D 主运行时 | 稳定主线，PixiJS/Canvas fallback、Scene/Tween/Input/Event Sheet | `Game`、`Scene`、`Dimension3D` |
+| 3D 场景运行时 | Camera3D、Light、PBR、GLTF/GLB、动画、collider、physics binding | `Runtime3DScene` |
+| Three.js 实渲染 | Scene/Renderer/Camera/Light/Material/GLTFLoader/AnimationMixer/EffectComposer | `ThreeRuntimeAdapter` |
+| Rapier 物理 | 可选 WASM compat 后端、刚体、碰撞体、sensor、joint、raycast、debugRender | `RapierPhysicsBackend` |
+| WebGPU 管线 | renderer 帧资源流、texture/buffer/bind group/pipeline/command/device lost 诊断 | `WebGPUPipelineRuntime` |
+| 编辑器 3D 预览 | GLTF 预加载、动画预览、材质编辑、灯光阴影、碰撞体叠层 | `scene-3d-viewport real-preview` |
 
 它有意不内置物理系统；物理只通过 `loadPhysics()` 延迟加载适配器。OmniCore 不暴露 Pixi ticker，不生成 UI 源码，不依赖大型编辑器。输入、Camera、Timer、Animation 是轻量基础模块，随 `Game` 和 `Scene` 生命周期更新。
 

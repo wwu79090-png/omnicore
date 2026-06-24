@@ -282,6 +282,7 @@ import Scene3DKit from './dimension3d/Scene3DKit.js';
 import Runtime3DScene from './dimension3d/Runtime3DScene.js';
 import ThreeRuntimeAdapter from './dimension3d/ThreeRuntimeAdapter.js';
 import ThreePhysicsBridge from './dimension3d/ThreePhysicsBridge.js';
+import inspectGLTFAsset from './dimension3d/GLTFAssetInspector.js';
 import { detectEnvironment, detectPlatformAndMergeDefaults, safeInitialize } from './core/Bootstrap.js';
 import TimeGuard from './core/TimeGuard.js';
 import Templates from './core/Templates.js';
@@ -1133,6 +1134,7 @@ const OmniCore = {
   Runtime3DScene,
   ThreeRuntimeAdapter,
   ThreePhysicsBridge,
+  inspectGLTFAsset,
   Deprecation,
   Store,
   PersistentSaveSlot,
@@ -1571,6 +1573,7 @@ export {
   Runtime3DScene,
   ThreeRuntimeAdapter,
   ThreePhysicsBridge,
+  inspectGLTFAsset,
   DeterministicReplay,
   DragonBonesAdapter,
   Assert,
