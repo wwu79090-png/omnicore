@@ -1175,6 +1175,23 @@ export function createEditorApp(root = document.querySelector('#app'), {
     toggleScene3DColliderOverlay,
     previewScene3DAnimation,
     updateScene3DMaterial,
+    configureScene3DInspector,
+    setScene3DGizmo,
+    pasteScene3DComponent,
+    resetScene3DInspectorField,
+    undoScene3DAction,
+    redoScene3DAction,
+    createScene3DNode,
+    renameScene3DNode,
+    duplicateScene3DNode,
+    groupScene3DNodes,
+    selectScene3DNodes,
+    toggleScene3DNodeVisibility,
+    lockScene3DNode,
+    importScene3DGLTFAsset,
+    configureScene3DRapierBody,
+    configureScene3DAnimation,
+    createScene3DExeE2EPlan,
     refreshPrefabDependencyGraph,
     applyPrefabDependencyRepair,
     refreshWebGPUPipelinePanel,
@@ -2532,6 +2549,57 @@ export function createEditorApp(root = document.querySelector('#app'), {
       updateScene3DMaterial(materialId, patch = {}) {
         return updateScene3DMaterial(materialId, patch);
       },
+      configureScene3DInspector(nodeId, options = {}) {
+        return configureScene3DInspector(nodeId, options);
+      },
+      setScene3DGizmo(options = {}) {
+        return setScene3DGizmo(options);
+      },
+      pasteScene3DComponent(nodeId) {
+        return pasteScene3DComponent(nodeId);
+      },
+      resetScene3DInspectorField(nodeId, field) {
+        return resetScene3DInspectorField(nodeId, field);
+      },
+      undoScene3DAction() {
+        return undoScene3DAction();
+      },
+      redoScene3DAction() {
+        return redoScene3DAction();
+      },
+      createScene3DNode(node = {}) {
+        return createScene3DNode(node);
+      },
+      renameScene3DNode(nodeId, name) {
+        return renameScene3DNode(nodeId, name);
+      },
+      duplicateScene3DNode(nodeId, options = {}) {
+        return duplicateScene3DNode(nodeId, options);
+      },
+      groupScene3DNodes(nodeIds = [], options = {}) {
+        return groupScene3DNodes(nodeIds, options);
+      },
+      selectScene3DNodes(nodeIds = []) {
+        return selectScene3DNodes(nodeIds);
+      },
+      toggleScene3DNodeVisibility(nodeId, visible = true) {
+        return toggleScene3DNodeVisibility(nodeId, visible);
+      },
+      lockScene3DNode(nodeId, locked = true) {
+        return lockScene3DNode(nodeId, locked);
+      },
+      importScene3DGLTFAsset(file = {}) {
+        return importScene3DGLTFAsset(file);
+      },
+      configureScene3DRapierBody(modelId, options = {}) {
+        return configureScene3DRapierBody(modelId, options);
+      },
+      configureScene3DAnimation(modelId, options = {}) {
+        return configureScene3DAnimation(modelId, options);
+      },
+      createScene3DExeE2EPlan(options = {}) {
+        return createScene3DExeE2EPlan(options);
+      },
       refreshPrefabDependencyGraph(input = {}, options = {}) {
         return refreshPrefabDependencyGraph(input, options);
       },
@@ -3155,18 +3223,21 @@ export function createEditorApp(root = document.querySelector('#app'), {
     return applyScene3DViewportAuthoringAction(viewport, 'toggle-collider-overlay', { colliders: Boolean(enabled) }, viewport.overlays);
   }
 
-  function applyScene3DViewportAuthoringAction(viewport, actionType, payload = {}, result = null) {
-    const scene3DRuntimeSession = createScene3DViewportAuthoringSessionState(viewport, current.scene3DRuntimeSession, {
+  function applyScene3DViewportAuthoringAction(viewport, actionType, payload = {}, result = null, options = {}) {
+    const nextViewport = options.recordHistory === false
+      ? createScene3DViewportState(viewport)
+      : withScene3DHistory(viewport, current.scene3DViewport, actionType);
+    const scene3DRuntimeSession = createScene3DViewportAuthoringSessionState(nextViewport, current.scene3DRuntimeSession, {
       type: actionType,
       payload
     });
     current = createEditorState({
       ...current,
-      scene3DViewport: viewport,
+      scene3DViewport: nextViewport,
       scene3DRuntimeSession,
       dockLayout: ensurePanelInDock(current.dockLayout, 'scene-3d-viewport', 'center')
     });
-    emit('editor:scene-3d-viewport-action', { type: actionType, ...payload, result, viewport });
+    emit('editor:scene-3d-viewport-action', { type: actionType, ...payload, result, viewport: nextViewport });
     emit('editor:scene-3d-runtime-session', scene3DRuntimeSession);
     update(current);
     return result;
@@ -3221,6 +3292,307 @@ export function createEditorApp(root = document.querySelector('#app'), {
     emit('editor:scene-3d-runtime-session', scene3DRuntimeSession);
     update(current);
     return material;
+  }
+
+  function configureScene3DInspector(nodeId, options = {}) {
+    const inspector = normalizeScene3DInspectorState({
+      ...(current.scene3DViewport?.inspector || {}),
+      selectedNodeId: String(nodeId || ''),
+      component: options.component || current.scene3DViewport?.inspector?.component || 'Transform',
+      fields: options.fields || current.scene3DViewport?.inspector?.fields || {},
+      batchSelection: options.batchSelection || current.scene3DViewport?.inspector?.batchSelection || [nodeId].filter(Boolean),
+      clipboard: options.clipboard || current.scene3DViewport?.inspector?.clipboard || null,
+      gizmo: options.gizmo || current.scene3DViewport?.inspector?.gizmo || createDefaultScene3DGizmoState()
+    });
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      inspector,
+      gizmo: inspector.gizmo
+    });
+    return applyScene3DViewportAuthoringAction(viewport, 'configure-inspector', { nodeId: inspector.selectedNodeId, component: inspector.component }, inspector);
+  }
+
+  function setScene3DGizmo(options = {}) {
+    const gizmo = normalizeScene3DGizmoState({
+      ...(current.scene3DViewport?.gizmo || current.scene3DViewport?.inspector?.gizmo || createDefaultScene3DGizmoState()),
+      ...options,
+      snap: {
+        ...(current.scene3DViewport?.gizmo?.snap || current.scene3DViewport?.inspector?.gizmo?.snap || {}),
+        ...(options.snap || {})
+      }
+    });
+    const inspector = normalizeScene3DInspectorState({
+      ...(current.scene3DViewport?.inspector || {}),
+      gizmo
+    });
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      inspector,
+      gizmo
+    });
+    return applyScene3DViewportAuthoringAction(viewport, 'set-gizmo', { gizmo }, gizmo);
+  }
+
+  function pasteScene3DComponent(nodeId) {
+    const targetId = String(nodeId || '');
+    const inspector = normalizeScene3DInspectorState({
+      ...(current.scene3DViewport?.inspector || {}),
+      pastedComponents: [
+        ...(current.scene3DViewport?.inspector?.pastedComponents || []),
+        {
+          nodeId: targetId,
+          component: current.scene3DViewport?.inspector?.clipboard?.component || current.scene3DViewport?.inspector?.component || 'Transform',
+          values: cloneState(current.scene3DViewport?.inspector?.clipboard?.values || {})
+        }
+      ]
+    });
+    const pasted = inspector.pastedComponents.at(-1);
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      inspector
+    });
+    return applyScene3DViewportAuthoringAction(viewport, 'paste-component', pasted, pasted);
+  }
+
+  function resetScene3DInspectorField(nodeId, field) {
+    const reset = {
+      nodeId: String(nodeId || ''),
+      field: String(field || ''),
+      reset: true
+    };
+    const inspector = normalizeScene3DInspectorState({
+      ...(current.scene3DViewport?.inspector || {}),
+      resetFields: [...(current.scene3DViewport?.inspector?.resetFields || []), reset]
+    });
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      inspector
+    });
+    return applyScene3DViewportAuthoringAction(viewport, 'reset-inspector-field', reset, reset);
+  }
+
+  function undoScene3DAction() {
+    const history = normalizeScene3DHistoryState(current.scene3DViewport?.history);
+    const entry = history.undoStack.at(-1);
+    if (!entry) return { action: 'undo', applied: false, canUndo: false, canRedo: history.redoStack.length > 0 };
+    const nextHistory = {
+      undoStack: history.undoStack.slice(0, -1),
+      redoStack: [
+        ...history.redoStack,
+        { label: entry.label, snapshot: snapshotScene3DViewport(current.scene3DViewport) }
+      ]
+    };
+    const viewport = createScene3DViewportState({
+      ...entry.snapshot,
+      history: nextHistory
+    });
+    applyScene3DViewportAuthoringAction(viewport, 'undo-action', { label: entry.label }, {
+      action: 'undo',
+      label: entry.label,
+      canUndo: nextHistory.undoStack.length > 0,
+      canRedo: nextHistory.redoStack.length > 0
+    }, { recordHistory: false });
+    return {
+      action: 'undo',
+      label: entry.label,
+      canUndo: nextHistory.undoStack.length > 0,
+      canRedo: nextHistory.redoStack.length > 0
+    };
+  }
+
+  function redoScene3DAction() {
+    const history = normalizeScene3DHistoryState(current.scene3DViewport?.history);
+    const entry = history.redoStack.at(-1);
+    if (!entry) return { action: 'redo', applied: false, canUndo: history.undoStack.length > 0, canRedo: false };
+    const nextHistory = {
+      undoStack: [
+        ...history.undoStack,
+        { label: entry.label, snapshot: snapshotScene3DViewport(current.scene3DViewport) }
+      ],
+      redoStack: history.redoStack.slice(0, -1)
+    };
+    const viewport = createScene3DViewportState({
+      ...entry.snapshot,
+      history: nextHistory
+    });
+    applyScene3DViewportAuthoringAction(viewport, 'redo-action', { label: entry.label }, {
+      action: 'redo',
+      label: entry.label,
+      canUndo: nextHistory.undoStack.length > 0,
+      canRedo: nextHistory.redoStack.length > 0
+    }, { recordHistory: false });
+    return {
+      action: 'redo',
+      label: entry.label,
+      canUndo: nextHistory.undoStack.length > 0,
+      canRedo: nextHistory.redoStack.length > 0
+    };
+  }
+
+  function createScene3DNode(node = {}) {
+    const hierarchy = normalizeScene3DHierarchyState(current.scene3DViewport?.hierarchy, current.scene3DViewport);
+    const nextNode = normalizeScene3DHierarchyNode(node, hierarchy.nodes.length);
+    const nextHierarchy = normalizeScene3DHierarchyState({
+      ...hierarchy,
+      nodes: [...hierarchy.nodes.filter((item) => item.id !== nextNode.id), nextNode]
+    }, current.scene3DViewport);
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      hierarchy: nextHierarchy
+    });
+    return applyScene3DViewportAuthoringAction(viewport, 'create-node', { node: nextNode }, nextNode);
+  }
+
+  function renameScene3DNode(nodeId, name) {
+    return updateScene3DHierarchyNode(nodeId, { name: String(name || nodeId) }, 'rename-node');
+  }
+
+  function duplicateScene3DNode(nodeId, options = {}) {
+    const hierarchy = normalizeScene3DHierarchyState(current.scene3DViewport?.hierarchy, current.scene3DViewport);
+    const source = hierarchy.nodes.find((node) => node.id === nodeId) || null;
+    if (!source) return null;
+    const duplicate = {
+      ...cloneState(source),
+      id: options.id || `${source.id}-copy`,
+      name: options.name || `${source.name || source.id} Copy`
+    };
+    const nextHierarchy = normalizeScene3DHierarchyState({
+      ...hierarchy,
+      nodes: [...hierarchy.nodes.filter((node) => node.id !== duplicate.id), duplicate]
+    }, current.scene3DViewport);
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      hierarchy: nextHierarchy
+    });
+    return applyScene3DViewportAuthoringAction(viewport, 'duplicate-node', { sourceId: nodeId, node: duplicate }, duplicate);
+  }
+
+  function groupScene3DNodes(nodeIds = [], options = {}) {
+    const ids = stringList(nodeIds);
+    const hierarchy = normalizeScene3DHierarchyState(current.scene3DViewport?.hierarchy, current.scene3DViewport);
+    const group = normalizeScene3DHierarchyNode({
+      id: options.id || `group-${hierarchy.nodes.length + 1}`,
+      name: options.name || 'Group',
+      type: 'Group',
+      children: ids,
+      visible: true,
+      locked: false
+    }, hierarchy.nodes.length);
+    const nodes = hierarchy.nodes.map((node) => (
+      ids.includes(node.id) ? { ...node, parentId: group.id } : node
+    ));
+    const nextHierarchy = normalizeScene3DHierarchyState({
+      ...hierarchy,
+      nodes: [...nodes.filter((node) => node.id !== group.id), group]
+    }, current.scene3DViewport);
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      hierarchy: nextHierarchy
+    });
+    return applyScene3DViewportAuthoringAction(viewport, 'group-nodes', { nodeIds: ids, group }, nextHierarchy);
+  }
+
+  function selectScene3DNodes(nodeIds = []) {
+    const hierarchy = normalizeScene3DHierarchyState({
+      ...normalizeScene3DHierarchyState(current.scene3DViewport?.hierarchy, current.scene3DViewport),
+      selectedNodeIds: stringList(nodeIds)
+    }, current.scene3DViewport);
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      hierarchy
+    });
+    return applyScene3DViewportAuthoringAction(viewport, 'select-nodes', { nodeIds: hierarchy.selectedNodeIds }, hierarchy);
+  }
+
+  function toggleScene3DNodeVisibility(nodeId, visible = true) {
+    return updateScene3DHierarchyNode(nodeId, { visible: Boolean(visible) }, 'toggle-node-visibility');
+  }
+
+  function lockScene3DNode(nodeId, locked = true) {
+    return updateScene3DHierarchyNode(nodeId, { locked: Boolean(locked) }, 'lock-node');
+  }
+
+  function updateScene3DHierarchyNode(nodeId, patch = {}, actionType = 'update-node') {
+    const id = String(nodeId || '');
+    const hierarchy = normalizeScene3DHierarchyState(current.scene3DViewport?.hierarchy, current.scene3DViewport);
+    const nodes = hierarchy.nodes.map((node) => (
+      node.id === id ? { ...node, ...cloneState(patch) } : node
+    ));
+    const nextHierarchy = normalizeScene3DHierarchyState({
+      ...hierarchy,
+      nodes
+    }, current.scene3DViewport);
+    const updated = nextHierarchy.nodes.find((node) => node.id === id) || null;
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      hierarchy: nextHierarchy
+    });
+    return applyScene3DViewportAuthoringAction(viewport, actionType, { nodeId: id, patch }, updated);
+  }
+
+  function importScene3DGLTFAsset(file = {}) {
+    const workflow = createScene3DGLTFImportAuthoringState(file);
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      gltfImport: workflow
+    });
+    return applyScene3DViewportAuthoringAction(viewport, 'import-gltf', { path: workflow.resourceRecord.path }, workflow);
+  }
+
+  function configureScene3DRapierBody(modelId, options = {}) {
+    const body = normalizeScene3DRapierBody(modelId, options);
+    const existing = current.scene3DViewport?.rapierPhysics?.bodies || [];
+    const rapierPhysics = {
+      schema: 'omnicore.editor-scene-3d-rapier-authoring.v1',
+      backend: 'rapier3d-compat',
+      simulation: options.simulation || current.scene3DViewport?.rapierPhysics?.simulation || 'paused',
+      bodies: [...existing.filter((item) => item.modelId !== body.modelId), body],
+      debugDraw: Boolean(options.debugDraw ?? current.scene3DViewport?.rapierPhysics?.debugDraw)
+    };
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      rapierPhysics
+    });
+    return applyScene3DViewportAuthoringAction(viewport, 'configure-rapier', { modelId: body.modelId, body }, body);
+  }
+
+  function configureScene3DAnimation(modelId, options = {}) {
+    const clip = normalizeScene3DAnimationClip(modelId, options);
+    const existing = current.scene3DViewport?.animationAuthoring?.clips || [];
+    const animationAuthoring = {
+      schema: 'omnicore.editor-scene-3d-animation-authoring.v1',
+      clips: [...existing.filter((item) => item.modelId !== clip.modelId), clip],
+      activeModelId: clip.modelId,
+      activeClip: clip.clip
+    };
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      animationAuthoring,
+      models: (current.scene3DViewport?.models || []).map((model) => (
+        model.id === clip.modelId ? { ...model, activeAnimation: clip.clip } : model
+      ))
+    });
+    return applyScene3DViewportAuthoringAction(viewport, 'configure-animation', { modelId: clip.modelId, clip: clip.clip }, clip);
+  }
+
+  function createScene3DExeE2EPlan(options = {}) {
+    const exeE2E = {
+      schema: 'omnicore.editor-scene-3d-exe-e2e-plan.v1',
+      target: options.target || 'electron',
+      steps: [
+        { id: 'launch-exe', label: '启动桌面 EXE 编辑器' },
+        { id: 'create-3d-project', label: '创建 3D 项目' },
+        { id: 'import-glb', label: '导入 GLB 模型' },
+        { id: 'edit-transform-light-collider', label: '编辑 Transform/Light/Collider' },
+        { id: 'save-reopen', label: '保存并重新打开项目' },
+        { id: 'export-project', label: '导出项目' }
+      ]
+    };
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      exeE2E
+    });
+    return applyScene3DViewportAuthoringAction(viewport, 'create-exe-e2e-plan', { target: exeE2E.target }, exeE2E);
   }
 
   function refreshPrefabDependencyGraph(input = {}, options = {}) {
@@ -8466,6 +8838,50 @@ export function createEditorApp(root = document.querySelector('#app'), {
         .join(' / ');
       wrap.appendChild(tools);
     }
+    if (viewport.inspector) {
+      const row = document.createElement('div');
+      row.setAttribute('data-scene-3d-inspector', 'true');
+      row.textContent = `Inspector ${viewport.inspector.component} / selected ${viewport.inspector.selectedNodeId || 'none'} / batch ${viewport.inspector.batchSelection?.length || 0} / Gizmo ${viewport.gizmo?.mode || viewport.inspector.gizmo?.mode || 'translate'} ${viewport.gizmo?.space || viewport.inspector.gizmo?.space || 'local'}`;
+      wrap.appendChild(row);
+    }
+    if (viewport.history) {
+      const row = document.createElement('div');
+      row.setAttribute('data-scene-3d-history', 'true');
+      row.textContent = `Undo ${viewport.history.undoStack?.length || 0} / Redo ${viewport.history.redoStack?.length || 0}`;
+      wrap.appendChild(row);
+    }
+    if (viewport.hierarchy) {
+      const row = document.createElement('div');
+      row.setAttribute('data-scene-3d-hierarchy', 'true');
+      row.textContent = `Hierarchy ${viewport.hierarchy.nodes?.length || 0} nodes / selected ${(viewport.hierarchy.selectedNodeIds || []).join(', ') || 'none'}`;
+      wrap.appendChild(row);
+    }
+    if (viewport.gltfImport) {
+      const row = document.createElement('div');
+      row.setAttribute('data-scene-3d-gltf-import', 'true');
+      row.textContent = `GLTF ${viewport.gltfImport.file?.name || viewport.gltfImport.resourceRecord?.path || 'none'} / missing textures ${viewport.gltfImport.inspection?.missingTextureCount || 0} / clips ${viewport.gltfImport.inspection?.animationClipCount || 0}`;
+      wrap.appendChild(row);
+    }
+    if (viewport.rapierPhysics?.bodies?.length) {
+      const body = viewport.rapierPhysics.bodies[0];
+      const row = document.createElement('div');
+      row.setAttribute('data-scene-3d-rapier-authoring', body.modelId || 'body');
+      row.textContent = `Rapier ${body.bodyType} / model ${body.modelId} / mass ${body.mass} / layer ${body.collisionLayer} / sensor ${body.sensor} / debug ${body.debugDraw}`;
+      wrap.appendChild(row);
+    }
+    if (viewport.animationAuthoring?.clips?.length) {
+      const clip = viewport.animationAuthoring.clips[0];
+      const row = document.createElement('div');
+      row.setAttribute('data-scene-3d-animation-authoring', clip.modelId || 'clip');
+      row.textContent = `Animation ${clip.clip} / model ${clip.modelId} / playing ${clip.playing} / speed ${clip.speed} / loop ${clip.loop}`;
+      wrap.appendChild(row);
+    }
+    if (viewport.exeE2E) {
+      const row = document.createElement('div');
+      row.setAttribute('data-scene-3d-exe-e2e', 'true');
+      row.textContent = `EXE E2E ${viewport.exeE2E.steps?.length || 0} steps / target ${viewport.exeE2E.target || 'electron'}`;
+      wrap.appendChild(row);
+    }
     for (const camera of viewport.cameras || []) {
       const row = document.createElement('div');
       row.setAttribute('data-scene-3d-camera', camera.id);
@@ -9079,6 +9495,9 @@ function createScene3DViewportState(input = {}, options = {}) {
       material: model.material || null,
       animations: stringList(model.animations || model.clips),
       activeAnimation: model.activeAnimation || null,
+      position: normalizeScene3DVector(model.position),
+      rotation: normalizeScene3DVector(model.rotation),
+      scale: normalizeScene3DVector(model.scale, { x: 1, y: 1, z: 1 }),
       collider: model.collider ? cloneState(model.collider) : null,
       selected: (input.selectedModelId || options.selectedModelId) === id || Boolean(model.selected)
     };
@@ -9119,7 +9538,15 @@ function createScene3DViewportState(input = {}, options = {}) {
     overlays: {
       ...(renderState.overlays || {}),
       ...(input.overlays || options.overlays || {})
-    }
+    },
+    inspector: normalizeScene3DInspectorState(input.inspector || options.inspector || null),
+    gizmo: normalizeScene3DGizmoState(input.gizmo || input.inspector?.gizmo || options.gizmo || null),
+    history: normalizeScene3DHistoryState(input.history || options.history || null),
+    hierarchy: normalizeScene3DHierarchyState(input.hierarchy || options.hierarchy || null, { models }),
+    gltfImport: input.gltfImport || options.gltfImport ? cloneState(input.gltfImport || options.gltfImport) : null,
+    rapierPhysics: normalizeScene3DRapierPhysicsState(input.rapierPhysics || options.rapierPhysics || null),
+    animationAuthoring: normalizeScene3DAnimationAuthoringState(input.animationAuthoring || options.animationAuthoring || null),
+    exeE2E: input.exeE2E || options.exeE2E ? cloneState(input.exeE2E || options.exeE2E) : null
   };
 }
 
@@ -9132,8 +9559,8 @@ function createScene3DViewportAuthoringSessionState(viewport = {}, previousSessi
     models: arrayFromValue(viewport.models).map(cloneState),
     colliders: arrayFromValue(viewport.colliders).map(cloneState)
   };
-  const importedAssets = arrayFromValue(previousSession?.importedAssets).map(cloneState);
-  const resourceDatabase = arrayFromValue(previousSession?.resourceDatabase).map(cloneState);
+  const importedAssets = mergeScene3DImportedAssets(previousSession?.importedAssets, viewport.gltfImport?.resourceRecord);
+  const resourceDatabase = mergeScene3DResourceDatabase(previousSession?.resourceDatabase, viewport.gltfImport);
   const baseTrace = arrayFromValue(previousSession?.trace)
     .filter((entry) => entry?.type && entry.type !== 'save-patch' && entry.type !== 'export-plan')
     .map((entry) => ({ type: entry.type, payload: cloneState(entry.payload || {}) }));
@@ -9153,7 +9580,15 @@ function createScene3DViewportAuthoringSessionState(viewport = {}, previousSessi
       materials: scene.materials.map(cloneState),
       models: scene.models.map(cloneState),
       colliders: scene.colliders.map(cloneState),
-      importedAssets: importedAssets.map(cloneState)
+      importedAssets: importedAssets.map(cloneState),
+      inspector: viewport.inspector ? cloneState(viewport.inspector) : null,
+      gizmo: viewport.gizmo ? cloneState(viewport.gizmo) : null,
+      history: viewport.history ? cloneState(viewport.history) : null,
+      hierarchy: viewport.hierarchy ? cloneState(viewport.hierarchy) : null,
+      gltfImport: viewport.gltfImport ? cloneState(viewport.gltfImport) : null,
+      rapierPhysics: viewport.rapierPhysics ? cloneState(viewport.rapierPhysics) : null,
+      animationAuthoring: viewport.animationAuthoring ? cloneState(viewport.animationAuthoring) : null,
+      exeE2E: viewport.exeE2E ? cloneState(viewport.exeE2E) : null
     }
   };
   const exportPlan = {
@@ -9208,6 +9643,226 @@ function normalizeScene3DTransformPatch(transform = {}) {
   if (transform.rotation) patch.rotation = normalizeScene3DVector(transform.rotation);
   if (transform.scale) patch.scale = normalizeScene3DVector(transform.scale, { x: 1, y: 1, z: 1 });
   return patch;
+}
+
+function normalizeScene3DInspectorState(value = null) {
+  const source = value && typeof value === 'object' ? value : {};
+  return {
+    schema: 'omnicore.editor-scene-3d-inspector.v1',
+    selectedNodeId: source.selectedNodeId || null,
+    component: source.component || 'Transform',
+    fields: source.fields ? cloneState(source.fields) : {},
+    batchSelection: stringList(source.batchSelection || (source.selectedNodeId ? [source.selectedNodeId] : [])),
+    clipboard: source.clipboard ? cloneState(source.clipboard) : null,
+    pastedComponents: arrayFromValue(source.pastedComponents).map(cloneState),
+    resetFields: arrayFromValue(source.resetFields).map(cloneState),
+    gizmo: normalizeScene3DGizmoState(source.gizmo)
+  };
+}
+
+function createDefaultScene3DGizmoState() {
+  return {
+    mode: 'translate',
+    space: 'local',
+    snap: { enabled: true, translate: 0.5, rotate: 15, scale: 0.1 }
+  };
+}
+
+function normalizeScene3DGizmoState(value = null) {
+  const defaults = createDefaultScene3DGizmoState();
+  const source = value && typeof value === 'object' ? value : {};
+  return {
+    mode: source.mode || defaults.mode,
+    space: source.space || defaults.space,
+    snap: {
+      ...defaults.snap,
+      ...(source.snap || {}),
+      enabled: Boolean(source.snap?.enabled ?? defaults.snap.enabled)
+    }
+  };
+}
+
+function normalizeScene3DHistoryState(value = null) {
+  const source = value && typeof value === 'object' ? value : {};
+  return {
+    undoStack: arrayFromValue(source.undoStack).map(cloneState),
+    redoStack: arrayFromValue(source.redoStack).map(cloneState)
+  };
+}
+
+function withScene3DHistory(nextViewport = {}, previousViewport = {}, label = 'edit') {
+  const currentHistory = normalizeScene3DHistoryState(previousViewport?.history);
+  const previousSnapshot = snapshotScene3DViewport(previousViewport);
+  const nextHistory = previousSnapshot
+    ? {
+      undoStack: [...currentHistory.undoStack, { label, snapshot: previousSnapshot }].slice(-50),
+      redoStack: []
+    }
+    : currentHistory;
+  return createScene3DViewportState({
+    ...nextViewport,
+    history: nextHistory
+  });
+}
+
+function snapshotScene3DViewport(viewport = null) {
+  if (!viewport || !viewport.open) return null;
+  const snapshot = cloneState(viewport);
+  delete snapshot.history;
+  return snapshot;
+}
+
+function normalizeScene3DHierarchyState(value = null, context = {}) {
+  const source = value && typeof value === 'object' ? value : {};
+  const modelNodes = arrayFromValue(context.models || context.scene3DViewport?.models).map((model, index) => normalizeScene3DHierarchyNode({
+    id: model.id,
+    name: model.name || model.id,
+    type: 'Mesh',
+    visible: model.visible !== false,
+    locked: Boolean(model.locked),
+    parentId: model.parentId || null
+  }, index));
+  const sourceNodes = arrayFromValue(source.nodes).map((node, index) => normalizeScene3DHierarchyNode(node, index));
+  const byId = new Map();
+  for (const node of [...modelNodes, ...sourceNodes]) byId.set(node.id, node);
+  return {
+    schema: 'omnicore.editor-scene-3d-hierarchy.v1',
+    nodes: [...byId.values()],
+    selectedNodeIds: stringList(source.selectedNodeIds)
+  };
+}
+
+function normalizeScene3DHierarchyNode(node = {}, index = 0) {
+  const id = String(node.id || node.name || `node-${index + 1}`);
+  return {
+    id,
+    name: String(node.name || id),
+    type: node.type || 'Node3D',
+    parentId: node.parentId || null,
+    children: stringList(node.children),
+    visible: node.visible !== false,
+    locked: Boolean(node.locked)
+  };
+}
+
+function createScene3DGLTFImportAuthoringState(file = {}) {
+  const path = slash(file.path || file.name || 'assets/model.glb');
+  const name = file.name || path.split('/').pop() || 'model.glb';
+  const modelId = normalizeScene3DAssetId(name);
+  const missingTextures = stringList(file.missingTextures);
+  const clips = stringList(file.clips || file.animations);
+  return {
+    schema: 'omnicore.editor-scene-3d-gltf-import-authoring.v1',
+    file: { name, path, byteLength: Number(file.byteLength || 0) },
+    thumbnail: { type: 'model-preview', modelId, source: path, label: name },
+    resourceRecord: { id: modelId, type: 'model', path, byteLength: Number(file.byteLength || 0), format: path.endsWith('.gltf') ? 'gltf' : 'glb' },
+    inspection: {
+      missingTextureCount: missingTextures.length,
+      animationClipCount: clips.length,
+      colliderReady: false,
+      lodReady: false,
+      compressionReady: false
+    },
+    missingTextures,
+    clips,
+    repairActions: [
+      ...missingTextures.map((texture) => ({ type: 'relinkTexture', texture, status: 'ready' })),
+      { type: 'generateCollider', shape: 'box', status: 'ready' },
+      { type: 'generateLOD', levels: ['medium', 'low'], status: 'ready' },
+      { type: 'enableCompression', codec: 'meshopt-or-draco', status: 'ready' }
+    ],
+    sceneInsertion: {
+      modelId,
+      patch: {
+        runtime: {
+          models: [{ id: modelId, url: path, animations: clips, collider: { shape: 'box', source: 'gltf-import' } }]
+        }
+      }
+    }
+  };
+}
+
+function normalizeScene3DAssetId(value = '') {
+  return String(value || 'model')
+    .replace(/\.(glb|gltf)$/iu, '')
+    .replace(/[^a-z0-9_-]+/giu, '-')
+    .replace(/^-|-$/gu, '')
+    .toLowerCase() || 'model';
+}
+
+function normalizeScene3DRapierPhysicsState(value = null) {
+  const source = value && typeof value === 'object' ? value : {};
+  return {
+    schema: 'omnicore.editor-scene-3d-rapier-authoring.v1',
+    backend: source.backend || 'rapier3d-compat',
+    simulation: source.simulation || 'paused',
+    debugDraw: Boolean(source.debugDraw),
+    bodies: arrayFromValue(source.bodies).map((body) => normalizeScene3DRapierBody(body.modelId || body.id, body))
+  };
+}
+
+function normalizeScene3DRapierBody(modelId, options = {}) {
+  return {
+    modelId: String(modelId || options.modelId || ''),
+    bodyType: options.bodyType || options.type || 'fixed',
+    mass: Number(options.mass ?? 1),
+    linearDamping: Number(options.linearDamping ?? 0),
+    angularDamping: Number(options.angularDamping ?? 0),
+    collisionLayer: options.collisionLayer || 'default',
+    sensor: Boolean(options.sensor),
+    joint: options.joint ? cloneState(options.joint) : null,
+    raycast: options.raycast ? cloneState(options.raycast) : null,
+    debugDraw: Boolean(options.debugDraw),
+    simulation: options.simulation || 'paused'
+  };
+}
+
+function normalizeScene3DAnimationAuthoringState(value = null) {
+  const source = value && typeof value === 'object' ? value : {};
+  return {
+    schema: 'omnicore.editor-scene-3d-animation-authoring.v1',
+    activeModelId: source.activeModelId || null,
+    activeClip: source.activeClip || null,
+    clips: arrayFromValue(source.clips).map((clip) => normalizeScene3DAnimationClip(clip.modelId, clip))
+  };
+}
+
+function normalizeScene3DAnimationClip(modelId, options = {}) {
+  return {
+    modelId: String(modelId || options.modelId || ''),
+    clip: options.clip || options.name || 'Idle',
+    playing: Boolean(options.playing),
+    speed: Number(options.speed ?? 1),
+    loop: Boolean(options.loop),
+    events: arrayFromValue(options.events).map(cloneState),
+    stateMachine: options.stateMachine ? cloneState(options.stateMachine) : null,
+    blendTree: options.blendTree ? cloneState(options.blendTree) : null
+  };
+}
+
+function mergeScene3DImportedAssets(previous = [], resourceRecord = null) {
+  const records = arrayFromValue(previous).map(cloneState);
+  if (resourceRecord?.path) records.push({
+    id: resourceRecord.id,
+    path: resourceRecord.path,
+    type: resourceRecord.type || 'model',
+    byteLength: Number(resourceRecord.byteLength || 0)
+  });
+  const byPath = new Map();
+  for (const record of records) byPath.set(record.path || record.id, record);
+  return [...byPath.values()];
+}
+
+function mergeScene3DResourceDatabase(previous = [], gltfImport = null) {
+  const records = arrayFromValue(previous).map(cloneState);
+  if (gltfImport?.resourceRecord?.path) records.push({
+    ...cloneState(gltfImport.resourceRecord),
+    thumbnail: gltfImport.thumbnail || null,
+    workflowSchema: gltfImport.schema || null
+  });
+  const byPath = new Map();
+  for (const record of records) byPath.set(record.path || record.id, record);
+  return [...byPath.values()];
 }
 
 function normalizeScene3DCameraPatch(patch = {}) {
