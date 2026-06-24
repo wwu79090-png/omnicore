@@ -3,6 +3,7 @@ import OmniCore, {
   createAnimationFeedback2D25DDirectorStep,
   createCamera2D25DDirectorStep,
   createCollectible2D25DDirectorStep,
+  createCombat2D25DDirectorStep,
   createEncounter2D25DDirectorStep,
   createHazard2D25DDirectorStep,
   createInteractable2D25DDirectorStep,
@@ -135,6 +136,10 @@ const debugOverlay = {
     score: 0,
     combo: { streak: 0, multiplier: 1, windowMs: 900 },
     dropSpawned: false
+  },
+  combatState: {
+    enemyHealth: enemy.health,
+    combo: { actorId: 'hero', currentState: 'hero-slash-1', bufferedInput: false, chainIndex: 0 }
   }
 };
 const demoProjectiles = [];
@@ -323,8 +328,52 @@ function update(delta) {
     }))
   ].slice(-12);
   demoProjectiles.splice(0, demoProjectiles.length, ...nextProjectiles);
+  debugOverlay.combat = createCombat2D25DDirectorStep({
+    delta,
+    attackers: [{
+      id: hero.id,
+      team: 'player',
+      x: hero.x,
+      y: hero.y,
+      width: hero.width,
+      height: hero.height,
+      facing: hero.velocity.x < 0 ? 'left' : 'right',
+      attacks: [{
+        id: 'hero-slash-1',
+        active: keys.has('KeyJ'),
+        frame: Math.floor(now / 80) % 5,
+        hitstopMs: 50,
+        combo: { nextState: 'hero-slash-2', inputWindowMs: 180 },
+        hitboxes: [{
+          id: 'hero-sword',
+          x: 18,
+          y: 8,
+          width: 30,
+          height: 12,
+          damage: 1,
+          knockback: { x: 120, y: -80 },
+          staggerMs: 180,
+          tags: ['slash']
+        }]
+      }]
+    }],
+    defenders: [{
+      ...enemy,
+      team: 'enemy',
+      health: debugOverlay.combatState.enemyHealth,
+      hurtboxes: [{ id: 'body', x: 0, y: 0, width: enemy.width, height: enemy.height }]
+    }],
+    combo: {
+      ...debugOverlay.combatState.combo,
+      bufferedInput: keys.has('KeyJ')
+    }
+  });
+  applyCombatState(debugOverlay.combat);
   const dropTriggered = !debugOverlay.collectibleState.dropSpawned
-    && debugOverlay.projectiles.collisions.hitEvents.some((hit) => hit.targetId === enemy.id);
+    && (
+      debugOverlay.projectiles.collisions.hitEvents.some((hit) => hit.targetId === enemy.id)
+      || debugOverlay.combat.damage.events.some((hit) => hit.defenderId === enemy.id)
+    );
   debugOverlay.collectibles = createCollectible2D25DDirectorStep({
     delta,
     actor: {
@@ -444,7 +493,21 @@ function update(delta) {
       hurt: 'hero_hurt'
     },
     locks: { attack: 240 },
-    combat: debugOverlay.level.combat,
+    combat: {
+      damageEvents: [
+        ...(debugOverlay.level.combat.damageEvents || []),
+        ...debugOverlay.combat.damage.events.map((event) => ({
+          id: `${event.attackerId}:${event.defenderId}:${event.hitboxId}`,
+          attackerId: event.attackerId,
+          targetId: event.defenderId,
+          hitboxId: event.hitboxId,
+          damage: event.damage,
+          point: event.point,
+          tags: event.tags
+        }))
+      ],
+      healthUpdates: Object.fromEntries(debugOverlay.combat.damage.healthUpdates.map((update) => [update.defenderId, update.health]))
+    },
     combo: {
       actorId: 'hero',
       currentIndex: 1,
@@ -516,6 +579,7 @@ function render() {
   drawInteractables();
   drawHazards();
   drawProjectiles();
+  drawCombatHitboxes();
   drawHero();
   drawLight();
   context.restore();
@@ -637,10 +701,29 @@ function applyHazardState(step) {
   hero.velocity = { ...step.stateUpdates.actor.velocity };
 }
 
+function applyCombatState(step) {
+  const enemyUpdate = step.damage.healthUpdates.find((update) => update.defenderId === enemy.id);
+  if (enemyUpdate) debugOverlay.combatState.enemyHealth = enemyUpdate.health;
+  debugOverlay.combatState.combo = {
+    actorId: 'hero',
+    currentState: step.combo.nextState || step.combo.currentState || 'hero-slash-1',
+    bufferedInput: false,
+    chainIndex: step.combo.chainIndex
+  };
+}
+
 function drawProjectiles() {
   context.fillStyle = '#fbbf24';
   for (const projectile of demoProjectiles) {
     context.fillRect(projectile.x, projectile.y, projectile.width, projectile.height);
+  }
+}
+
+function drawCombatHitboxes() {
+  const hitboxes = debugOverlay.combat?.debugDraw.filter((command) => command.op === 'debug:combat-hitbox') || [];
+  context.fillStyle = 'rgba(248, 113, 113, 0.42)';
+  for (const hitbox of hitboxes) {
+    context.fillRect(hitbox.x, hitbox.y, hitbox.width, hitbox.height);
   }
 }
 
@@ -699,7 +782,7 @@ function drawLight() {
 
 function drawDebug() {
   context.fillStyle = 'rgba(15, 23, 42, 0.76)';
-  context.fillRect(8, 8, 312, 216);
+  context.fillRect(8, 8, 312, 230);
   context.fillStyle = '#e5e7eb';
   context.font = '12px monospace';
   context.fillText(`animation: ${debugOverlay.animation}`, 18, 30);
@@ -715,6 +798,7 @@ function drawDebug() {
   context.fillText(`InteractableDirector / Switches / Doors / Chests`, 18, 182);
   context.fillText(`HazardDirector / DamageZones / InvulnerabilityFrames`, 18, 196);
   context.fillText(`CollectibleDirector / Magnet / InventoryDeltas`, 18, 210);
+  context.fillText(`CombatDirector / Hitboxes / ParryWindows`, 18, 224);
 }
 
 function resolveAnimation(entity) {

@@ -1387,6 +1387,14 @@
       ]
     },
     {
+      "path": "gameplay/Combat2D25DDirector.js",
+      "summary": "Builds one melee combat resolver step for 2D/2.5D games.",
+      "exports": [
+        "COMBAT_2D_25D_SCHEMA",
+        "createCombat2D25DDirectorStep"
+      ]
+    },
+    {
       "path": "gameplay/Encounter2D25DDirector.js",
       "summary": "Builds one enemy encounter director step for 2D/2.5D games.",
       "exports": [

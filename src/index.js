@@ -366,6 +366,10 @@ import {
   createCollectible2D25DDirectorStep
 } from './gameplay/Collectible2D25DDirector.js';
 import {
+  COMBAT_2D_25D_SCHEMA,
+  createCombat2D25DDirectorStep
+} from './gameplay/Combat2D25DDirector.js';
+import {
   ENCOUNTER_2D_25D_SCHEMA,
   createEncounter2D25DDirectorStep
 } from './gameplay/Encounter2D25DDirector.js';
@@ -1343,6 +1347,8 @@ const OmniCore = {
   createAnimationFeedback2D25DDirectorStep,
   COLLECTIBLE_2D_25D_SCHEMA,
   createCollectible2D25DDirectorStep,
+  COMBAT_2D_25D_SCHEMA,
+  createCombat2D25DDirectorStep,
   ENCOUNTER_2D_25D_SCHEMA,
   createEncounter2D25DDirectorStep,
   HAZARD_2D_25D_SCHEMA,
@@ -1928,6 +1934,8 @@ export {
   createAnimationFeedback2D25DDirectorStep,
   COLLECTIBLE_2D_25D_SCHEMA,
   createCollectible2D25DDirectorStep,
+  COMBAT_2D_25D_SCHEMA,
+  createCombat2D25DDirectorStep,
   ENCOUNTER_2D_25D_SCHEMA,
   createEncounter2D25DDirectorStep,
   HAZARD_2D_25D_SCHEMA,
