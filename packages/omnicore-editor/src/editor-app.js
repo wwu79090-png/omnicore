@@ -1161,6 +1161,12 @@ export function createEditorApp(root = document.querySelector('#app'), {
     applyScene3DReadinessFixPlan,
     openScene3DViewport,
     selectScene3DModel,
+    dragScene3DModel,
+    moveScene3DModel,
+    rotateScene3DModel,
+    scaleScene3DModel,
+    updateScene3DModelTransform,
+    resetScene3DModelTransform,
     previewScene3DAnimation,
     updateScene3DMaterial,
     refreshPrefabDependencyGraph,
@@ -2478,6 +2484,24 @@ export function createEditorApp(root = document.querySelector('#app'), {
       selectScene3DModel(modelId) {
         return selectScene3DModel(modelId);
       },
+      dragScene3DModel(modelId, delta = {}) {
+        return dragScene3DModel(modelId, delta);
+      },
+      moveScene3DModel(modelId, position = {}) {
+        return moveScene3DModel(modelId, position);
+      },
+      rotateScene3DModel(modelId, rotation = {}) {
+        return rotateScene3DModel(modelId, rotation);
+      },
+      scaleScene3DModel(modelId, scale = {}) {
+        return scaleScene3DModel(modelId, scale);
+      },
+      updateScene3DModelTransform(modelId, transform = {}) {
+        return updateScene3DModelTransform(modelId, transform);
+      },
+      resetScene3DModelTransform(modelId) {
+        return resetScene3DModelTransform(modelId);
+      },
       previewScene3DAnimation(modelId, animation) {
         return previewScene3DAnimation(modelId, animation);
       },
@@ -2961,6 +2985,87 @@ export function createEditorApp(root = document.querySelector('#app'), {
     emit('editor:scene-3d-runtime-session', scene3DRuntimeSession);
     update(current);
     return viewport.models.find((model) => model.id === id) || null;
+  }
+
+  function dragScene3DModel(modelId, delta = {}) {
+    const id = String(modelId || '');
+    const offset = normalizeScene3DVector(delta);
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      selectedModelId: id,
+      models: (current.scene3DViewport?.models || []).map((model) => {
+        if (model.id !== id) return model;
+        return {
+          ...model,
+          selected: true,
+          position: addScene3DVector(model.position, offset)
+        };
+      })
+    });
+    return applyScene3DModelTransform(viewport, id, 'drag-model', { modelId: id, delta: offset });
+  }
+
+  function moveScene3DModel(modelId, position = {}) {
+    const id = String(modelId || '');
+    const nextPosition = normalizeScene3DVector(position);
+    return updateScene3DModelTransform(id, { position: nextPosition }, 'move-model');
+  }
+
+  function rotateScene3DModel(modelId, rotation = {}) {
+    const id = String(modelId || '');
+    const nextRotation = normalizeScene3DVector(rotation);
+    return updateScene3DModelTransform(id, { rotation: nextRotation }, 'rotate-model');
+  }
+
+  function scaleScene3DModel(modelId, scale = {}) {
+    const id = String(modelId || '');
+    const nextScale = normalizeScene3DVector(scale, { x: 1, y: 1, z: 1 });
+    return updateScene3DModelTransform(id, { scale: nextScale }, 'scale-model');
+  }
+
+  function resetScene3DModelTransform(modelId) {
+    const id = String(modelId || '');
+    return updateScene3DModelTransform(id, {
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 }
+    }, 'reset-transform');
+  }
+
+  function updateScene3DModelTransform(modelId, transform = {}, actionType = 'update-transform') {
+    const id = String(modelId || '');
+    const patch = normalizeScene3DTransformPatch(transform);
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      selectedModelId: id,
+      models: (current.scene3DViewport?.models || []).map((model) => {
+        if (model.id !== id) return model;
+        return {
+          ...model,
+          selected: true,
+          ...patch
+        };
+      })
+    });
+    return applyScene3DModelTransform(viewport, id, actionType, { modelId: id, transform: patch });
+  }
+
+  function applyScene3DModelTransform(viewport, modelId, actionType, payload = {}) {
+    const model = viewport.models.find((item) => item.id === modelId) || null;
+    const scene3DRuntimeSession = createScene3DViewportAuthoringSessionState(viewport, current.scene3DRuntimeSession, {
+      type: actionType,
+      payload: { ...payload, position: model?.position || null }
+    });
+    current = createEditorState({
+      ...current,
+      scene3DViewport: viewport,
+      scene3DRuntimeSession,
+      dockLayout: ensurePanelInDock(current.dockLayout, 'scene-3d-viewport', 'center')
+    });
+    emit('editor:scene-3d-viewport-action', { type: actionType, modelId, model, viewport });
+    emit('editor:scene-3d-runtime-session', scene3DRuntimeSession);
+    update(current);
+    return model;
   }
 
   function previewScene3DAnimation(modelId, animation) {
@@ -8278,7 +8383,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     for (const model of viewport.models || []) {
       const row = document.createElement('div');
       row.setAttribute('data-scene-3d-model', model.id);
-      row.textContent = `${model.id} / ${model.url || 'no-model'} / ${model.material || 'no-material'} / ${model.animations.join(', ')} / ${model.activeAnimation || 'no-preview'}${model.selected ? ' / 选中' : ''}`;
+      row.textContent = `${model.id} / ${model.url || 'no-model'} / ${model.material || 'no-material'} / ${model.animations.join(', ')} / ${model.activeAnimation || 'no-preview'} / ${formatScene3DVectorLabel('position', model.position, { x: 0, y: 0, z: 0 })} / ${formatScene3DVectorLabel('rotation', model.rotation, { x: 0, y: 0, z: 0 })} / ${formatScene3DVectorLabel('scale', model.scale, { x: 1, y: 1, z: 1 })}${model.selected ? ' / 选中' : ''}`;
       wrap.appendChild(row);
     }
     for (const collider of viewport.colliders || []) {
@@ -8985,6 +9090,42 @@ function createScene3DViewportAuthoringSessionState(viewport = {}, previousSessi
     exportPlan,
     trace
   };
+}
+
+function normalizeScene3DTransformPatch(transform = {}) {
+  const patch = {};
+  if (transform.position) patch.position = normalizeScene3DVector(transform.position);
+  if (transform.rotation) patch.rotation = normalizeScene3DVector(transform.rotation);
+  if (transform.scale) patch.scale = normalizeScene3DVector(transform.scale, { x: 1, y: 1, z: 1 });
+  return patch;
+}
+
+function normalizeScene3DVector(value = {}, fallback = { x: 0, y: 0, z: 0 }) {
+  return {
+    x: Number(value.x ?? fallback.x ?? 0),
+    y: Number(value.y ?? fallback.y ?? 0),
+    z: Number(value.z ?? fallback.z ?? 0)
+  };
+}
+
+function addScene3DVector(value = {}, delta = {}) {
+  const base = normalizeScene3DVector(value);
+  const offset = normalizeScene3DVector(delta);
+  return {
+    x: base.x + offset.x,
+    y: base.y + offset.y,
+    z: base.z + offset.z
+  };
+}
+
+function formatScene3DVectorLabel(label, value = {}, fallback = { x: 0, y: 0, z: 0 }) {
+  const vector = normalizeScene3DVector(value, fallback);
+  return `${label} ${formatScene3DNumber(vector.x)}, ${formatScene3DNumber(vector.y)}, ${formatScene3DNumber(vector.z)}`;
+}
+
+function formatScene3DNumber(value) {
+  const number = Number(value || 0);
+  return Number.isInteger(number) ? String(number) : String(Number(number.toFixed(3)));
 }
 
 function createOfficial3DDemoViewportInput() {
