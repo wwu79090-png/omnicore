@@ -22,6 +22,8 @@
     "./src": "./src/index.js",
     "./src/index.js": "./src/index.js",
     "./src/*": "./src/*",
+    "./physics/PhysicsWorld.js": "./src/physics/PhysicsWorld.js",
+    "./dimension3d/Scene3DKit.js": "./src/dimension3d/Scene3DKit.js",
     "./livingworld": "./src/livingworld/index.js",
     "./livingworld.js": "./livingworld.js",
     "./src/livingworld/index.js": "./src/livingworld/index.js",

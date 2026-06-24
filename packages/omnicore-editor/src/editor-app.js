@@ -49,7 +49,8 @@ import {
   Workflow,
   Zap
 } from 'lucide-static';
-import { PhysicsWorld, Scene3DKit } from 'omnicore';
+import Scene3DKit from 'omnicore/dimension3d/Scene3DKit.js';
+import PhysicsWorld from 'omnicore/physics/PhysicsWorld.js';
 import {
   AssetRegistry,
   AssetRegistryChangeSet,
