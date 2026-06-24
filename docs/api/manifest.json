@@ -1403,6 +1403,14 @@
       ]
     },
     {
+      "path": "gameplay/Projectile2D25DDirector.js",
+      "summary": "Builds one projectile director step for 2D/2.5D action games.",
+      "exports": [
+        "PROJECTILE_2D_25D_SCHEMA",
+        "createProjectile2D25DDirectorStep"
+      ]
+    },
+    {
       "path": "gameplay/QuestStateMachine.js",
       "summary": "",
       "exports": [

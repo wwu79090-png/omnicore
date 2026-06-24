@@ -3181,6 +3181,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createProjectile2D25DDirectorStep"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createRapierDebugDrawVisualization"
       },
       {
@@ -3673,6 +3678,7 @@
       "OmniError",
       "PLATFORMER_2D_CONTROLLER_SCHEMA",
       "PLUGIN_PERMISSION_SCOPES",
+      "PROJECTILE_2D_25D_SCHEMA",
       "PackageManager",
       "ParticleEditorPanel",
       "ParticleSystem",
@@ -3868,6 +3874,7 @@
       "createPerformanceDashboardSnapshot",
       "createPlatformer2DControllerStep",
       "createPolygonPrimitive",
+      "createProjectile2D25DDirectorStep",
       "createRapierDebugDrawVisualization",
       "createRendererFallbackMatrix",
       "createRendererPerformanceSandbox",

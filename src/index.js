@@ -370,6 +370,10 @@ import {
   createLevel2D25DGameplayLoop
 } from './gameplay/Level2D25DGameplayLoop.js';
 import {
+  PROJECTILE_2D_25D_SCHEMA,
+  createProjectile2D25DDirectorStep
+} from './gameplay/Projectile2D25DDirector.js';
+import {
   PLATFORMER_2D_CONTROLLER_SCHEMA,
   createPlatformer2DControllerStep
 } from './gameplay/Platformer2DController.js';
@@ -1329,6 +1333,8 @@ const OmniCore = {
   createEncounter2D25DDirectorStep,
   LEVEL_2D_25D_GAMEPLAY_SCHEMA,
   createLevel2D25DGameplayLoop,
+  PROJECTILE_2D_25D_SCHEMA,
+  createProjectile2D25DDirectorStep,
   PLATFORMER_2D_CONTROLLER_SCHEMA,
   createPlatformer2DControllerStep,
   QuestStateMachine,
@@ -1906,6 +1912,8 @@ export {
   createEncounter2D25DDirectorStep,
   LEVEL_2D_25D_GAMEPLAY_SCHEMA,
   createLevel2D25DGameplayLoop,
+  PROJECTILE_2D_25D_SCHEMA,
+  createProjectile2D25DDirectorStep,
   PLATFORMER_2D_CONTROLLER_SCHEMA,
   createPlatformer2DControllerStep,
   StorageManager,

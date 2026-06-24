@@ -5,6 +5,7 @@ import OmniCore, {
   createEncounter2D25DDirectorStep,
   createLevel2D25DGameplayLoop,
   createPlatformer2DControllerStep,
+  createProjectile2D25DDirectorStep,
   createScene2D25DPipeline,
   createTilemap2D25DAuthoringLoop
 } from 'omnicore-runtime';
@@ -106,6 +107,7 @@ const debugOverlay = {
   animation: 'idle',
   level: null
 };
+const demoProjectiles = [];
 
 window.addEventListener('keydown', (event) => {
   if (!keys.has(event.code) && isJumpKey(event.code)) {
@@ -236,6 +238,53 @@ function update(delta) {
     }],
     director: { threatLimit: 5, difficulty: 1, leashDistance: 180 }
   });
+  const worldBounds = {
+    x: 0,
+    y: 0,
+    width: Math.max(canvas.width, 20 * tileSize),
+    height: Math.max(canvas.height, 12 * tileSize)
+  };
+  const facing = hero.velocity.x < 0 ? -1 : 1;
+  debugOverlay.projectiles = createProjectile2D25DDirectorStep({
+    delta,
+    bounds: worldBounds,
+    emitters: [{
+      id: 'ProjectileDirector-hero-blaster',
+      ownerId: hero.id,
+      prefab: 'bolt',
+      fire: keys.has('KeyK'),
+      muzzle: { x: hero.x + (facing > 0 ? hero.width : -8), y: hero.y + 12 },
+      direction: { x: facing, y: 0 },
+      speed: 260,
+      damage: 1,
+      pierce: 1,
+      bounce: 1,
+      poolSize: 12,
+      cooldownMs: 0
+    }],
+    projectiles: demoProjectiles,
+    targets: [enemy],
+    colliders: [
+      { id: 'projectile-left-wall', type: 'solid', x: -8, y: 0, width: 8, height: worldBounds.height },
+      { id: 'projectile-right-wall', type: 'solid', x: worldBounds.width, y: 0, width: 8, height: worldBounds.height }
+    ],
+    pool: { budget: 12, active: demoProjectiles.length }
+  });
+  const despawnIds = new Set(debugOverlay.projectiles.lifetime.despawnCommands.map((command) => command.projectileId));
+  const nextProjectiles = [
+    ...debugOverlay.projectiles.motion.updates
+      .filter((projectile) => !despawnIds.has(projectile.id))
+      .map((projectile) => ({
+        ...projectile,
+        bounce: projectile.bounceRemaining
+      })),
+    ...debugOverlay.projectiles.spawning.spawnCommands.map((command, index) => ({
+      ...command,
+      id: `${command.id}:${Math.round(now)}:${index}`,
+      ageMs: 0
+    }))
+  ].slice(-12);
+  demoProjectiles.splice(0, demoProjectiles.length, ...nextProjectiles);
   debugOverlay.feedback = createAnimationFeedback2D25DDirectorStep({
     delta,
     timeMs: now % 320,
@@ -318,6 +367,7 @@ function render() {
   drawColliders(debugOverlay.liveColliders || authoring.collision.colliders);
   drawStamps();
   drawGameplayObjects();
+  drawProjectiles();
   drawHero();
   drawLight();
   context.restore();
@@ -331,6 +381,13 @@ function drawGameplayObjects() {
   context.fillRect(checkpoint.x, checkpoint.y, checkpoint.width, checkpoint.height);
   context.fillStyle = debugOverlay.feedback?.flashes.some((flash) => flash.targetId === enemy.id) ? '#f8fafc' : '#fb7185';
   context.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+}
+
+function drawProjectiles() {
+  context.fillStyle = '#fbbf24';
+  for (const projectile of demoProjectiles) {
+    context.fillRect(projectile.x, projectile.y, projectile.width, projectile.height);
+  }
 }
 
 function drawBackground() {
@@ -388,7 +445,7 @@ function drawLight() {
 
 function drawDebug() {
   context.fillStyle = 'rgba(15, 23, 42, 0.76)';
-  context.fillRect(8, 8, 312, 156);
+  context.fillRect(8, 8, 312, 174);
   context.fillStyle = '#e5e7eb';
   context.font = '12px monospace';
   context.fillText(`animation: ${debugOverlay.animation}`, 18, 30);
@@ -400,6 +457,7 @@ function drawDebug() {
   context.fillText(`CameraDirector / ParallaxLayers / ShakeTrauma`, 18, 126);
   context.fillText(`Hitstop / ComboWindows / ImpactParticles`, 18, 140);
   context.fillText(`EncounterDirector / ThreatBudget / SpawnWaves`, 18, 154);
+  context.fillText(`ProjectileDirector / ProjectilePool / PierceBounce`, 18, 168);
 }
 
 function resolveAnimation(entity) {
