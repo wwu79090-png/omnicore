@@ -45,6 +45,7 @@
     "dist",
     "examples/full-game-demo",
     "examples/market-showcase",
+    "examples/2d-25d-platformer-demo",
     "examples/template-3d-playable",
     "examples/template-platformer",
     "examples/template-rpg",

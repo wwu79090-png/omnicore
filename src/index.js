@@ -188,6 +188,10 @@ import AITilemapGenerator from './tilemap/AITilemapGenerator.js';
 import TilemapLoader from './tilemap/TilemapLoader.js';
 import { createTilemapChunkStreamPlan } from './tilemap/TilemapChunkStreaming.js';
 import { createScene2D25DPipeline } from './tilemap/Scene2D25DPipeline.js';
+import {
+  TILEMAP_2D_25D_AUTHORING_SCHEMA,
+  createTilemap2D25DAuthoringLoop
+} from './tilemap/Tilemap2D25DAuthoringLoop.js';
 import ChunkCache from './tilemap/ChunkCache.js';
 import ChunkManager from './tilemap/ChunkManager.js';
 import TilemapAuthoringTools from './tilemap/TilemapAuthoringTools.js';
@@ -1245,6 +1249,8 @@ const OmniCore = {
   TilemapLoader,
   createTilemapChunkStreamPlan,
   createScene2D25DPipeline,
+  TILEMAP_2D_25D_AUTHORING_SCHEMA,
+  createTilemap2D25DAuthoringLoop,
   ChunkCache,
   ChunkManager,
   HeightfieldNavMesh25D,
@@ -1881,6 +1887,8 @@ export {
   TilemapLoader,
   createTilemapChunkStreamPlan,
   createScene2D25DPipeline,
+  TILEMAP_2D_25D_AUTHORING_SCHEMA,
+  createTilemap2D25DAuthoringLoop,
   Timeline,
   Templates,
   TutorialGuide,

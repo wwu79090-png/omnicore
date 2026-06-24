@@ -1,0 +1,13 @@
+{
+  "name": "@omnicore/example-2d-25d-platformer-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "omnicore-runtime": "file:../..",
+    "vite": "^8.0.16"
+  }
+}

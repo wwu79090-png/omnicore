@@ -2759,6 +2759,14 @@
       ]
     },
     {
+      "path": "tilemap/Tilemap2D25DAuthoringLoop.js",
+      "summary": "Builds one editor-ready 2D/2.5D authoring loop for tilemaps, stamps, animation, playtest, and save patches.",
+      "exports": [
+        "TILEMAP_2D_25D_AUTHORING_SCHEMA",
+        "createTilemap2D25DAuthoringLoop"
+      ]
+    },
+    {
       "path": "tilemap/TilemapAuthoringTools.js",
       "summary": "",
       "exports": [
