@@ -3111,6 +3111,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createEncounter2D25DDirectorStep"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createEntity"
       },
       {
@@ -3567,6 +3572,7 @@
       "DualSpatialIndex",
       "ECS",
       "EDITOR_PROTOCOL_VERSION",
+      "ENCOUNTER_2D_25D_SCHEMA",
       "ENGINE_CAPABILITY_CATEGORIES",
       "ENGINE_FAMILY_SOURCES",
       "Editor",
@@ -3848,6 +3854,7 @@
       "createCodeLayerPrimitive",
       "createDeterministicRenderQueue",
       "createEditorDeployBenchmark25D",
+      "createEncounter2D25DDirectorStep",
       "createEntity",
       "createGLTFImportWorkflow",
       "createGame",

@@ -2,6 +2,7 @@ import OmniCore, {
   createArcade2DGameplayPlan,
   createAnimationFeedback2D25DDirectorStep,
   createCamera2D25DDirectorStep,
+  createEncounter2D25DDirectorStep,
   createLevel2D25DGameplayLoop,
   createPlatformer2DControllerStep,
   createScene2D25DPipeline,
@@ -215,6 +216,26 @@ function update(delta) {
     triggers: [{ id: 'exit-door', x: 568, y: 248, width: 32, height: 72, event: 'scene:transition', target: 'next-level' }],
     render: { visibleBounds: { x: 0, y: 0, width: canvas.width, height: canvas.height }, maxDrawCalls: 64 }
   });
+  debugOverlay.encounter = createEncounter2D25DDirectorStep({
+    delta,
+    player: { ...hero, health: 6 },
+    enemies: [{
+      ...enemy,
+      threat: 2,
+      perception: { radius: 128, attackRange: 42 },
+      attack: { damage: 1, cooldownMs: 0 },
+      loot: [{ id: 'coin', chance: 1, amount: 1 }]
+    }],
+    spawners: [{
+      id: 'SpawnWaves-demo',
+      prefab: 'slime',
+      count: 1,
+      cooldownMs: 0,
+      trigger: { x: 40, y: 140, width: 260, height: 180 },
+      spawnPoints: [{ x: 420, y: 286 }]
+    }],
+    director: { threatLimit: 5, difficulty: 1, leashDistance: 180 }
+  });
   debugOverlay.feedback = createAnimationFeedback2D25DDirectorStep({
     delta,
     timeMs: now % 320,
@@ -367,7 +388,7 @@ function drawLight() {
 
 function drawDebug() {
   context.fillStyle = 'rgba(15, 23, 42, 0.76)';
-  context.fillRect(8, 8, 296, 140);
+  context.fillRect(8, 8, 312, 156);
   context.fillStyle = '#e5e7eb';
   context.font = '12px monospace';
   context.fillText(`animation: ${debugOverlay.animation}`, 18, 30);
@@ -378,6 +399,7 @@ function drawDebug() {
   context.fillText(`controller panels: ${debugOverlay.controller?.editor.panels.slice(0, 3).join(', ') || '-'}`, 18, 112);
   context.fillText(`CameraDirector / ParallaxLayers / ShakeTrauma`, 18, 126);
   context.fillText(`Hitstop / ComboWindows / ImpactParticles`, 18, 140);
+  context.fillText(`EncounterDirector / ThreatBudget / SpawnWaves`, 18, 154);
 }
 
 function resolveAnimation(entity) {

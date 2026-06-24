@@ -1379,6 +1379,14 @@
       ]
     },
     {
+      "path": "gameplay/Encounter2D25DDirector.js",
+      "summary": "Builds one enemy encounter director step for 2D/2.5D games.",
+      "exports": [
+        "ENCOUNTER_2D_25D_SCHEMA",
+        "createEncounter2D25DDirectorStep"
+      ]
+    },
+    {
       "path": "gameplay/Level2D25DGameplayLoop.js",
       "summary": "Builds a production-oriented 2D/2.5D level gameplay step for camera, combat, pickups, checkpoints, AI, events, and rendering.",
       "exports": [

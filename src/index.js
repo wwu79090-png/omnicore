@@ -362,6 +362,10 @@ import {
   createAnimationFeedback2D25DDirectorStep
 } from './gameplay/AnimationFeedback2D25DDirector.js';
 import {
+  ENCOUNTER_2D_25D_SCHEMA,
+  createEncounter2D25DDirectorStep
+} from './gameplay/Encounter2D25DDirector.js';
+import {
   LEVEL_2D_25D_GAMEPLAY_SCHEMA,
   createLevel2D25DGameplayLoop
 } from './gameplay/Level2D25DGameplayLoop.js';
@@ -1321,6 +1325,8 @@ const OmniCore = {
   AbilitySystem,
   ANIMATION_FEEDBACK_2D_25D_SCHEMA,
   createAnimationFeedback2D25DDirectorStep,
+  ENCOUNTER_2D_25D_SCHEMA,
+  createEncounter2D25DDirectorStep,
   LEVEL_2D_25D_GAMEPLAY_SCHEMA,
   createLevel2D25DGameplayLoop,
   PLATFORMER_2D_CONTROLLER_SCHEMA,
@@ -1896,6 +1902,8 @@ export {
   QuestStateMachine,
   ANIMATION_FEEDBACK_2D_25D_SCHEMA,
   createAnimationFeedback2D25DDirectorStep,
+  ENCOUNTER_2D_25D_SCHEMA,
+  createEncounter2D25DDirectorStep,
   LEVEL_2D_25D_GAMEPLAY_SCHEMA,
   createLevel2D25DGameplayLoop,
   PLATFORMER_2D_CONTROLLER_SCHEMA,
