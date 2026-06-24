@@ -21,6 +21,12 @@ export function createScene3DViewportRenderState(input = {}, options = {}) {
     canvasMount: {
       renderer: options.runtimeAdapter || input.runtimeAdapter || 'three',
       attachTarget: 'scene-3d-viewport-canvas',
+      runtime: {
+        module: 'scene-3d-three-runtime',
+        factory: 'createScene3DThreeRuntime',
+        controls: ['OrbitControls', 'TransformControls', 'Raycaster'],
+        bindings: ['selectByPointer', 'dragSelected', 'editMaterial', 'switchAnimation', 'renderFrame']
+      },
       controls: buildControls(models, input.cameras || input.scene?.cameras),
       debugOverlays: buildDebugOverlays({ colliders, lights, shadowLightCount })
     },

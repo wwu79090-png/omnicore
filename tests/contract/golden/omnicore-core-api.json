@@ -3151,6 +3151,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createRapierDebugDrawVisualization"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createRendererFallbackMatrix"
       },
       {
@@ -3310,6 +3315,11 @@
       },
       {
         "arity": 0,
+        "async": true,
+        "name": "importGLBFile"
+      },
+      {
+        "arity": 0,
         "async": false,
         "name": "inspectGLTFAsset"
       },
@@ -3367,6 +3377,11 @@
         "arity": 0,
         "async": false,
         "name": "resolveRendererFallbackPlan"
+      },
+      {
+        "arity": 0,
+        "async": true,
+        "name": "runWebGPUHardwarePath"
       },
       {
         "arity": 4,
@@ -3800,6 +3815,7 @@
       "createOmniError",
       "createPerformanceDashboardSnapshot",
       "createPolygonPrimitive",
+      "createRapierDebugDrawVisualization",
       "createRendererFallbackMatrix",
       "createRendererPerformanceSandbox",
       "createReproductionBundle",
@@ -3832,6 +3848,7 @@
       "findPath",
       "formatOmniMessage",
       "help",
+      "importGLBFile",
       "inspectGLTFAsset",
       "install",
       "instantiateSceneDocument",
@@ -3844,6 +3861,7 @@
       "radialGradientFill",
       "renderEngineCapabilityMarkdown",
       "resolveRendererFallbackPlan",
+      "runWebGPUHardwarePath",
       "safeInitialize",
       "snapshotRenderQueue",
       "summarizeResourceWaterfall",

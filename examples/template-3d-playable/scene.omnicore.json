@@ -1,0 +1,111 @@
+{
+  "schema": "omnicore.scene.template-3d-playable.v1",
+  "name": "Playable 3D Starter",
+  "runtime": {
+    "cameras": [
+      {
+        "id": "third-person-camera",
+        "type": "Camera3D",
+        "mode": "third-person",
+        "follow": "player",
+        "position": { "x": 0, "y": 2.4, "z": 5.5 },
+        "target": { "x": 0, "y": 1.1, "z": 0 },
+        "fov": 62
+      }
+    ],
+    "lights": [
+      {
+        "id": "sun",
+        "type": "directional",
+        "color": "#fff7e1",
+        "intensity": 1.15,
+        "castShadow": true,
+        "position": { "x": 3, "y": 6, "z": 4 }
+      }
+    ],
+    "materials": [
+      {
+        "id": "player-pbr",
+        "type": "PBRMaterial",
+        "baseColor": "#338cff",
+        "roughness": 0.42,
+        "metallic": 0.08
+      },
+      {
+        "id": "pickup-gold",
+        "type": "PBRMaterial",
+        "baseColor": "#ffcc33",
+        "roughness": 0.24,
+        "metallic": 0.55
+      }
+    ],
+    "player": {
+      "id": "player",
+      "controller": "third-person-character",
+      "model": "hero",
+      "speed": 4.5,
+      "jumpImpulse": 5.75,
+      "camera": "third-person-camera",
+      "animations": {
+        "idle": "Idle",
+        "move": "Run",
+        "jump": "Jump"
+      }
+    },
+    "models": [
+      {
+        "id": "hero",
+        "url": "assets/hero.glb",
+        "material": "player-pbr",
+        "animations": ["Idle", "Run", "Jump"],
+        "activeAnimation": "Idle",
+        "collider": { "shape": "capsule", "radius": 0.35, "height": 1.7 },
+        "rigidBody": { "type": "dynamic", "mass": 1, "lockRotations": true },
+        "physicsBinding": {
+          "backend": "rapier3d-compat",
+          "bodyId": "player-body",
+          "colliderId": "player-capsule"
+        },
+        "castShadow": true,
+        "receiveShadow": true
+      }
+    ],
+    "physics": {
+      "backend": "rapier3d-compat",
+      "gravity": { "x": 0, "y": -9.81, "z": 0 },
+      "debugDraw": true,
+      "ground": {
+        "id": "ground",
+        "shape": "box",
+        "size": { "x": 18, "y": 0.4, "z": 18 },
+        "position": { "x": 0, "y": -0.2, "z": 0 },
+        "rigidBody": { "type": "static" }
+      }
+    },
+    "pickups": [
+      {
+        "id": "coin-01",
+        "type": "pickup",
+        "model": "coin",
+        "material": "pickup-gold",
+        "position": { "x": 2, "y": 0.75, "z": -2 },
+        "collider": { "shape": "sphere", "radius": 0.35, "sensor": true },
+        "onCollect": "increment-score"
+      }
+    ]
+  },
+  "input": {
+    "move": ["KeyW", "KeyA", "KeyS", "KeyD"],
+    "jump": ["Space"],
+    "cameraOrbit": ["MouseRight"]
+  },
+  "export": {
+    "targets": ["web", "electron"],
+    "entry": "src/main.js",
+    "assets": ["assets/hero.glb"],
+    "desktop": {
+      "window": { "width": 1280, "height": 720 },
+      "launcherCommand": "打开 3D 可玩模板"
+    }
+  }
+}

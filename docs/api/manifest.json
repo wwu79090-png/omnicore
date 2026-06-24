@@ -1178,6 +1178,13 @@
       ]
     },
     {
+      "path": "dimension3d/RapierDebugDrawVisualizer.js",
+      "summary": "",
+      "exports": [
+        "createRapierDebugDrawVisualization"
+      ]
+    },
+    {
       "path": "dimension3d/Runtime3DScene.js",
       "summary": "",
       "exports": [

@@ -112,6 +112,7 @@ import WebGPURenderer, {
 } from './renderer/WebGPURenderer.js';
 import WebGPUPipelineRuntime from './renderer/WebGPUPipelineRuntime.js';
 import createWebGPUHardwareValidationReport from './renderer/WebGPUHardwareValidation.js';
+import runWebGPUHardwarePath from './renderer/WebGPUHardwareRunner.js';
 import * as RendererBackend from './renderer/RendererBackend.js';
 import { RendererContract, assertRendererBackend, createRendererPerformanceSandbox } from './renderer/RendererBackend.js';
 import OffscreenCanvasRenderer from './renderer/OffscreenCanvasRenderer.js';
@@ -285,6 +286,8 @@ import ThreeRuntimeAdapter from './dimension3d/ThreeRuntimeAdapter.js';
 import ThreePhysicsBridge from './dimension3d/ThreePhysicsBridge.js';
 import inspectGLTFAsset from './dimension3d/GLTFAssetInspector.js';
 import createGLTFImportWorkflow from './dimension3d/GLTFImportWorkflow.js';
+import importGLBFile from './dimension3d/GLBFileImporter.js';
+import createRapierDebugDrawVisualization from './dimension3d/RapierDebugDrawVisualizer.js';
 import { detectEnvironment, detectPlatformAndMergeDefaults, safeInitialize } from './core/Bootstrap.js';
 import TimeGuard from './core/TimeGuard.js';
 import Templates from './core/Templates.js';
@@ -1138,6 +1141,8 @@ const OmniCore = {
   ThreePhysicsBridge,
   inspectGLTFAsset,
   createGLTFImportWorkflow,
+  importGLBFile,
+  createRapierDebugDrawVisualization,
   Deprecation,
   Store,
   PersistentSaveSlot,
@@ -1197,6 +1202,7 @@ const OmniCore = {
   createWebGPUFrameBudgetReport,
   createWebGPUHardwareEvidencePayload,
   createWebGPUHardwareValidationReport,
+  runWebGPUHardwarePath,
   createWebGPUInstancingDescriptor,
   createWebGPUResourceLifecyclePlan,
   createWebGPUShaderVariantRegistry,
@@ -1579,6 +1585,8 @@ export {
   ThreePhysicsBridge,
   inspectGLTFAsset,
   createGLTFImportWorkflow,
+  importGLBFile,
+  createRapierDebugDrawVisualization,
   DeterministicReplay,
   DragonBonesAdapter,
   Assert,
@@ -1919,6 +1927,7 @@ export {
   createWebGPUFrameBudgetReport,
   createWebGPUHardwareEvidencePayload,
   createWebGPUHardwareValidationReport,
+  runWebGPUHardwarePath,
   createWebGPUInstancingDescriptor,
   createWebGPUResourceLifecyclePlan,
   createWebGPUShaderVariantRegistry,
