@@ -2,6 +2,7 @@ import OmniCore, {
   createArcade2DGameplayPlan,
   createAnimationFeedback2D25DDirectorStep,
   createCamera2D25DDirectorStep,
+  createCollectible2D25DDirectorStep,
   createEncounter2D25DDirectorStep,
   createHazard2D25DDirectorStep,
   createInteractable2D25DDirectorStep,
@@ -66,6 +67,8 @@ const authoring = createTilemap2D25DAuthoringLoop({
 
 const checkpoint = { id: 'checkpoint-start', x: 32, y: 176, width: 40, height: 48, respawn: { x: 72, y: 178 } };
 const coin = { id: 'coin-1', x: 192, y: 188, width: 14, height: 14, inventoryKey: 'coins', value: 1 };
+const keyPickup = { id: 'key-1', type: 'key', x: 252, y: 292, width: 12, height: 12, inventoryKey: 'keys', amount: 1 };
+const xpOrb = { id: 'xp-orb-1', type: 'xp', x: 318, y: 286, width: 10, height: 10, inventoryKey: 'xp', amount: 8 };
 const switchAlpha = { id: 'switch-alpha', type: 'switch', x: 126, y: 286, width: 16, height: 16 };
 const gateA = { id: 'gate-a', type: 'door', x: 488, y: 240, width: 26, height: 64 };
 const treasureChest = { id: 'treasure-chest', type: 'chest', x: 224, y: 294, width: 22, height: 14 };
@@ -126,9 +129,20 @@ const debugOverlay = {
     invulnerabilityMs: 0,
     sawX: movingSaw.x,
     sawDirection: 1
+  },
+  collectibleState: {
+    inventory: { coins: 0, keys: 0, xp: 0 },
+    score: 0,
+    combo: { streak: 0, multiplier: 1, windowMs: 900 },
+    dropSpawned: false
   }
 };
 const demoProjectiles = [];
+const demoCollectibles = [
+  { ...coin, type: 'coin', amount: 1, score: 25, pickupRadius: 18, magnetizable: true },
+  { ...keyPickup, score: 50, pickupRadius: 16, magnetizable: true },
+  { ...xpOrb, score: 10, pickupRadius: 18, magnetizable: true }
+];
 
 window.addEventListener('keydown', (event) => {
   if (!keys.has(event.code) && isJumpKey(event.code)) {
@@ -309,6 +323,27 @@ function update(delta) {
     }))
   ].slice(-12);
   demoProjectiles.splice(0, demoProjectiles.length, ...nextProjectiles);
+  const dropTriggered = !debugOverlay.collectibleState.dropSpawned
+    && debugOverlay.projectiles.collisions.hitEvents.some((hit) => hit.targetId === enemy.id);
+  debugOverlay.collectibles = createCollectible2D25DDirectorStep({
+    delta,
+    actor: {
+      ...hero,
+      inventory: debugOverlay.collectibleState.inventory,
+      score: debugOverlay.collectibleState.score
+    },
+    magnet: { enabled: true, radius: 72, strength: 180 },
+    combo: debugOverlay.collectibleState.combo,
+    collectibles: demoCollectibles,
+    dropSources: [{
+      id: 'slime-drop',
+      defeated: dropTriggered,
+      x: enemy.x,
+      y: enemy.y,
+      drops: [{ id: 'slime-coin', type: 'coin', inventoryKey: 'coins', amount: 2, chance: 1, score: 40 }]
+    }]
+  });
+  applyCollectibleState(debugOverlay.collectibles);
   debugOverlay.interactables = createInteractable2D25DDirectorStep({
     delta,
     player: { ...hero, inventory: { keys: 1, coins: 0 } },
@@ -477,6 +512,7 @@ function render() {
   drawColliders(debugOverlay.liveColliders || authoring.collision.colliders);
   drawStamps();
   drawGameplayObjects();
+  drawCollectibles();
   drawInteractables();
   drawHazards();
   drawProjectiles();
@@ -487,12 +523,17 @@ function render() {
 }
 
 function drawGameplayObjects() {
-  context.fillStyle = '#facc15';
-  context.fillRect(coin.x, coin.y, coin.width, coin.height);
   context.fillStyle = '#34d399';
   context.fillRect(checkpoint.x, checkpoint.y, checkpoint.width, checkpoint.height);
   context.fillStyle = debugOverlay.feedback?.flashes.some((flash) => flash.targetId === enemy.id) ? '#f8fafc' : '#fb7185';
   context.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+}
+
+function drawCollectibles() {
+  for (const item of demoCollectibles) {
+    context.fillStyle = item.type === 'key' ? '#fde047' : item.type === 'xp' ? '#38bdf8' : '#facc15';
+    context.fillRect(item.x, item.y, item.width, item.height);
+  }
 }
 
 function drawInteractables() {
@@ -523,6 +564,42 @@ function drawHazards() {
   context.fill();
   context.fillStyle = debugOverlay.hazardState.invulnerabilityMs > 0 ? '#fca5a5' : '#dc2626';
   context.fillRect(debugOverlay.hazardState.sawX, movingSaw.y, movingSaw.width, movingSaw.height);
+}
+
+function applyCollectibleState(step) {
+  for (const command of step.magnet.motionCommands) {
+    const item = demoCollectibles.find((collectible) => collectible.id === command.collectibleId);
+    if (!item) continue;
+    item.x = command.next.x;
+    item.y = command.next.y;
+  }
+  const pickedIds = new Set(step.lifetime.despawnCommands.map((command) => command.collectibleId));
+  for (let index = demoCollectibles.length - 1; index >= 0; index -= 1) {
+    if (pickedIds.has(demoCollectibles[index].id)) demoCollectibles.splice(index, 1);
+  }
+  for (const command of step.drops.spawnCommands) {
+    demoCollectibles.push({
+      id: `${command.id}:${Math.round(performance.now())}`,
+      type: command.type,
+      x: command.x,
+      y: command.y,
+      width: command.width,
+      height: command.height,
+      inventoryKey: command.inventoryKey,
+      amount: command.amount,
+      score: command.score,
+      pickupRadius: 18,
+      magnetizable: true
+    });
+  }
+  if (step.drops.spawnCommands.length > 0) debugOverlay.collectibleState.dropSpawned = true;
+  debugOverlay.collectibleState.inventory = { ...step.inventory.totals };
+  debugOverlay.collectibleState.score = step.score.total;
+  debugOverlay.collectibleState.combo = {
+    streak: step.combo.nextStreak,
+    multiplier: Math.min(2.5, step.combo.multiplier + step.pickups.events.length * 0.1),
+    windowMs: 900
+  };
 }
 
 function applyInteractableState(step) {
@@ -622,7 +699,7 @@ function drawLight() {
 
 function drawDebug() {
   context.fillStyle = 'rgba(15, 23, 42, 0.76)';
-  context.fillRect(8, 8, 312, 202);
+  context.fillRect(8, 8, 312, 216);
   context.fillStyle = '#e5e7eb';
   context.font = '12px monospace';
   context.fillText(`animation: ${debugOverlay.animation}`, 18, 30);
@@ -637,6 +714,7 @@ function drawDebug() {
   context.fillText(`ProjectileDirector / ProjectilePool / PierceBounce`, 18, 168);
   context.fillText(`InteractableDirector / Switches / Doors / Chests`, 18, 182);
   context.fillText(`HazardDirector / DamageZones / InvulnerabilityFrames`, 18, 196);
+  context.fillText(`CollectibleDirector / Magnet / InventoryDeltas`, 18, 210);
 }
 
 function resolveAnimation(entity) {

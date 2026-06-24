@@ -1379,6 +1379,14 @@
       ]
     },
     {
+      "path": "gameplay/Collectible2D25DDirector.js",
+      "summary": "Builds one collectible director step for 2D/2.5D games.",
+      "exports": [
+        "COLLECTIBLE_2D_25D_SCHEMA",
+        "createCollectible2D25DDirectorStep"
+      ]
+    },
+    {
       "path": "gameplay/Encounter2D25DDirector.js",
       "summary": "Builds one enemy encounter director step for 2D/2.5D games.",
       "exports": [

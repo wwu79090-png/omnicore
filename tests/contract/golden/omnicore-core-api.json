@@ -3101,6 +3101,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createCollectible2D25DDirectorStep"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createDeterministicRenderQueue"
       },
       {
@@ -3537,6 +3542,7 @@
       "BottleneckSurfaceAnalyzer",
       "Bus",
       "CAMERA_2D_25D_DIRECTOR_SCHEMA",
+      "COLLECTIBLE_2D_25D_SCHEMA",
       "CallbackGameLoop",
       "Camera",
       "CanvasRendererAddon",
@@ -3870,6 +3876,7 @@
       "createCamera2D25DDirectorStep",
       "createCapsulePrimitive",
       "createCodeLayerPrimitive",
+      "createCollectible2D25DDirectorStep",
       "createDeterministicRenderQueue",
       "createEditorDeployBenchmark25D",
       "createEncounter2D25DDirectorStep",
