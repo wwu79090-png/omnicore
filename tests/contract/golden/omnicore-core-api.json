@@ -3061,6 +3061,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createArcade2DGameplayPlan"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createAssetPipelineReport"
       },
       {
@@ -3131,6 +3136,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createLevel2D25DGameplayLoop"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createNormalLightShader"
       },
       {
@@ -3194,6 +3204,11 @@
         "name": "createRuntimeSoakReport"
       },
       {
+        "arity": 0,
+        "async": false,
+        "name": "createScene2D25DPipeline"
+      },
+      {
         "arity": 1,
         "async": false,
         "name": "createSceneServices"
@@ -3212,6 +3227,11 @@
         "arity": 0,
         "async": false,
         "name": "createTextureBudgetPlan"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createTilemap2D25DAuthoringLoop"
       },
       {
         "arity": 0,
@@ -3435,6 +3455,7 @@
       "AIImporter",
       "AITilemapGenerator",
       "API_TIERS",
+      "ARCADE_2D_GAMEPLAY_SCHEMA",
       "AbilitySystem",
       "Ad",
       "AdaptiveQualityManager",
@@ -3591,6 +3612,7 @@
       "InputSequence",
       "JobDependencyGraph",
       "Kernel",
+      "LEVEL_2D_25D_GAMEPLAY_SCHEMA",
       "LagCompensationTimeline",
       "Lean",
       "LeanAddons",
@@ -3742,6 +3764,7 @@
       "System",
       "SystemMenuModel",
       "SystemSchedule",
+      "TILEMAP_2D_25D_AUTHORING_SCHEMA",
       "Task",
       "TaskChainManager",
       "TaskManager",
@@ -3797,6 +3820,7 @@
       "connectEditorSync",
       "createAllocationPressureReport",
       "createAnimationLODPlan",
+      "createArcade2DGameplayPlan",
       "createAssetPipelineReport",
       "createAsyncAssetPipeline",
       "createBezierPrimitive",
@@ -3811,6 +3835,7 @@
       "createHousePrimitive",
       "createIncrementalSpatialIndexReport",
       "createLeanRuntime",
+      "createLevel2D25DGameplayLoop",
       "createNormalLightShader",
       "createOmniError",
       "createPerformanceDashboardSnapshot",
@@ -3824,10 +3849,12 @@
       "createRingPrimitive",
       "createRuntimeObjectPools",
       "createRuntimeSoakReport",
+      "createScene2D25DPipeline",
       "createSceneServices",
       "createSectorPrimitive",
       "createSpineFFDVertexShader",
       "createTextureBudgetPlan",
+      "createTilemap2D25DAuthoringLoop",
       "createTilemapChunkStreamPlan",
       "createWebGPUComputeDispatchPlan",
       "createWebGPUComputeParticleDescriptor",

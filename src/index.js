@@ -353,6 +353,10 @@ import VirtualAssetFS from './assets/VirtualAssetFS.js';
 import BehaviorTree from './behavior/BehaviorTree.js';
 import StateBehaviorTree from './behaviortree/BehaviorTree.js';
 import AbilitySystem from './gameplay/AbilitySystem.js';
+import {
+  LEVEL_2D_25D_GAMEPLAY_SCHEMA,
+  createLevel2D25DGameplayLoop
+} from './gameplay/Level2D25DGameplayLoop.js';
 import QuestStateMachine from './gameplay/QuestStateMachine.js';
 import ExportPaywall from './commercial/ExportPaywall.js';
 import SleepWakeSystem from './optimization/SleepWakeSystem.js';
@@ -1301,6 +1305,8 @@ const OmniCore = {
   BehaviorTree,
   StateBehaviorTree,
   AbilitySystem,
+  LEVEL_2D_25D_GAMEPLAY_SCHEMA,
+  createLevel2D25DGameplayLoop,
   QuestStateMachine,
   SkeletalAnimation,
   SpineAdapter,
@@ -1868,6 +1874,8 @@ export {
   SpinePixiRuntimeAdapter,
   StateBehaviorTree,
   QuestStateMachine,
+  LEVEL_2D_25D_GAMEPLAY_SCHEMA,
+  createLevel2D25DGameplayLoop,
   StorageManager,
   Store,
   StartupProfiler,

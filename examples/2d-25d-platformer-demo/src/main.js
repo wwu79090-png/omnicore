@@ -1,5 +1,6 @@
 import OmniCore, {
   createArcade2DGameplayPlan,
+  createLevel2D25DGameplayLoop,
   createScene2D25DPipeline,
   createTilemap2D25DAuthoringLoop
 } from 'omnicore-runtime';
@@ -56,6 +57,20 @@ const authoring = createTilemap2D25DAuthoringLoop({
   playtest: { runInEditor: true, hotReload: true, debug: ['collisions', 'sensors', 'animation', 'y-sort'] }
 });
 
+const checkpoint = { id: 'checkpoint-start', x: 32, y: 176, width: 40, height: 48, respawn: { x: 72, y: 178 } };
+const coin = { id: 'coin-1', x: 192, y: 188, width: 14, height: 14, inventoryKey: 'coins', value: 1 };
+const enemy = {
+  id: 'slime',
+  type: 'enemy',
+  x: 280,
+  y: 286,
+  width: 24,
+  height: 18,
+  health: 3,
+  patrol: { from: 248, to: 360, speed: 32, direction: 1 },
+  hurtboxes: [{ id: 'body', x: 0, y: 0, width: 24, height: 18 }]
+};
+
 const scenePipeline = createScene2D25DPipeline({
   tilemap: {
     width: 20,
@@ -79,7 +94,8 @@ const debugOverlay = {
   authoring,
   scenePipeline,
   sensorHits: 0,
-  animation: 'idle'
+  animation: 'idle',
+  level: null
 };
 
 window.addEventListener('keydown', (event) => keys.add(event.code));
@@ -120,6 +136,32 @@ function update(delta) {
   if (hero.grounded && hero.velocity.y > 0) hero.velocity.y = 0;
   debugOverlay.sensorHits += physics.sensorEvents.length;
   debugOverlay.animation = resolveAnimation(hero);
+  debugOverlay.level = createLevel2D25DGameplayLoop({
+    delta,
+    world: { bounds: { x: 0, y: 0, width: canvas.width, height: canvas.height }, frameBudgetMs: 16.67 },
+    camera: {
+      target: 'hero',
+      viewport: { width: canvas.width, height: canvas.height },
+      zones: [
+        { id: 'CameraZones-start', x: 0, y: 0, width: canvas.width, height: canvas.height, deadzone: { x: 220, y: 120, width: 180, height: 120 } }
+      ]
+    },
+    actors: [
+      {
+        ...hero,
+        health: 6,
+        facing: hero.velocity.x < 0 ? 'left' : 'right',
+        state: { attacking: keys.has('KeyJ') },
+        hitboxes: keys.has('KeyJ') ? [{ id: 'hero-sword', x: 18, y: 8, width: 28, height: 12, damage: 1 }] : [],
+        hurtboxes: [{ id: 'body', x: 0, y: 0, width: hero.width, height: hero.height }]
+      },
+      enemy
+    ],
+    collectibles: [coin],
+    checkpoints: [checkpoint],
+    triggers: [{ id: 'exit-door', x: 568, y: 248, width: 32, height: 72, event: 'scene:transition', target: 'next-level' }],
+    render: { visibleBounds: { x: 0, y: 0, width: canvas.width, height: canvas.height }, maxDrawCalls: 64 }
+  });
   debugOverlay.physics = physics;
   debugOverlay.liveColliders = liveColliders;
 }
@@ -130,9 +172,19 @@ function render() {
   drawTilemap();
   drawColliders(debugOverlay.liveColliders || authoring.collision.colliders);
   drawStamps();
+  drawGameplayObjects();
   drawHero();
   drawLight();
   drawDebug();
+}
+
+function drawGameplayObjects() {
+  context.fillStyle = '#facc15';
+  context.fillRect(coin.x, coin.y, coin.width, coin.height);
+  context.fillStyle = '#34d399';
+  context.fillRect(checkpoint.x, checkpoint.y, checkpoint.width, checkpoint.height);
+  context.fillStyle = '#fb7185';
+  context.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
 }
 
 function drawBackground() {
@@ -196,7 +248,8 @@ function drawDebug() {
   context.fillText(`animation: ${debugOverlay.animation}`, 18, 30);
   context.fillText(`sensor hits: ${debugOverlay.sensorHits}`, 18, 48);
   context.fillText(`debug panels: ${authoring.playtest.debugPanels.join(', ')}`, 18, 66);
-  context.fillText(`hot reload: ${authoring.playtest.hotReloadEvents.length} events`, 18, 84);
+  context.fillText(`CameraZones + FrameBudget: ${debugOverlay.level?.performance.frameBudget.estimatedMs || 0}ms`, 18, 84);
+  context.fillText(`checkpoint / patrol / combat ready`, 18, 98);
 }
 
 function resolveAnimation(entity) {

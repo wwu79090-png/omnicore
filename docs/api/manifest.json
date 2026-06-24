@@ -1363,6 +1363,14 @@
       ]
     },
     {
+      "path": "gameplay/Level2D25DGameplayLoop.js",
+      "summary": "Builds a production-oriented 2D/2.5D level gameplay step for camera, combat, pickups, checkpoints, AI, events, and rendering.",
+      "exports": [
+        "LEVEL_2D_25D_GAMEPLAY_SCHEMA",
+        "createLevel2D25DGameplayLoop"
+      ]
+    },
+    {
       "path": "gameplay/QuestStateMachine.js",
       "summary": "",
       "exports": [
