@@ -36,6 +36,23 @@ export function createScene3DViewportRenderState(input = {}, options = {}) {
       lights,
       colliders
     }, options),
+    runtimeSession: {
+      module: 'scene-3d-editor-runtime-session',
+      factory: 'createScene3DEditorRuntimeSession',
+      lifecycle: ['mountViewport', 'importGLBAsset', 'createSavePatch', 'createExportPlan'],
+      commands: [
+        { id: 'mount-viewport', method: 'mountViewport', label: '挂载真实 3D 视口' },
+        { id: 'import-glb-asset', method: 'importGLBAsset', label: '导入 GLB/GLTF' },
+        { id: 'save-scene-patch', method: 'createSavePatch', label: '保存场景 Patch' },
+        { id: 'export-electron-project', method: 'createExportPlan', label: '导出 Electron/EXE 项目' }
+      ],
+      affordances: [
+        'save-scene-patch',
+        'export-electron-project',
+        'capture-webgpu-hardware',
+        'toggle-rapier-debug'
+      ]
+    },
     gltfPreloadQueue: [...new Set(models.map((model) => model.url).filter(Boolean))],
     animationPreview: animationTarget ? {
       modelId: animationTarget.id,
