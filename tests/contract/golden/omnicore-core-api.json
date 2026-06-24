@@ -3056,6 +3056,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createAnimationFeedback2D25DDirectorStep"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createAnimationLODPlan"
       },
       {
@@ -3464,6 +3469,7 @@
       "AICommandService",
       "AIImporter",
       "AITilemapGenerator",
+      "ANIMATION_FEEDBACK_2D_25D_SCHEMA",
       "API_TIERS",
       "ARCADE_2D_GAMEPLAY_SCHEMA",
       "AbilitySystem",
@@ -3831,6 +3837,7 @@
       "conicGradientFill",
       "connectEditorSync",
       "createAllocationPressureReport",
+      "createAnimationFeedback2D25DDirectorStep",
       "createAnimationLODPlan",
       "createArcade2DGameplayPlan",
       "createAssetPipelineReport",

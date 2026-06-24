@@ -1,5 +1,6 @@
 import OmniCore, {
   createArcade2DGameplayPlan,
+  createAnimationFeedback2D25DDirectorStep,
   createCamera2D25DDirectorStep,
   createLevel2D25DGameplayLoop,
   createPlatformer2DControllerStep,
@@ -214,7 +215,39 @@ function update(delta) {
     triggers: [{ id: 'exit-door', x: 568, y: 248, width: 32, height: 72, event: 'scene:transition', target: 'next-level' }],
     render: { visibleBounds: { x: 0, y: 0, width: canvas.width, height: canvas.height }, maxDrawCalls: 64 }
   });
+  debugOverlay.feedback = createAnimationFeedback2D25DDirectorStep({
+    delta,
+    timeMs: now % 320,
+    actor: { id: 'hero', facing: hero.velocity.x < 0 ? 'left' : 'right' },
+    animation: { state: controller.animation.state, elapsedMs: now % 320, previousState: debugOverlay.animation },
+    clips: {
+      idle: 'hero_idle',
+      run: 'hero_run',
+      jump: 'hero_jump',
+      fall: 'hero_fall',
+      attack: 'hero_attack_01',
+      'attack-2': 'hero_attack_02',
+      hurt: 'hero_hurt'
+    },
+    locks: { attack: 240 },
+    combat: debugOverlay.level.combat,
+    combo: {
+      actorId: 'hero',
+      currentIndex: 1,
+      inputBuffered: keys.has('KeyJ'),
+      windows: [{ fromState: 'attack', nextState: 'attack-2', openMs: 120, closeMs: 240 }]
+    },
+    feedback: {
+      hitstopMsPerDamage: 6,
+      maxHitstopMs: 24,
+      hurtFlashMs: 90,
+      cameraTraumaPerDamage: 0.08,
+      particlePreset: 'slash-sparks',
+      audioCue: 'sword-hit'
+    }
+  });
   const previousCamera = debugOverlay.cameraDirector?.view || { x: 0, y: 0 };
+  const impactTrauma = debugOverlay.feedback.camera.impulses[0]?.trauma || 0;
   debugOverlay.cameraDirector = createCamera2D25DDirectorStep({
     delta,
     camera: {
@@ -239,7 +272,7 @@ function update(delta) {
     ],
     deadzone: { x: 220, y: 120, width: 180, height: 120 },
     smoothing: { follow: 0.18, lookAhead: 1 },
-    shake: { trauma: keys.has('KeyJ') ? 0.35 : 0, decay: 0.08, maxOffset: 10, seed: Math.round(platformPhase * 60) },
+    shake: { trauma: Math.min(1, (keys.has('KeyJ') ? 0.35 : 0) + impactTrauma), decay: 0.08, maxOffset: 10, seed: Math.round(platformPhase * 60) },
     parallax: [
       { id: 'sky', factorX: 0.2, factorY: 0.08 },
       { id: 'mid', factorX: 0.55, factorY: 0.25 }
@@ -275,7 +308,7 @@ function drawGameplayObjects() {
   context.fillRect(coin.x, coin.y, coin.width, coin.height);
   context.fillStyle = '#34d399';
   context.fillRect(checkpoint.x, checkpoint.y, checkpoint.width, checkpoint.height);
-  context.fillStyle = '#fb7185';
+  context.fillStyle = debugOverlay.feedback?.flashes.some((flash) => flash.targetId === enemy.id) ? '#f8fafc' : '#fb7185';
   context.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
 }
 
@@ -334,7 +367,7 @@ function drawLight() {
 
 function drawDebug() {
   context.fillStyle = 'rgba(15, 23, 42, 0.76)';
-  context.fillRect(8, 8, 296, 124);
+  context.fillRect(8, 8, 296, 140);
   context.fillStyle = '#e5e7eb';
   context.font = '12px monospace';
   context.fillText(`animation: ${debugOverlay.animation}`, 18, 30);
@@ -344,6 +377,7 @@ function drawDebug() {
   context.fillText(`InputBuffer / CoyoteTime / VariableJump`, 18, 98);
   context.fillText(`controller panels: ${debugOverlay.controller?.editor.panels.slice(0, 3).join(', ') || '-'}`, 18, 112);
   context.fillText(`CameraDirector / ParallaxLayers / ShakeTrauma`, 18, 126);
+  context.fillText(`Hitstop / ComboWindows / ImpactParticles`, 18, 140);
 }
 
 function resolveAnimation(entity) {

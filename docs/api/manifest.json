@@ -1371,6 +1371,14 @@
       ]
     },
     {
+      "path": "gameplay/AnimationFeedback2D25DDirector.js",
+      "summary": "Builds one animation and combat feedback step for 2D/2.5D games.",
+      "exports": [
+        "ANIMATION_FEEDBACK_2D_25D_SCHEMA",
+        "createAnimationFeedback2D25DDirectorStep"
+      ]
+    },
+    {
       "path": "gameplay/Level2D25DGameplayLoop.js",
       "summary": "Builds a production-oriented 2D/2.5D level gameplay step for camera, combat, pickups, checkpoints, AI, events, and rendering.",
       "exports": [

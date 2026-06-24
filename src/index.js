@@ -358,6 +358,10 @@ import BehaviorTree from './behavior/BehaviorTree.js';
 import StateBehaviorTree from './behaviortree/BehaviorTree.js';
 import AbilitySystem from './gameplay/AbilitySystem.js';
 import {
+  ANIMATION_FEEDBACK_2D_25D_SCHEMA,
+  createAnimationFeedback2D25DDirectorStep
+} from './gameplay/AnimationFeedback2D25DDirector.js';
+import {
   LEVEL_2D_25D_GAMEPLAY_SCHEMA,
   createLevel2D25DGameplayLoop
 } from './gameplay/Level2D25DGameplayLoop.js';
@@ -1315,6 +1319,8 @@ const OmniCore = {
   BehaviorTree,
   StateBehaviorTree,
   AbilitySystem,
+  ANIMATION_FEEDBACK_2D_25D_SCHEMA,
+  createAnimationFeedback2D25DDirectorStep,
   LEVEL_2D_25D_GAMEPLAY_SCHEMA,
   createLevel2D25DGameplayLoop,
   PLATFORMER_2D_CONTROLLER_SCHEMA,
@@ -1888,6 +1894,8 @@ export {
   SpinePixiRuntimeAdapter,
   StateBehaviorTree,
   QuestStateMachine,
+  ANIMATION_FEEDBACK_2D_25D_SCHEMA,
+  createAnimationFeedback2D25DDirectorStep,
   LEVEL_2D_25D_GAMEPLAY_SCHEMA,
   createLevel2D25DGameplayLoop,
   PLATFORMER_2D_CONTROLLER_SCHEMA,
