@@ -2736,6 +2736,14 @@
       ]
     },
     {
+      "path": "tilemap/Scene2D25DPipeline.js",
+      "summary": "Builds one production-oriented 2D/2.5D scene plan for runtime, editor, debug, and export workflows.",
+      "exports": [
+        "SCENE_2D_25D_PIPELINE_SCHEMA",
+        "createScene2D25DPipeline"
+      ]
+    },
+    {
       "path": "tilemap/Tilemap.js",
       "summary": "Parser for Tiled-style JSON maps. Supports: - finite tile/object layers - grouped layers (flattened with `group/name` paths) - infinite tile layers with `chunks` - object collision shapes: rectangle / ellipse / polygon / polyline @example const map = Tilemap.parse(tiledJson); const ground = map.getTileLayer('Ground'); ground.tileAt(4, 2);",
       "exports": [
