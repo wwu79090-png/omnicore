@@ -60,6 +60,7 @@ export function createEditorState(initial = {}) {
     scene3DFixPlan: normalizeScene3DFixPlan(initial.scene3DFixPlan),
     scene3DFixApplyReport: normalizeScene3DFixApplyReport(initial.scene3DFixApplyReport),
     scene3DViewport: normalizeScene3DViewport(initial.scene3DViewport),
+    scene3DRuntimeSession: normalizeScene3DRuntimeSession(initial.scene3DRuntimeSession),
     prefabDependencyGraph: normalizePrefabDependencyGraph(initial.prefabDependencyGraph),
     webgpuPipelineDiagnostics: normalizeWebGPUPipelineDiagnostics(initial.webgpuPipelineDiagnostics),
     assetRefresh: normalizeAssetRefresh(initial.assetRefresh),
@@ -196,6 +197,7 @@ export function applyLiveSyncMessage(state = createEditorState(), message = {}) 
   }
   if (message.type === 'editor:scene-3d-viewport') next.scene3DViewport = normalizeScene3DViewport(message.payload);
   if (message.type === 'editor:scene-3d-viewport-action') next.scene3DViewport = normalizeScene3DViewport(message.payload?.viewport);
+  if (message.type === 'editor:scene-3d-runtime-session') next.scene3DRuntimeSession = normalizeScene3DRuntimeSession(message.payload);
   if (message.type === 'editor:prefab-dependency-graph') next.prefabDependencyGraph = normalizePrefabDependencyGraph(message.payload);
   if (message.type === 'editor:prefab-dependency-repair') {
     next.prefabDependencyGraph = normalizePrefabDependencyGraph({
@@ -313,6 +315,11 @@ function normalizeScene3DViewport(value = null) {
       colliders: []
     };
   }
+  return clonePlain(value);
+}
+
+function normalizeScene3DRuntimeSession(value = null) {
+  if (!value || typeof value !== 'object') return null;
   return clonePlain(value);
 }
 

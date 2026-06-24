@@ -48,9 +48,16 @@ class Scene3DEditorRuntimeSession {
     };
   }
 
-  async importGLBAsset(file) {
+  importGLBAsset(file) {
     const importer = this.requireAdapter('importGLBFile');
-    const result = await importer({ file });
+    const result = importer({ file });
+    if (result && typeof result.then === 'function') {
+      return result.then((value) => this.applyImportedGLBResult(file, value));
+    }
+    return this.applyImportedGLBResult(file, result);
+  }
+
+  applyImportedGLBResult(file, result = {}) {
     const model = result.workflow?.sceneInsertion?.patch?.runtime?.models?.[0] || null;
     if (model) this.sceneDescriptor.models.push(model);
     const asset = {
@@ -128,7 +135,10 @@ class Scene3DEditorRuntimeSession {
 
   createSavePatch() {
     const runtimeSnapshot = this.threeRuntime?.createSnapshot?.() || null;
-    const selectedModelId = runtimeSnapshot?.summary?.selectedModelId || null;
+    const selectedModelId = runtimeSnapshot?.summary?.selectedModelId
+      || this.sceneDescriptor.models.find((model) => model.selected)?.id
+      || this.sceneDescriptor.models[0]?.id
+      || null;
     const patch = {
       schema: 'omnicore.editor-scene-3d-save-patch.v1',
       sessionId: this.sessionId,

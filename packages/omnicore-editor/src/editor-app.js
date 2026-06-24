@@ -64,6 +64,7 @@ import {
   SocialAwareness25D,
   WorldMemory25D
 } from './living-world-25d.js';
+import { createScene3DEditorRuntimeSession } from './panels/scene-3d-editor-runtime-session.js';
 import { createEditorState, createLiveSyncMessage } from './live-sync-protocol.js';
 import LiveSyncClient from './live-sync-client.js';
 import AITilemapGenerator from './ai-tilemap-generator.js';
@@ -1651,7 +1652,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
             runtimeAdapter: 'three',
             renderMode: 'real-preview',
             selectedModelId: 'hero'
-          })
+          }),
+          scene3DRuntimeSession: createDesktopScene3DRuntimeSessionState()
         };
       }
       showEditorFeedback(command === 'scene-3d-demo' ? '已打开官方 3D Demo：examples/3d-runtime-demo' : '已打开相机、灯光、阴影检查路径', 'info');
@@ -1666,7 +1668,8 @@ export function createEditorApp(root = document.querySelector('#app'), {
       const panel = refreshAssetRegistryPanel({ source: 'desktop-gltf-check' });
       current = {
         ...current,
-        gltfImportWorkflow: createDesktopGLTFImportWorkflowState()
+        gltfImportWorkflow: createDesktopGLTFImportWorkflowState(),
+        scene3DRuntimeSession: createDesktopScene3DRuntimeSessionState({ includeImport: true })
       };
       showEditorFeedback(`已进入 GLTF/GLB 模型资源检查：${panel.assets?.length || 0} 项资源`, 'info');
       update(current);
@@ -1920,6 +1923,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
       scene3DFixPlan: next.scene3DFixPlan || current.scene3DFixPlan,
       scene3DFixApplyReport: next.scene3DFixApplyReport || current.scene3DFixApplyReport,
       scene3DViewport: next.scene3DViewport || current.scene3DViewport,
+      scene3DRuntimeSession: next.scene3DRuntimeSession || current.scene3DRuntimeSession,
       prefabDependencyGraph: next.prefabDependencyGraph || current.prefabDependencyGraph,
       webgpuPipelineDiagnostics: next.webgpuPipelineDiagnostics || current.webgpuPipelineDiagnostics,
       assetRefresh: next.assetRefresh || current.assetRefresh,
@@ -8880,6 +8884,102 @@ function createOfficial3DDemoViewportInput() {
       collider: { shape: 'box', width: 1.2, height: 1.4, depth: 0.4 },
       selected: true
     }]
+  };
+}
+
+function createDesktopScene3DRuntimeSessionState({ includeImport = false } = {}) {
+  const session = createScene3DEditorRuntimeSession({
+    sessionId: 'desktop-scene-3d-runtime-session',
+    scene: createOfficial3DDemoViewportInput(),
+    adapters: {
+      importGLBFile: createDesktopSessionGLBImportResult,
+      createRapierDebugDrawVisualization: createDesktopSessionRapierDebugDraw,
+      runWebGPUHardwarePath: createDesktopSessionWebGPUReport
+    }
+  });
+  session.record('desktop-session-created', { source: 'desktop-launcher' });
+  if (includeImport) session.importGLBAsset({ name: 'hero.glb', path: 'assets/hero.glb', byteLength: 4096 });
+  session.applyRapierDebugDraw({
+    colliders: [{ id: 'hero-collider', shape: 'box', sensor: false }],
+    raycasts: [{ id: 'desktop-pick-ray', hit: true, bodyId: 'hero-body', origin: { x: 0, y: 3, z: 4 }, point: { x: 0, y: 1, z: 0 } }]
+  });
+  session.webgpuHardware = createDesktopSessionWebGPUReport();
+  session.record('webgpu-hardware', session.webgpuHardware.validation.summary);
+  const savePatch = session.createSavePatch();
+  const exportPlan = session.createExportPlan({ target: 'electron' });
+  return {
+    ...session.createSnapshot(),
+    savePatch,
+    exportPlan
+  };
+}
+
+function createDesktopSessionGLBImportResult({ file = {} } = {}) {
+  const path = file.path || 'assets/hero.glb';
+  const name = file.name || path.split('/').pop() || 'hero.glb';
+  const workflow = createDesktopGLTFImportWorkflowState();
+  workflow.sceneInsertion.patch.runtime.models = [{
+    id: 'hero',
+    url: path,
+    material: 'hero-pbr',
+    activeAnimation: 'Idle',
+    collider: { shape: 'box', source: 'desktop-import' }
+  }];
+  return {
+    schema: 'omnicore.glb-file-import.v1',
+    glb: { magic: 'glTF', version: 2 },
+    document: { asset: { version: '2.0', generator: 'desktop-session-adapter' } },
+    thumbnail: { type: 'model-preview', modelId: 'hero', source: path, label: name },
+    resourceRecord: { id: 'hero', type: 'model', path, byteLength: Number(file.byteLength || 4096), format: 'glb' },
+    workflow
+  };
+}
+
+function createDesktopSessionRapierDebugDraw(payload = {}) {
+  const colliders = arrayFromValue(payload.colliders).map((collider) => ({
+    id: collider.id || 'hero-collider',
+    kind: collider.sensor ? 'sensor-volume' : 'collider-box',
+    shape: collider.shape || 'box',
+    sensor: Boolean(collider.sensor)
+  }));
+  const raycasts = arrayFromValue(payload.raycasts).map((raycast) => ({
+    id: raycast.id || 'desktop-pick-ray',
+    kind: raycast.hit === false ? 'raycast-miss' : 'raycast-hit',
+    hit: raycast.hit !== false,
+    bodyId: raycast.bodyId || null
+  }));
+  const overlays = [...colliders, ...raycasts];
+  return {
+    schema: 'omnicore.rapier-debug-draw-visualization.v1',
+    summary: {
+      lineCount: 0,
+      colliderOverlayCount: colliders.length,
+      sensorOverlayCount: colliders.filter((collider) => collider.sensor).length,
+      jointOverlayCount: 0,
+      raycastOverlayCount: raycasts.length
+    },
+    overlays
+  };
+}
+
+function createDesktopSessionWebGPUReport() {
+  return {
+    schema: 'omnicore.webgpu-hardware-run.v1',
+    label: 'desktop-session-webgpu',
+    adapter: { available: true, info: { description: 'desktop-contract-adapter' } },
+    pipeline: {
+      schema: 'omnicore.webgpu-pipeline-runtime.v1',
+      summary: { uploadedTextureCount: 1, bufferCount: 1, commandCount: 1, recoveryCount: 1 }
+    },
+    validation: {
+      schema: 'omnicore.webgpu-hardware-validation.v1',
+      summary: {
+        browserCount: 1,
+        webgpuPassedCount: 1,
+        fallbackCount: 0,
+        deviceLostRecovered: true
+      }
+    }
   };
 }
 
