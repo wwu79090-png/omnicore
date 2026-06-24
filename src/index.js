@@ -370,7 +370,11 @@ import StartupProfiler from './performance/StartupProfiler.js';
 import CollisionMask from './physics/CollisionMask.js';
 import PhysicsQuery from './physics/PhysicsQuery.js';
 import PhysicsWorld from './physics/PhysicsWorld.js';
-import Physics, { ArcadeAdapter } from './physics/Physics.js';
+import Physics, {
+  ARCADE_2D_GAMEPLAY_SCHEMA,
+  ArcadeAdapter,
+  createArcade2DGameplayPlan
+} from './physics/Physics.js';
 import ComputeRuntime from './compute/ComputeRuntime.js';
 import calculateDamage from './compute/DamageFormula.js';
 import findPath from './compute/Pathfinding.js';
@@ -1311,7 +1315,9 @@ const OmniCore = {
   PhysicsWorld,
   PhysicsQuery,
   Physics,
+  ARCADE_2D_GAMEPLAY_SCHEMA,
   ArcadeAdapter,
+  createArcade2DGameplayPlan,
   CollisionMask,
   ExportPaywall,
   SleepWakeSystem,
@@ -1747,6 +1753,8 @@ export {
   PhysicsWorld,
   PhysicsQuery,
   Physics,
+  ARCADE_2D_GAMEPLAY_SCHEMA,
+  createArcade2DGameplayPlan,
   PixiRenderer,
   PixiBatchAdapter,
   PixiFrameworkBridge,

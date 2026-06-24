@@ -1,5 +1,6 @@
 import Camera from '../camera/Camera.js';
 import Light2D from '../lighting/Light2D.js';
+import { createArcade2DGameplayPlan } from '../physics/Arcade2DGameplayKit.js';
 import Tilemap from './Tilemap.js';
 import { createTilemapChunkStreamPlan } from './TilemapChunkStreaming.js';
 
@@ -15,20 +16,23 @@ export function createScene2D25DPipeline(config = {}) {
   const parallax = buildParallaxState(config.parallax, cameraState.instance);
   const streaming = buildStreamingState(config.streaming, cameraState.tileViewport, tilemap.summary);
   const collisions = buildCollisionState(map, config.collisions, tilemap.summary);
+  const arcade2D = buildArcade2DState(config.arcade2D, entities, collisions);
   const depth25D = buildDepth25DState(entities);
   const lighting = buildLightingState(config.lights, entities);
   const editor = buildEditorState(config.editor, {
     tilemap,
     camera: cameraState.section,
     collisions,
+    arcade2D,
     depth25D,
     lighting,
     streaming
   });
-  const runtimeSync = buildRuntimeSyncState();
+  const runtimeSync = buildRuntimeSyncState({ arcade2D });
   const quality = buildQualityChecks({
     camera: cameraState.section,
     collisions,
+    arcade2D,
     depth25D,
     lighting,
     streaming,
@@ -43,6 +47,7 @@ export function createScene2D25DPipeline(config = {}) {
     parallax,
     streaming,
     collisions,
+    arcade2D,
     lighting,
     editor,
     runtimeSync,
@@ -302,6 +307,17 @@ function buildCollisionState(map, collisionsInput, tilemapInput) {
   };
 }
 
+function buildArcade2DState(arcadeInput, entities = [], collisions = {}) {
+  if (!arcadeInput) return null;
+  const actors = arcadeInput.actors || arcadeInput.actor || entities;
+  const colliders = arcadeInput.colliders || collisions.arcadeBodies || [];
+  return createArcade2DGameplayPlan({
+    ...arcadeInput,
+    actors,
+    colliders
+  });
+}
+
 function buildDepth25DState(entities = []) {
   const sortedEntities = [...entities]
     .sort((left, right) => left.depthY - right.depthY || String(left.id).localeCompare(String(right.id)))
@@ -426,6 +442,7 @@ function buildEditorState(editorInput, sectionInput) {
     'Camera2D',
     'Parallax',
     'ArcadePhysics',
+    ...(sections.arcade2D ? ['Arcade2DGameplay'] : []),
     'Depth2.5D',
     'Light2D',
     'Streaming',
@@ -439,6 +456,7 @@ function buildEditorState(editorInput, sectionInput) {
       { id: 'tilemap', title: 'Tilemap', source: sections.tilemap.summary },
       { id: 'camera2d', title: 'Camera2D', source: sections.camera },
       { id: 'physics2d', title: 'Arcade Physics', source: sections.collisions },
+      ...(sections.arcade2D ? [{ id: 'arcade2d-gameplay', title: 'Arcade 2D Gameplay', source: sections.arcade2D }] : []),
       { id: 'depth25d', title: 'Depth 2.5D', source: sections.depth25D },
       { id: 'light2d', title: 'Light2D', source: sections.lighting },
       { id: 'streaming', title: 'Tile Streaming', source: sections.streaming }
@@ -465,7 +483,7 @@ function buildEditorState(editorInput, sectionInput) {
   };
 }
 
-function buildRuntimeSyncState() {
+function buildRuntimeSyncState({ arcade2D = null } = {}) {
   return {
     protocol: 'omnicore.runtime-sync.2d25d/v1',
     payloads: [
@@ -474,6 +492,7 @@ function buildRuntimeSyncState() {
       'parallax',
       'streaming',
       'collisions',
+      ...(arcade2D ? ['arcade2D'] : []),
       'depth2_5D',
       'lighting',
       'editor'
@@ -481,6 +500,7 @@ function buildRuntimeSyncState() {
     events: [
       'tilemap:stream',
       'physics2d:debug-draw',
+      ...(arcade2D ? ['arcade2d:gameplay-step'] : []),
       'camera2d:follow',
       'depth25d:resort',
       'light2d:shadow-bake',
@@ -489,7 +509,7 @@ function buildRuntimeSyncState() {
   };
 }
 
-function buildQualityChecks({ camera, collisions, depth25D, lighting, streaming, editor }) {
+function buildQualityChecks({ camera, collisions, arcade2D, depth25D, lighting, streaming, editor }) {
   return {
     checks: [
       {
@@ -502,6 +522,11 @@ function buildQualityChecks({ camera, collisions, depth25D, lighting, streaming,
         pass: collisions.staticColliderCount > 0 && collisions.arcadeBodies.length > 0,
         detail: `${collisions.staticColliderCount} static colliders`
       },
+      ...(arcade2D ? [{
+        id: 'arcade2d-gameplay-loop',
+        pass: arcade2D.contacts.length > 0 || arcade2D.sensorEvents.length > 0,
+        detail: `${arcade2D.contacts.length} contacts, ${arcade2D.sensorEvents.length} sensor events`
+      }] : []),
       {
         id: '25d-depth-occlusion',
         pass: depth25D.sortedEntities.length > 0,

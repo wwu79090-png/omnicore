@@ -1953,6 +1953,14 @@
       ]
     },
     {
+      "path": "physics/Arcade2DGameplayKit.js",
+      "summary": "Creates an editor-ready Arcade 2D gameplay step for platformers and 2.5D scenes.",
+      "exports": [
+        "ARCADE_2D_GAMEPLAY_SCHEMA",
+        "createArcade2DGameplayPlan"
+      ]
+    },
+    {
       "path": "physics/ArcadeAdapter.js",
       "summary": "Phaser Arcade Physics style contact adapter with AABB checks.",
       "exports": [

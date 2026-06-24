@@ -1,12 +1,22 @@
 import ArcadeAdapter from './ArcadeAdapter.js';
+import {
+  ARCADE_2D_GAMEPLAY_SCHEMA,
+  createArcade2DGameplayPlan
+} from './Arcade2DGameplayKit.js';
 
-export { ArcadeAdapter };
+export {
+  ARCADE_2D_GAMEPLAY_SCHEMA,
+  ArcadeAdapter,
+  createArcade2DGameplayPlan
+};
 
 /**
  * @namespace Physics
  */
 export const Physics = {
-  ArcadeAdapter
+  ARCADE_2D_GAMEPLAY_SCHEMA,
+  ArcadeAdapter,
+  createArcade2DGameplayPlan
 };
 
 export default Physics;
