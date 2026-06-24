@@ -1167,6 +1167,12 @@ export function createEditorApp(root = document.querySelector('#app'), {
     scaleScene3DModel,
     updateScene3DModelTransform,
     resetScene3DModelTransform,
+    updateScene3DCamera,
+    setScene3DActiveCamera,
+    updateScene3DLight,
+    toggleScene3DLightShadow,
+    updateScene3DModelCollider,
+    toggleScene3DColliderOverlay,
     previewScene3DAnimation,
     updateScene3DMaterial,
     refreshPrefabDependencyGraph,
@@ -2502,6 +2508,24 @@ export function createEditorApp(root = document.querySelector('#app'), {
       resetScene3DModelTransform(modelId) {
         return resetScene3DModelTransform(modelId);
       },
+      updateScene3DCamera(cameraId, patch = {}) {
+        return updateScene3DCamera(cameraId, patch);
+      },
+      setScene3DActiveCamera(cameraId) {
+        return setScene3DActiveCamera(cameraId);
+      },
+      updateScene3DLight(lightId, patch = {}) {
+        return updateScene3DLight(lightId, patch);
+      },
+      toggleScene3DLightShadow(lightId, enabled = true) {
+        return toggleScene3DLightShadow(lightId, enabled);
+      },
+      updateScene3DModelCollider(modelId, collider = {}) {
+        return updateScene3DModelCollider(modelId, collider);
+      },
+      toggleScene3DColliderOverlay(enabled = true) {
+        return toggleScene3DColliderOverlay(enabled);
+      },
       previewScene3DAnimation(modelId, animation) {
         return previewScene3DAnimation(modelId, animation);
       },
@@ -3052,9 +3076,89 @@ export function createEditorApp(root = document.querySelector('#app'), {
 
   function applyScene3DModelTransform(viewport, modelId, actionType, payload = {}) {
     const model = viewport.models.find((item) => item.id === modelId) || null;
+    return applyScene3DViewportAuthoringAction(viewport, actionType, { ...payload, position: model?.position || null }, model);
+  }
+
+  function updateScene3DCamera(cameraId, patch = {}) {
+    const id = String(cameraId || '');
+    const normalizedPatch = normalizeScene3DCameraPatch(patch);
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      cameras: (current.scene3DViewport?.cameras || []).map((camera) => (
+        camera.id === id ? { ...camera, ...normalizedPatch } : camera
+      ))
+    });
+    const camera = viewport.cameras.find((item) => item.id === id) || null;
+    return applyScene3DViewportAuthoringAction(viewport, 'update-camera', { cameraId: id, patch: normalizedPatch }, camera);
+  }
+
+  function setScene3DActiveCamera(cameraId) {
+    const id = String(cameraId || '');
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      cameras: (current.scene3DViewport?.cameras || []).map((camera) => ({
+        ...camera,
+        active: camera.id === id
+      }))
+    });
+    const camera = viewport.cameras.find((item) => item.id === id) || null;
+    return applyScene3DViewportAuthoringAction(viewport, 'set-active-camera', { cameraId: id }, camera);
+  }
+
+  function updateScene3DLight(lightId, patch = {}) {
+    const id = String(lightId || '');
+    const normalizedPatch = normalizeScene3DLightPatch(patch);
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      lights: (current.scene3DViewport?.lights || []).map((light) => (
+        light.id === id ? { ...light, ...normalizedPatch } : light
+      ))
+    });
+    const light = viewport.lights.find((item) => item.id === id) || null;
+    return applyScene3DViewportAuthoringAction(viewport, 'update-light', { lightId: id, patch: normalizedPatch }, light);
+  }
+
+  function toggleScene3DLightShadow(lightId, enabled = true) {
+    const id = String(lightId || '');
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      lights: (current.scene3DViewport?.lights || []).map((light) => (
+        light.id === id ? { ...light, castShadow: Boolean(enabled) } : light
+      ))
+    });
+    const light = viewport.lights.find((item) => item.id === id) || null;
+    return applyScene3DViewportAuthoringAction(viewport, 'toggle-light-shadow', { lightId: id, castShadow: Boolean(enabled) }, light);
+  }
+
+  function updateScene3DModelCollider(modelId, collider = {}) {
+    const id = String(modelId || '');
+    const normalizedCollider = normalizeScene3DCollider(collider);
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      selectedModelId: current.scene3DViewport?.selectedModelId || id,
+      models: (current.scene3DViewport?.models || []).map((model) => (
+        model.id === id ? { ...model, collider: normalizedCollider } : model
+      ))
+    });
+    const colliderState = viewport.colliders.find((item) => item.modelId === id) || null;
+    return applyScene3DViewportAuthoringAction(viewport, 'update-collider', { modelId: id, collider: normalizedCollider }, colliderState);
+  }
+
+  function toggleScene3DColliderOverlay(enabled = true) {
+    const viewport = createScene3DViewportState({
+      ...(current.scene3DViewport || {}),
+      overlays: {
+        ...(current.scene3DViewport?.overlays || {}),
+        colliders: Boolean(enabled)
+      }
+    });
+    return applyScene3DViewportAuthoringAction(viewport, 'toggle-collider-overlay', { colliders: Boolean(enabled) }, viewport.overlays);
+  }
+
+  function applyScene3DViewportAuthoringAction(viewport, actionType, payload = {}, result = null) {
     const scene3DRuntimeSession = createScene3DViewportAuthoringSessionState(viewport, current.scene3DRuntimeSession, {
       type: actionType,
-      payload: { ...payload, position: model?.position || null }
+      payload
     });
     current = createEditorState({
       ...current,
@@ -3062,10 +3166,10 @@ export function createEditorApp(root = document.querySelector('#app'), {
       scene3DRuntimeSession,
       dockLayout: ensurePanelInDock(current.dockLayout, 'scene-3d-viewport', 'center')
     });
-    emit('editor:scene-3d-viewport-action', { type: actionType, modelId, model, viewport });
+    emit('editor:scene-3d-viewport-action', { type: actionType, ...payload, result, viewport });
     emit('editor:scene-3d-runtime-session', scene3DRuntimeSession);
     update(current);
-    return model;
+    return result;
   }
 
   function previewScene3DAnimation(modelId, animation) {
@@ -8365,13 +8469,13 @@ export function createEditorApp(root = document.querySelector('#app'), {
     for (const camera of viewport.cameras || []) {
       const row = document.createElement('div');
       row.setAttribute('data-scene-3d-camera', camera.id);
-      row.textContent = `${camera.id} / ${camera.type} / ${camera.mode} / fov ${camera.fov}`;
+      row.textContent = `${camera.id} / ${camera.type} / ${camera.mode} / fov ${camera.fov} / active ${Boolean(camera.active)} / ${formatScene3DVectorLabel('position', camera.position, { x: 0, y: 0, z: 0 })} / ${formatScene3DVectorLabel('target', camera.target, { x: 0, y: 0, z: 0 })}`;
       wrap.appendChild(row);
     }
     for (const light of viewport.lights || []) {
       const row = document.createElement('div');
       row.setAttribute('data-scene-3d-light', light.id);
-      row.textContent = `${light.id} / ${light.type} / intensity ${light.intensity} / shadow ${light.castShadow}`;
+      row.textContent = `${light.id} / ${light.type} / ${light.color || '#ffffff'} / intensity ${light.intensity} / shadow ${light.castShadow} / ${formatScene3DVectorLabel('position', light.position, { x: 0, y: 0, z: 0 })}`;
       wrap.appendChild(row);
     }
     for (const material of viewport.materials || []) {
@@ -8389,7 +8493,7 @@ export function createEditorApp(root = document.querySelector('#app'), {
     for (const collider of viewport.colliders || []) {
       const row = document.createElement('div');
       row.setAttribute('data-scene-3d-collider', collider.modelId);
-      row.textContent = `${collider.modelId} / ${collider.shape || 'box'} / ${collider.radius || collider.width || 0}`;
+      row.textContent = `${collider.modelId} / ${collider.shape || 'box'} / radius ${collider.radius || 0} / height ${collider.height || 0} / width ${collider.width || 0} / sensor ${Boolean(collider.sensor)} / debug ${Boolean(collider.debug)}`;
       wrap.appendChild(row);
     }
     return wrap;
@@ -8945,6 +9049,7 @@ function createEditorPhysicsRecommendations(snapshot = {}) {
 
 function createScene3DViewportState(input = {}, options = {}) {
   const cameras = arrayFromValue(input.cameras || input.scene?.cameras).map((camera, index) => ({
+    ...cloneState(camera),
     id: String(camera.id || `camera-${index + 1}`),
     type: camera.type || 'Camera3D',
     mode: camera.mode || camera.controls || 'orbit',
@@ -8952,6 +9057,7 @@ function createScene3DViewportState(input = {}, options = {}) {
     active: Boolean(camera.active ?? index === 0)
   }));
   const lights = arrayFromValue(input.lights || input.scene?.lights).map((light, index) => ({
+    ...cloneState(light),
     id: String(light.id || `light-${index + 1}`),
     type: light.type || 'directional',
     intensity: Number(light.intensity ?? 1),
@@ -9009,7 +9115,11 @@ function createScene3DViewportState(input = {}, options = {}) {
     materials,
     models,
     colliders,
-    ...renderState
+    ...renderState,
+    overlays: {
+      ...(renderState.overlays || {}),
+      ...(input.overlays || options.overlays || {})
+    }
   };
 }
 
@@ -9098,6 +9208,37 @@ function normalizeScene3DTransformPatch(transform = {}) {
   if (transform.rotation) patch.rotation = normalizeScene3DVector(transform.rotation);
   if (transform.scale) patch.scale = normalizeScene3DVector(transform.scale, { x: 1, y: 1, z: 1 });
   return patch;
+}
+
+function normalizeScene3DCameraPatch(patch = {}) {
+  const normalized = { ...cloneState(patch) };
+  if ('fov' in normalized) normalized.fov = Number(normalized.fov || 60);
+  if (normalized.position) normalized.position = normalizeScene3DVector(normalized.position);
+  if (normalized.target) normalized.target = normalizeScene3DVector(normalized.target);
+  if ('active' in normalized) normalized.active = Boolean(normalized.active);
+  if (normalized.mode) normalized.mode = String(normalized.mode);
+  return normalized;
+}
+
+function normalizeScene3DLightPatch(patch = {}) {
+  const normalized = { ...cloneState(patch) };
+  if ('intensity' in normalized) normalized.intensity = Number(normalized.intensity ?? 1);
+  if (normalized.position) normalized.position = normalizeScene3DVector(normalized.position);
+  if ('castShadow' in normalized) normalized.castShadow = Boolean(normalized.castShadow);
+  if (normalized.color) normalized.color = String(normalized.color);
+  return normalized;
+}
+
+function normalizeScene3DCollider(collider = {}) {
+  const normalized = { ...cloneState(collider) };
+  normalized.shape = normalized.shape || 'box';
+  if ('width' in normalized) normalized.width = Number(normalized.width || 0);
+  if ('height' in normalized) normalized.height = Number(normalized.height || 0);
+  if ('depth' in normalized) normalized.depth = Number(normalized.depth || 0);
+  if ('radius' in normalized) normalized.radius = Number(normalized.radius || 0);
+  if ('sensor' in normalized) normalized.sensor = Boolean(normalized.sensor);
+  if ('debug' in normalized) normalized.debug = Boolean(normalized.debug);
+  return normalized;
 }
 
 function normalizeScene3DVector(value = {}, fallback = { x: 0, y: 0, z: 0 }) {
