@@ -3101,6 +3101,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createGLTFImportWorkflow"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createGame"
       },
       {
@@ -3227,6 +3232,11 @@
         "arity": 0,
         "async": false,
         "name": "createWebGPUHardwareEvidencePayload"
+      },
+      {
+        "arity": 0,
+        "async": false,
+        "name": "createWebGPUHardwareValidationReport"
       },
       {
         "arity": 0,
@@ -3780,6 +3790,7 @@
       "createDeterministicRenderQueue",
       "createEditorDeployBenchmark25D",
       "createEntity",
+      "createGLTFImportWorkflow",
       "createGame",
       "createHD2DFilter",
       "createHousePrimitive",
@@ -3806,6 +3817,7 @@
       "createWebGPUComputeParticleDescriptor",
       "createWebGPUFrameBudgetReport",
       "createWebGPUHardwareEvidencePayload",
+      "createWebGPUHardwareValidationReport",
       "createWebGPUInstancingDescriptor",
       "createWebGPUResourceLifecyclePlan",
       "createWebGPUShaderVariantRegistry",

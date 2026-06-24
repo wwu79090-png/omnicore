@@ -1171,6 +1171,13 @@
       ]
     },
     {
+      "path": "dimension3d/GLTFImportWorkflow.js",
+      "summary": "",
+      "exports": [
+        "createGLTFImportWorkflow"
+      ]
+    },
+    {
       "path": "dimension3d/Runtime3DScene.js",
       "summary": "",
       "exports": [
@@ -2495,6 +2502,13 @@
       "summary": "WebGL context loss/restoration manager. The manager listens to browser `webglcontextlost` and `webglcontextrestored` events, prevents the default hard failure path, and calls a canvas fallback hook when the context cannot be restored quickly. @example const manager = new WebGLContextManager({ canvas, onFallback: () => OmniCore.Backend.switch('canvas') });",
       "exports": [
         "WebGLContextManager"
+      ]
+    },
+    {
+      "path": "renderer/WebGPUHardwareValidation.js",
+      "summary": "",
+      "exports": [
+        "createWebGPUHardwareValidationReport"
       ]
     },
     {

@@ -541,7 +541,9 @@ function getDesktopCommandKind(commandId, command = getDesktopCommandRecord(comm
   return 'command';
 }
 
-function getDesktopCommandSteps(kind) {
+function getDesktopCommandSteps(kind, commandId = '') {
+  if (commandId === 'scene-3d-demo') return ['打开官方 3D Demo', '运行 Demo', '编辑场景', '导出项目'];
+  if (commandId === 'gltf-import') return ['拖入 GLB/GLTF', '检查报告', '一键修复资源', '一键导入到场景'];
   return {
     toolbar: ['执行命令', '同步状态', '刷新工作台', '查看反馈'],
     template: ['选择模板', '生成项目骨架', '打开示例场景', '进入编辑器'],
@@ -589,6 +591,14 @@ function describeDesktopCommand(commandId) {
   } else if (DESKTOP_SCENE3D_COMMANDS.has(id)) {
     target = '场景视图 / 3D 资源 / 调试路径';
     outcome = '进入 3D/2.5D 场景、相机灯光或模型资源检查流程。';
+    if (id === 'scene-3d-demo') {
+      target = 'examples/3d-runtime-demo / scene-3d-viewport real-preview';
+      outcome = '打开官方 3D Demo，运行 Demo，编辑场景，并导出项目。';
+    }
+    if (id === 'gltf-import') {
+      target = 'GLTF/GLB 导入器 / 资源检查 / 场景插入';
+      outcome = '拖入 GLB/GLTF，查看检查报告，修复缺失资源，并一键导入到场景。';
+    }
   } else if (DESKTOP_ASSET_PIPELINE_COMMANDS.has(id)) {
     target = '资源数据库 / 依赖图 / 热重载';
     outcome = '刷新资源数据库并把资源变更接入编辑器可视化闭环。';
@@ -617,7 +627,7 @@ function describeDesktopCommand(commandId) {
     target,
     outcome,
     preview: `${title}：${purpose}`,
-    steps: getDesktopCommandSteps(kind)
+    steps: getDesktopCommandSteps(kind, id)
   };
 }
 
@@ -1632,15 +1642,34 @@ export function createEditorApp(root = document.querySelector('#app'), {
     }
     if (command === 'scene-3d-demo' || command === 'camera-lighting') {
       setEditorWorkspaceMode('editor');
-      movePanelToRegion('scene-view', 'center');
-      showEditorFeedback(command === 'scene-3d-demo' ? '已打开 3D/2.5D 场景 Demo 检查路径' : '已打开相机、灯光、阴影检查路径', 'info');
+      movePanelToRegion('scene-3d-viewport', 'center');
+      if (command === 'scene-3d-demo') {
+        current = {
+          ...current,
+          scene3DViewport: createScene3DViewportState(createOfficial3DDemoViewportInput(), {
+            runtimeAdapter: 'three',
+            renderMode: 'real-preview',
+            selectedModelId: 'hero'
+          })
+        };
+      }
+      showEditorFeedback(command === 'scene-3d-demo' ? '已打开官方 3D Demo：examples/3d-runtime-demo' : '已打开相机、灯光、阴影检查路径', 'info');
       update(current);
-      return current.dockLayout;
+      return command === 'scene-3d-demo' ? {
+        officialDemo: 'examples/3d-runtime-demo',
+        actions: ['打开官方 3D Demo', '运行 Demo', '编辑场景', '导出项目'],
+        scene3DViewport: current.scene3DViewport
+      } : current.dockLayout;
     }
     if (command === 'gltf-import') {
       const panel = refreshAssetRegistryPanel({ source: 'desktop-gltf-check' });
+      current = {
+        ...current,
+        gltfImportWorkflow: createDesktopGLTFImportWorkflowState()
+      };
       showEditorFeedback(`已进入 GLTF/GLB 模型资源检查：${panel.assets?.length || 0} 项资源`, 'info');
-      return panel;
+      update(current);
+      return { panel, workflow: current.gltfImportWorkflow };
     }
     if (command === 'exe-package' || command === 'web-export' || command === 'wechat-export') {
       setEditorWorkspaceMode('editor');
@@ -8178,6 +8207,12 @@ export function createEditorApp(root = document.querySelector('#app'), {
       canvasMount.setAttribute('data-scene-3d-three-canvas', 'true');
       canvasMount.textContent = `Three.js Canvas / renderer ${viewport.canvasMount?.renderer || 'three'} / controls ${(viewport.canvasMount?.controls || []).join(', ') || 'orbit'} / overlays ${(viewport.canvasMount?.debugOverlays || []).join(', ') || 'none'}`;
       wrap.appendChild(canvasMount);
+      const tools = document.createElement('div');
+      tools.setAttribute('data-scene-3d-interaction-tools', 'true');
+      tools.textContent = (viewport.interaction?.tools || [])
+        .map((tool) => `${tool.label}:${tool.id}`)
+        .join(' / ');
+      wrap.appendChild(tools);
     }
     for (const camera of viewport.cameras || []) {
       const row = document.createElement('div');
@@ -8827,6 +8862,57 @@ function createScene3DViewportState(input = {}, options = {}) {
     models,
     colliders,
     ...renderState
+  };
+}
+
+function createOfficial3DDemoViewportInput() {
+  return {
+    cameras: [{ id: 'main-camera', mode: 'orbit', fov: 60, active: true }],
+    lights: [{ id: 'sun', type: 'directional', intensity: 1.8, castShadow: true }],
+    materials: [{ id: 'hero-pbr', type: 'PBRMaterial', albedo: '#338cff', roughness: 0.42, metallic: 0.18 }],
+    models: [{
+      id: 'hero',
+      url: 'examples/3d-runtime-demo/assets/hero.glb',
+      material: 'hero-pbr',
+      animations: ['Idle', 'Run'],
+      activeAnimation: 'Idle',
+      collider: { shape: 'box', width: 1.2, height: 1.4, depth: 0.4 },
+      selected: true
+    }]
+  };
+}
+
+function createDesktopGLTFImportWorkflowState() {
+  return {
+    schema: 'omnicore.gltf-import-workflow.v1',
+    dropzone: {
+      accept: ['.glb', '.gltf'],
+      label: '拖入 GLB/GLTF'
+    },
+    inspection: {
+      summary: {
+        missingTextureCount: 0,
+        animationClipCount: 2,
+        colliderReady: false,
+        lodReady: false,
+        compressionReady: false
+      }
+    },
+    repairPlan: {
+      actions: [
+        { type: 'generateCollider', shape: 'box', status: 'ready' },
+        { type: 'generateLOD', levels: ['medium', 'low'], status: 'ready' },
+        { type: 'enableCompression', codec: 'meshopt-or-draco', status: 'ready' }
+      ]
+    },
+    sceneInsertion: {
+      label: '一键导入到场景',
+      patch: {
+        runtime: {
+          models: [{ id: 'imported-model', url: 'assets/imported.glb', material: 'auto-pbr', activeAnimation: 'Idle' }]
+        }
+      }
+    }
   };
 }
 

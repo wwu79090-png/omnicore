@@ -1,3 +1,5 @@
+import { createScene3DInteractionSnapshot } from './scene-3d-interaction-runtime.js';
+
 export function createScene3DViewportRenderState(input = {}, options = {}) {
   const models = arrayFromValue(input.models || input.scene?.models).map((model) => ({
     ...clone(model),
@@ -22,6 +24,12 @@ export function createScene3DViewportRenderState(input = {}, options = {}) {
       controls: buildControls(models, input.cameras || input.scene?.cameras),
       debugOverlays: buildDebugOverlays({ colliders, lights, shadowLightCount })
     },
+    interaction: createScene3DInteractionSnapshot({
+      ...input,
+      models,
+      lights,
+      colliders
+    }, options),
     gltfPreloadQueue: [...new Set(models.map((model) => model.url).filter(Boolean))],
     animationPreview: animationTarget ? {
       modelId: animationTarget.id,

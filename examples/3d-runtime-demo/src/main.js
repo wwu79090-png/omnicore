@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { loadRapier3DCompatBackend } from '@omnicore/physics';
+import { loadRapier3DCompatBackend, runRapierSimulationDemo } from '@omnicore/physics';
 import {
+  createGLTFImportWorkflow,
+  createWebGPUHardwareValidationReport,
   Runtime3DScene,
   ThreeRuntimeAdapter,
   WebGPUPipelineRuntime,
@@ -56,6 +58,16 @@ const gltfReport = inspectGLTFAsset({
   lods: ['runtime-preview'],
   compression: { meshopt: true }
 });
+const gltfImportWorkflow = createGLTFImportWorkflow({
+  file: { name: 'hero.glb', path: 'assets/hero.glb', byteLength: 1128 },
+  document: gltfDocument
+}, {
+  targetSceneId: '3d-runtime-demo',
+  material: 'hero-pbr',
+  collider: { shape: 'box' },
+  lods: ['runtime-preview'],
+  compression: { meshopt: true }
+});
 
 const adapter = new ThreeRuntimeAdapter({
   THREE,
@@ -81,17 +93,30 @@ try {
 }
 
 const webgpuSnapshot = createWebGPUResourceLifecycleEvidence();
+const webgpuHardwareValidation = createWebGPUHardwareValidationReport({
+  browsers: [
+    { name: 'Chromium', webgpu: navigator.gpu ? 'passed' : 'fallback', adapter: navigator.gpu ? 'browser-adapter' : null, fallback: navigator.gpu ? null : 'webgl2' },
+    { name: 'Firefox', webgpu: 'fallback', fallback: 'webgl2', reason: 'runtime-sample-required' },
+    { name: 'WebKit', webgpu: 'fallback', fallback: 'webgl2', reason: 'runtime-sample-required' }
+  ],
+  pipelineSnapshot: webgpuSnapshot
+});
 const runtimeSnapshot = runtimeScene.createRuntimeSnapshot();
 const debugDraw = runtimeScene.createDebugDraw();
 
 renderEvidence([
   ['Runtime3DScene', runtimeSnapshot.summary],
   ['ThreeRuntimeAdapter', threeSnapshot.summary],
+  ['GLTF 导入', gltfImportWorkflow.sceneInsertion],
   ['GLTF 资源检查', gltfReport.summary],
+  ['真实 Rapier', rapierEvidence.summary || rapierEvidence],
   ['Rapier debug draw', rapierEvidence],
   ['WebGPUPipelineRuntime', webgpuSnapshot.summary],
+  ['WebGPU hardware validation', webgpuHardwareValidation.summary],
+  ['旋转视角', { control: 'orbit-camera', canvas: 'scene-3d-viewport-canvas' }],
   ['播放动画', { model: 'hero', clip: 'Idle' }],
   ['WebGPU fallback', { preferred: 'webgpu', fallback: 'webgl', ready: true }],
+  ['EXE 启动器', { command: 'scene-3d-demo', demo: 'examples/3d-runtime-demo' }],
   ['导出项目', { file: 'scene.omnicore.json', openWith: 'scene-3d-viewport' }],
   ['Debug draw', debugDraw]
 ]);
@@ -122,7 +147,8 @@ async function createRapierEvidence() {
       backend: backend.id,
       available: backend.available,
       capabilities: backend.capabilities,
-      debugDraw: runtimeScene.createDebugDraw().colliders.length
+      debugDraw: runtimeScene.createDebugDraw().colliders.length,
+      ...runRapierSimulationDemo({ backend, steps: 4, gravity: { x: 0, y: -9.81, z: 0 } })
     };
   } catch (error) {
     return {

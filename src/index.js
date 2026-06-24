@@ -111,6 +111,7 @@ import WebGPURenderer, {
   createWebGPUTextureAtlasDescriptor
 } from './renderer/WebGPURenderer.js';
 import WebGPUPipelineRuntime from './renderer/WebGPUPipelineRuntime.js';
+import createWebGPUHardwareValidationReport from './renderer/WebGPUHardwareValidation.js';
 import * as RendererBackend from './renderer/RendererBackend.js';
 import { RendererContract, assertRendererBackend, createRendererPerformanceSandbox } from './renderer/RendererBackend.js';
 import OffscreenCanvasRenderer from './renderer/OffscreenCanvasRenderer.js';
@@ -283,6 +284,7 @@ import Runtime3DScene from './dimension3d/Runtime3DScene.js';
 import ThreeRuntimeAdapter from './dimension3d/ThreeRuntimeAdapter.js';
 import ThreePhysicsBridge from './dimension3d/ThreePhysicsBridge.js';
 import inspectGLTFAsset from './dimension3d/GLTFAssetInspector.js';
+import createGLTFImportWorkflow from './dimension3d/GLTFImportWorkflow.js';
 import { detectEnvironment, detectPlatformAndMergeDefaults, safeInitialize } from './core/Bootstrap.js';
 import TimeGuard from './core/TimeGuard.js';
 import Templates from './core/Templates.js';
@@ -1135,6 +1137,7 @@ const OmniCore = {
   ThreeRuntimeAdapter,
   ThreePhysicsBridge,
   inspectGLTFAsset,
+  createGLTFImportWorkflow,
   Deprecation,
   Store,
   PersistentSaveSlot,
@@ -1193,6 +1196,7 @@ const OmniCore = {
   createWebGPUComputeDispatchPlan,
   createWebGPUFrameBudgetReport,
   createWebGPUHardwareEvidencePayload,
+  createWebGPUHardwareValidationReport,
   createWebGPUInstancingDescriptor,
   createWebGPUResourceLifecyclePlan,
   createWebGPUShaderVariantRegistry,
@@ -1574,6 +1578,7 @@ export {
   ThreeRuntimeAdapter,
   ThreePhysicsBridge,
   inspectGLTFAsset,
+  createGLTFImportWorkflow,
   DeterministicReplay,
   DragonBonesAdapter,
   Assert,
@@ -1913,6 +1918,7 @@ export {
   createWebGPUComputeDispatchPlan,
   createWebGPUFrameBudgetReport,
   createWebGPUHardwareEvidencePayload,
+  createWebGPUHardwareValidationReport,
   createWebGPUInstancingDescriptor,
   createWebGPUResourceLifecyclePlan,
   createWebGPUShaderVariantRegistry,
