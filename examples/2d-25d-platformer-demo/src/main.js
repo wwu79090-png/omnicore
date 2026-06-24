@@ -1,6 +1,7 @@
 import OmniCore, {
   createArcade2DGameplayPlan,
   createLevel2D25DGameplayLoop,
+  createPlatformer2DControllerStep,
   createScene2D25DPipeline,
   createTilemap2D25DAuthoringLoop
 } from 'omnicore-runtime';
@@ -90,6 +91,11 @@ const scenePipeline = createScene2D25DPipeline({
 
 let lastTime = performance.now();
 let platformPhase = 0;
+const inputMemory = {
+  lastJumpPressedAt: Number.NEGATIVE_INFINITY,
+  lastGroundedAt: performance.now(),
+  jumpReleasedFrame: false
+};
 const debugOverlay = {
   authoring,
   scenePipeline,
@@ -98,19 +104,59 @@ const debugOverlay = {
   level: null
 };
 
-window.addEventListener('keydown', (event) => keys.add(event.code));
-window.addEventListener('keyup', (event) => keys.delete(event.code));
+window.addEventListener('keydown', (event) => {
+  if (!keys.has(event.code) && isJumpKey(event.code)) {
+    inputMemory.lastJumpPressedAt = performance.now();
+  }
+  keys.add(event.code);
+});
+window.addEventListener('keyup', (event) => {
+  keys.delete(event.code);
+  if (isJumpKey(event.code)) inputMemory.jumpReleasedFrame = true;
+});
 
 function update(delta) {
+  const now = performance.now();
+  if (hero.grounded) inputMemory.lastGroundedAt = now;
   hero.previous = { x: hero.x, y: hero.y };
-  hero.velocity.x = (keys.has('ArrowRight') ? 130 : 0) - (keys.has('ArrowLeft') ? 130 : 0);
-  hero.velocity.y += 680 * delta;
-  if ((keys.has('Space') || keys.has('ArrowUp')) && hero.grounded) {
-    hero.velocity.y = -320;
-    hero.grounded = false;
-  }
+  const floor = debugOverlay.physics?.actors?.hero?.movement || null;
+  const controller = createPlatformer2DControllerStep({
+    delta,
+    actor: {
+      ...hero,
+      velocity: { x: hero.velocity.x, y: hero.velocity.y + 680 * delta },
+      lastGroundedAgoMs: hero.grounded ? 0 : now - inputMemory.lastGroundedAt
+    },
+    input: {
+      axisX: (keys.has('ArrowRight') || keys.has('KeyD') ? 1 : 0) - (keys.has('ArrowLeft') || keys.has('KeyA') ? 1 : 0),
+      jumpPressedAgoMs: now - inputMemory.lastJumpPressedAt,
+      jumpHeld: keys.has('Space') || keys.has('ArrowUp') || keys.has('KeyW'),
+      jumpReleased: inputMemory.jumpReleasedFrame,
+      down: keys.has('ArrowDown') || keys.has('KeyS'),
+      attackPressed: keys.has('KeyJ')
+    },
+    floor: floor?.floorId ? {
+      id: floor.floorId,
+      type: floor.floorType,
+      velocity: floor.platformVelocity,
+      slopeAngleDegrees: floor.slopeAngleDegrees
+    } : null,
+    tuning: {
+      maxSpeed: 150,
+      acceleration: 900,
+      deceleration: 1100,
+      airAcceleration: 540,
+      jumpVelocity: 330,
+      coyoteTimeMs: 100,
+      jumpBufferMs: 120,
+      variableJumpCut: 0.5,
+      lookAhead: 48
+    }
+  });
+  hero.velocity = { ...controller.movement.velocity };
   hero.x += hero.velocity.x * delta;
   hero.y += hero.velocity.y * delta;
+  hero.grounded = false;
 
   platformPhase += delta;
   const liveColliders = authoring.collision.colliders.map((collider) => {
@@ -123,7 +169,12 @@ function update(delta) {
   });
   const physics = createArcade2DGameplayPlan({
     delta,
-    actors: [hero],
+    actors: [{
+      ...controller.physics.actor,
+      x: hero.x,
+      y: hero.y,
+      previous: hero.previous
+    }],
     colliders: liveColliders,
     sensors: authoring.stamps.placements
       .filter((item) => item.type === 'trigger')
@@ -135,7 +186,7 @@ function update(delta) {
   hero.grounded = next.grounded;
   if (hero.grounded && hero.velocity.y > 0) hero.velocity.y = 0;
   debugOverlay.sensorHits += physics.sensorEvents.length;
-  debugOverlay.animation = resolveAnimation(hero);
+  debugOverlay.animation = controller.animation.state;
   debugOverlay.level = createLevel2D25DGameplayLoop({
     delta,
     world: { bounds: { x: 0, y: 0, width: canvas.width, height: canvas.height }, frameBudgetMs: 16.67 },
@@ -162,8 +213,10 @@ function update(delta) {
     triggers: [{ id: 'exit-door', x: 568, y: 248, width: 32, height: 72, event: 'scene:transition', target: 'next-level' }],
     render: { visibleBounds: { x: 0, y: 0, width: canvas.width, height: canvas.height }, maxDrawCalls: 64 }
   });
+  debugOverlay.controller = controller;
   debugOverlay.physics = physics;
   debugOverlay.liveColliders = liveColliders;
+  inputMemory.jumpReleasedFrame = false;
 }
 
 function render() {
@@ -249,7 +302,8 @@ function drawDebug() {
   context.fillText(`sensor hits: ${debugOverlay.sensorHits}`, 18, 48);
   context.fillText(`debug panels: ${authoring.playtest.debugPanels.join(', ')}`, 18, 66);
   context.fillText(`CameraZones + FrameBudget: ${debugOverlay.level?.performance.frameBudget.estimatedMs || 0}ms`, 18, 84);
-  context.fillText(`checkpoint / patrol / combat ready`, 18, 98);
+  context.fillText(`InputBuffer / CoyoteTime / VariableJump`, 18, 98);
+  context.fillText(`controller panels: ${debugOverlay.controller?.editor.panels.slice(0, 3).join(', ') || '-'}`, 18, 112);
 }
 
 function resolveAnimation(entity) {
@@ -257,6 +311,10 @@ function resolveAnimation(entity) {
   if (!entity.grounded && entity.velocity.y >= 0) return 'fall';
   if (Math.abs(entity.velocity.x) > 1) return 'run';
   return 'idle';
+}
+
+function isJumpKey(code) {
+  return code === 'Space' || code === 'ArrowUp' || code === 'KeyW';
 }
 
 function frame(time) {

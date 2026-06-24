@@ -1371,6 +1371,14 @@
       ]
     },
     {
+      "path": "gameplay/Platformer2DController.js",
+      "summary": "Builds one platformer controller step for 2D/2.5D projects.",
+      "exports": [
+        "PLATFORMER_2D_CONTROLLER_SCHEMA",
+        "createPlatformer2DControllerStep"
+      ]
+    },
+    {
       "path": "gameplay/QuestStateMachine.js",
       "summary": "",
       "exports": [

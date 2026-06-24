@@ -357,6 +357,10 @@ import {
   LEVEL_2D_25D_GAMEPLAY_SCHEMA,
   createLevel2D25DGameplayLoop
 } from './gameplay/Level2D25DGameplayLoop.js';
+import {
+  PLATFORMER_2D_CONTROLLER_SCHEMA,
+  createPlatformer2DControllerStep
+} from './gameplay/Platformer2DController.js';
 import QuestStateMachine from './gameplay/QuestStateMachine.js';
 import ExportPaywall from './commercial/ExportPaywall.js';
 import SleepWakeSystem from './optimization/SleepWakeSystem.js';
@@ -1307,6 +1311,8 @@ const OmniCore = {
   AbilitySystem,
   LEVEL_2D_25D_GAMEPLAY_SCHEMA,
   createLevel2D25DGameplayLoop,
+  PLATFORMER_2D_CONTROLLER_SCHEMA,
+  createPlatformer2DControllerStep,
   QuestStateMachine,
   SkeletalAnimation,
   SpineAdapter,
@@ -1876,6 +1882,8 @@ export {
   QuestStateMachine,
   LEVEL_2D_25D_GAMEPLAY_SCHEMA,
   createLevel2D25DGameplayLoop,
+  PLATFORMER_2D_CONTROLLER_SCHEMA,
+  createPlatformer2DControllerStep,
   StorageManager,
   Store,
   StartupProfiler,

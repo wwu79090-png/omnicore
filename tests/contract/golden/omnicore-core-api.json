@@ -3156,6 +3156,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createPlatformer2DControllerStep"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createPolygonPrimitive"
       },
       {
@@ -3648,6 +3653,7 @@
       "OffscreenCanvasRenderer",
       "OmniCoreErrorBoundary",
       "OmniError",
+      "PLATFORMER_2D_CONTROLLER_SCHEMA",
       "PLUGIN_PERMISSION_SCOPES",
       "PackageManager",
       "ParticleEditorPanel",
@@ -3839,6 +3845,7 @@
       "createNormalLightShader",
       "createOmniError",
       "createPerformanceDashboardSnapshot",
+      "createPlatformer2DControllerStep",
       "createPolygonPrimitive",
       "createRapierDebugDrawVisualization",
       "createRendererFallbackMatrix",
