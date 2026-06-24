@@ -1387,6 +1387,14 @@
       ]
     },
     {
+      "path": "gameplay/Hazard2D25DDirector.js",
+      "summary": "Builds one hazard director step for 2D/2.5D action games.",
+      "exports": [
+        "HAZARD_2D_25D_SCHEMA",
+        "createHazard2D25DDirectorStep"
+      ]
+    },
+    {
       "path": "gameplay/Interactable2D25DDirector.js",
       "summary": "Builds one interactable director step for 2D/2.5D games.",
       "exports": [

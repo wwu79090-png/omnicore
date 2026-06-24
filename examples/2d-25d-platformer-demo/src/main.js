@@ -3,6 +3,7 @@ import OmniCore, {
   createAnimationFeedback2D25DDirectorStep,
   createCamera2D25DDirectorStep,
   createEncounter2D25DDirectorStep,
+  createHazard2D25DDirectorStep,
   createInteractable2D25DDirectorStep,
   createLevel2D25DGameplayLoop,
   createPlatformer2DControllerStep,
@@ -69,6 +70,8 @@ const switchAlpha = { id: 'switch-alpha', type: 'switch', x: 126, y: 286, width:
 const gateA = { id: 'gate-a', type: 'door', x: 488, y: 240, width: 26, height: 64 };
 const treasureChest = { id: 'treasure-chest', type: 'chest', x: 224, y: 294, width: 22, height: 14 };
 const npcGuide = { id: 'npc-guide', type: 'npc', x: 356, y: 274, width: 18, height: 30 };
+const spikePit = { id: 'spike-pit', type: 'spikes', x: 392, y: 318, width: 64, height: 12 };
+const movingSaw = { id: 'moving-saw', type: 'moving-saw', x: 424, y: 286, width: 18, height: 18 };
 const enemy = {
   id: 'slime',
   type: 'enemy',
@@ -117,6 +120,12 @@ const debugOverlay = {
     doors: { 'gate-a': { locked: true, open: false } },
     chests: { 'treasure-chest': { opened: false } },
     checkpoints: { active: 'checkpoint-start' }
+  },
+  hazardState: {
+    health: 6,
+    invulnerabilityMs: 0,
+    sawX: movingSaw.x,
+    sawDirection: 1
   }
 };
 const demoProjectiles = [];
@@ -354,6 +363,37 @@ function update(delta) {
     ]
   });
   applyInteractableState(debugOverlay.interactables);
+  debugOverlay.hazards = createHazard2D25DDirectorStep({
+    delta,
+    actor: {
+      ...hero,
+      health: debugOverlay.hazardState.health,
+      invulnerabilityMs: debugOverlay.hazardState.invulnerabilityMs,
+      velocity: hero.velocity
+    },
+    checkpoint,
+    hazards: [
+      {
+        ...spikePit,
+        damage: 1,
+        knockback: { x: -120, y: -260 },
+        invulnerabilityMs: 900,
+        respawnOnHit: true,
+        cooldownMs: 700
+      },
+      {
+        ...movingSaw,
+        x: debugOverlay.hazardState.sawX,
+        damage: 1,
+        path: { from: 360, to: 500, speed: 48, direction: debugOverlay.hazardState.sawDirection },
+        knockback: { x: hero.x < debugOverlay.hazardState.sawX ? -150 : 150, y: -220 },
+        invulnerabilityMs: 700,
+        respawnOnHit: false,
+        cooldownMs: 500
+      }
+    ]
+  });
+  applyHazardState(debugOverlay.hazards);
   debugOverlay.feedback = createAnimationFeedback2D25DDirectorStep({
     delta,
     timeMs: now % 320,
@@ -438,6 +478,7 @@ function render() {
   drawStamps();
   drawGameplayObjects();
   drawInteractables();
+  drawHazards();
   drawProjectiles();
   drawHero();
   drawLight();
@@ -472,6 +513,18 @@ function drawInteractables() {
   context.fillText(`E: ${nearest.prompt}`, hero.x - 6, hero.y - 16);
 }
 
+function drawHazards() {
+  context.fillStyle = '#ef4444';
+  context.beginPath();
+  context.moveTo(spikePit.x, spikePit.y + spikePit.height);
+  context.lineTo(spikePit.x + spikePit.width / 2, spikePit.y);
+  context.lineTo(spikePit.x + spikePit.width, spikePit.y + spikePit.height);
+  context.closePath();
+  context.fill();
+  context.fillStyle = debugOverlay.hazardState.invulnerabilityMs > 0 ? '#fca5a5' : '#dc2626';
+  context.fillRect(debugOverlay.hazardState.sawX, movingSaw.y, movingSaw.width, movingSaw.height);
+}
+
 function applyInteractableState(step) {
   for (const update of step.stateUpdates.switches) {
     debugOverlay.interactionState.switches[update.switchId] = update.active;
@@ -491,6 +544,20 @@ function applyInteractableState(step) {
   if (step.stateUpdates.checkpoint) {
     debugOverlay.interactionState.checkpoints.active = step.stateUpdates.checkpoint.checkpointId;
   }
+}
+
+function applyHazardState(step) {
+  const moving = step.motion.hazardUpdates.find((hazard) => hazard.id === movingSaw.id);
+  if (moving) {
+    debugOverlay.hazardState.sawX = moving.x;
+    debugOverlay.hazardState.sawDirection = moving.direction;
+  }
+  debugOverlay.hazardState.health = step.stateUpdates.actor.health;
+  debugOverlay.hazardState.invulnerabilityMs = step.stateUpdates.actor.invulnerabilityMs;
+  if (step.contacts.hitEvents.length === 0 && step.response.respawnCommands.length === 0) return;
+  hero.x = step.stateUpdates.actor.x;
+  hero.y = step.stateUpdates.actor.y;
+  hero.velocity = { ...step.stateUpdates.actor.velocity };
 }
 
 function drawProjectiles() {
@@ -555,7 +622,7 @@ function drawLight() {
 
 function drawDebug() {
   context.fillStyle = 'rgba(15, 23, 42, 0.76)';
-  context.fillRect(8, 8, 312, 188);
+  context.fillRect(8, 8, 312, 202);
   context.fillStyle = '#e5e7eb';
   context.font = '12px monospace';
   context.fillText(`animation: ${debugOverlay.animation}`, 18, 30);
@@ -569,6 +636,7 @@ function drawDebug() {
   context.fillText(`EncounterDirector / ThreatBudget / SpawnWaves`, 18, 154);
   context.fillText(`ProjectileDirector / ProjectilePool / PierceBounce`, 18, 168);
   context.fillText(`InteractableDirector / Switches / Doors / Chests`, 18, 182);
+  context.fillText(`HazardDirector / DamageZones / InvulnerabilityFrames`, 18, 196);
 }
 
 function resolveAnimation(entity) {

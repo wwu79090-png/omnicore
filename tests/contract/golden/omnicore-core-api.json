@@ -3136,6 +3136,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createHazard2D25DDirectorStep"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createHousePrimitive"
       },
       {
@@ -3631,6 +3636,7 @@
       "Genealogy",
       "Geom",
       "Graphics",
+      "HAZARD_2D_25D_SCHEMA",
       "HeightfieldNavMesh25D",
       "Hook",
       "HookClass",
@@ -3871,6 +3877,7 @@
       "createGLTFImportWorkflow",
       "createGame",
       "createHD2DFilter",
+      "createHazard2D25DDirectorStep",
       "createHousePrimitive",
       "createIncrementalSpatialIndexReport",
       "createInteractable2D25DDirectorStep",
