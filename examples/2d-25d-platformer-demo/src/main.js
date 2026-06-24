@@ -1,5 +1,6 @@
 import OmniCore, {
   createArcade2DGameplayPlan,
+  createCamera2D25DDirectorStep,
   createLevel2D25DGameplayLoop,
   createPlatformer2DControllerStep,
   createScene2D25DPipeline,
@@ -213,6 +214,37 @@ function update(delta) {
     triggers: [{ id: 'exit-door', x: 568, y: 248, width: 32, height: 72, event: 'scene:transition', target: 'next-level' }],
     render: { visibleBounds: { x: 0, y: 0, width: canvas.width, height: canvas.height }, maxDrawCalls: 64 }
   });
+  const previousCamera = debugOverlay.cameraDirector?.view || { x: 0, y: 0 };
+  debugOverlay.cameraDirector = createCamera2D25DDirectorStep({
+    delta,
+    camera: {
+      x: previousCamera.x,
+      y: previousCamera.y,
+      viewport: { width: canvas.width, height: canvas.height },
+      zoom: 1,
+      pixelSnap: true
+    },
+    target: {
+      ...hero,
+      lookAhead: controller.camera.lookAhead
+    },
+    rooms: [
+      {
+        id: 'CameraDirector-world',
+        x: 0,
+        y: 0,
+        width: Math.max(canvas.width, 20 * tileSize),
+        height: Math.max(canvas.height, 12 * tileSize)
+      }
+    ],
+    deadzone: { x: 220, y: 120, width: 180, height: 120 },
+    smoothing: { follow: 0.18, lookAhead: 1 },
+    shake: { trauma: keys.has('KeyJ') ? 0.35 : 0, decay: 0.08, maxOffset: 10, seed: Math.round(platformPhase * 60) },
+    parallax: [
+      { id: 'sky', factorX: 0.2, factorY: 0.08 },
+      { id: 'mid', factorX: 0.55, factorY: 0.25 }
+    ]
+  });
   debugOverlay.controller = controller;
   debugOverlay.physics = physics;
   debugOverlay.liveColliders = liveColliders;
@@ -222,12 +254,19 @@ function update(delta) {
 function render() {
   context.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
+  const camera = debugOverlay.cameraDirector || { view: { x: 0, y: 0 }, shake: { offset: { x: 0, y: 0 } } };
+  context.save();
+  context.translate(
+    -camera.view.x + camera.shake.offset.x,
+    -camera.view.y + camera.shake.offset.y
+  );
   drawTilemap();
   drawColliders(debugOverlay.liveColliders || authoring.collision.colliders);
   drawStamps();
   drawGameplayObjects();
   drawHero();
   drawLight();
+  context.restore();
   drawDebug();
 }
 
@@ -295,7 +334,7 @@ function drawLight() {
 
 function drawDebug() {
   context.fillStyle = 'rgba(15, 23, 42, 0.76)';
-  context.fillRect(8, 8, 258, 92);
+  context.fillRect(8, 8, 296, 124);
   context.fillStyle = '#e5e7eb';
   context.font = '12px monospace';
   context.fillText(`animation: ${debugOverlay.animation}`, 18, 30);
@@ -304,6 +343,7 @@ function drawDebug() {
   context.fillText(`CameraZones + FrameBudget: ${debugOverlay.level?.performance.frameBudget.estimatedMs || 0}ms`, 18, 84);
   context.fillText(`InputBuffer / CoyoteTime / VariableJump`, 18, 98);
   context.fillText(`controller panels: ${debugOverlay.controller?.editor.panels.slice(0, 3).join(', ') || '-'}`, 18, 112);
+  context.fillText(`CameraDirector / ParallaxLayers / ShakeTrauma`, 18, 126);
 }
 
 function resolveAnimation(entity) {

@@ -356,6 +356,14 @@
       ]
     },
     {
+      "path": "camera/Camera2D25DDirector.js",
+      "summary": "Builds one production camera director step for 2D/2.5D games.",
+      "exports": [
+        "CAMERA_2D_25D_DIRECTOR_SCHEMA",
+        "createCamera2D25DDirectorStep"
+      ]
+    },
+    {
       "path": "character/CharacterRig.js",
       "summary": "",
       "exports": [

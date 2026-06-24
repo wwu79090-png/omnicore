@@ -48,6 +48,10 @@ import { FixedMemoryPool, Pool, PoolRegistry } from './core/MemoryPool.js';
 import Animation from './animation/Animation.js';
 import AnimationManager from './animation/AnimationManager.js';
 import Camera from './camera/Camera.js';
+import {
+  CAMERA_2D_25D_DIRECTOR_SCHEMA,
+  createCamera2D25DDirectorStep
+} from './camera/Camera2D25DDirector.js';
 import CharacterRig from './character/CharacterRig.js';
 import Node from './node/Node.js';
 import Container from './scene/Container.js';
@@ -1127,6 +1131,8 @@ const OmniCore = {
   InputDeviceMap,
   InputSequence,
   Camera,
+  CAMERA_2D_25D_DIRECTOR_SCHEMA,
+  createCamera2D25DDirectorStep,
   Timer,
   TimeGuard,
   Animation,
@@ -1568,6 +1574,8 @@ export {
   BehaviorTree,
   Button,
   Camera,
+  CAMERA_2D_25D_DIRECTOR_SCHEMA,
+  createCamera2D25DDirectorStep,
   CharacterRig,
   CanvasRendererAddon,
   AdaptiveQualityManager,

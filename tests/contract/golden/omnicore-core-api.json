@@ -3081,6 +3081,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createCamera2D25DDirectorStep"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createCapsulePrimitive"
       },
       {
@@ -3505,6 +3510,7 @@
       "Bootstrap",
       "BottleneckSurfaceAnalyzer",
       "Bus",
+      "CAMERA_2D_25D_DIRECTOR_SCHEMA",
       "CallbackGameLoop",
       "Camera",
       "CanvasRendererAddon",
@@ -3830,6 +3836,7 @@
       "createAssetPipelineReport",
       "createAsyncAssetPipeline",
       "createBezierPrimitive",
+      "createCamera2D25DDirectorStep",
       "createCapsulePrimitive",
       "createCodeLayerPrimitive",
       "createDeterministicRenderQueue",
