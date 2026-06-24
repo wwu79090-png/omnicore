@@ -2920,12 +2920,18 @@ export function createEditorApp(root = document.querySelector('#app'), {
 
   function openScene3DViewport(input = {}, options = {}) {
     const viewport = createScene3DViewportState(input, options);
+    const scene3DRuntimeSession = createScene3DViewportAuthoringSessionState(viewport, current.scene3DRuntimeSession, {
+      type: 'open-viewport',
+      payload: { modelCount: viewport.summary.modelCount, materialCount: viewport.summary.materialCount }
+    });
     current = createEditorState({
       ...current,
       scene3DViewport: viewport,
+      scene3DRuntimeSession,
       dockLayout: ensurePanelInDock(current.dockLayout, 'scene-3d-viewport', 'center')
     });
     emit('editor:scene-3d-viewport', viewport);
+    emit('editor:scene-3d-runtime-session', scene3DRuntimeSession);
     showEditorFeedback(`3D 视口已载入：${viewport.summary.modelCount} 个模型`, 'success');
     update(current);
     return viewport;
@@ -2941,12 +2947,18 @@ export function createEditorApp(root = document.querySelector('#app'), {
         selected: model.id === id
       }))
     });
+    const scene3DRuntimeSession = createScene3DViewportAuthoringSessionState(viewport, current.scene3DRuntimeSession, {
+      type: 'select-model',
+      payload: { modelId: id }
+    });
     current = createEditorState({
       ...current,
       scene3DViewport: viewport,
+      scene3DRuntimeSession,
       dockLayout: ensurePanelInDock(current.dockLayout, 'scene-3d-viewport', 'center')
     });
     emit('editor:scene-3d-viewport-action', { type: 'select-model', modelId: id, viewport });
+    emit('editor:scene-3d-runtime-session', scene3DRuntimeSession);
     update(current);
     return viewport.models.find((model) => model.id === id) || null;
   }
@@ -2961,12 +2973,18 @@ export function createEditorApp(root = document.querySelector('#app'), {
         activeAnimation: model.id === id ? clip : model.activeAnimation
       }))
     });
+    const scene3DRuntimeSession = createScene3DViewportAuthoringSessionState(viewport, current.scene3DRuntimeSession, {
+      type: 'preview-animation',
+      payload: { modelId: id, animation: clip }
+    });
     current = createEditorState({
       ...current,
       scene3DViewport: viewport,
+      scene3DRuntimeSession,
       dockLayout: ensurePanelInDock(current.dockLayout, 'scene-3d-viewport', 'center')
     });
     emit('editor:scene-3d-viewport-action', { type: 'preview-animation', modelId: id, animation: clip, viewport });
+    emit('editor:scene-3d-runtime-session', scene3DRuntimeSession);
     update(current);
     return viewport.models.find((model) => model.id === id) || null;
   }
@@ -2979,13 +2997,19 @@ export function createEditorApp(root = document.querySelector('#app'), {
         material.id === id ? { ...material, ...cloneState(patch) } : material
       ))
     });
+    const material = viewport.materials.find((item) => item.id === id) || null;
+    const scene3DRuntimeSession = createScene3DViewportAuthoringSessionState(viewport, current.scene3DRuntimeSession, {
+      type: 'update-material',
+      payload: { materialId: id, patch, material }
+    });
     current = createEditorState({
       ...current,
       scene3DViewport: viewport,
+      scene3DRuntimeSession,
       dockLayout: ensurePanelInDock(current.dockLayout, 'scene-3d-viewport', 'center')
     });
-    const material = viewport.materials.find((item) => item.id === id) || null;
     emit('editor:scene-3d-viewport-action', { type: 'update-material', materialId: id, patch, material, viewport });
+    emit('editor:scene-3d-runtime-session', scene3DRuntimeSession);
     update(current);
     return material;
   }
@@ -8881,6 +8905,85 @@ function createScene3DViewportState(input = {}, options = {}) {
     models,
     colliders,
     ...renderState
+  };
+}
+
+function createScene3DViewportAuthoringSessionState(viewport = {}, previousSession = null, action = {}) {
+  const sessionId = previousSession?.sessionId || 'scene-3d-viewport-authoring-session';
+  const scene = {
+    cameras: arrayFromValue(viewport.cameras).map(cloneState),
+    lights: arrayFromValue(viewport.lights).map(cloneState),
+    materials: arrayFromValue(viewport.materials).map(cloneState),
+    models: arrayFromValue(viewport.models).map(cloneState),
+    colliders: arrayFromValue(viewport.colliders).map(cloneState)
+  };
+  const importedAssets = arrayFromValue(previousSession?.importedAssets).map(cloneState);
+  const resourceDatabase = arrayFromValue(previousSession?.resourceDatabase).map(cloneState);
+  const baseTrace = arrayFromValue(previousSession?.trace)
+    .filter((entry) => entry?.type && entry.type !== 'save-patch' && entry.type !== 'export-plan')
+    .map((entry) => ({ type: entry.type, payload: cloneState(entry.payload || {}) }));
+  if (action?.type) {
+    baseTrace.push({
+      type: String(action.type),
+      payload: cloneState(action.payload || {})
+    });
+  }
+  const savePatch = {
+    schema: 'omnicore.editor-scene-3d-save-patch.v1',
+    sessionId,
+    runtime: {
+      selectedModelId: viewport.selectedModelId || null,
+      cameras: scene.cameras.map(cloneState),
+      lights: scene.lights.map(cloneState),
+      materials: scene.materials.map(cloneState),
+      models: scene.models.map(cloneState),
+      colliders: scene.colliders.map(cloneState),
+      importedAssets: importedAssets.map(cloneState)
+    }
+  };
+  const exportPlan = {
+    schema: 'omnicore.editor-scene-3d-export-plan.v1',
+    sessionId,
+    target: 'electron',
+    steps: [
+      { id: 'write-scene', label: '写入场景 JSON', source: 'createSavePatch' },
+      { id: 'bundle-assets', label: '打包 GLB/贴图资源', count: importedAssets.length },
+      { id: 'include-authoring-edits', label: '附带 3D 视口编辑结果', modelCount: scene.models.length },
+      { id: 'package-electron', label: '打包 Electron/EXE 项目', target: 'electron' }
+    ],
+    assets: importedAssets.map(cloneState)
+  };
+  const trace = [
+    ...baseTrace,
+    { type: 'save-patch', payload: { selectedModelId: savePatch.runtime.selectedModelId, modelCount: scene.models.length } },
+    { type: 'export-plan', payload: { target: exportPlan.target, stepCount: exportPlan.steps.length } }
+  ].map((entry, index) => ({
+    type: entry.type,
+    index: index + 1,
+    payload: cloneState(entry.payload || {})
+  }));
+
+  return {
+    schema: 'omnicore.editor-scene-3d-runtime-session.v1',
+    sessionId,
+    summary: {
+      mounted: Boolean(previousSession?.summary?.mounted),
+      importedAssetCount: importedAssets.length,
+      resourceCount: resourceDatabase.length,
+      rapierOverlayCount: previousSession?.summary?.rapierOverlayCount || previousSession?.rapierDebugDraw?.summary?.overlayCount || 0,
+      webgpuPassedCount: previousSession?.summary?.webgpuPassedCount || previousSession?.webgpuHardware?.validation?.summary?.webgpuPassedCount || 0,
+      modelCount: scene.models.length,
+      materialCount: scene.materials.length,
+      selectedModelId: viewport.selectedModelId || null
+    },
+    scene,
+    importedAssets,
+    resourceDatabase,
+    rapierDebugDraw: previousSession?.rapierDebugDraw ? cloneState(previousSession.rapierDebugDraw) : null,
+    webgpuHardware: previousSession?.webgpuHardware ? cloneState(previousSession.webgpuHardware) : null,
+    savePatch,
+    exportPlan,
+    trace
   };
 }
 
