@@ -366,6 +366,10 @@ import {
   createEncounter2D25DDirectorStep
 } from './gameplay/Encounter2D25DDirector.js';
 import {
+  INTERACTABLE_2D_25D_SCHEMA,
+  createInteractable2D25DDirectorStep
+} from './gameplay/Interactable2D25DDirector.js';
+import {
   LEVEL_2D_25D_GAMEPLAY_SCHEMA,
   createLevel2D25DGameplayLoop
 } from './gameplay/Level2D25DGameplayLoop.js';
@@ -1331,6 +1335,8 @@ const OmniCore = {
   createAnimationFeedback2D25DDirectorStep,
   ENCOUNTER_2D_25D_SCHEMA,
   createEncounter2D25DDirectorStep,
+  INTERACTABLE_2D_25D_SCHEMA,
+  createInteractable2D25DDirectorStep,
   LEVEL_2D_25D_GAMEPLAY_SCHEMA,
   createLevel2D25DGameplayLoop,
   PROJECTILE_2D_25D_SCHEMA,
@@ -1910,6 +1916,8 @@ export {
   createAnimationFeedback2D25DDirectorStep,
   ENCOUNTER_2D_25D_SCHEMA,
   createEncounter2D25DDirectorStep,
+  INTERACTABLE_2D_25D_SCHEMA,
+  createInteractable2D25DDirectorStep,
   LEVEL_2D_25D_GAMEPLAY_SCHEMA,
   createLevel2D25DGameplayLoop,
   PROJECTILE_2D_25D_SCHEMA,

@@ -3,6 +3,7 @@ import OmniCore, {
   createAnimationFeedback2D25DDirectorStep,
   createCamera2D25DDirectorStep,
   createEncounter2D25DDirectorStep,
+  createInteractable2D25DDirectorStep,
   createLevel2D25DGameplayLoop,
   createPlatformer2DControllerStep,
   createProjectile2D25DDirectorStep,
@@ -64,6 +65,10 @@ const authoring = createTilemap2D25DAuthoringLoop({
 
 const checkpoint = { id: 'checkpoint-start', x: 32, y: 176, width: 40, height: 48, respawn: { x: 72, y: 178 } };
 const coin = { id: 'coin-1', x: 192, y: 188, width: 14, height: 14, inventoryKey: 'coins', value: 1 };
+const switchAlpha = { id: 'switch-alpha', type: 'switch', x: 126, y: 286, width: 16, height: 16 };
+const gateA = { id: 'gate-a', type: 'door', x: 488, y: 240, width: 26, height: 64 };
+const treasureChest = { id: 'treasure-chest', type: 'chest', x: 224, y: 294, width: 22, height: 14 };
+const npcGuide = { id: 'npc-guide', type: 'npc', x: 356, y: 274, width: 18, height: 30 };
 const enemy = {
   id: 'slime',
   type: 'enemy',
@@ -98,20 +103,30 @@ let platformPhase = 0;
 const inputMemory = {
   lastJumpPressedAt: Number.NEGATIVE_INFINITY,
   lastGroundedAt: performance.now(),
-  jumpReleasedFrame: false
+  jumpReleasedFrame: false,
+  interactPressedFrame: false
 };
 const debugOverlay = {
   authoring,
   scenePipeline,
   sensorHits: 0,
   animation: 'idle',
-  level: null
+  level: null,
+  interactionState: {
+    switches: { 'switch-alpha': false },
+    doors: { 'gate-a': { locked: true, open: false } },
+    chests: { 'treasure-chest': { opened: false } },
+    checkpoints: { active: 'checkpoint-start' }
+  }
 };
 const demoProjectiles = [];
 
 window.addEventListener('keydown', (event) => {
   if (!keys.has(event.code) && isJumpKey(event.code)) {
     inputMemory.lastJumpPressedAt = performance.now();
+  }
+  if (!keys.has(event.code) && event.code === 'KeyE') {
+    inputMemory.interactPressedFrame = true;
   }
   keys.add(event.code);
 });
@@ -285,6 +300,60 @@ function update(delta) {
     }))
   ].slice(-12);
   demoProjectiles.splice(0, demoProjectiles.length, ...nextProjectiles);
+  debugOverlay.interactables = createInteractable2D25DDirectorStep({
+    delta,
+    player: { ...hero, inventory: { keys: 1, coins: 0 } },
+    input: {
+      interactPressed: inputMemory.interactPressedFrame,
+      interactTargetIds: debugOverlay.interactables?.prompts.nearest
+        ? [debugOverlay.interactables.prompts.nearest.interactableId]
+        : []
+    },
+    worldState: debugOverlay.interactionState,
+    interactables: [
+      {
+        ...switchAlpha,
+        radius: 42,
+        prompt: 'Pull switch',
+        priority: 10,
+        effects: [
+          { type: 'set-state', targetId: gateA.id, domain: 'doors', key: 'locked', value: false },
+          { type: 'emit-event', event: 'gate:unlock', targetId: gateA.id }
+        ]
+      },
+      {
+        ...gateA,
+        radius: 54,
+        prompt: 'Open gate',
+        locked: debugOverlay.interactionState.doors['gate-a'].locked,
+        transition: { scene: 'next-level', spawn: 'entry' }
+      },
+      {
+        ...treasureChest,
+        radius: 40,
+        prompt: 'Open chest',
+        loot: [{ id: 'coins', amount: 5 }]
+      },
+      {
+        ...npcGuide,
+        radius: 48,
+        prompt: 'Talk',
+        dialogue: 'intro-guide'
+      },
+      {
+        id: 'checkpoint-hill',
+        type: 'checkpoint',
+        x: checkpoint.x,
+        y: checkpoint.y,
+        width: checkpoint.width,
+        height: checkpoint.height,
+        radius: 36,
+        auto: true,
+        respawn: checkpoint.respawn
+      }
+    ]
+  });
+  applyInteractableState(debugOverlay.interactables);
   debugOverlay.feedback = createAnimationFeedback2D25DDirectorStep({
     delta,
     timeMs: now % 320,
@@ -352,6 +421,7 @@ function update(delta) {
   debugOverlay.physics = physics;
   debugOverlay.liveColliders = liveColliders;
   inputMemory.jumpReleasedFrame = false;
+  inputMemory.interactPressedFrame = false;
 }
 
 function render() {
@@ -367,6 +437,7 @@ function render() {
   drawColliders(debugOverlay.liveColliders || authoring.collision.colliders);
   drawStamps();
   drawGameplayObjects();
+  drawInteractables();
   drawProjectiles();
   drawHero();
   drawLight();
@@ -381,6 +452,45 @@ function drawGameplayObjects() {
   context.fillRect(checkpoint.x, checkpoint.y, checkpoint.width, checkpoint.height);
   context.fillStyle = debugOverlay.feedback?.flashes.some((flash) => flash.targetId === enemy.id) ? '#f8fafc' : '#fb7185';
   context.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+}
+
+function drawInteractables() {
+  context.fillStyle = debugOverlay.interactionState.switches['switch-alpha'] ? '#86efac' : '#f97316';
+  context.fillRect(switchAlpha.x, switchAlpha.y, switchAlpha.width, switchAlpha.height);
+  context.fillStyle = debugOverlay.interactionState.doors['gate-a'].locked ? '#7c2d12' : '#22c55e';
+  context.fillRect(gateA.x, gateA.y, gateA.width, gateA.height);
+  context.fillStyle = debugOverlay.interactionState.chests['treasure-chest'].opened ? '#a3a3a3' : '#f59e0b';
+  context.fillRect(treasureChest.x, treasureChest.y, treasureChest.width, treasureChest.height);
+  context.fillStyle = '#c084fc';
+  context.fillRect(npcGuide.x, npcGuide.y, npcGuide.width, npcGuide.height);
+  const nearest = debugOverlay.interactables?.prompts.nearest;
+  if (!nearest) return;
+  context.fillStyle = 'rgba(15, 23, 42, 0.82)';
+  context.fillRect(hero.x - 10, hero.y - 28, 108, 18);
+  context.fillStyle = '#f8fafc';
+  context.font = '10px monospace';
+  context.fillText(`E: ${nearest.prompt}`, hero.x - 6, hero.y - 16);
+}
+
+function applyInteractableState(step) {
+  for (const update of step.stateUpdates.switches) {
+    debugOverlay.interactionState.switches[update.switchId] = update.active;
+  }
+  for (const update of step.stateUpdates.doors) {
+    debugOverlay.interactionState.doors[update.doorId] = {
+      ...(debugOverlay.interactionState.doors[update.doorId] || {}),
+      ...update
+    };
+  }
+  for (const update of step.stateUpdates.chests) {
+    debugOverlay.interactionState.chests[update.chestId] = {
+      ...(debugOverlay.interactionState.chests[update.chestId] || {}),
+      opened: update.opened
+    };
+  }
+  if (step.stateUpdates.checkpoint) {
+    debugOverlay.interactionState.checkpoints.active = step.stateUpdates.checkpoint.checkpointId;
+  }
 }
 
 function drawProjectiles() {
@@ -445,7 +555,7 @@ function drawLight() {
 
 function drawDebug() {
   context.fillStyle = 'rgba(15, 23, 42, 0.76)';
-  context.fillRect(8, 8, 312, 174);
+  context.fillRect(8, 8, 312, 188);
   context.fillStyle = '#e5e7eb';
   context.font = '12px monospace';
   context.fillText(`animation: ${debugOverlay.animation}`, 18, 30);
@@ -458,6 +568,7 @@ function drawDebug() {
   context.fillText(`Hitstop / ComboWindows / ImpactParticles`, 18, 140);
   context.fillText(`EncounterDirector / ThreatBudget / SpawnWaves`, 18, 154);
   context.fillText(`ProjectileDirector / ProjectilePool / PierceBounce`, 18, 168);
+  context.fillText(`InteractableDirector / Switches / Doors / Chests`, 18, 182);
 }
 
 function resolveAnimation(entity) {
