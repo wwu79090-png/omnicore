@@ -2260,6 +2260,14 @@
       ]
     },
     {
+      "path": "quality/EngineCommercialClosureGate.js",
+      "summary": "",
+      "exports": [
+        "EngineCommercialClosureGate",
+        "createEngineCommercialClosureReport"
+      ]
+    },
+    {
       "path": "quality/EngineCompletenessMatrix.js",
       "summary": "",
       "exports": [

@@ -1986,6 +1986,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "EngineCommercialClosureGate"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "EngineCompletenessMatrix"
       },
       {
@@ -3126,6 +3131,11 @@
       {
         "arity": 0,
         "async": false,
+        "name": "createEngineCommercialClosureReport"
+      },
+      {
+        "arity": 0,
+        "async": false,
         "name": "createEntity"
       },
       {
@@ -3616,6 +3626,7 @@
       "EmotionalPalette25D",
       "EngineAdvantageAssimilator",
       "EngineCapabilityAtlas",
+      "EngineCommercialClosureGate",
       "EngineCompletenessMatrix",
       "EngineFunctionQualityMatrix",
       "EngineLimitRegistry",
@@ -3887,6 +3898,7 @@
       "createDeterministicRenderQueue",
       "createEditorDeployBenchmark25D",
       "createEncounter2D25DDirectorStep",
+      "createEngineCommercialClosureReport",
       "createEntity",
       "createGLTFImportWorkflow",
       "createGame",

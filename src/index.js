@@ -484,6 +484,7 @@ import QualityOptimizationPlanner from './quality/QualityOptimizationPlanner.js'
 import EngineCompletenessMatrix from './quality/EngineCompletenessMatrix.js';
 import CompletenessGapAnalyzer from './quality/CompletenessGapAnalyzer.js';
 import CompletenessClosurePlanner from './quality/CompletenessClosurePlanner.js';
+import EngineCommercialClosureGate, { createEngineCommercialClosureReport } from './quality/EngineCommercialClosureGate.js';
 import CrossEngineParityMatrix from './quality/CrossEngineParityMatrix.js';
 import EngineAdvantageAssimilator from './quality/EngineAdvantageAssimilator.js';
 import CrossEngineAdoptionPlanner from './quality/CrossEngineAdoptionPlanner.js';
@@ -1420,6 +1421,8 @@ const OmniCore = {
   EngineCompletenessMatrix,
   CompletenessGapAnalyzer,
   CompletenessClosurePlanner,
+  EngineCommercialClosureGate,
+  createEngineCommercialClosureReport,
   CrossEngineParityMatrix,
   EngineAdvantageAssimilator,
   CrossEngineAdoptionPlanner,
@@ -1442,7 +1445,9 @@ const OmniCore = {
   CompletenessTools: {
     EngineCompletenessMatrix,
     CompletenessGapAnalyzer,
-    CompletenessClosurePlanner
+    CompletenessClosurePlanner,
+    EngineCommercialClosureGate,
+    createEngineCommercialClosureReport
   },
   CrossEngineTools: {
     CrossEngineParityMatrix,
@@ -1705,6 +1710,8 @@ export {
   EngineCompletenessMatrix,
   CompletenessGapAnalyzer,
   CompletenessClosurePlanner,
+  EngineCommercialClosureGate,
+  createEngineCommercialClosureReport,
   CrossEngineParityMatrix,
   EngineAdvantageAssimilator,
   CrossEngineAdoptionPlanner,
