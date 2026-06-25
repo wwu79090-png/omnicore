@@ -439,6 +439,62 @@ describe('standalone desktop-grade OmniCore Editor', () => {
     app.destroy();
   });
 
+  it('connects all major engine strengths through a compact launcher capability matrix', async () => {
+    const root = document.createElement('main');
+    document.body.appendChild(root);
+    const app = createEditorApp(root, {
+      state: {
+        scene: {
+          entities: []
+        }
+      }
+    });
+
+    const matrix = root.querySelector('[data-desktop-capability-matrix]');
+    const rows = [...root.querySelectorAll('[data-desktop-capability-row]')];
+
+    expect(matrix).toBeTruthy();
+    expect(matrix?.textContent).toContain('能力矩阵');
+    expect(rows).toHaveLength(8);
+    expect(rows.map((row) => row.dataset.desktopCapabilityRow)).toEqual([
+      '2d-authoring',
+      '25d-world',
+      '3d-runtime',
+      'visual-logic',
+      'asset-pipeline',
+      'render-performance',
+      'physics-debug',
+      'publish-quality'
+    ]);
+
+    for (const row of rows) {
+      expect(row.querySelector('[data-desktop-capability-source]')?.textContent.trim()).not.toBe('');
+      expect(row.querySelector('[data-desktop-capability-target]')?.textContent.trim()).not.toBe('');
+      expect(row.querySelector('[data-desktop-capability-status]')?.textContent.trim()).toMatch(/已接入|可执行|实时|闭环/);
+      expect(row.querySelector('[data-desktop-capability-open]')?.dataset.desktopCommand).toBeTruthy();
+      expect(row.querySelector('[data-desktop-icon-source="lucide-static"] svg')).toBeTruthy();
+    }
+
+    const threeRuntime = root.querySelector('[data-desktop-capability-row="3d-runtime"]');
+    expect(threeRuntime?.textContent).toContain('Three.js');
+    expect(threeRuntime?.textContent).toContain('GLTF');
+    expect(threeRuntime?.textContent).toContain('scene-3d-viewport');
+
+    threeRuntime?.querySelector('[data-desktop-capability-open]')?.click();
+    await Promise.resolve();
+    expectDesktopCommandWindow(root, 'scene-3d-demo', '3D 场景 Demo');
+    expect(root.querySelector('[data-desktop-command-window]')?.textContent).toContain('examples/3d-runtime-demo');
+    expect(app.getDockLayout().center).toContain('scene-3d-viewport');
+
+    const assetPipeline = root.querySelector('[data-desktop-capability-row="asset-pipeline"]');
+    assetPipeline?.querySelector('[data-desktop-capability-open]')?.click();
+    await Promise.resolve();
+    expectDesktopCommandWindow(root, 'asset-refresh', '资源增量刷新');
+    expect(root.querySelector('[data-editor-feedback]')?.textContent).toContain('资源库已增量刷新');
+
+    app.destroy();
+  });
+
   it('starts with an unobstructed launcher and exposes resizable editor splitters', () => {
     const root = document.createElement('main');
     document.body.appendChild(root);

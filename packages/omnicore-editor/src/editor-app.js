@@ -510,6 +510,81 @@ const DESKTOP_DIAGNOSTIC_COMMANDS = new Set([
   'governance-report'
 ]);
 
+const DESKTOP_CAPABILITY_MATRIX = [
+  {
+    id: '2d-authoring',
+    title: '2D 关卡编辑',
+    source: 'Phaser / Godot TileMap',
+    target: 'tilemap / scene-view / animation-timeline',
+    status: '已接入',
+    command: 'tilemap',
+    icon: MapIcon
+  },
+  {
+    id: '25d-world',
+    title: '2.5D 世界表现',
+    source: 'Cocos Creator / Godot Y-sort',
+    target: 'scene-view / camera-lighting / fake-shadow',
+    status: '实时闭环',
+    command: 'camera-lighting',
+    icon: Layers
+  },
+  {
+    id: '3d-runtime',
+    title: '3D Runtime',
+    source: 'Three.js / GLTF / Rapier',
+    target: 'scene-3d-viewport / examples/3d-runtime-demo',
+    status: '可执行',
+    command: 'scene-3d-demo',
+    icon: Box
+  },
+  {
+    id: 'visual-logic',
+    title: '可视化逻辑',
+    source: 'Godot Visual Script / Event Sheet',
+    target: 'visual-scripting / flow-graph / trace',
+    status: '已接入',
+    command: 'visual-scripting',
+    icon: Workflow
+  },
+  {
+    id: 'asset-pipeline',
+    title: '资源管线',
+    source: 'Unity AssetDatabase / Cocos Assets',
+    target: 'assets / prefab-dependency-graph / hot-reload',
+    status: '可执行',
+    command: 'asset-refresh',
+    icon: Boxes
+  },
+  {
+    id: 'render-performance',
+    title: '渲染性能',
+    source: 'PixiJS Batch / WebGPU',
+    target: 'profiler / webgpu-pipeline / frame-budget',
+    status: '实时诊断',
+    command: 'webgpu-diagnostics',
+    icon: Cpu
+  },
+  {
+    id: 'physics-debug',
+    title: '物理调试',
+    source: 'Arcade / Rapier / Box2D 思路',
+    target: 'physics-view / collider / raycast',
+    status: '已接入',
+    command: 'physics-view',
+    icon: Radar
+  },
+  {
+    id: 'publish-quality',
+    title: '发布质量',
+    source: 'Godot Export / Electron Builder',
+    target: 'quality-gate / build-settings / exe-package',
+    status: '闭环检查',
+    command: 'quality-gate',
+    icon: ShieldCheck
+  }
+];
+
 const DESKTOP_COMMANDS_BY_ID = new Map();
 const DESKTOP_COMMAND_SECTION_BY_ID = new Map();
 for (const section of DESKTOP_COMMAND_SECTIONS) {
@@ -921,6 +996,42 @@ function renderDesktopSectionExtra(section) {
   return '';
 }
 
+function renderDesktopCapabilityMatrix() {
+  return `
+    <section class="desktop-capability-matrix" data-desktop-capability-matrix aria-label="引擎能力矩阵">
+      <header>
+        <div>
+          <span>能力矩阵</span>
+          <strong>把学习到的引擎优点接到真实功能</strong>
+        </div>
+        <small>来源 / 面板目标 / 当前状态 / 打开动作</small>
+      </header>
+      <div class="desktop-capability-grid">
+        ${DESKTOP_CAPABILITY_MATRIX.map((item, index) => `
+          <article
+            class="desktop-capability-row"
+            style="--desktop-capability-index: ${index};"
+            data-desktop-capability-row="${escapeDesktopHtml(item.id)}"
+          >
+            ${renderDesktopIcon(item.icon, 'desktop-lucide-icon desktop-capability-icon')}
+            <div>
+              <strong>${escapeDesktopHtml(item.title)}</strong>
+              <span data-desktop-capability-source>${escapeDesktopHtml(item.source)}</span>
+            </div>
+            <span data-desktop-capability-target>${escapeDesktopHtml(item.target)}</span>
+            <b data-desktop-capability-status>${escapeDesktopHtml(item.status)}</b>
+            <button
+              type="button"
+              data-desktop-capability-open
+              data-desktop-command="${escapeDesktopHtml(item.command)}"
+            >打开</button>
+          </article>
+        `).join('')}
+      </div>
+    </section>
+  `;
+}
+
 function renderDesktopFeatureSection(section, index = 0) {
   const aliases = (section.aliases || [])
     .map((alias) => `<span class="desktop-section-anchor" data-hub-section="${escapeDesktopHtml(alias)}"></span>`)
@@ -993,6 +1104,7 @@ function renderDesktopLauncherHub() {
           <span data-desktop-search-count>显示 ${DESKTOP_COMMANDS_BY_ID.size} 个功能</span>
         </div>
         <div class="desktop-hub-body">
+          ${renderDesktopCapabilityMatrix()}
           <div class="desktop-hub-grid" data-desktop-section-board>
             ${DESKTOP_COMMAND_SECTIONS.map((section, index) => renderDesktopFeatureSection(section, index)).join('')}
           </div>
@@ -1647,11 +1759,13 @@ export function createEditorApp(root = document.querySelector('#app'), {
     if (command === 'asset-refresh') {
       const panel = refreshAssetRegistryPanel({ source: 'desktop-launcher' });
       showEditorFeedback(`资源库已增量刷新：${panel.assets?.length || 0} 项资源`, 'success');
+      update(current);
       return panel;
     }
     if (command === 'hot-reload') {
       const result = queueHotReload(['assets/launcher-change.png']);
       showEditorFeedback(`热重载事件流已生成：${result.changedFiles.length} 个变更`, 'success');
+      update(current);
       return result;
     }
     if (command === 'dependency-graph') {
@@ -13203,7 +13317,22 @@ const EDITOR_CSS = `
   .desktop-command-search span { color: #ccfbf1; font-size: 10px; font-weight: 700; }
   .desktop-command-search input { min-height: 22px; padding: 3px 7px; border-radius: 6px; background: #090b0a; font-size: 11px; }
   .desktop-hub-control-strip > span { display: grid; place-items: center start; min-width: 0; padding: 5px 8px; border: 1px solid #384142; border-radius: 8px; background: #141716; color: #fbbf24; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .desktop-hub-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; min-height: 0; }
+  .desktop-hub-body { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 8px; min-width: 0; min-height: 0; }
+  .desktop-capability-matrix { display: grid; gap: 6px; min-width: 0; padding: 8px; border: 1px solid #343c3c; border-radius: 8px; background: linear-gradient(135deg, rgba(45,212,191,.07), rgba(245,158,11,.04)), #141716; animation: desktopPanelEnter .28s ease both; }
+  .desktop-capability-matrix header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; min-width: 0; }
+  .desktop-capability-matrix header div { display: grid; gap: 1px; min-width: 0; }
+  .desktop-capability-matrix header span { color: #99f6e4; font-size: 9px; font-weight: 800; }
+  .desktop-capability-matrix header strong { color: #fbfbf8; font-size: 12px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-capability-matrix header small { color: #fbbf24; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-capability-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; min-width: 0; }
+  .desktop-capability-row { display: grid; grid-template-columns: 24px minmax(104px, 1fr) minmax(126px, 1.15fr) auto 42px; gap: 6px; align-items: center; min-width: 0; min-height: 38px; padding: 5px 6px; border: 1px solid #303838; border-radius: 7px; background: #101413; animation: desktopCardEnter .22s ease both; animation-delay: calc(var(--desktop-capability-index, 0) * 12ms); }
+  .desktop-capability-icon { display: grid; place-items: center; width: 22px; height: 22px; border: 1px solid rgba(45,212,191,.42); border-radius: 6px; background: #10201e; color: #99f6e4; }
+  .desktop-capability-icon svg { width: 14px; height: 14px; }
+  .desktop-capability-row div { display: grid; gap: 1px; min-width: 0; }
+  .desktop-capability-row strong { min-width: 0; color: #fbfbf8; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-capability-row span { min-width: 0; color: #b7c3bd; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-capability-row b { justify-self: start; padding: 2px 6px; border: 1px solid rgba(132,204,22,.38); border-radius: 999px; color: #bef264; font-size: 9px; white-space: nowrap; }
+  .desktop-capability-row button { min-width: 0; min-height: 26px; padding: 0 8px; border-radius: 6px; background: #10201e; color: #ccfbf1; font-size: 10px; }
   .desktop-hub-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(0, 1fr); align-items: stretch; gap: 0; min-height: 0; overflow: hidden; padding-right: 0; }
   .desktop-hub-panel { position: relative; display: grid; grid-template-rows: 30px 24px 34px minmax(0, 1fr) auto; gap: 6px; min-width: 0; min-height: 0; align-self: stretch; overflow: hidden; padding: 9px; border: 1px solid #343c3c; border-radius: 8px; background: #151817; opacity: .86; animation: desktopPanelEnter .36s ease both; animation-delay: calc(var(--desktop-section-index, 0) * 24ms); transition: border-color .16s ease, opacity .16s ease, box-shadow .16s ease, background .16s ease; }
   .desktop-hub-panel.is-focused { border-color: #2dd4bf; background: linear-gradient(135deg, rgba(45,212,191,.08), rgba(245,158,11,.045)), #161a19; opacity: 1; box-shadow: inset 0 0 0 1px rgba(45,212,191,.16), 0 12px 34px rgba(0,0,0,.2); }
