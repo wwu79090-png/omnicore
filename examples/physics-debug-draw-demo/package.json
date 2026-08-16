@@ -10,6 +10,6 @@
     "@omnicore/physics": "file:../../packages/physics"
   },
   "devDependencies": {
-    "vite": "^8.0.16"
+    "vite": "^8.2.1"
   }
 }
