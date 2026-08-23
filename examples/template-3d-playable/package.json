@@ -11,11 +11,11 @@
     "export:electron": "omni export --target electron --scene scene.omnicore.json"
   },
   "dependencies": {
-    "@dimforge/rapier3d-compat": "^0.19.3",
+    "@dimforge/rapier3d-compat": "^0.20.0",
     "omnicore": "file:../..",
-    "three": "^0.184.0"
+    "three": "^0.185.1"
   },
   "devDependencies": {
-    "vite": "^8.0.16"
+    "vite": "^8.2.2"
   }
 }
